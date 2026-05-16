@@ -1,0 +1,25 @@
+# LOTW replay fixture v1
+# Format:
+#   frame <count> [buttons...]
+# Buttons use FCEUX joypad names: up down left right A B start select.
+#
+# This fixture starts the game, selects the lower child on the family selection
+# screen, opens the item setup screen, chooses EXIT, leaves the house, then
+# re-enters through the outdoor doorway and walks left inside. It stores only
+# controller timing, not ROM data or captured frames.
+frame 300
+frame 12 start
+frame 180
+frame 20 left
+frame 5 up
+frame 12 A
+frame 120
+frame 120 down
+frame 12 A
+frame 120
+frame 120 down
+frame 240
+frame 90 up
+frame 60 A
+frame 180 left
+frame 120

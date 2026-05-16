@@ -1,0 +1,12 @@
+[workspace]
+members = [
+  "crates/lotw-port",
+  "crates/lotw-runtime",
+  "crates/lotw-tools",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "UNLICENSED"
+publish = false

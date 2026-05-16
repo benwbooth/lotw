@@ -1,0 +1,12 @@
+build/
+target/
+generated/
+*.nes
+*.fds
+*.nsf
+*.sav
+*.srm
+*.zip
+*.7z
+compile_commands.json
+.cache/

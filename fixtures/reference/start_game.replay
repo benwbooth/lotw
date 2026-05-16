@@ -1,0 +1,11 @@
+# LOTW replay fixture v1
+# Format:
+#   frame <count> [buttons...]
+# Buttons use FCEUX joypad names: up down left right A B start select.
+#
+# This fixture waits for the title prompt, presses Start, and advances into the
+# first controllable game state. It stores only controller timing, not ROM data
+# or captured frames.
+frame 300
+frame 12 start
+frame 108
