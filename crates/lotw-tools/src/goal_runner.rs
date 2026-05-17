@@ -5,7 +5,8 @@ use crate::{
     native_block_static_merge, native_block_transition, progress_report, reference_hash_report,
     replay_dump, replay_smoke, rom_extract, rom_info, rust_port_capture, semantic_match_report,
     source_audit, static_cfg_gap, static_entry_plan, static_handoff_plan, static_handoff_verify,
-    static_proof_accumulate, static_rom_audit, symbol_audit, trace_compare, whole_program_report,
+    static_jsr_verify, static_proof_accumulate, static_rom_audit, symbol_audit, trace_compare,
+    whole_program_report,
 };
 use std::collections::HashMap;
 use std::env;
@@ -1051,7 +1052,7 @@ impl GoalContext {
             }
             StaticVerifier::Leaf => rust_rewrite_pending("static-leaf-verify"),
             StaticVerifier::Branch => rust_rewrite_pending("static-branch-verify"),
-            StaticVerifier::Jsr => rust_rewrite_pending("static-jsr-verify"),
+            StaticVerifier::Jsr => static_jsr_verify::run(&self.build_dir, out_dir, rom, limit),
             StaticVerifier::Return => rust_rewrite_pending("static-return-verify"),
         }
     }
