@@ -39,6 +39,8 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
   `cargo test --workspace`, and clippy including the SDL runtime feature.
 - `symbol-audit`: validates that `symbols.yaml` keeps every function/RAM entry
   evidence-shaped before an AI naming pass consumes it.
+- `decomp-worklist`: writes ranked queues for replay-covered block splits and
+  unverified static frontier blockers from the current proof ledgers.
 - `run`: Rust SDL runtime.
 - `progress`: writes game logic, raw CHR tile decode, assembled sprite PNG,
   room/background PNG, trace-frame render, and music/SFX DSL conversion metrics

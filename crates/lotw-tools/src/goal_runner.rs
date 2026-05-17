@@ -1,7 +1,7 @@
 use crate::{
     apu_trace, block_exec, block_exec_verify, block_translation_plan, blocks, chr_preview,
-    coverage_report, disasm, external_block_plan, fceux_capture, goal_status, headless_frame,
-    native_block_plan, native_block_run_maximal, native_block_runtime_trace_verify,
+    coverage_report, decomp_worklist, disasm, external_block_plan, fceux_capture, goal_status,
+    headless_frame, native_block_plan, native_block_run_maximal, native_block_runtime_trace_verify,
     native_block_static_merge, native_block_transition, progress_report, reference_hash_report,
     replay_dump, replay_smoke, rom_extract, rom_info, rust_port_capture, semantic_match_report,
     source_audit, static_cfg_gap, static_entry_plan, static_handoff_plan, static_proof_accumulate,
@@ -147,6 +147,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         Some("replay-smoke") => ctx.cmd_replay_smoke(),
         Some("reference-hash-harness") => ctx.cmd_reference_hash_harness(),
         Some("progress") => ctx.cmd_progress(),
+        Some("decomp-worklist") | Some("worklist") => ctx.cmd_decomp_worklist(),
         Some("semantic-match-report") => ctx.cmd_semantic_match_report(),
         Some("whole-program-report") => ctx.cmd_whole_program_report(),
         Some("replay-dump") => ctx.cmd_replay_dump(),
@@ -173,7 +174,7 @@ fn usage() {
     eprintln!("  native-block-sequence native-block-chain native-block-run");
     eprintln!("  native-block-run-maximal native-block-runtime-trace replay-smoke");
     eprintln!("  rust-replay-dump reference-hash-harness progress audio-trace block-verify");
-    eprintln!("  symbol-audit");
+    eprintln!("  symbol-audit decomp-worklist worklist");
     eprintln!();
     eprintln!("Rust-only migration is the target; remaining C callers are migration debt.");
 }
@@ -969,6 +970,10 @@ impl GoalContext {
 
     fn cmd_progress(&self) -> Result<(), Box<dyn std::error::Error>> {
         progress_report::run(&self.build_dir, &self.build_dir.join("progress"))
+    }
+
+    fn cmd_decomp_worklist(&self) -> Result<(), Box<dyn std::error::Error>> {
+        decomp_worklist::run(&self.build_dir, &self.build_dir.join("decomp_worklist"))
     }
 
     fn run_static_proof_verifier(

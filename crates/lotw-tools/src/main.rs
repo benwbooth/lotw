@@ -5,6 +5,7 @@ mod block_translation_plan;
 mod blocks;
 mod chr_preview;
 mod coverage_report;
+mod decomp_worklist;
 mod disasm;
 mod external_block_plan;
 mod fceux_capture;
@@ -66,6 +67,7 @@ fn usage(program: &str) {
     eprintln!("  {program} blocks <rom.nes> <executed_labels.tsv> <out-dir> [expected-sha256]");
     eprintln!("  {program} chr-preview <rom.nes> <out-dir> [expected-sha256]");
     eprintln!("  {program} coverage-report <build-dir> <out-dir> <replay>...");
+    eprintln!("  {program} decomp-worklist <build-dir> <out-dir>");
     eprintln!("  {program} disasm <rom.nes> <out-dir> [expected-sha256]");
     eprintln!("  {program} external-block-plan <build-dir> <out-dir> <replay>...");
     eprintln!("  {program} goal <command>");
@@ -152,6 +154,9 @@ fn main() {
         ),
         Some("coverage-report") if args.len() >= 5 => {
             coverage_report::run(Path::new(&args[2]), Path::new(&args[3]), &args[4..])
+        }
+        Some("decomp-worklist") if args.len() == 4 => {
+            decomp_worklist::run(Path::new(&args[2]), Path::new(&args[3]))
         }
         Some("disasm") if args.len() == 4 || args.len() == 5 => disasm::run(
             Path::new(&args[2]),

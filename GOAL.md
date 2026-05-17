@@ -41,6 +41,9 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
 - `whole-program-report` now emits `whole_program_remaining_units.tsv`, which
   classifies remaining logic work instead of hiding it behind one generic
   unplanned/data-split bucket.
+- `decomp-worklist` turns `whole_program_remaining_units.tsv` and
+  `static_frontier_match_status.tsv` into ranked queues for replay block splits
+  and static frontier blockers.
 - The default static proof horizon now covers the next 2,048 static entry/audit
   rows and uses 64-case verifier batches, so the normal Rust goal command keeps
   advancing past the old 1,024-row frontier.
@@ -83,6 +86,7 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-rom
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-chr-preview
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal symbol-audit
+nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal decomp-worklist
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal progress
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal test
 ```
