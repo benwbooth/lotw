@@ -42,6 +42,7 @@ mod rust_ppu_render_compare;
 mod semantic_match_report;
 mod smoke_assert;
 mod source_audit;
+mod static_branch_verify;
 mod static_cfg_gap;
 mod static_entry_plan;
 mod static_handoff_plan;
@@ -117,6 +118,7 @@ fn usage(program: &str) {
     eprintln!("  {program} runtime-native-trace-verify <native-block-run-dir> <port-trace-dir> <out-dir> [expected-runtime] [expected-external-writes.tsv]");
     eprintln!("  {program} semantic-match-report <build-dir> <out-dir>");
     eprintln!("  {program} source-audit <repo-root>");
+    eprintln!("  {program} static-branch-verify <build-dir> <out-dir> <rom.nes> [limit]");
     eprintln!("  {program} static-cfg-gap <build-dir> <out-dir> <replay>...");
     eprintln!("  {program} static-entry-plan <build-dir> <out-dir> [limit]");
     eprintln!("  {program} static-handoff-plan <build-dir> <out-dir> [limit]");
@@ -396,6 +398,24 @@ fn main() {
                 None => 64,
             };
             static_handoff_plan::run(Path::new(&args[2]), Path::new(&args[3]), limit)
+        }
+        Some("static-branch-verify") if args.len() == 5 || args.len() == 6 => {
+            let limit = match args.get(5) {
+                Some(value) => match value.parse::<usize>() {
+                    Ok(limit) => limit,
+                    Err(err) => {
+                        eprintln!("lotw-tools: invalid static branch verify limit: {err}");
+                        std::process::exit(2);
+                    }
+                },
+                None => 64,
+            };
+            static_branch_verify::run(
+                Path::new(&args[2]),
+                Path::new(&args[3]),
+                Path::new(&args[4]),
+                limit,
+            )
         }
         Some("static-handoff-verify") if args.len() == 5 || args.len() == 6 => {
             let limit = match args.get(5) {
