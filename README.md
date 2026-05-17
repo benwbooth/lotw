@@ -38,9 +38,9 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
 - `test`: source audit, `cargo fmt --check`, `cargo test --workspace`, and
   clippy including the SDL runtime feature.
 - `run`: Rust SDL runtime.
-- `progress`: writes game logic, CHR graphics PNG decoding, and music/SFX DSL
-  conversion percentages to `build/progress/progress_summary.txt`, including
-  the generated CHR PNG path and hash.
+- `progress`: writes game logic, raw CHR tile decode, assembled sprite PNG,
+  room/background PNG, trace-frame render, and music/SFX DSL conversion metrics
+  to `build/progress/progress_summary.txt`.
 - `rust-runtime`: headless Rust runtime capture.
 - `rust-port-capture`: Rust runtime frame/trace report.
 - `rust-trace-compare`: FCEUX reference trace compared with Rust runtime output.

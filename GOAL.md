@@ -24,9 +24,9 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
 - CHR graphics decode to both PPM and PNG through Rust code.
 - A Rust macro DSL scaffold exists for future high-level 2A03 music/SFX
   conversion.
-- `progress` reports game logic, CHR graphics PNG decoding, and music/SFX DSL
-  conversion percentages from current artifacts, including the generated CHR
-  PNG path and hash.
+- `progress` reports game logic, raw CHR tile decode, assembled sprite PNG,
+  room/background PNG, trace-frame render, and music/SFX DSL conversion metrics
+  from current artifacts. Raw CHR decode is not counted as sprite translation.
 - `build` and `test` are now Cargo/Rust commands.
 - `extract` uses Rust `lotw-tools rom-extract`.
 - Rust verifier tests now compile small Rust fixture executables instead of
@@ -62,8 +62,14 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
     candidates, 5 labels inside already verified native spans, 3 leaf entries,
     11 control-flow entries, 13 call/subroutine entries, 4 straight-line
     entries, and 92 labels not in the current static entry plan.
-  - CHR graphics PNG decoding: 100% (`4,096/4,096` CHR tiles) at
+  - Raw CHR tile PNG decoding: 100% (`4,096/4,096` CHR tiles) at
     `build/rust_chr_preview/chr_tiles.png`.
+  - Palette-correct assembled sprite PNG export: 0% until a sprite/metasprite
+    manifest exists.
+  - Palette-correct room/background PNG export: 0% until a room/background
+    manifest exists.
+  - Full-frame PPU trace rendering exists as a renderer validation track, but
+    it is not counted as translated sprite/background assets.
   - Music/SFX DSL conversion: 0% converted; Rust 2A03 macro DSL scaffold is in
     place, but no game music or SFX programs have been translated yet.
 
