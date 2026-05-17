@@ -36,6 +36,9 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
   embedding shell fixtures.
 - Rust `block-exec` handles replay block execution and explicit synthetic state
   cases.
+- Rust `static-handoff-verify` now proves linear handoff rows with synthetic
+  CPU/RAM state cases and skips already-accumulated handoff proofs on repeated
+  runs.
 - The native block codegen/verifier command path is currently disabled until
   rewritten in Rust.
 - `whole-program-report` now emits `whole_program_remaining_units.tsv`, which
@@ -50,23 +53,23 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
 - Static/native proof reports currently show:
   - 129 static leaf blocks proved.
   - 516 static leaf synthetic cases matched.
-  - 1,489 native units matched by oracle proof.
+  - 1,493 native units matched by oracle proof.
   - 5,412/5,412 native oracle cases matched.
-  - 369 static handoff units proved.
+  - 373 static handoff units proved.
   - 311 static branch handoff units proved.
   - 520 static JSR handoff units proved.
   - 24 static return-prefix units proved.
-  - 37 planned static frontier units remain in the current 2,048-row horizon.
+  - 33 planned static frontier units remain in the current 2,048-row horizon.
 - The repeatable FCEUX reference hash harness has been verified under
   `nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal reference-hash-harness`.
   Current artifact: `build/reference_hash_harness/manifest.txt` with
   `replay_count=9`, `frame_hash_count=16`, `ram_hash_count=16`,
   `rom_sha256_count=1`, and `complete=1`.
 - Current progress tracks:
-  - Game logic: 65.34% (`1,489/2,279` known reachable native units proved).
-  - Remaining game-logic units: 790 total, including 662 replay-covered split
+  - Game logic: 65.51% (`1,493/2,279` known reachable native units proved).
+  - Remaining game-logic units: 786 total, including 662 replay-covered split
     candidates, 5 labels inside already verified native spans, 0 leaf entries,
-    12 control-flow entries, 15 call/subroutine entries, 4 straight-line
+    12 control-flow entries, 15 call/subroutine entries, 0 straight-line
     entries, and 92 labels not in the current static entry plan.
   - Raw CHR tile PNG decoding: 100% (`4,096/4,096` CHR tiles) at
     `build/rust_chr_preview/chr_tiles.png`.
@@ -86,6 +89,8 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-rom
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-chr-preview
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal symbol-audit
+nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal static-handoff-verify
+nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal native-block-static-merge
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal decomp-worklist
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal progress
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal test
@@ -95,11 +100,10 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
 
 1. Rebuild native block codegen and verifier helpers in Rust, then re-enable
    the disabled proof commands.
-2. Work through the 37 planned frontier units now visible in
-   `build/semantic_match_report/static_frontier_match_status.tsv`: 4 linear
-   handoffs, 13 branch handoffs currently failing outcome gates, and 20 JSR
-   handoffs. The current frontier has no call-like leaf or native-opcode
-   support gaps.
+2. Work through the 33 planned frontier units now visible in
+   `build/semantic_match_report/static_frontier_match_status.tsv`: 13 branch
+   handoffs currently failing outcome gates and 20 JSR handoffs. The current
+   frontier has no linear, call-like leaf, or native-opcode support gaps.
 3. Replace the headless CHR-preview runtime frame with progressively translated
    gameplay systems.
 4. Add or integrate a Rust 2A03 audio backend once enough APU behavior is

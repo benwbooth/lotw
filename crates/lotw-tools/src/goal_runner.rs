@@ -4,8 +4,8 @@ use crate::{
     headless_frame, native_block_plan, native_block_run_maximal, native_block_runtime_trace_verify,
     native_block_static_merge, native_block_transition, progress_report, reference_hash_report,
     replay_dump, replay_smoke, rom_extract, rom_info, rust_port_capture, semantic_match_report,
-    source_audit, static_cfg_gap, static_entry_plan, static_handoff_plan, static_proof_accumulate,
-    static_rom_audit, symbol_audit, trace_compare, whole_program_report,
+    source_audit, static_cfg_gap, static_entry_plan, static_handoff_plan, static_handoff_verify,
+    static_proof_accumulate, static_rom_audit, symbol_audit, trace_compare, whole_program_report,
 };
 use std::collections::HashMap;
 use std::env;
@@ -752,13 +752,32 @@ impl GoalContext {
         )
     }
 
+    fn static_handoff_plan_ready(&self) -> bool {
+        let manifest = self.build_dir.join("static_handoff_plan/manifest.txt");
+        read_key_values(&manifest)
+            .ok()
+            .and_then(|values| values.get("complete").cloned())
+            .as_deref()
+            == Some("1")
+    }
+
+    fn ensure_static_handoff_plan(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if env::var("LOTW_STATIC_HANDOFF_PLAN_READY").unwrap_or_default() == "1"
+            || self.static_handoff_plan_ready()
+        {
+            Ok(())
+        } else {
+            self.cmd_static_handoff_plan()
+        }
+    }
+
     fn cmd_static_handoff_verify(
         &self,
         best_effort: bool,
         plan_ready: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if !plan_ready && env::var("LOTW_STATIC_HANDOFF_PLAN_READY").unwrap_or_default() != "1" {
-            self.cmd_static_handoff_plan()?;
+        if !plan_ready {
+            self.ensure_static_handoff_plan()?;
         }
         let rom = self.ensure_rom()?;
         self.run_static_proof_verifier(
@@ -775,8 +794,8 @@ impl GoalContext {
         best_effort: bool,
         plan_ready: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if !plan_ready && env::var("LOTW_STATIC_HANDOFF_PLAN_READY").unwrap_or_default() != "1" {
-            self.cmd_static_handoff_plan()?;
+        if !plan_ready {
+            self.ensure_static_handoff_plan()?;
         }
         let rom = self.ensure_rom()?;
         self.run_static_proof_verifier(
@@ -793,8 +812,8 @@ impl GoalContext {
         best_effort: bool,
         plan_ready: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if !plan_ready && env::var("LOTW_STATIC_HANDOFF_PLAN_READY").unwrap_or_default() != "1" {
-            self.cmd_static_handoff_plan()?;
+        if !plan_ready {
+            self.ensure_static_handoff_plan()?;
         }
         let rom = self.ensure_rom()?;
         self.run_static_proof_verifier(
@@ -811,8 +830,8 @@ impl GoalContext {
         best_effort: bool,
         plan_ready: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if !plan_ready && env::var("LOTW_STATIC_HANDOFF_PLAN_READY").unwrap_or_default() != "1" {
-            self.cmd_static_handoff_plan()?;
+        if !plan_ready {
+            self.ensure_static_handoff_plan()?;
         }
         let rom = self.ensure_rom()?;
         self.run_static_proof_verifier(
@@ -841,7 +860,7 @@ impl GoalContext {
     }
 
     fn cmd_native_block_static_merge(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.cmd_static_handoff_plan()?;
+        self.ensure_static_handoff_plan()?;
         self.cmd_native_block_plan(true)?;
         self.cmd_static_handoff_verify(true, true)?;
         self.cmd_static_branch_verify(true, true)?;
@@ -1026,13 +1045,15 @@ impl GoalContext {
         limit: usize,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let _ = (out_dir, rom, limit);
-        rust_rewrite_pending(match verifier {
-            StaticVerifier::Leaf => "static-leaf-verify",
-            StaticVerifier::Handoff => "static-handoff-verify",
-            StaticVerifier::Branch => "static-branch-verify",
-            StaticVerifier::Jsr => "static-jsr-verify",
-            StaticVerifier::Return => "static-return-verify",
-        })
+        match verifier {
+            StaticVerifier::Handoff => {
+                static_handoff_verify::run(&self.build_dir, out_dir, rom, limit)
+            }
+            StaticVerifier::Leaf => rust_rewrite_pending("static-leaf-verify"),
+            StaticVerifier::Branch => rust_rewrite_pending("static-branch-verify"),
+            StaticVerifier::Jsr => rust_rewrite_pending("static-jsr-verify"),
+            StaticVerifier::Return => rust_rewrite_pending("static-return-verify"),
+        }
     }
 }
 

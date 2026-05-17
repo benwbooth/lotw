@@ -45,6 +45,7 @@ mod source_audit;
 mod static_cfg_gap;
 mod static_entry_plan;
 mod static_handoff_plan;
+mod static_handoff_verify;
 mod static_proof_accumulate;
 mod static_rom_audit;
 mod symbol_audit;
@@ -118,6 +119,7 @@ fn usage(program: &str) {
     eprintln!("  {program} static-cfg-gap <build-dir> <out-dir> <replay>...");
     eprintln!("  {program} static-entry-plan <build-dir> <out-dir> [limit]");
     eprintln!("  {program} static-handoff-plan <build-dir> <out-dir> [limit]");
+    eprintln!("  {program} static-handoff-verify <build-dir> <out-dir> <rom.nes> [limit]");
     eprintln!("  {program} static-proof-accumulate <leaf|handoff|branch|jsr|return> <old-dir> <new-dir> <out-dir>");
     eprintln!("  {program} static-rom-audit <build-dir> <out-dir> [top-limit]");
     eprintln!("  {program} symbol-audit <symbols.yaml>");
@@ -392,6 +394,24 @@ fn main() {
                 None => 64,
             };
             static_handoff_plan::run(Path::new(&args[2]), Path::new(&args[3]), limit)
+        }
+        Some("static-handoff-verify") if args.len() == 5 || args.len() == 6 => {
+            let limit = match args.get(5) {
+                Some(value) => match value.parse::<usize>() {
+                    Ok(limit) => limit,
+                    Err(err) => {
+                        eprintln!("lotw-tools: invalid static handoff verify limit: {err}");
+                        std::process::exit(2);
+                    }
+                },
+                None => 64,
+            };
+            static_handoff_verify::run(
+                Path::new(&args[2]),
+                Path::new(&args[3]),
+                Path::new(&args[4]),
+                limit,
+            )
         }
         Some("static-proof-accumulate") if args.len() == 6 => static_proof_accumulate::run(
             &args[2],
