@@ -10,6 +10,34 @@ rules:
   - Prefer boring descriptive names over source-like names until behavior is
     confirmed across more than one replay or static proof path.
   - Keep confidence low unless writes, reads, callers, and replay context agree.
+  - Keep null proposed names for entries that are only frontier/proof targets.
+
+schema:
+  function_required_fields:
+    - label
+    - cpu_addr
+    - prg_offset
+    - proposed_name
+    - role
+    - confidence
+    - evidence
+    - callers
+    - reads
+    - writes
+    - trace_contexts
+    - constants
+    - notes
+  ram_required_fields:
+    - addr
+    - proposed_name
+    - width
+    - confidence
+    - evidence
+    - readers
+    - writers
+    - trace_contexts
+    - constants
+    - notes
 
 evidence_sources:
   labels: build/disasm/labels.txt
@@ -31,7 +59,9 @@ functions:
     callers: []
     reads: []
     writes: []
-    notes: Needs trace-backed behavior before naming.
+    trace_contexts: []
+    constants: []
+    notes: Needs trace-backed interrupt behavior before naming.
 
   - label: L_FFE0
     cpu_addr: "FFE0"
@@ -45,6 +75,8 @@ functions:
     callers: []
     reads: []
     writes: []
+    trace_contexts: []
+    constants: []
     notes: Needs startup trace context before naming.
 
   - label: L_AE64
@@ -59,7 +91,13 @@ functions:
     callers: []
     reads: []
     writes: []
-    notes: First opcode is JSR; defer naming until split target behavior is known.
+    trace_contexts:
+      - source: build/whole_program_report/whole_program_remaining_units.tsv
+        detail: replay_covered=1 replay_count=9.
+    constants:
+      - source: build/whole_program_report/whole_program_remaining_units.tsv
+        detail: first_opcode=20 mnemonic=JSR.
+    notes: Defer naming until the split target behavior is known.
 
   - label: L_AE8B
     cpu_addr: "AE8B"
@@ -73,7 +111,13 @@ functions:
     callers: []
     reads: []
     writes: []
-    notes: First opcode is STA; RAM or register destination evidence needed.
+    trace_contexts:
+      - source: build/whole_program_report/whole_program_remaining_units.tsv
+        detail: replay_covered=1 replay_count=9.
+    constants:
+      - source: build/whole_program_report/whole_program_remaining_units.tsv
+        detail: first_opcode=9D mnemonic=STA.
+    notes: RAM/register destination evidence needed before naming.
 
 ram:
   - addr: null
@@ -81,4 +125,8 @@ ram:
     width: null
     confidence: 0.0
     evidence: []
+    readers: []
+    writers: []
+    trace_contexts: []
+    constants: []
     notes: Add entries only after read/write aggregation exists.

@@ -5,7 +5,7 @@ use crate::{
     native_block_static_merge, native_block_transition, progress_report, reference_hash_report,
     replay_dump, replay_smoke, rom_extract, rom_info, rust_port_capture, semantic_match_report,
     source_audit, static_cfg_gap, static_entry_plan, static_handoff_plan, static_proof_accumulate,
-    static_rom_audit, trace_compare, whole_program_report,
+    static_rom_audit, symbol_audit, trace_compare, whole_program_report,
 };
 use std::collections::HashMap;
 use std::env;
@@ -91,6 +91,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
         Some("status") => goal_status::run(&ctx.repo_root, &ctx.build_dir),
         Some("source-audit") => source_audit::run(&ctx.repo_root),
+        Some("symbol-audit") => symbol_audit::run(&ctx.repo_root.join("symbols.yaml")),
         Some("rom") => {
             println!("{}", ctx.ensure_rom()?.display());
             Ok(())
@@ -172,6 +173,7 @@ fn usage() {
     eprintln!("  native-block-sequence native-block-chain native-block-run");
     eprintln!("  native-block-run-maximal native-block-runtime-trace replay-smoke");
     eprintln!("  rust-replay-dump reference-hash-harness progress audio-trace block-verify");
+    eprintln!("  symbol-audit");
     eprintln!();
     eprintln!("Rust-only migration is the target; remaining C callers are migration debt.");
 }
@@ -493,6 +495,7 @@ impl GoalContext {
 
     fn cmd_test_rust(&self) -> Result<(), Box<dyn std::error::Error>> {
         source_audit::run(&self.repo_root)?;
+        symbol_audit::run(&self.repo_root.join("symbols.yaml"))?;
         run_status(
             Command::new("cargo")
                 .current_dir(&self.repo_root)

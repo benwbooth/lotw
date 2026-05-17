@@ -35,8 +35,10 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
 ## Main Commands
 
 - `build`: Cargo workspace build.
-- `test`: source audit, `cargo fmt --check`, `cargo test --workspace`, and
-  clippy including the SDL runtime feature.
+- `test`: source audit, symbol audit, `cargo fmt --check`,
+  `cargo test --workspace`, and clippy including the SDL runtime feature.
+- `symbol-audit`: validates that `symbols.yaml` keeps every function/RAM entry
+  evidence-shaped before an AI naming pass consumes it.
 - `run`: Rust SDL runtime.
 - `progress`: writes game logic, raw CHR tile decode, assembled sprite PNG,
   room/background PNG, trace-frame render, and music/SFX DSL conversion metrics

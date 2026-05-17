@@ -28,6 +28,9 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
   room/background PNG, trace-frame render, and music/SFX DSL conversion metrics
   from current artifacts. Raw CHR decode is not counted as sprite translation.
 - `build` and `test` are now Cargo/Rust commands.
+- `test` now includes `symbol-audit`, which validates that `symbols.yaml`
+  carries address, evidence, read/write, trace context, constants, confidence,
+  and notes fields for every function/RAM symbol entry.
 - `extract` uses Rust `lotw-tools rom-extract`.
 - Rust verifier tests now compile small Rust fixture executables instead of
   embedding shell fixtures.
@@ -79,6 +82,7 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal status
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-rom
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-chr-preview
+nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal symbol-audit
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal progress
 nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal test
 ```

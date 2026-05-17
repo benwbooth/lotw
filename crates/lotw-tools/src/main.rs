@@ -46,6 +46,7 @@ mod static_entry_plan;
 mod static_handoff_plan;
 mod static_proof_accumulate;
 mod static_rom_audit;
+mod symbol_audit;
 mod trace_compare;
 mod whole_program_report;
 
@@ -117,6 +118,7 @@ fn usage(program: &str) {
     eprintln!("  {program} static-handoff-plan <build-dir> <out-dir> [limit]");
     eprintln!("  {program} static-proof-accumulate <leaf|handoff|branch|jsr|return> <old-dir> <new-dir> <out-dir>");
     eprintln!("  {program} static-rom-audit <build-dir> <out-dir> [top-limit]");
+    eprintln!("  {program} symbol-audit <symbols.yaml>");
     eprintln!("  {program} trace-capture <rom.nes> <out-dir> <labels.txt> [replay] [frames]");
     eprintln!("  {program} trace-compare <reference-trace-dir> <port-capture-dir> <out-dir>");
     eprintln!("  {program} whole-program-report <build-dir> <out-dir>");
@@ -405,6 +407,7 @@ fn main() {
             };
             static_rom_audit::run(Path::new(&args[2]), Path::new(&args[3]), top_limit)
         }
+        Some("symbol-audit") if args.len() == 3 => symbol_audit::run(Path::new(&args[2])),
         Some("trace-capture") if args.len() >= 5 && args.len() <= 7 => fceux_capture::trace_run(
             Path::new(&args[2]),
             Path::new(&args[3]),
