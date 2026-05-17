@@ -128,9 +128,11 @@ fn read_leaf_skipped(path: &Path) -> io::Result<HashMap<String, String>> {
 }
 
 fn blocking_reason(shape: &str, skipped_reason: Option<&str>) -> String {
-    if let Some(reason) = skipped_reason {
-        if !reason.is_empty() {
-            return reason.to_string();
+    if shape == "leaf_return_or_interrupt" {
+        if let Some(reason) = skipped_reason {
+            if !reason.is_empty() {
+                return reason.to_string();
+            }
         }
     }
     match shape {
@@ -327,7 +329,8 @@ mod tests {
         fs::write(
             build.join("static_leaf_verify/static_leaf_skipped.tsv"),
             "plan_rank\tcpu_addr\tprg_offset\tlabel\tfirst_opcode\treason\n\
-             1\tC010\t04010\tL_C010\t20\tcall_like_leaf_deferred\n",
+             1\tC010\t04010\tL_C010\t20\tcall_like_leaf_deferred\n\
+             2\tC020\t04020\tL_C020\tD0\tunsupported_native_opcode\n",
         )
         .unwrap();
 

@@ -258,14 +258,14 @@ fn classify_shape(gap: &Gap, info: Option<&EdgeInfo>) -> &'static str {
     if outgoing.contains("indirect_jump") {
         return "unresolved_indirect";
     }
-    if outgoing.contains("stop") {
-        return "leaf_return_or_interrupt";
-    }
     if outgoing.contains("call_target") {
         return "calls_subroutine";
     }
     if outgoing.contains("branch_target") || outgoing.contains("jump_target") {
         return "control_flow";
+    }
+    if outgoing.contains("stop") {
+        return "leaf_return_or_interrupt";
     }
     if matches!(gap.mnemonic.as_str(), "RTS" | "RTI" | "BRK") {
         return "leaf_return_or_interrupt";
@@ -441,6 +441,36 @@ mod tests {
         let plan = fs::read_to_string(out.join("static_entry_plan.tsv")).unwrap();
         assert!(plan.contains("1\t1\t2021100\tbanked\t0\t8006\t00006\tL_8006\tEA\tNOP\t1\t2\t2\tdynamic,vector_nmi\t1\tL_8000\t8002\tbranch_target\tstop\tleaf_return_or_interrupt\tadd_synthetic_first_hit_state_then_native_leaf_test\tfixture.asm\n"));
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn branch_edges_take_precedence_over_stop_edges() {
+        let gap = Gap {
+            rank: "1".to_string(),
+            priority: "1".to_string(),
+            bank_kind: "banked".to_string(),
+            bank: "7".to_string(),
+            cpu_addr: "B036".to_string(),
+            prg_offset: "1F036".to_string(),
+            label: "L_B036".to_string(),
+            first_opcode: "F0".to_string(),
+            mnemonic: "BEQ".to_string(),
+            known_opcode: "1".to_string(),
+            mapped_in_edges: "3".to_string(),
+            reachable_in_edges: "1".to_string(),
+            reachable_from: "dynamic,vector_reset".to_string(),
+            file: "fixture.asm".to_string(),
+        };
+        let info = EdgeInfo {
+            outgoing_edge_types: vec![
+                "branch_target".to_string(),
+                "branch_fallthrough".to_string(),
+                "stop".to_string(),
+            ],
+            ..EdgeInfo::default()
+        };
+
+        assert_eq!(classify_shape(&gap, Some(&info)), "control_flow");
     }
 
     fn unique_suffix() -> u128 {

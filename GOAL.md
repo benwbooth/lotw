@@ -65,8 +65,8 @@ same art, music, and gameplay behavior, with SDL for PC presentation and a
 - Current progress tracks:
   - Game logic: 65.34% (`1,489/2,279` known reachable native units proved).
   - Remaining game-logic units: 790 total, including 662 replay-covered split
-    candidates, 5 labels inside already verified native spans, 3 leaf entries,
-    11 control-flow entries, 13 call/subroutine entries, 4 straight-line
+    candidates, 5 labels inside already verified native spans, 0 leaf entries,
+    12 control-flow entries, 15 call/subroutine entries, 4 straight-line
     entries, and 92 labels not in the current static entry plan.
   - Raw CHR tile PNG decoding: 100% (`4,096/4,096` CHR tiles) at
     `build/rust_chr_preview/chr_tiles.png`.
@@ -97,8 +97,9 @@ nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools
    the disabled proof commands.
 2. Work through the 37 planned frontier units now visible in
    `build/semantic_match_report/static_frontier_match_status.tsv`: 4 linear
-   handoffs, 12 branch handoffs currently failing outcome gates, 3 call-like
-   leaf entries, 17 JSR handoffs, and one native-opcode support gap.
+   handoffs, 13 branch handoffs currently failing outcome gates, and 20 JSR
+   handoffs. The current frontier has no call-like leaf or native-opcode
+   support gaps.
 3. Replace the headless CHR-preview runtime frame with progressively translated
    gameplay systems.
 4. Add or integrate a Rust 2A03 audio backend once enough APU behavior is
