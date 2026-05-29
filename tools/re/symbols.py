@@ -94,6 +94,35 @@ ROUTINES: dict[int, str] = {
 }
 
 
+# Data regions inside the code banks (from the completeness-audit workflow).
+# Emitted as comment delimiters before the .byte block at each address so code
+# and data are visually separated. addr -> "name (kind)".
+DATA_REGIONS: dict[int, str] = {
+    # bank 13 ($A000-$BFFF)
+    0xA000: "title_credits_nametable (data)",
+    0xAAFC: "sprite_data (sprite)",
+    0xB0AC: "per_character_carried_item_table (data)",
+    0xB4AF: "gameover_menu_text (text, ASCII+$A0)",
+    0xB6FC: "oam_tables_and_credits_nametable (data)",
+    0xB79C: "ending_credits_text (text)",
+    0xBD89: "bank13_zero_pad (data)",
+    0xBFA4: "bank13_tail_records (data)",
+    # fixed banks 14+15 ($C000-$FFFF)
+    0xC034: "dead_mmc3_fragment (unused)",
+    0xD244: "nmi_vram_dispatch_table (jump_table)",
+    0xDB06: "item_action_dispatch_tables (jump_table)",
+    0xEAAD: "boss_state_dispatch_table (jump_table)",
+    0xEEB3: "sound_lookup_eeb3 (table)",
+    0xEFE7: "drop_item_table (table)",
+    0xF033: "phase_dispatch_table (jump_table)",
+    0xFBBB: "sound_command_dispatch_table (jump_table)",
+    0xFC00: "hud_menu_text (text, ASCII+$A0)",
+    0xFDB1: "note_period_table + sound assets (sound)",
+    0xFFEF: "reset_padding",
+    0xFFFA: "cpu_vectors (nmi/reset/irq)",
+}
+
+
 def load_extra(path) -> None:
     """Optionally merge a JSON list of {addr_hex,name,kind}; curated names win."""
     import json

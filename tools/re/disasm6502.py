@@ -67,13 +67,15 @@ class BankDisasm:
     def __init__(self, data: bytes, origin: int, name: str,
                  names: dict[int, str] | None = None,
                  label_names: dict[int, str] | None = None,
-                 dispatchers: dict[int, str] | None = None):
+                 dispatchers: dict[int, str] | None = None,
+                 data_comments: dict[int, str] | None = None):
         self.data = data
         self.origin = origin
         self.end = origin + len(data)
         self.name = name
         self.names = names or {}          # addr -> register/RAM name (data operands)
         self.label_names = label_names or {}  # addr -> code label name
+        self.data_comments = data_comments or {}  # addr -> comment marking a data region
         self.dispatchers = dispatchers or {}  # bank-switch far-call dispatcher addr -> scheme
         self.farcall_targets: list[tuple[int, int]] = []  # (bank_index, cpu_addr)
         self.xrefs: set[int] = set()      # out-of-window JSR/JMP-abs targets (cross-bank)
@@ -226,6 +228,9 @@ class BankDisasm:
                 out.append(txt)
                 o += ln
             else:
+                if addr in self.data_comments:
+                    flush_data()
+                    out.append(f"; ==== {self.data_comments[addr]} @ ${addr:04X} ====")
                 pending.append(self.data[o])
                 o += 1
         flush_data()
@@ -246,9 +251,10 @@ def disassemble_bank(data: bytes, origin: int, name: str, entries: set[int],
                      force_labels: set[int] | None = None,
                      names: dict[int, str] | None = None,
                      label_names: dict[int, str] | None = None,
-                     dispatchers: dict[int, str] | None = None) -> dict:
+                     dispatchers: dict[int, str] | None = None,
+                     data_comments: dict[int, str] | None = None) -> dict:
     bd = BankDisasm(data, origin, name, names=names, label_names=label_names,
-                    dispatchers=dispatchers)
+                    dispatchers=dispatchers, data_comments=data_comments)
     bd.trace(entries, force_labels)
     code_bytes = sum(bd.lengths.values())
     return {"text": bd.render(), "code_bytes": code_bytes,

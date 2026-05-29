@@ -71,6 +71,7 @@ def main():
     symbols.load_extra(ANALYSIS_SYMS)
     names = symbols.REGS_RAM
     routines = symbols.ROUTINES
+    data_regions = symbols.DATA_REGIONS
 
     # --- lotw.inc (address constants; including it changes no bytes) ---
     inc = ["; Symbol address constants for the matching disassembly.",
@@ -136,13 +137,15 @@ def main():
     def disasm_fix():
         return disassemble_bank(fdata, FIX_ORIGIN, "FIX", fix_entries,
                                 force_labels=FIX_ANCHORS | set(routines),
-                                names=names, label_names=routines, dispatchers=DISPATCHERS)
+                                names=names, label_names=routines, dispatchers=DISPATCHERS,
+                                data_comments=data_regions)
 
     def disasm_swap(n):
         data = rom[PRG_BASE + n * BANK_LEN: PRG_BASE + (n + 1) * BANK_LEN]
         return disassemble_bank(data, swap_origin[n], f"{n:02d}", swap_entries[n],
                                 force_labels=set(routines),
-                                names=names, label_names=routines, dispatchers=DISPATCHERS)
+                                names=names, label_names=routines, dispatchers=DISPATCHERS,
+                                data_comments=data_regions)
 
     # --- fixpoint: disassemble, harvest far-call targets, feed back as entries ---
     rf = None

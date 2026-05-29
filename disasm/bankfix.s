@@ -29,6 +29,7 @@ L_C026:
     STA MMC3_MIRROR
     JSR farcall_bank_0C0D_seed
     JMP L_C041
+; ==== dead_mmc3_fragment (unused) @ $C034 ====
     .byte $80,$A9,$07,$85,$25,$8D,$00,$80,$A9,$0D,$8D,$01,$80
 L_C041:
     JSR ram_state_init
@@ -2696,6 +2697,7 @@ L_D221:
     AND #$04
     STA PPUCTRL
     JMP ($0006)
+; ==== nmi_vram_dispatch_table (jump_table) @ $D244 ====
     .byte $51,$D3,$52,$D2,$5F,$D2,$90,$D2,$E5,$D2,$34,$D3,$44,$D3
 vram_fill_run:
     LDX vram_len
@@ -3916,6 +3918,7 @@ L_DB01:
     LDA #$06
     STA $8F
     RTS
+; ==== item_action_dispatch_tables (jump_table) @ $DB06 ====
     .byte $26,$DB,$31,$DB,$3C,$DB,$52,$DB,$5D,$DB,$71,$DB,$B7,$DB,$85,$DB
     .byte $6A,$D1,$99,$D1,$47,$DB,$52,$DB,$66,$DB,$7B,$DB,$B7,$DB,$9B,$DB
     LDA #$1E
@@ -6109,6 +6112,7 @@ L_EA9E:
     LDA $EAAE,X
     STA $0F
     JMP ($000E)
+; ==== boss_state_dispatch_table (jump_table) @ $EAAD ====
     .byte $FD,$EA,$69,$EB,$90,$EB,$D8,$EB,$76,$EC,$A8,$EC,$2A,$ED,$6F,$ED
     .byte $9F,$ED
 L_EABF:
@@ -6655,6 +6659,7 @@ L_EEA6:
     LDA $EEB3,X
     STA $F4
     RTS
+; ==== sound_lookup_eeb3 (table) @ $EEB3 ====
     .byte $01,$05,$04,$06,$02,$0A,$08,$09
 L_EEBB:
     LDA $F0
@@ -6831,6 +6836,7 @@ item_spawn_setup:
     STA $F1
     JSR L_F179
     RTS
+; ==== drop_item_table (table) @ $EFE7 ====
     .byte $03,$03,$03,$03,$04,$04,$05,$06,$07
 L_EFF0:
     RTS
@@ -6875,6 +6881,7 @@ L_F01E:
     LDA $F034,X
     STA $0F
     JMP ($000E)
+; ==== phase_dispatch_table (jump_table) @ $F033 ====
     .byte $3B,$F0,$4B,$F0,$71,$F0,$B9,$F0
     INC $F3
     LDA $F3
@@ -8473,6 +8480,7 @@ L_FBA8:
     LDA $05
     LDX $02
     JMP ($0006)
+; ==== sound_command_dispatch_table (jump_table) @ $FBBB ====
     .byte $C5,$FB,$E2,$FB,$FF,$FB,$02,$FC,$05,$FC
     PHA
     AND #$F0
@@ -8767,6 +8775,7 @@ sound_restore_game_banks:
     LDA mmc3_r7_shadow
     STA MMC3_BANK_DATA
     RTS
+; ==== note_period_table + sound assets (sound) @ $FDB1 ====
     .byte $AE,$06,$4E,$06,$F4,$05,$9E,$05,$4D,$05,$00,$00,$01,$05,$B9,$04
     .byte $75,$04,$35,$04,$F9,$03,$C0,$03,$8A,$03,$00,$01,$01,$0F,$F7,$01
     .byte $01,$00,$FF,$0D,$82,$00,$F9,$01,$38,$00,$00,$01,$01,$0F,$F7,$01
@@ -8809,5 +8818,7 @@ reset:
     STA MMC3_PRGRAM
     STA MMC3_IRQ_DISABLE
     JMP main_init
-    .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$FE,$D1,$E0,$FF,$FE
-    .byte $D1
+; ==== reset_padding @ $FFEF ====
+    .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; ==== cpu_vectors (nmi/reset/irq) @ $FFFA ====
+    .byte $FE,$D1,$E0,$FF,$FE,$D1
