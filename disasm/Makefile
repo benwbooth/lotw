@@ -2,7 +2,7 @@
 AS = ca65
 LD = ld65
 CFG = lotw.cfg
-OBJS = header.o bank00.o bank01.o bank02.o bank03.o bank04.o bank05.o bank06.o bank07.o bank08.o bank09.o bank10.o bank11.o bank12.o bank13.o bank14.o bank15.o chr.o
+OBJS = header.o bank00.o bank01.o bank02.o bank03.o bank04.o bank05.o bank06.o bank07.o bank08.o bank09.o bank10.o bank11.o bank12.o bank13.o bankfix.o chr.o
 ROM = ../rom/lotw.nes
 OUT = build/lotw.nes
 

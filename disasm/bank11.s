@@ -1,4 +1,4 @@
-; PRG bank 11 (swappable) — file 0x16010..0x18010, CPU origin $8000
+; PRG bank 11 (swappable) — file 0x16010..0x18010 (data: no execution coverage)
 .segment "CODE11"
     .byte $88,$08,$18,$88,$08,$28,$08,$1B,$08,$1B,$08,$2B,$08,$1B,$88,$08
     .byte $1B,$88,$08,$2B,$08,$1B,$08,$1B,$08,$2B,$08,$1B,$88,$08,$20,$88

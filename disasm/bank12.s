@@ -1,4 +1,4 @@
-; PRG bank 12 (swappable) — file 0x18010..0x1A010, CPU origin $8000
+; PRG bank 12 (swappable) — file 0x18010..0x1A010 (data: no execution coverage)
 .segment "CODE12"
     .byte $0C,$80,$2C,$80,$4C,$80,$6C,$80,$8C,$80,$AC,$80,$04,$80,$CC,$80
     .byte $CC,$80,$BA,$00,$04,$80,$AC,$82,$AC,$82,$BA,$00,$04,$80,$D5,$84

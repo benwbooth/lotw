@@ -1,4 +1,4 @@
-; PRG bank 3 (swappable) — file 0x06010..0x08010, CPU origin $8000
+; PRG bank 3 (swappable) — file 0x06010..0x08010 (data: no execution coverage)
 .segment "CODE03"
     .byte $BC,$BC,$BC,$BC,$BC,$BC,$BC,$BC,$BC,$BC,$BC,$BC,$89,$89,$89,$40
     .byte $40,$7C,$99,$40,$40,$7C,$99,$9B,$89,$89,$89,$70,$FE,$7C,$99,$7C

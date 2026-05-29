@@ -1,4 +1,4 @@
-; PRG bank 0 (swappable) — file 0x00010..0x02010, CPU origin $8000
+; PRG bank 0 (swappable) — file 0x00010..0x02010 (data: no execution coverage)
 .segment "CODE00"
     .byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$40,$40,$40,$40
     .byte $40,$40,$40,$40,$FC,$6F,$50,$6C,$FC,$A2,$9E,$FC,$6F,$6F,$6F,$6F

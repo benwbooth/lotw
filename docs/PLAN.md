@@ -67,15 +67,18 @@ Once a region is understood in asm, rewrite it in C and extract its assets.
 
 - **P0 Foundation** *(done)*: archive attempt 1, fresh tree, cc65 + fceux toolchain,
   ROM pinned, plan written.
-- **P1 Recon** *(next)*: parallel read-only analysis — bank/vector map, MMC3 usage,
-  CHR decode, candidate data tables, text/password, sound-engine location, APU/PPU
-  register usage; **plus external research** (is there an existing community
-  disassembly / RE notes we can stand on?). Output: `docs/` knowledge base.
-- **P2 Tracer + coverage**: build the FCEUX tracer, run all fixtures, produce the
-  code/data coverage map.
-- **P3 Disassembler**: static+dynamic disassembler emitting ca65; stand up
-  `disasm/` segments; iterate toward the sha256 round-trip.
-- **P4 Asset extraction**: CHR/palette/metasprite/room/text/audio extractors.
+- **P1 Recon** *(done)*: parallel read-only analysis → `docs/recon/` knowledge base.
+  No public code disasm exists; Data Crystal + lotwtool solve the DATA formats.
+- **P2 Tracer + coverage** *(done)*: `tools/fceux_coverage.lua` + `run_coverage.py`.
+  9-fixture sweep → `build/coverage/merged_coverage.tsv`. Code lives in banks 13/14/15.
+- **P3 Disassembler** *(in progress)*: `tools/re/disasm6502.py` + `gen_disasm.py` emit
+  byte-exact ca65. `make -C disasm verify` links a **byte-identical ROM**. Banks 14+15
+  treated as one contiguous fixed `$C000-$FFFF` unit (~85% recovered as instructions);
+  swappable code bank 13 partially; data banks stay `.byte`. Remaining: widen coverage
+  (more gameplay → deeper code), resolve the bank-10 `0x14000` table identity, then
+  progressively name/structure code + data tables while keeping the round-trip green.
+- **P4 Asset extraction**: CHR/palette/metasprite/room/text/audio extractors (mostly
+  unblocked via Data Crystal field maps).
 - **P5 C port**: per-system reimplementation under differential test.
 
 ## Salvage from attempt 1

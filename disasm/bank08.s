@@ -1,4 +1,4 @@
-; PRG bank 8 (swappable) — file 0x10010..0x12010, CPU origin $8000
+; PRG bank 8 (swappable) — file 0x10010..0x12010 (data: no execution coverage)
 .segment "CODE08"
     .byte $B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$B8,$12,$11,$11
     .byte $11,$11,$11,$11,$11,$11,$11,$B8,$B8,$12,$C8,$C7,$C7,$C7,$DF,$61
