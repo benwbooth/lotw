@@ -108,6 +108,24 @@ def main():
         swap_origin[n] = origin
         swap_entries[n] = {c for c in cpus if origin <= c < origin + BANK_LEN}
 
+    # Curated extra code entries (jump-table targets etc. found by analysis).
+    # Format per line: "<cpu_hex> [bank]"; # comments allowed. Routed by window
+    # ($C000-$FFFF -> fixed, $A000-$BFFF -> bank 13) unless an explicit bank given.
+    EXTRA = OUT / "entries.txt"
+    if EXTRA.exists():
+        for line in EXTRA.read_text().splitlines():
+            line = line.split("#", 1)[0].split()
+            if not line:
+                continue
+            addr = int(line[0], 16)
+            if len(line) > 1:
+                b = int(line[1]); swap_origin[b] = 0xA000 if addr >= 0xA000 else 0x8000
+                swap_entries[b].add(addr)
+            elif 0xC000 <= addr < 0x10000:
+                fix_entries.add(addr)
+            elif 0xA000 <= addr < 0xC000:
+                swap_origin[13] = 0xA000; swap_entries[13].add(addr)
+
     # Bank-switch far-call dispatchers: resolve cross-bank code entries (this is
     # how bank 12 code, never hit by coverage, is reached). Scheme 0C0D forces
     # R6=$0C ($8000=bank12) / R7=$0D ($A000=bank13).
