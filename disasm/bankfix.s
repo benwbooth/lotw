@@ -1,6 +1,6 @@
 .include "lotw.inc"
 ; PRG banks 14+15 (FIXED, contiguous $C000-$FFFF) — file 0x1C010..0x20010
-; 6979 instructions, 14015/16384 code bytes, 869 labels
+; 7059 instructions, 14182/16384 code bytes, 877 labels
 ; PRG bank FIX — CPU origin $C000
 .segment "CODEFIX"
 main_init:
@@ -1591,17 +1591,94 @@ L_CB42:
     JMP L_CB42
 L_CB52:
     RTS
-    .byte $AD,$05,$04,$C9,$6D,$90,$02,$A9,$6D,$85,$08,$A9,$00,$85,$09,$A2
-    .byte $A5,$A0,$AB,$4C,$94,$CB,$AD,$05,$04,$C9,$6D,$90,$02,$A9,$6D,$85
-    .byte $08,$A9,$00,$85,$09,$A2,$65,$A0,$6B,$4C,$94,$CB,$A5,$58,$C9,$6D
-    .byte $90,$02,$A9,$6D,$85,$08,$A9,$80,$85,$09,$A2,$65,$A0,$6B,$4C,$94
-    .byte $CB,$8A,$A6,$09,$9D,$59,$02,$9D,$5D,$02,$9D,$61,$02,$9D,$65,$02
-    .byte $9D,$69,$02,$98,$9D,$6D,$02,$9D,$71,$02,$9D,$75,$02,$9D,$79,$02
-    .byte $9D,$7D,$02,$20,$FA,$CB,$A5,$09,$18,$69,$18,$AA,$88,$F0,$16,$DE
-    .byte $41,$02,$DE,$41,$02,$88,$F0,$0D,$DE,$41,$02,$DE,$41,$02,$E8,$E8
-    .byte $E8,$E8,$4C,$BF,$CB,$A5,$09,$18,$69,$2C,$AA,$A4,$08,$88,$F0,$16
-    .byte $DE,$41,$02,$DE,$41,$02,$88,$F0,$0D,$DE,$41,$02,$DE,$41,$02,$E8
-    .byte $E8,$E8,$E8,$4C,$E0,$CB,$60
+    LDA $0405
+    CMP #$6D
+    BCC L_CB5C
+    LDA #$6D
+L_CB5C:
+    STA $08
+    LDA #$00
+    STA $09
+    LDX #$A5
+    LDY #$AB
+    JMP L_CB94
+    LDA $0405
+    CMP #$6D
+    BCC L_CB72
+    LDA #$6D
+L_CB72:
+    STA $08
+    LDA #$00
+    STA $09
+    LDX #$65
+    LDY #$6B
+    JMP L_CB94
+    LDA health
+    CMP #$6D
+    BCC L_CB87
+    LDA #$6D
+L_CB87:
+    STA $08
+    LDA #$80
+    STA $09
+    LDX #$65
+    LDY #$6B
+    JMP L_CB94
+L_CB94:
+    TXA
+    LDX $09
+    STA $0259,X
+    STA $025D,X
+    STA $0261,X
+    STA $0265,X
+    STA $0269,X
+    TYA
+    STA $026D,X
+    STA $0271,X
+    STA $0275,X
+    STA $0279,X
+    STA $027D,X
+    JSR L_CBFA
+    LDA $09
+    CLC
+    ADC #$18
+    TAX
+L_CBBF:
+    DEY
+    BEQ L_CBD8
+    DEC $0241,X
+    DEC $0241,X
+    DEY
+    BEQ L_CBD8
+    DEC $0241,X
+    DEC $0241,X
+    INX
+    INX
+    INX
+    INX
+    JMP L_CBBF
+L_CBD8:
+    LDA $09
+    CLC
+    ADC #$2C
+    TAX
+    LDY $08
+L_CBE0:
+    DEY
+    BEQ L_CBF9
+    DEC $0241,X
+    DEC $0241,X
+    DEY
+    BEQ L_CBF9
+    DEC $0241,X
+    DEC $0241,X
+    INX
+    INX
+    INX
+    INX
+    JMP L_CBE0
+L_CBF9:
+    RTS
 L_CBFA:
     LDA $08
     LDY #$00

@@ -76,6 +76,7 @@ class BankDisasm:
         self.label_names = label_names or {}  # addr -> code label name
         self.dispatchers = dispatchers or {}  # bank-switch far-call dispatcher addr -> scheme
         self.farcall_targets: list[tuple[int, int]] = []  # (bank_index, cpu_addr)
+        self.xrefs: set[int] = set()      # out-of-window JSR/JMP-abs targets (cross-bank)
         self.starts: set[int] = set()    # cpu addrs that begin an instruction
         self.lengths: dict[int, int] = {}
         self.labels: set[int] = set()    # cpu addrs needing a label
@@ -134,6 +135,8 @@ class BankDisasm:
                     if self._in_window(tgt):
                         self.labels.add(tgt)
                         work.append(tgt)
+                    elif tgt >= 0x8000:          # cross-bank call into a code window
+                        self.xrefs.add(tgt)
                     # far-call dispatcher: resolve cross-bank target from $0E/$0F
                     if op == 0x20 and tgt in self.dispatchers and 0x0E in ptr and 0x0F in ptr:
                         target = ptr[0x0E] | (ptr[0x0F] << 8)
@@ -250,4 +253,4 @@ def disassemble_bank(data: bytes, origin: int, name: str, entries: set[int],
     code_bytes = sum(bd.lengths.values())
     return {"text": bd.render(), "code_bytes": code_bytes,
             "instructions": len(bd.starts), "labels": len(bd.labels),
-            "farcall_targets": bd.farcall_targets}
+            "farcall_targets": bd.farcall_targets, "xrefs": bd.xrefs}

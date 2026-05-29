@@ -129,19 +129,38 @@ def main():
     # --- fixpoint: disassemble, harvest far-call targets, feed back as entries ---
     rf = None
     swap_results: dict[int, dict] = {}
+    ambiguous_8000: set[int] = set()
     for _ in range(16):
         rf = disasm_fix()
         swap_results = {n: disasm_swap(n) for n in range(N_SWAP) if swap_entries[n]}
+        added = False
+        # (1) dispatcher far-call targets -> bank 12/13
         targets = list(rf["farcall_targets"])
         for r in swap_results.values():
             targets += r["farcall_targets"]
-        added = False
         for bank, cpu in targets:
             origin = 0x8000 if bank == 12 else 0xA000  # 0C0D scheme windows
             swap_origin[bank] = origin
             if cpu not in swap_entries[bank]:
                 swap_entries[bank].add(cpu)
                 added = True
+        # (2) direct cross-window JSR/JMP targets between resident banks:
+        #     $C000-$FFFF -> always-mapped fixed unit; $A000-$BFFF -> code bank 13.
+        xrefs = set(rf["xrefs"])
+        for r in swap_results.values():
+            xrefs |= r["xrefs"]
+        for t in xrefs:
+            if 0xC000 <= t < 0x10000:
+                if t not in fix_entries:
+                    fix_entries.add(t)
+                    added = True
+            elif 0xA000 <= t < 0xC000:
+                swap_origin[13] = 0xA000
+                if t not in swap_entries[13]:
+                    swap_entries[13].add(t)
+                    added = True
+            else:  # $8000-$9FFF: ambiguous bank (R6 runtime-dependent) — record only
+                ambiguous_8000.add(t)
         if not added:
             break
 
@@ -227,6 +246,9 @@ def main():
         print("disassembled code units (unit: instructions, code bytes):")
         for name, ins, cb, total in stats:
             print(f"  {name}: {ins} instr, {cb}/{total} code bytes ({100*cb/total:.1f}%)")
+    if ambiguous_8000:
+        print(f"ambiguous $8000-window call targets (runtime bank unknown): "
+              f"{len(ambiguous_8000)} -> {sorted(hex(a) for a in ambiguous_8000)[:8]}")
 
 
 if __name__ == "__main__":
