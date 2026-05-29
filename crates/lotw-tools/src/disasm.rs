@@ -7,7 +7,7 @@ use std::path::Path;
 const BANK_16K: usize = 0x4000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AddrMode {
+pub(crate) enum AddrMode {
     Imp,
     Acc,
     Imm,
@@ -24,13 +24,13 @@ enum AddrMode {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct OpInfo {
-    mnemonic: Option<&'static str>,
-    mode: AddrMode,
-    len: usize,
-    is_branch: bool,
-    is_jump: bool,
-    is_jsr: bool,
+pub(crate) struct OpInfo {
+    pub(crate) mnemonic: Option<&'static str>,
+    pub(crate) mode: AddrMode,
+    pub(crate) len: usize,
+    pub(crate) is_branch: bool,
+    pub(crate) is_jump: bool,
+    pub(crate) is_jsr: bool,
 }
 
 impl OpInfo {
@@ -173,7 +173,7 @@ fn read16(bytes: &[u8]) -> u16 {
     u16::from(bytes[0]) | (u16::from(bytes[1]) << 8)
 }
 
-fn op_info(opcode: u8) -> OpInfo {
+pub(crate) fn op_info(opcode: u8) -> OpInfo {
     use AddrMode::*;
     match opcode {
         0x00 => OpInfo::stop("BRK"),
@@ -331,7 +331,7 @@ fn op_info(opcode: u8) -> OpInfo {
     }
 }
 
-fn format_operand(op: OpInfo, operand_data: &[u8], off: usize, addr: u16) -> String {
+pub(crate) fn format_operand(op: OpInfo, operand_data: &[u8], off: usize, addr: u16) -> String {
     let b1 = operand_data.get(off + 1).copied().unwrap_or(0xFF);
     let b2 = operand_data.get(off + 2).copied().unwrap_or(0xFF);
     let w = u16::from(b1) | (u16::from(b2) << 8);
@@ -353,7 +353,7 @@ fn format_operand(op: OpInfo, operand_data: &[u8], off: usize, addr: u16) -> Str
     }
 }
 
-fn absolute_operand(op: OpInfo, bytes: &[u8]) -> Option<u16> {
+pub(crate) fn absolute_operand(op: OpInfo, bytes: &[u8]) -> Option<u16> {
     matches!(
         op.mode,
         AddrMode::Abs | AddrMode::Absx | AddrMode::Absy | AddrMode::Ind

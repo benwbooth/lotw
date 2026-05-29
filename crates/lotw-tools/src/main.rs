@@ -1,3 +1,4 @@
+mod ai_rom_map;
 mod apu_trace;
 mod block_exec;
 mod block_exec_verify;
@@ -62,6 +63,7 @@ use std::path::Path;
 
 fn usage(program: &str) {
     eprintln!("Usage:");
+    eprintln!("  {program} ai-rom-map <rom.nes> <build-dir> <out-dir> [expected-sha256]");
     eprintln!("  {program} apu-trace <apu_writes.tsv> <out-dir>");
     eprintln!("  {program} block-exec-verify <block-exec-dir> <out-dir>");
     eprintln!("  {program} block-exec <rom.nes> <block_candidates.tsv> <out-dir> [max_steps] [label_states.tsv]");
@@ -137,6 +139,12 @@ fn main() {
     let program = args.first().map(String::as_str).unwrap_or("lotw-tools");
 
     let result = match args.get(1).map(String::as_str) {
+        Some("ai-rom-map") if args.len() == 5 || args.len() == 6 => ai_rom_map::run(
+            Path::new(&args[2]),
+            Path::new(&args[3]),
+            Path::new(&args[4]),
+            args.get(5).map(String::as_str),
+        ),
         Some("apu-trace") if args.len() == 4 => {
             apu_trace::run(Path::new(&args[2]), Path::new(&args[3]))
         }

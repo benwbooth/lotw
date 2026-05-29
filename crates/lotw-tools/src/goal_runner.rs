@@ -1,12 +1,12 @@
 use crate::{
-    apu_trace, block_exec, block_exec_verify, block_translation_plan, blocks, chr_preview,
-    coverage_report, decomp_worklist, disasm, external_block_plan, fceux_capture, goal_status,
-    headless_frame, native_block_plan, native_block_run_maximal, native_block_runtime_trace_verify,
-    native_block_static_merge, native_block_transition, progress_report, reference_hash_report,
-    replay_dump, replay_smoke, rom_extract, rom_info, rust_port_capture, semantic_match_report,
-    source_audit, static_branch_verify, static_cfg_gap, static_entry_plan, static_handoff_plan,
-    static_handoff_verify, static_jsr_verify, static_proof_accumulate, static_rom_audit,
-    symbol_audit, trace_compare, whole_program_report,
+    ai_rom_map, apu_trace, block_exec, block_exec_verify, block_translation_plan, blocks,
+    chr_preview, coverage_report, decomp_worklist, disasm, external_block_plan, fceux_capture,
+    goal_status, headless_frame, native_block_plan, native_block_run_maximal,
+    native_block_runtime_trace_verify, native_block_static_merge, native_block_transition,
+    progress_report, reference_hash_report, replay_dump, replay_smoke, rom_extract, rom_info,
+    rust_port_capture, semantic_match_report, source_audit, static_branch_verify, static_cfg_gap,
+    static_entry_plan, static_handoff_plan, static_handoff_verify, static_jsr_verify,
+    static_proof_accumulate, static_rom_audit, symbol_audit, trace_compare, whole_program_report,
 };
 use std::collections::HashMap;
 use std::env;
@@ -112,6 +112,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         Some("test") => ctx.cmd_test_rust(),
         Some("clean") => remove_path(&ctx.build_dir).map_err(Into::into),
         Some("reference") => ctx.cmd_reference_current(),
+        Some("ai-rom-map") => ctx.cmd_ai_rom_map(),
         Some("disasm") => ctx.cmd_disasm(),
         Some("trace") => ctx.cmd_trace_current(),
         Some("audio-trace") => ctx.cmd_audio_trace(),
@@ -165,7 +166,7 @@ fn usage() {
     eprintln!("  rust-runtime rust-runtime-window run configure build test clean");
     eprintln!("  extract reference rust-port-capture");
     eprintln!("  rust-trace-compare");
-    eprintln!("  disasm trace blocks block-exec coverage coverage-report");
+    eprintln!("  ai-rom-map disasm trace blocks block-exec coverage coverage-report");
     eprintln!("  block-translation-plan static-cfg static-entry-plan static-leaf-verify");
     eprintln!("  static-rom-audit static-handoff-plan static-handoff-verify");
     eprintln!("  static-branch-verify static-jsr-verify static-return-verify");
@@ -543,6 +544,17 @@ impl GoalContext {
         disasm::run(
             &rom,
             &self.build_dir.join("disasm"),
+            Some(EXPECTED_ROM_SHA256),
+        )
+    }
+
+    fn cmd_ai_rom_map(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let rom = self.ensure_rom()?;
+        self.cmd_disasm()?;
+        ai_rom_map::run(
+            &rom,
+            &self.build_dir,
+            &self.build_dir.join("ai_rom_map"),
             Some(EXPECTED_ROM_SHA256),
         )
     }
