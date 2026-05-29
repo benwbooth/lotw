@@ -1,4 +1,4 @@
-; PRG bank 7 (swappable) — file 0x0E010..0x10010 (data: no execution coverage)
+; PRG bank 7 (swappable) — file 0x0E010..0x10010 (data: no code reached)
 .segment "CODE07"
     .byte $B7,$B7,$B7,$B7,$B7,$B7,$B7,$B7,$B7,$B7,$B7,$B7,$40,$B4,$B4,$B7
     .byte $80,$80,$80,$80,$80,$80,$80,$B7,$B7,$B7,$B4,$B7,$5D,$B7,$B7,$56

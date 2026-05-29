@@ -1,6 +1,6 @@
 .include "lotw.inc"
 ; PRG bank 13 (swappable, runs at $A000) — file 0x1A010..0x1C010
-; 830 instructions, 1730/8192 code bytes, 105 labels
+; 2337 instructions, 4914/8192 code bytes, 274 labels
 ; PRG bank 13 — CPU origin $A000
 .segment "CODE13"
     .byte $7A,$7B,$7C,$7D,$7E,$00,$00,$1F,$1F,$1F,$1F,$1F,$00,$00,$00,$7F
@@ -49,191 +49,1487 @@
     .byte $55,$55,$5A,$5A,$5A,$5A,$5A,$5A,$55,$55,$55,$55,$55,$55,$55,$55
     .byte $55,$05,$05,$05,$05,$05,$05,$05,$05,$0F,$29,$34,$11,$0F,$27,$16
     .byte $06,$0F,$20,$18,$08,$0F,$21,$11,$01,$0F,$00,$10,$30,$0F,$14,$14
-    .byte $14,$0F,$22,$1A,$28,$0F,$16,$0F,$0F,$1C,$1E,$A9,$18,$85,$8F,$A9
-    .byte $00,$85,$85,$20,$D8,$C1,$A2,$02,$A9,$40,$85,$0E,$A9,$C5,$85,$0F
-    .byte $20,$E4,$CC,$20,$8A,$D0,$20,$B1,$C2,$A2,$03,$A9,$40,$85,$0E,$A9
-    .byte $C5,$85,$0F,$20,$E4,$CC,$20,$B5,$A5,$A9,$20,$85,$8F,$A9,$3C,$85
-    .byte $36,$20,$35,$C1,$A9,$13,$85,$48,$A9,$02,$85,$47,$A9,$F2,$85,$0E
-    .byte $A9,$C8,$85,$0F,$20,$E4,$CC,$20,$8B,$C3,$A9,$EF,$8D,$00,$02,$A9
-    .byte $22,$85,$1E,$A9,$00,$85,$7B,$85,$43,$A9,$10,$85,$7C,$A9,$CB,$85
-    .byte $0E,$A9,$C5,$85,$0F,$20,$E4,$CC,$A2,$04,$A9,$40,$85,$0E,$A9,$C5
-    .byte $85,$0F,$20,$E4,$CC,$A9,$00,$85,$7C,$A9,$6C,$85,$0E,$A9,$C7,$85
-    .byte $0F,$20,$E4,$CC,$A9,$3D,$85,$2D,$A6,$1E,$D0,$02,$A2,$F0,$E0,$C2
-    .byte $F0,$13,$CA,$86,$1E,$8A,$29,$08,$4A,$4A,$4A,$85,$1D,$A9,$FF,$20
-    .byte $8F,$CC,$4C,$78,$A3,$A2,$02,$A9,$40,$85,$0E,$A9,$C5,$85,$0F,$20
-    .byte $E4,$CC,$A9,$C7,$85,$0E,$A9,$C1,$85,$0F,$20,$E4,$CC,$A9,$00,$8D
-    .byte $0C,$04,$8D,$0D,$04,$8D,$06,$04,$85,$E9,$85,$7B,$85,$7C,$A9,$64
-    .byte $8D,$05,$04,$A9,$08,$85,$3E,$A5,$44,$0A,$0A,$0A,$0A,$05,$43,$85
-    .byte $43,$20,$7A,$AD,$A9,$EF,$8D,$10,$02,$8D,$14,$02,$20,$D2,$A7,$20
-    .byte $F0,$A7,$60,$A9,$00,$85,$E5,$A9,$04,$85,$E6,$20,$8F,$E9,$A5,$F2
-    .byte $D0,$03,$4C,$FF,$A7,$24,$26,$50,$43,$A6,$3E,$E8,$E8,$8A,$29,$06
-    .byte $F0,$3A,$0A,$0A,$0A,$AA,$BD,$01,$04,$F0,$31,$A9,$00,$9D,$01,$04
-    .byte $A5,$1C,$18,$7D,$0C,$04,$C9,$B0,$90,$1D,$C9,$D0,$B0,$19,$A5,$F2
-    .byte $38,$E9,$02,$B0,$02,$A9,$00,$85,$F2,$20,$69,$CB,$A9,$20,$85,$8F
-    .byte $A9,$01,$85,$90,$4C,$3C,$A4,$A9,$01,$8D,$8F,$00,$A5,$FA,$F0,$03
-    .byte $4C,$6D,$A5,$A6,$F3,$F0,$18,$CA,$F0,$12,$CA,$F0,$0C,$CA,$F0,$06
-    .byte $CA,$D0,$0C,$4C,$49,$A5,$4C,$F0,$A4,$4C,$CF,$A4,$4C,$A6,$A4,$4C
-    .byte $62,$A4,$A5,$1C,$18,$65,$43,$B0,$23,$C9,$C0,$B0,$1F,$A6,$1C,$E0
-    .byte $40,$B0,$19,$C9,$A0,$B0,$04,$C9,$80,$B0,$1C,$A5,$1E,$C9,$C3,$B0
-    .byte $0B,$A9,$01,$85,$F3,$A9,$04,$85,$E9,$4C,$A6,$A4,$A9,$03,$85,$F3
-    .byte $A9,$02,$85,$E9,$4C,$F0,$A4,$A9,$02,$85,$F3,$A9,$08,$85,$E9,$A9
-    .byte $B3,$85,$7A,$4C,$6D,$A5,$C6,$E9,$F0,$1E,$A5,$E9,$0A,$29,$01,$18
-    .byte $69,$A0,$69,$10,$85,$7A,$A5,$1C,$18,$69,$04,$85,$1C,$C9,$40,$B0
-    .byte $07,$A9,$C2,$85,$1E,$4C,$6D,$A5,$A9,$00,$85,$F3,$4C,$6D,$A5,$C6
-    .byte $E9,$F0,$12,$A9,$B4,$85,$7A,$A5,$1E,$C9,$C3,$90,$05,$38,$E9,$04
-    .byte $85,$1E,$4C,$6D,$A5,$A9,$B3,$85,$7A,$A9,$00,$85,$F3,$4C,$6D,$A5
-    .byte $C6,$E9,$F0,$3D,$A9,$B2,$85,$7A,$A5,$1C,$F0,$0D,$38,$E9,$04,$B0
-    .byte $02,$A9,$00,$85,$1C,$C9,$11,$B0,$0E,$A5,$1E,$C9,$C3,$90,$1F,$38
-    .byte $E9,$04,$85,$1E,$4C,$2E,$A5,$A5,$1E,$C9,$D2,$90,$0C,$A5,$1C,$F0
-    .byte $0D,$38,$E9,$04,$85,$1C,$4C,$2E,$A5,$18,$69,$04,$85,$1E,$4C,$6D
-    .byte $A5,$A5,$1C,$F0,$07,$A9,$00,$85,$F3,$4C,$6D,$A5,$A9,$B0,$85,$7A
-    .byte $E6,$F3,$A9,$04,$85,$E9,$4C,$6D,$A5,$C6,$E9,$F0,$15,$A5,$E9,$C9
-    .byte $04,$D0,$04,$A9,$20,$85,$8F,$A9,$B5,$85,$7A,$A9,$C2,$85,$1E,$4C
-    .byte $6D,$A5,$A9,$B3,$85,$7A,$A9,$00,$85,$F3,$4C,$6D,$A5,$20,$74,$A5
-    .byte $20,$9A,$E9,$60,$A5,$FA,$D0,$25,$A9,$0E,$85,$16,$A9,$20,$85,$17
-    .byte $A5,$1D,$49,$01,$0A,$0A,$05,$17,$85,$17,$A5,$1D,$49,$01,$0A,$0A
-    .byte $0A,$0A,$18,$69,$07,$05,$7C,$85,$F9,$A9,$09,$85,$FA,$A5,$F9,$85
-    .byte $0C,$20,$33,$C8,$E6,$16,$E6,$16,$E6,$F9,$C6,$FA,$D0,$06,$A5,$1D
-    .byte $49,$01,$85,$1D,$60,$A0,$04,$98,$48,$A9,$05,$85,$36,$A2,$0C,$BD
-    .byte $80,$01,$29,$0F,$85,$08,$BD,$80,$01,$29,$F0,$38,$E9,$10,$B0,$05
-    .byte $A9,$0F,$4C,$D7,$A5,$05,$08,$9D,$80,$01,$CA,$10,$E2,$20,$35,$C1
-    .byte $68,$A8,$88,$D0,$D2,$60,$A9,$01,$85,$E3,$A9,$10,$85,$E5,$A9,$04
-    .byte $85,$E6,$A0,$01,$B1,$E5,$D0,$0E,$24,$20,$50,$0D,$24,$FD,$70,$09
-    .byte $20,$22,$A6,$4C,$09,$A6,$20,$57,$A6,$E6,$E3,$18,$A9,$10,$65,$E5
-    .byte $85,$E5,$A9,$00,$65,$E6,$85,$E6,$A5,$E3,$C9,$04,$90,$D4,$20,$E0
-    .byte $A6,$60,$20,$8F,$E9,$A5,$20,$29,$40,$05,$FD,$85,$FD,$A5,$FD,$A0
-    .byte $02,$20,$B1,$A7,$20,$83,$A6,$20,$B1,$A6,$B0,$3C,$A5,$0E,$85,$F9
-    .byte $A5,$0A,$85,$FB,$A9,$18,$85,$EE,$A9,$00,$85,$EF,$A9,$21,$85,$ED
-    .byte $A9,$19,$85,$8F,$4C,$78,$A6,$20,$8F,$E9,$C6,$EE,$F0,$1A,$20,$C5
-    .byte $A6,$20,$B1,$A6,$B0,$03,$4C,$70,$A6,$A9,$00,$85,$EE,$4C,$78,$A6
-    .byte $A5,$0E,$85,$F9,$A5,$0A,$85,$FB,$A5,$EE,$F0,$03,$20,$A2,$A6,$20
-    .byte $9A,$E9,$60,$A5,$43,$85,$0E,$A5,$45,$85,$0A,$A5,$F7,$F0,$07,$0A
-    .byte $0A,$18,$65,$0A,$85,$0A,$A5,$F5,$F0,$07,$0A,$0A,$18,$65,$0E,$85
-    .byte $0E,$60,$A5,$EE,$29,$0C,$85,$08,$A5,$ED,$29,$F3,$05,$08,$85,$ED
-    .byte $60,$A5,$0A,$C9,$A1,$B0,$0A,$A5,$0E,$C9,$F1,$90,$06,$A5,$0E,$F0
-    .byte $02,$38,$60,$18,$60,$A5,$F9,$85,$0E,$A5,$FB,$85,$0A,$A5,$F7,$F0
-    .byte $05,$18,$65,$0A,$85,$0A,$A5,$F5,$F0,$05,$18,$65,$0E,$85,$0E,$60
-    .byte $A9,$88,$85,$0F,$A9,$10,$85,$0E,$A9,$03,$48,$20,$03,$A7,$A5,$0F
-    .byte $18,$69,$08,$85,$0F,$A5,$0E,$18,$69,$10,$85,$0E,$68,$38,$E9,$01
-    .byte $D0,$E8,$60,$A6,$0F,$A4,$0E,$B9,$01,$04,$F0,$48,$B9,$0E,$04,$C9
-    .byte $BF,$B0,$41,$B9,$02,$04,$9D,$02,$02,$9D,$06,$02,$29,$40,$D0,$0F
-    .byte $B9,$00,$04,$9D,$01,$02,$18,$69,$02,$9D,$05,$02,$4C,$3B,$A7,$B9
-    .byte $00,$04,$9D,$05,$02,$18,$69,$02,$9D,$01,$02,$B9,$0C,$04,$9D,$03
-    .byte $02,$18,$69,$08,$9D,$07,$02,$B9,$0E,$04,$18,$69,$2B,$9D,$00,$02
-    .byte $9D,$04,$02,$60,$A9,$EF,$9D,$00,$02,$9D,$04,$02,$60,$C6,$3E,$10
-    .byte $04,$A9,$07,$85,$3E,$A5,$3E,$29,$06,$F0,$23,$A5,$3E,$0A,$0A,$AA
-    .byte $BD,$80,$02,$8D,$00,$02,$BD,$81,$02,$8D,$01,$02,$BD,$82,$02,$8D
-    .byte $02,$02,$BD,$83,$02,$8D,$03,$02,$A9,$EF,$9D,$80,$02,$60,$A5,$3E
-    .byte $0A,$0A,$AA,$BD,$10,$02,$8D,$00,$02,$BD,$11,$02,$8D,$01,$02,$BD
-    .byte $12,$02,$8D,$02,$02,$BD,$13,$02,$8D,$03,$02,$A9,$EF,$9D,$10,$02
-    .byte $60,$84,$09,$29,$0F,$0A,$AA,$A9,$00,$18,$7D,$8B,$FE,$88,$D0,$F9
-    .byte $8D,$F5,$00,$A4,$09,$A9,$00,$18,$7D,$8C,$FE,$88,$D0,$F9,$8D,$F7
-    .byte $00,$60,$A2,$3F,$BD,$FC,$AA,$9D,$40,$02,$CA,$10,$F7,$20,$69,$CB
-    .byte $60,$A2,$3F,$BD,$3C,$AB,$9D,$40,$02,$CA,$10,$F7,$20,$53,$CB,$60
-    .byte $A2,$3F,$BD,$7C,$AB,$9D,$C0,$02,$CA,$10,$F7,$20,$7F,$CB,$60,$20
-    .byte $69,$CB,$A9,$00,$8D,$11,$04,$8D,$21,$04,$8D,$31,$04,$85,$FA,$85
-    .byte $85,$85,$88,$20,$7A,$AD,$20,$E0,$A6,$A9,$EF,$8D,$00,$02,$A5,$45
-    .byte $C9,$A0,$B0,$10,$E6,$45,$20,$7A,$AD,$A9,$01,$85,$36,$A5,$36,$D0
-    .byte $FC,$4C,$1E,$A8,$A9,$00,$85,$4E,$85,$4F,$20,$E0,$AC,$20,$7A,$AD
-    .byte $A9,$20,$85,$7C,$A9,$01,$85,$1D,$A9,$20,$85,$8F,$A9,$80,$85,$90
-    .byte $A9,$B6,$85,$7A,$20,$74,$A5,$A5,$FA,$D0,$F9,$20,$74,$A5,$A5,$FA
-    .byte $D0,$F9,$A9,$20,$85,$8F,$A9,$80,$85,$90,$A9,$B7,$85,$7A,$20,$74
-    .byte $A5,$A5,$FA,$D0,$F9,$20,$74,$A5,$A5,$FA,$D0,$F9,$A9,$00,$85,$10
-    .byte $A5,$84,$29,$07,$D0,$0E,$A5,$1D,$49,$01,$85,$1D,$A9,$20,$85,$8F
-    .byte $A9,$80,$85,$90,$A9,$FF,$20,$8F,$CC,$24,$26,$50,$08,$A9,$05,$20
-    .byte $2F,$AE,$20,$7F,$CB,$A5,$3E,$D0,$04,$A9,$02,$85,$3E,$20,$7A,$AD
-    .byte $20,$5D,$A7,$C6,$10,$D0,$C9,$A9,$01,$85,$1D,$A9,$FF,$20,$8F,$CC
-    .byte $A5,$58,$D0,$01,$60,$A9,$EF,$8D,$00,$02,$A9,$18,$85,$8F,$A9,$FF
-    .byte $85,$90,$A9,$01,$85,$08,$A5,$45,$38,$E5,$08,$85,$45,$69,$2B,$C9
-    .byte $EF,$B0,$0D,$20,$7A,$AD,$E6,$08,$A9,$FF,$20,$8F,$CC,$4C,$D6,$A8
-    .byte $A9,$EF,$8D,$10,$02,$8D,$14,$02,$A9,$00,$85,$3E,$A9,$80,$85,$3F
-    .byte $20,$8A,$D0,$20,$9B,$B2,$20,$61,$C4,$20,$8B,$C3,$20,$75,$C3,$A9
-    .byte $10,$85,$48,$A9,$03,$85,$47,$A9,$F2,$85,$0E,$A9,$C8,$85,$0F,$20
-    .byte $E4,$CC,$A9,$12,$85,$7C,$A9,$C0,$85,$45,$A9,$1A,$85,$44,$A9,$01
-    .byte $85,$43,$85,$7B,$A9,$09,$85,$56,$A9,$35,$85,$2C,$A9,$34,$85,$2D
-    .byte $A9,$36,$85,$2E,$A9,$37,$85,$2F,$A9,$01,$8D,$11,$04,$8D,$21,$04
-    .byte $8D,$31,$04,$8D,$41,$04,$A9,$A0,$8D,$1E,$04,$8D,$2E,$04,$8D,$3E
-    .byte $04,$A9,$70,$8D,$4E,$04,$A9,$33,$8D,$4D,$04,$20,$AE,$AA,$18,$A9
-    .byte $2D,$8D,$10,$04,$69,$20,$8D,$20,$04,$69,$20,$8D,$30,$04,$A9,$81
-    .byte $8D,$40,$04,$A9,$40,$8D,$12,$04,$8D,$22,$04,$8D,$32,$04,$8D,$42
-    .byte $04,$20,$7A,$C5,$A9,$CB,$85,$0E,$A9,$C5,$85,$0F,$20,$E4,$CC,$20
-    .byte $B6,$CA,$20,$CC,$CA,$20,$F8,$CA,$20,$E2,$CA,$20,$C7,$C1,$20,$7C
-    .byte $D0,$20,$D8,$C1,$20,$34,$C2,$20,$B1,$C2,$A9,$07,$85,$40,$A9,$92
-    .byte $85,$0E,$A9,$C4,$85,$0F,$20,$E4,$CC,$A9,$05,$85,$8C,$20,$EE,$AA
-    .byte $A5,$8C,$D0,$F9,$A5,$45,$C9,$A0,$F0,$25,$C6,$45,$20,$EE,$AA,$20
-    .byte $EE,$AA,$A5,$45,$C9,$A0,$F0,$17,$C6,$45,$A5,$57,$49,$40,$85,$57
-    .byte $20,$D8,$C1,$20,$EE,$AA,$20,$EE,$AA,$20,$35,$C1,$4C,$D4,$A9,$A9
-    .byte $0D,$85,$56,$20,$D8,$C1,$A9,$03,$85,$8C,$20,$EE,$AA,$A5,$8C,$D0
-    .byte $F9,$A9,$01,$85,$36,$A5,$7C,$85,$7E,$A9,$01,$85,$20,$A9,$2B,$85
-    .byte $0E,$A9,$D4,$85,$0F,$20,$E4,$CC,$A9,$5D,$85,$0E,$A9,$C1,$85,$0F
-    .byte $20,$E4,$CC,$20,$AE,$AA,$20,$D8,$C1,$20,$B1,$C2,$A5,$7E,$C5,$7C
-    .byte $F0,$02,$E6,$3D,$20,$35,$C1,$A5,$44,$C9,$37,$D0,$C4,$A9,$19,$85
-    .byte $56,$A9,$39,$8D,$10,$04,$A9,$59,$8D,$20,$04,$A9,$79,$8D,$30,$04
-    .byte $A9,$91,$8D,$40,$04,$A9,$14,$85,$8C,$A5,$56,$49,$04,$85,$56,$AD
-    .byte $10,$04,$49,$04,$8D,$10,$04,$AD,$20,$04,$49,$04,$8D,$20,$04,$AD
-    .byte $30,$04,$49,$04,$8D,$30,$04,$AD,$40,$04,$49,$04,$8D,$40,$04,$20
-    .byte $EE,$AA,$20,$EE,$AA,$20,$EE,$AA,$20,$EE,$AA,$20,$EE,$AA,$20,$EE
-    .byte $AA,$20,$EE,$AA,$20,$EE,$AA,$A5,$8C,$D0,$BE,$4C,$3D,$B1,$A5,$56
-    .byte $29,$1F,$85,$08,$AD,$10,$04,$29,$E0,$05,$08,$8D,$10,$04,$AD,$20
-    .byte $04,$29,$E0,$05,$08,$8D,$20,$04,$AD,$30,$04,$29,$E0,$05,$08,$8D
-    .byte $30,$04,$A5,$43,$8D,$1C,$04,$8D,$2C,$04,$8D,$3C,$04,$A6,$44,$E8
-    .byte $8E,$2D,$04,$CA,$CA,$CA,$8E,$3D,$04,$CA,$8E,$1D,$04,$60,$20,$D8
-    .byte $C1,$20,$B1,$C2,$A9,$01,$85,$36,$20,$35,$C1,$60,$58,$51,$03,$A0
-    .byte $58,$53,$03,$A8,$58,$55,$03,$B0,$58,$57,$03,$B8,$58,$59,$03,$C0
-    .byte $58,$5B,$03,$C8,$64,$61,$03,$A8,$64,$61,$03,$B2,$64,$61,$03,$BC
-    .byte $64,$61,$03,$C6,$64,$61,$03,$D0,$74,$67,$03,$A8,$74,$67,$03,$B2
-    .byte $74,$67,$03,$BC,$74,$67,$03,$C6,$74,$67,$03,$D0,$38,$9D,$03,$C0
-    .byte $38,$9F,$03,$C8,$38,$B9,$03,$D0,$38,$BB,$03,$D8,$38,$BD,$03,$E0
-    .byte $38,$BF,$03,$E8,$44,$A1,$03,$C8,$44,$A1,$03,$D2,$44,$A1,$03,$DC
-    .byte $44,$A1,$03,$E6,$44,$A1,$03,$F0,$54,$A7,$03,$C8,$54,$A7,$03,$D2
-    .byte $54,$A7,$03,$DC,$54,$A7,$03,$E6,$54,$A7,$03,$F0,$30,$6D,$03,$28
-    .byte $30,$6F,$03,$30,$30,$71,$03,$38,$30,$73,$03,$40,$30,$75,$03,$48
-    .byte $30,$77,$03,$50,$3C,$61,$03,$20,$3C,$61,$03,$2A,$3C,$61,$03,$34
-    .byte $3C,$61,$03,$3E,$3C,$61,$03,$48,$4C,$67,$03,$20,$4C,$67,$03,$2A
-    .byte $4C,$67,$03,$34,$4C,$67,$03,$3E,$4C,$67,$03,$48,$A5,$20,$29,$10
-    .byte $F0,$03,$4C,$11,$AE,$24,$20,$70,$06,$A5,$FD,$29,$0F,$85,$FD,$A5
-    .byte $20,$29,$0F,$F0,$0A,$85,$08,$A5,$FD,$29,$F0,$05,$08,$85,$FD,$A5
-    .byte $85,$D0,$30,$24,$26,$50,$43,$A6,$3E,$E8,$8A,$29,$06,$D0,$3B,$A5
-    .byte $1C,$18,$7D,$0C,$04,$C9,$B0,$A9,$0A,$90,$02,$A9,$05,$20,$2F,$AE
-    .byte $A9,$0A,$85,$4F,$A9,$21,$85,$8F,$A9,$02,$85,$90,$A9,$01,$85,$85
-    .byte $20,$7F,$CB,$A5,$4F,$D0,$0B,$A5,$4E,$D0,$07,$A9,$00,$85,$85,$4C
-    .byte $2A,$AC,$A5,$20,$29,$F0,$09,$02,$85,$20,$20,$51,$AE,$A5,$4E,$D0
-    .byte $21,$A5,$4F,$D0,$04,$A5,$20,$10,$08,$20,$6D,$AC,$A9,$00,$4C,$45
-    .byte $AC,$A9,$00,$85,$22,$85,$4F,$20,$C7,$AD,$90,$03,$4C,$AF,$AC,$4C
-    .byte $A1,$AC,$4A,$4A,$18,$69,$01,$85,$4B,$20,$C7,$AD,$B0,$03,$4C,$A1
-    .byte $AC,$A9,$00,$85,$49,$20,$C7,$AD,$90,$37,$4C,$AF,$AC,$A6,$4F,$D0
-    .byte $0D,$A5,$22,$F0,$01,$60,$A9,$1B,$85,$8F,$A5,$5C,$85,$4F,$68,$68
-    .byte $A9,$01,$85,$22,$C6,$4F,$8A,$4A,$4A,$49,$FF,$18,$69,$01,$85,$4B
-    .byte $20,$C7,$AD,$90,$0C,$A9,$00,$85,$49,$20,$C7,$AD,$90,$03,$4C,$AF
-    .byte $AC,$A5,$0E,$85,$43,$A5,$0A,$85,$45,$20,$E4,$AD,$4C,$BB,$AC,$A9
-    .byte $00,$85,$4F,$85,$4E,$20,$E4,$AD,$4C,$BB,$AC,$20,$E0,$AC,$20,$3B
-    .byte $AD,$20,$7A,$AD,$60,$A5,$43,$85,$0E,$A5,$45,$85,$0A,$A5,$4B,$F0
-    .byte $05,$18,$65,$0A,$85,$0A,$A5,$49,$F0,$05,$18,$65,$0E,$85,$0E,$60
-    .byte $A2,$09,$A5,$20,$29,$BF,$C9,$80,$F0,$35,$A5,$4B,$F0,$18,$30,$0F
-    .byte $A5,$4E,$D0,$2E,$A5,$20,$29,$04,$F0,$0C,$A2,$0D,$4C,$1F,$AD,$A5
-    .byte $4F,$F0,$1C,$4C,$22,$AD,$A2,$01,$A0,$00,$A5,$49,$30,$04,$F0,$11
-    .byte $A0,$40,$86,$08,$A5,$56,$29,$07,$05,$08,$85,$56,$84,$57,$60,$86
-    .byte $56,$60,$A2,$39,$A0,$00,$A5,$49,$30,$04,$F0,$F5,$A0,$40,$86,$08
-    .byte $A5,$56,$29,$03,$05,$08,$85,$56,$84,$57,$60,$A5,$56,$C9,$20,$B0
-    .byte $0F,$A5,$56,$24,$20,$70,$05,$29,$EF,$4C,$4E,$AD,$09,$10,$85,$56
-    .byte $A5,$20,$29,$0F,$F0,$23,$A5,$4F,$05,$4E,$D0,$1D,$E6,$4D,$A5,$4D
-    .byte $29,$07,$D0,$15,$A5,$56,$29,$08,$D0,$09,$A5,$56,$49,$04,$85,$56
-    .byte $4C,$79,$AD,$A5,$57,$49,$40,$85,$57,$60,$A5,$85,$F0,$0F,$A5,$84
-    .byte $29,$01,$D0,$09,$A9,$EF,$8D,$10,$02,$8D,$14,$02,$60,$A5,$45,$18
-    .byte $69,$2B,$8D,$10,$02,$8D,$14,$02,$A5,$43,$8D,$13,$02,$18,$69,$08
-    .byte $8D,$17,$02,$A5,$57,$09,$20,$8D,$12,$02,$8D,$16,$02,$24,$57,$70
-    .byte $0B,$A6,$56,$8E,$11,$02,$E8,$E8,$8E,$15,$02,$60,$A6,$56,$8E,$15
-    .byte $02,$E8,$E8,$8E,$11,$02,$60,$A5,$4B,$48,$20,$C5,$AC,$20,$41,$AE
-    .byte $90,$0E,$A6,$4B,$F0,$09,$30,$02,$CA,$CA,$E8,$86,$4B,$D0,$EB,$38
-    .byte $68,$85,$4B,$60,$A5,$4F,$F0,$02,$18,$60,$A5,$45,$C9,$A0,$B0,$03
-    .byte $E6,$4E,$60,$A5,$4E,$C5,$5C,$90,$13,$38,$E9,$07,$C5,$5C,$90,$02
-    .byte $A5,$5C,$38,$E9,$01,$85,$4F,$A9,$0A,$8D,$8F,$00,$A9,$00,$85,$4E
-    .byte $60,$A9,$03,$85,$8F,$E6,$8D,$20,$43,$CC,$D0,$FB,$20,$43,$CC,$29
-    .byte $10,$F0,$F9,$20,$43,$CC,$D0,$FB,$A9,$04,$85,$8F,$C6,$8D,$60,$85
-    .byte $08,$A5,$58,$38,$E5,$08,$85,$58,$08,$B0,$04,$A9,$00,$85,$58,$28
-    .byte $60,$A5,$0A,$C9,$A1,$B0,$06,$A5,$0E,$C9,$F1,$90,$02,$38,$60,$18
-    .byte $60,$A5,$20,$29,$0F,$0A,$AA,$BD,$8B,$FE,$8D,$49,$00,$BD,$8C,$FE
-    .byte $8D,$4B,$00,$60
+    .byte $14,$0F,$22,$1A,$28,$0F,$16,$0F,$0F,$1C,$1E
+    LDA #$18
+    STA $8F
+    LDA #$00
+    STA $85
+    JSR $C1D8
+    LDX #$02
+    LDA #$40
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    JSR $D08A
+    JSR $C2B1
+    LDX #$03
+    LDA #$40
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    JSR L_A5B5
+    LDA #$20
+    STA $8F
+    LDA #$3C
+    STA $36
+    JSR $C135
+    LDA #$13
+    STA map_screen_y
+    LDA #$02
+    STA map_screen_x
+    LDA #$F2
+    STA $0E
+    LDA #$C8
+    STA $0F
+    JSR $CCE4
+    JSR $C38B
+    LDA #$EF
+    STA $0200
+    LDA #$22
+    STA $1E
+    LDA #$00
+    STA scroll_x_fine
+    STA player_x_fine
+    LDA #$10
+    STA scroll_x_tile
+    LDA #$CB
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    LDX #$04
+    LDA #$40
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    LDA #$00
+    STA scroll_x_tile
+    LDA #$6C
+    STA $0E
+    LDA #$C7
+    STA $0F
+    JSR $CCE4
+    LDA #$3D
+    STA mmc3_r3_shadow
+L_A378:
+    LDX $1E
+    BNE L_A37E
+    LDX #$F0
+L_A37E:
+    CPX #$C2
+    BEQ L_A395
+    DEX
+    STX $1E
+    TXA
+    AND #$08
+    LSR A
+    LSR A
+    LSR A
+    STA $1D
+    LDA #$FF
+    JSR $CC8F
+    JMP L_A378
+L_A395:
+    LDX #$02
+    LDA #$40
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    LDA #$C7
+    STA $0E
+    LDA #$C1
+    STA $0F
+    JSR $CCE4
+    LDA #$00
+    STA $040C
+    STA $040D
+    STA $0406
+    STA $E9
+    STA scroll_x_fine
+    STA scroll_x_tile
+    LDA #$64
+    STA $0405
+    LDA #$08
+    STA $3E
+    LDA player_x_tile
+    ASL A
+    ASL A
+    ASL A
+    ASL A
+    ORA player_x_fine
+    STA player_x_fine
+    JSR L_AD7A
+    LDA #$EF
+    STA $0210
+    STA $0214
+    JSR L_A7D2
+    JSR L_A7F0
+    RTS
+    LDA #$00
+    STA $E5
+    LDA #$04
+    STA $E6
+    JSR $E98F
+    LDA boss_life
+    BNE L_A3F5
+    JMP L_A7FF
+L_A3F5:
+    BIT nmi_scratch
+    BVC L_A43C
+    LDX $3E
+    INX
+    INX
+    TXA
+    AND #$06
+oam_sprite_engine:
+    BEQ L_A43C
+    ASL A
+    ASL A
+    ASL A
+    TAX
+    LDA $0401,X
+    BEQ L_A43C
+    LDA #$00
+    STA $0401,X
+    LDA $1C
+    CLC
+    ADC $040C,X
+    CMP #$B0
+    BCC L_A437
+    CMP #$D0
+    BCS L_A437
+    LDA boss_life
+    SEC
+    SBC #$02
+    BCS L_A427
+    LDA #$00
+L_A427:
+    STA boss_life
+    JSR $CB69
+    LDA #$20
+    STA $8F
+    LDA #$01
+    STA $90
+    JMP L_A43C
+L_A437:
+    LDA #$01
+    STA a:$008F
+L_A43C:
+    LDA $FA
+    BEQ L_A443
+    JMP L_A56D
+L_A443:
+    LDX $F3
+    BEQ L_A45F
+    DEX
+    BEQ L_A45C
+    DEX
+    BEQ L_A459
+    DEX
+    BEQ L_A456
+    DEX
+    BNE L_A45F
+    JMP L_A549
+L_A456:
+    JMP L_A4F0
+L_A459:
+    JMP L_A4CF
+L_A45C:
+    JMP L_A4A6
+L_A45F:
+    JMP L_A462
+L_A462:
+    LDA $1C
+    CLC
+    ADC player_x_fine
+    BCS L_A48C
+    CMP #$C0
+    BCS L_A48C
+    LDX $1C
+    CPX #$40
+    BCS L_A48C
+    CMP #$A0
+    BCS L_A47B
+    CMP #$80
+    BCS L_A497
+L_A47B:
+    LDA $1E
+    CMP #$C3
+    BCS L_A48C
+    LDA #$01
+    STA $F3
+    LDA #$04
+    STA $E9
+    JMP L_A4A6
+L_A48C:
+    LDA #$03
+    STA $F3
+    LDA #$02
+    STA $E9
+    JMP L_A4F0
+L_A497:
+    LDA #$02
+    STA $F3
+    LDA #$08
+    STA $E9
+    LDA #$B3
+    STA $7A
+    JMP L_A56D
+L_A4A6:
+    DEC $E9
+    BEQ L_A4C8
+    LDA $E9
+    ASL A
+    AND #$01
+    CLC
+    ADC #$A0
+    ADC #$10
+    STA $7A
+    LDA $1C
+    CLC
+    ADC #$04
+    STA $1C
+    CMP #$40
+    BCS L_A4C8
+    LDA #$C2
+    STA $1E
+    JMP L_A56D
+L_A4C8:
+    LDA #$00
+    STA $F3
+    JMP L_A56D
+L_A4CF:
+    DEC $E9
+    BEQ L_A4E5
+    LDA #$B4
+    STA $7A
+    LDA $1E
+    CMP #$C3
+    BCC L_A4E2
+    SEC
+    SBC #$04
+    STA $1E
+L_A4E2:
+    JMP L_A56D
+L_A4E5:
+    LDA #$B3
+    STA $7A
+    LDA #$00
+    STA $F3
+    JMP L_A56D
+L_A4F0:
+    DEC $E9
+    BEQ L_A531
+    LDA #$B2
+    STA $7A
+    LDA $1C
+    BEQ L_A509
+    SEC
+    SBC #$04
+    BCS L_A503
+    LDA #$00
+L_A503:
+    STA $1C
+    CMP #$11
+    BCS L_A517
+L_A509:
+    LDA $1E
+    CMP #$C3
+    BCC L_A52E
+    SEC
+    SBC #$04
+    STA $1E
+    JMP L_A52E
+L_A517:
+    LDA $1E
+    CMP #$D2
+    BCC L_A529
+    LDA $1C
+    BEQ L_A52E
+    SEC
+    SBC #$04
+    STA $1C
+    JMP L_A52E
+L_A529:
+    CLC
+    ADC #$04
+    STA $1E
+L_A52E:
+    JMP L_A56D
+L_A531:
+    LDA $1C
+    BEQ L_A53C
+    LDA #$00
+    STA $F3
+    JMP L_A56D
+L_A53C:
+    LDA #$B0
+    STA $7A
+    INC $F3
+    LDA #$04
+    STA $E9
+    JMP L_A56D
+L_A549:
+    DEC $E9
+    BEQ L_A562
+    LDA $E9
+    CMP #$04
+    BNE L_A557
+    LDA #$20
+    STA $8F
+L_A557:
+    LDA #$B5
+    STA $7A
+    LDA #$C2
+    STA $1E
+    JMP L_A56D
+L_A562:
+    LDA #$B3
+    STA $7A
+    LDA #$00
+    STA $F3
+    JMP L_A56D
+L_A56D:
+    JSR L_A574
+    JSR $E99A
+    RTS
+L_A574:
+    LDA $FA
+    BNE L_A59D
+    LDA #$0E
+    STA vram_dst_lo
+    LDA #$20
+    STA vram_dst_hi
+    LDA $1D
+    EOR #$01
+    ASL A
+    ASL A
+    ORA vram_dst_hi
+    STA vram_dst_hi
+    LDA $1D
+    EOR #$01
+    ASL A
+    ASL A
+    ASL A
+    ASL A
+    CLC
+    ADC #$07
+    ORA scroll_x_tile
+    STA $F9
+    LDA #$09
+    STA $FA
+L_A59D:
+    LDA $F9
+    STA $0C
+    JSR $C833
+    INC vram_dst_lo
+    INC vram_dst_lo
+    INC $F9
+    DEC $FA
+    BNE L_A5B4
+    LDA $1D
+    EOR #$01
+    STA $1D
+L_A5B4:
+    RTS
+L_A5B5:
+    LDY #$04
+L_A5B7:
+    TYA
+    PHA
+    LDA #$05
+    STA $36
+    LDX #$0C
+L_A5BF:
+    LDA $0180,X
+    AND #$0F
+    STA $08
+    LDA $0180,X
+    AND #$F0
+    SEC
+    SBC #$10
+    BCS L_A5D5
+    LDA #$0F
+    JMP L_A5D7
+L_A5D5:
+    ORA $08
+L_A5D7:
+    STA $0180,X
+    DEX
+    BPL L_A5BF
+    JSR $C135
+    PLA
+    TAY
+    DEY
+    BNE L_A5B7
+    RTS
+    LDA #$01
+    STA $E3
+    LDA #$10
+    STA $E5
+    LDA #$04
+    STA $E6
+L_A5F2:
+    LDY #$01
+    LDA ($E5),Y
+    BNE L_A606
+    BIT $20
+    BVC L_A609
+    BIT $FD
+    BVS L_A609
+    JSR L_A622
+    JMP L_A609
+L_A606:
+    JSR L_A657
+L_A609:
+    INC $E3
+    CLC
+    LDA #$10
+    ADC $E5
+    STA $E5
+    LDA #$00
+    ADC $E6
+    STA $E6
+    LDA $E3
+    CMP #$04
+    BCC L_A5F2
+    JSR L_A6E0
+    RTS
+L_A622:
+    JSR $E98F
+    LDA $20
+    AND #$40
+    ORA $FD
+    STA $FD
+    LDA $FD
+    LDY #$02
+    JSR L_A7B1
+    JSR L_A683
+    JSR L_A6B1
+    BCS L_A678
+    LDA $0E
+    STA $F9
+    LDA $0A
+    STA $FB
+    LDA #$18
+    STA $EE
+    LDA #$00
+    STA $EF
+    LDA #$21
+    STA $ED
+    LDA #$19
+    STA $8F
+    JMP L_A678
+L_A657:
+    JSR $E98F
+    DEC $EE
+    BEQ L_A678
+    JSR L_A6C5
+    JSR L_A6B1
+    BCS L_A669
+    JMP L_A670
+L_A669:
+    LDA #$00
+    STA $EE
+    JMP L_A678
+L_A670:
+    LDA $0E
+    STA $F9
+    LDA $0A
+    STA $FB
+L_A678:
+    LDA $EE
+    BEQ L_A67F
+    JSR L_A6A2
+L_A67F:
+    JSR $E99A
+    RTS
+L_A683:
+    LDA player_x_fine
+    STA $0E
+    LDA player_y
+    STA $0A
+    LDA $F7
+    BEQ L_A696
+    ASL A
+    ASL A
+    CLC
+    ADC $0A
+    STA $0A
+L_A696:
+    LDA $F5
+    BEQ L_A6A1
+    ASL A
+    ASL A
+    CLC
+    ADC $0E
+    STA $0E
+L_A6A1:
+    RTS
+L_A6A2:
+    LDA $EE
+    AND #$0C
+    STA $08
+    LDA $ED
+    AND #$F3
+    ORA $08
+    STA $ED
+    RTS
+L_A6B1:
+    LDA $0A
+    CMP #$A1
+    BCS L_A6C1
+    LDA $0E
+    CMP #$F1
+    BCC L_A6C3
+    LDA $0E
+    BEQ L_A6C3
+L_A6C1:
+    SEC
+    RTS
+L_A6C3:
+    CLC
+    RTS
+L_A6C5:
+    LDA $F9
+    STA $0E
+    LDA $FB
+    STA $0A
+    LDA $F7
+    BEQ L_A6D6
+    CLC
+    ADC $0A
+    STA $0A
+L_A6D6:
+    LDA $F5
+    BEQ L_A6DF
+    CLC
+    ADC $0E
+    STA $0E
+L_A6DF:
+    RTS
+L_A6E0:
+    LDA #$88
+    STA $0F
+    LDA #$10
+    STA $0E
+    LDA #$03
+L_A6EA:
+    PHA
+    JSR L_A703
+    LDA $0F
+    CLC
+    ADC #$08
+    STA $0F
+    LDA $0E
+    CLC
+    ADC #$10
+    STA $0E
+    PLA
+    SEC
+    SBC #$01
+    BNE L_A6EA
+    RTS
+L_A703:
+    LDX $0F
+    LDY $0E
+    LDA $0401,Y
+    BEQ L_A754
+    LDA $040E,Y
+    CMP #$BF
+    BCS L_A754
+    LDA $0402,Y
+    STA $0202,X
+    STA $0206,X
+    AND #$40
+    BNE L_A72F
+    LDA sprite_tables,Y
+    STA $0201,X
+    CLC
+    ADC #$02
+    STA $0205,X
+    JMP L_A73B
+L_A72F:
+    LDA sprite_tables,Y
+    STA $0205,X
+    CLC
+    ADC #$02
+    STA $0201,X
+L_A73B:
+    LDA $040C,Y
+    STA $0203,X
+    CLC
+    ADC #$08
+    STA $0207,X
+    LDA $040E,Y
+    CLC
+    ADC #$2B
+    STA $0200,X
+    STA $0204,X
+    RTS
+L_A754:
+    LDA #$EF
+    STA $0200,X
+    STA $0204,X
+    RTS
+L_A75D:
+    DEC $3E
+    BPL L_A765
+    LDA #$07
+    STA $3E
+L_A765:
+    LDA $3E
+    AND #$06
+    BEQ L_A78E
+    LDA $3E
+    ASL A
+    ASL A
+    TAX
+    LDA $0280,X
+    STA $0200
+    LDA $0281,X
+    STA $0201
+    LDA $0282,X
+    STA $0202
+    LDA $0283,X
+    STA $0203
+    LDA #$EF
+    STA $0280,X
+    RTS
+L_A78E:
+    LDA $3E
+    ASL A
+    ASL A
+    TAX
+    LDA $0210,X
+    STA $0200
+    LDA $0211,X
+    STA $0201
+    LDA $0212,X
+    STA $0202
+    LDA $0213,X
+    STA $0203
+    LDA #$EF
+    STA $0210,X
+    RTS
+L_A7B1:
+    STY $09
+    AND #$0F
+    ASL A
+    TAX
+    LDA #$00
+L_A7B9:
+    CLC
+    ADC $FE8B,X
+    DEY
+    BNE L_A7B9
+    STA a:$00F5
+    LDY $09
+    LDA #$00
+L_A7C7:
+    CLC
+    ADC $FE8C,X
+    DEY
+    BNE L_A7C7
+    STA a:$00F7
+    RTS
+L_A7D2:
+    LDX #$3F
+L_A7D4:
+    LDA $AAFC,X
+    STA $0240,X
+    DEX
+    BPL L_A7D4
+    JSR $CB69
+    RTS
+    LDX #$3F
+L_A7E3:
+    LDA $AB3C,X
+    STA $0240,X
+    DEX
+    BPL L_A7E3
+    JSR $CB53
+    RTS
+L_A7F0:
+    LDX #$3F
+L_A7F2:
+    LDA $AB7C,X
+    STA $02C0,X
+    DEX
+    BPL L_A7F2
+    JSR $CB7F
+    RTS
+L_A7FF:
+    JSR $CB69
+    LDA #$00
+    STA $0411
+    STA $0421
+    STA $0431
+    STA $FA
+    STA $85
+    STA $88
+    JSR L_AD7A
+    JSR L_A6E0
+    LDA #$EF
+    STA $0200
+L_A81E:
+    LDA player_y
+    CMP #$A0
+    BCS L_A834
+    INC player_y
+    JSR L_AD7A
+    LDA #$01
+    STA $36
+L_A82D:
+    LDA $36
+    BNE L_A82D
+    JMP L_A81E
+L_A834:
+    LDA #$00
+    STA $4E
+    STA $4F
+    JSR L_ACE0
+    JSR L_AD7A
+    LDA #$20
+    STA scroll_x_tile
+    LDA #$01
+    STA $1D
+    LDA #$20
+    STA $8F
+    LDA #$80
+    STA $90
+    LDA #$B6
+    STA $7A
+L_A854:
+    JSR L_A574
+    LDA $FA
+    BNE L_A854
+L_A85B:
+    JSR L_A574
+    LDA $FA
+    BNE L_A85B
+    LDA #$20
+    STA $8F
+    LDA #$80
+    STA $90
+    LDA #$B7
+    STA $7A
+L_A86E:
+    JSR L_A574
+    LDA $FA
+    BNE L_A86E
+L_A875:
+    JSR L_A574
+    LDA $FA
+    BNE L_A875
+    LDA #$00
+    STA $10
+L_A880:
+    LDA $84
+    AND #$07
+    BNE L_A894
+    LDA $1D
+    EOR #$01
+    STA $1D
+    LDA #$20
+    STA $8F
+    LDA #$80
+    STA $90
+L_A894:
+    LDA #$FF
+    JSR $CC8F
+    BIT nmi_scratch
+    BVC L_A8A5
+    LDA #$05
+    JSR L_AE2F
+    JSR $CB7F
+L_A8A5:
+    LDA $3E
+    BNE L_A8AD
+    LDA #$02
+    STA $3E
+L_A8AD:
+    JSR L_AD7A
+    JSR L_A75D
+    DEC $10
+    BNE L_A880
+    LDA #$01
+    STA $1D
+    LDA #$FF
+    JSR $CC8F
+    LDA health
+    BNE L_A8C5
+    RTS
+L_A8C5:
+    LDA #$EF
+    STA $0200
+    LDA #$18
+    STA $8F
+    LDA #$FF
+    STA $90
+    LDA #$01
+    STA $08
+L_A8D6:
+    LDA player_y
+    SEC
+    SBC $08
+    STA player_y
+    ADC #$2B
+    CMP #$EF
+    BCS L_A8F0
+    JSR L_AD7A
+    INC $08
+    LDA #$FF
+    JSR $CC8F
+    JMP L_A8D6
+L_A8F0:
+    LDA #$EF
+    STA $0210
+    STA $0214
+    LDA #$00
+    STA $3E
+    LDA #$80
+    STA $3F
+    JSR $D08A
+    JSR L_B29B
+    JSR $C461
+    JSR $C38B
+    JSR $C375
+    LDA #$10
+    STA map_screen_y
+    LDA #$03
+    STA map_screen_x
+    LDA #$F2
+    STA $0E
+    LDA #$C8
+    STA $0F
+    JSR $CCE4
+    LDA #$12
+    STA scroll_x_tile
+    LDA #$C0
+    STA player_y
+    LDA #$1A
+    STA player_x_tile
+    LDA #$01
+    STA player_x_fine
+    STA scroll_x_fine
+    LDA #$09
+    STA $56
+    LDA #$35
+    STA mmc3_r2_shadow
+    LDA #$34
+    STA mmc3_r3_shadow
+    LDA #$36
+    STA mmc3_r4_shadow
+    LDA #$37
+    STA mmc3_r5_shadow
+    LDA #$01
+    STA $0411
+    STA $0421
+    STA $0431
+    STA $0441
+    LDA #$A0
+    STA $041E
+    STA $042E
+    STA $043E
+    LDA #$70
+    STA $044E
+    LDA #$33
+    STA $044D
+    JSR L_AAAE
+    CLC
+    LDA #$2D
+    STA $0410
+    ADC #$20
+    STA $0420
+    ADC #$20
+    STA $0430
+    LDA #$81
+    STA $0440
+    LDA #$40
+    STA $0412
+    STA $0422
+    STA $0432
+    STA $0442
+    JSR $C57A
+    LDA #$CB
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    JSR $CAB6
+    JSR $CACC
+    JSR $CAF8
+    JSR $CAE2
+    JSR $C1C7
+    JSR $D07C
+    JSR $C1D8
+    JSR $C234
+    JSR $C2B1
+    LDA #$07
+    STA cur_character
+    LDA #$92
+    STA $0E
+    LDA #$C4
+    STA $0F
+    JSR $CCE4
+    LDA #$05
+    STA $8C
+L_A9CD:
+    JSR L_AAEE
+    LDA $8C
+    BNE L_A9CD
+L_A9D4:
+    LDA player_y
+    CMP #$A0
+    BEQ L_A9FF
+    DEC player_y
+    JSR L_AAEE
+    JSR L_AAEE
+    LDA player_y
+    CMP #$A0
+    BEQ L_A9FF
+    DEC player_y
+    LDA $57
+    EOR #$40
+    STA $57
+    JSR $C1D8
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR $C135
+    JMP L_A9D4
+L_A9FF:
+    LDA #$0D
+    STA $56
+    JSR $C1D8
+    LDA #$03
+    STA $8C
+L_AA0A:
+    JSR L_AAEE
+    LDA $8C
+    BNE L_AA0A
+L_AA11:
+    LDA #$01
+    STA $36
+    LDA scroll_x_tile
+    STA $7E
+    LDA #$01
+    STA $20
+    LDA #$2B
+    STA $0E
+    LDA #$D4
+    STA $0F
+    JSR $CCE4
+    LDA #$5D
+    STA $0E
+    LDA #$C1
+    STA $0F
+    JSR $CCE4
+    JSR L_AAAE
+    JSR $C1D8
+    JSR $C2B1
+    LDA $7E
+    CMP scroll_x_tile
+    BEQ L_AA44
+    INC $3D
+L_AA44:
+    JSR $C135
+    LDA player_x_tile
+    CMP #$37
+    BNE L_AA11
+    LDA #$19
+    STA $56
+    LDA #$39
+    STA $0410
+    LDA #$59
+    STA $0420
+    LDA #$79
+    STA $0430
+    LDA #$91
+    STA $0440
+    LDA #$14
+    STA $8C
+L_AA69:
+    LDA $56
+    EOR #$04
+    STA $56
+    LDA $0410
+    EOR #$04
+    STA $0410
+    LDA $0420
+    EOR #$04
+    STA $0420
+    LDA $0430
+    EOR #$04
+    STA $0430
+    LDA $0440
+    EOR #$04
+    STA $0440
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    JSR L_AAEE
+    LDA $8C
+    BNE L_AA69
+    JMP L_B13D
+L_AAAE:
+    LDA $56
+    AND #$1F
+    STA $08
+    LDA $0410
+    AND #$E0
+    ORA $08
+    STA $0410
+    LDA $0420
+    AND #$E0
+    ORA $08
+    STA $0420
+    LDA $0430
+    AND #$E0
+    ORA $08
+    STA $0430
+    LDA player_x_fine
+    STA $041C
+    STA $042C
+    STA $043C
+    LDX player_x_tile
+    INX
+    STX $042D
+    DEX
+    DEX
+    DEX
+    STX $043D
+    DEX
+    STX $041D
+    RTS
+L_AAEE:
+    JSR $C1D8
+    JSR $C2B1
+    LDA #$01
+    STA $36
+    JSR $C135
+    RTS
+    .byte $58,$51,$03,$A0,$58,$53,$03,$A8,$58,$55,$03,$B0,$58,$57,$03,$B8
+    .byte $58,$59,$03,$C0,$58,$5B,$03,$C8,$64,$61,$03,$A8,$64,$61,$03,$B2
+    .byte $64,$61,$03,$BC,$64,$61,$03,$C6,$64,$61,$03,$D0,$74,$67,$03,$A8
+    .byte $74,$67,$03,$B2,$74,$67,$03,$BC,$74,$67,$03,$C6,$74,$67,$03,$D0
+    .byte $38,$9D,$03,$C0,$38,$9F,$03,$C8,$38,$B9,$03,$D0,$38,$BB,$03,$D8
+    .byte $38,$BD,$03,$E0,$38,$BF,$03,$E8,$44,$A1,$03,$C8,$44,$A1,$03,$D2
+    .byte $44,$A1,$03,$DC,$44,$A1,$03,$E6,$44,$A1,$03,$F0,$54,$A7,$03,$C8
+    .byte $54,$A7,$03,$D2,$54,$A7,$03,$DC,$54,$A7,$03,$E6,$54,$A7,$03,$F0
+    .byte $30,$6D,$03,$28,$30,$6F,$03,$30,$30,$71,$03,$38,$30,$73,$03,$40
+    .byte $30,$75,$03,$48,$30,$77,$03,$50,$3C,$61,$03,$20,$3C,$61,$03,$2A
+    .byte $3C,$61,$03,$34,$3C,$61,$03,$3E,$3C,$61,$03,$48,$4C,$67,$03,$20
+    .byte $4C,$67,$03,$2A,$4C,$67,$03,$34,$4C,$67,$03,$3E,$4C,$67,$03,$48
+    LDA $20
+    AND #$10
+    BEQ L_ABC5
+    JMP L_AE11
+L_ABC5:
+    BIT $20
+    BVS L_ABCF
+    LDA $FD
+    AND #$0F
+    STA $FD
+L_ABCF:
+    LDA $20
+    AND #$0F
+    BEQ L_ABDF
+    STA $08
+    LDA $FD
+    AND #$F0
+    ORA $08
+    STA $FD
+L_ABDF:
+    LDA $85
+    BNE L_AC13
+    BIT nmi_scratch
+    BVC L_AC2A
+    LDX $3E
+    INX
+    TXA
+    AND #$06
+    BNE L_AC2A
+    LDA $1C
+    CLC
+    ADC $040C,X
+    CMP #$B0
+    LDA #$0A
+    BCC L_ABFD
+    LDA #$05
+L_ABFD:
+    JSR L_AE2F
+    LDA #$0A
+    STA $4F
+    LDA #$21
+    STA $8F
+    LDA #$02
+    STA $90
+    LDA #$01
+    STA $85
+    JSR $CB7F
+L_AC13:
+    LDA $4F
+    BNE L_AC22
+    LDA $4E
+    BNE L_AC22
+    LDA #$00
+    STA $85
+    JMP L_AC2A
+L_AC22:
+    LDA $20
+    AND #$F0
+    ORA #$02
+    STA $20
+L_AC2A:
+    JSR L_AE51
+    LDA $4E
+    BNE L_AC52
+    LDA $4F
+    BNE L_AC39
+    LDA $20
+    BPL L_AC41
+L_AC39:
+    JSR L_AC6D
+    LDA #$00
+    JMP L_AC45
+L_AC41:
+    LDA #$00
+    STA $22
+L_AC45:
+    STA $4F
+    JSR L_ADC7
+    BCC L_AC4F
+    JMP L_ACAF
+L_AC4F:
+    JMP L_ACA1
+L_AC52:
+    LSR A
+    LSR A
+    CLC
+    ADC #$01
+    STA $4B
+    JSR L_ADC7
+    BCS L_AC61
+    JMP L_ACA1
+L_AC61:
+    LDA #$00
+    STA $49
+    JSR L_ADC7
+    BCC L_ACA1
+    JMP L_ACAF
+L_AC6D:
+    LDX $4F
+    BNE L_AC7E
+    LDA $22
+    BEQ L_AC76
+    RTS
+L_AC76:
+    LDA #$1B
+    STA $8F
+    LDA stat_jump
+    STA $4F
+L_AC7E:
+    PLA
+    PLA
+    LDA #$01
+    STA $22
+    DEC $4F
+    TXA
+    LSR A
+    LSR A
+    EOR #$FF
+    CLC
+    ADC #$01
+    STA $4B
+    JSR L_ADC7
+    BCC L_ACA1
+    LDA #$00
+    STA $49
+    JSR L_ADC7
+    BCC L_ACA1
+    JMP L_ACAF
+L_ACA1:
+    LDA $0E
+    STA player_x_fine
+    LDA $0A
+    STA player_y
+    JSR L_ADE4
+    JMP L_ACBB
+L_ACAF:
+    LDA #$00
+    STA $4F
+    STA $4E
+    JSR L_ADE4
+    JMP L_ACBB
+L_ACBB:
+    JSR L_ACE0
+    JSR L_AD3B
+    JSR L_AD7A
+    RTS
+L_ACC5:
+    LDA player_x_fine
+    STA $0E
+    LDA player_y
+    STA $0A
+    LDA $4B
+    BEQ L_ACD6
+    CLC
+    ADC $0A
+    STA $0A
+L_ACD6:
+    LDA $49
+    BEQ L_ACDF
+    CLC
+    ADC $0E
+    STA $0E
+L_ACDF:
+    RTS
+L_ACE0:
+    LDX #$09
+    LDA $20
+    AND #$BF
+    CMP #$80
+    BEQ L_AD1F
+    LDA $4B
+    BEQ L_AD06
+    BMI L_ACFF
+    LDA $4E
+    BNE L_AD22
+    LDA $20
+    AND #$04
+    BEQ L_AD06
+    LDX #$0D
+    JMP L_AD1F
+L_ACFF:
+    LDA $4F
+    BEQ L_AD1F
+    JMP L_AD22
+L_AD06:
+    LDX #$01
+    LDY #$00
+    LDA $49
+    BMI L_AD12
+    BEQ L_AD21
+    LDY #$40
+L_AD12:
+    STX $08
+    LDA $56
+    AND #$07
+    ORA $08
+    STA $56
+    STY $57
+    RTS
+L_AD1F:
+    STX $56
+L_AD21:
+    RTS
+L_AD22:
+    LDX #$39
+    LDY #$00
+    LDA $49
+    BMI L_AD2E
+    BEQ L_AD21
+    LDY #$40
+L_AD2E:
+    STX $08
+    LDA $56
+    AND #$03
+    ORA $08
+    STA $56
+    STY $57
+    RTS
+L_AD3B:
+    LDA $56
+    CMP #$20
+    BCS L_AD50
+    LDA $56
+    BIT $20
+    BVS L_AD4C
+    AND #$EF
+    JMP L_AD4E
+L_AD4C:
+    ORA #$10
+L_AD4E:
+    STA $56
+L_AD50:
+    LDA $20
+    AND #$0F
+    BEQ L_AD79
+    LDA $4F
+    ORA $4E
+    BNE L_AD79
+    INC $4D
+    LDA $4D
+    AND #$07
+    BNE L_AD79
+    LDA $56
+    AND #$08
+    BNE L_AD73
+    LDA $56
+    EOR #$04
+    STA $56
+    JMP L_AD79
+L_AD73:
+    LDA $57
+    EOR #$40
+    STA $57
+L_AD79:
+    RTS
+L_AD7A:
+    LDA $85
+    BEQ L_AD8D
+    LDA $84
+    AND #$01
+    BNE L_AD8D
+    LDA #$EF
+    STA $0210
+    STA $0214
+    RTS
+L_AD8D:
+    LDA player_y
+    CLC
+    ADC #$2B
+    STA $0210
+    STA $0214
+    LDA player_x_fine
+    STA $0213
+    CLC
+    ADC #$08
+    STA $0217
+    LDA $57
+    ORA #$20
+    STA $0212
+    STA $0216
+    BIT $57
+    BVS L_ADBC
+    LDX $56
+    STX $0211
+    INX
+    INX
+    STX $0215
+    RTS
+L_ADBC:
+    LDX $56
+    STX $0215
+    INX
+    INX
+    STX $0211
+    RTS
+L_ADC7:
+    LDA $4B
+    PHA
+L_ADCA:
+    JSR L_ACC5
+    JSR L_AE41
+    BCC L_ADE0
+    LDX $4B
+    BEQ L_ADDF
+    BMI L_ADDA
+    DEX
+    DEX
+L_ADDA:
+    INX
+    STX $4B
+    BNE L_ADCA
+L_ADDF:
+    SEC
+L_ADE0:
+    PLA
+    STA $4B
+    RTS
+L_ADE4:
+    LDA $4F
+    BEQ L_ADEA
+    CLC
+    RTS
+L_ADEA:
+    LDA player_y
+    CMP #$A0
+    BCS L_ADF3
+    INC $4E
+    RTS
+L_ADF3:
+    LDA $4E
+    CMP stat_jump
+    BCC L_AE0C
+    SEC
+    SBC #$07
+    CMP stat_jump
+    BCC L_AE02
+    LDA stat_jump
+L_AE02:
+    SEC
+    SBC #$01
+    STA $4F
+    LDA #$0A
+    STA a:$008F
+L_AE0C:
+    LDA #$00
+    STA $4E
+    RTS
+L_AE11:
+    LDA #$03
+    STA $8F
+    INC $8D
+L_AE17:
+    JSR $CC43
+    BNE L_AE17
+L_AE1C:
+    JSR $CC43
+    AND #$10
+    BEQ L_AE1C
+L_AE23:
+    JSR $CC43
+    BNE L_AE23
+    LDA #$04
+    STA $8F
+    DEC $8D
+    RTS
+L_AE2F:
+    STA $08
+    LDA health
+    SEC
+    SBC $08
+    STA health
+    PHP
+    BCS L_AE3F
+    LDA #$00
+    STA health
+L_AE3F:
+    PLP
+    RTS
+L_AE41:
+    LDA $0A
+    CMP #$A1
+    BCS L_AE4D
+    LDA $0E
+    CMP #$F1
+    BCC L_AE4F
+L_AE4D:
+    SEC
+    RTS
+L_AE4F:
+    CLC
+    RTS
+L_AE51:
+    LDA $20
+    AND #$0F
+    ASL A
+    TAX
+    LDA $FE8B,X
+    STA a:$0049
+    LDA $FE8C,X
+    STA a:$004B
+    RTS
 L_AE64:
     JSR L_B631
     LDA #$37
@@ -861,35 +2157,217 @@ L_B300:
     DEY
     BPL L_B300
     RTS
-    .byte $A5,$8E,$48,$E6,$8D,$20,$7C,$D0,$A2,$35,$A0,$00,$20,$C5,$B4,$A9
-    .byte $3C,$85,$36,$20,$35,$C1,$A9,$08,$20,$2E,$D0,$C6,$8D,$A9,$05,$85
-    .byte $0A,$A2,$0D,$A0,$00,$20,$C5,$B4,$A2,$01,$A0,$00,$20,$C5,$B4,$A2
-    .byte $09,$A0,$00,$20,$C5,$B4,$A2,$01,$A0,$40,$20,$C5,$B4,$C6,$0A,$D0
-    .byte $E0,$A9,$01,$85,$36,$A9,$31,$85,$56,$20,$D8,$C1,$20,$35,$C1,$A5
-    .byte $EC,$D0,$29,$A5,$37,$10,$05,$E6,$37,$4C,$72,$B3,$A6,$55,$B5,$51
-    .byte $C9,$0C,$D0,$18,$A9,$FF,$95,$51,$20,$34,$C2,$20,$6A,$D1,$A9,$19
-    .byte $85,$56,$20,$09,$CC,$68,$20,$2E,$D0,$A2,$00,$60,$68,$20,$61,$C4
-    .byte $A9,$00,$85,$EC,$85,$3E,$A9,$80,$85,$3F,$20,$8B,$C3,$20,$8A,$D0
-    .byte $20,$B1,$C2,$A9,$16,$85,$2B,$A9,$36,$85,$2C,$A9,$00,$8D,$1C,$00
-    .byte $8D,$1D,$00,$8D,$1E,$00,$85,$7B,$85,$7C,$A9,$6B,$85,$16,$A9,$21
-    .byte $85,$17,$A9,$AF,$85,$18,$A9,$B4,$85,$19,$A9,$09,$85,$1A,$A9,$05
-    .byte $20,$8F,$CC,$A9,$4C,$85,$16,$A9,$22,$85,$17,$A9,$B8,$85,$18,$A9
-    .byte $B4,$85,$19,$A9,$05,$85,$1A,$A9,$05,$20,$8F,$CC,$A9,$8C,$85,$16
-    .byte $A9,$22,$85,$17,$A9,$BD,$85,$18,$A9,$B4,$85,$19,$A9,$08,$85,$1A
-    .byte $A9,$05,$20,$8F,$CC,$A9,$05,$85,$44,$A9,$00,$85,$43,$A9,$70,$85
-    .byte $45,$A9,$39,$85,$56,$20,$75,$C3,$20,$D8,$C1,$A9,$E0,$85,$0E,$A9
-    .byte $C4,$85,$0F,$20,$E4,$CC,$20,$09,$CC,$29,$10,$D0,$0D,$A5,$45,$49
-    .byte $10,$85,$45,$A9,$0C,$85,$8F,$4C,$1D,$B4,$A9,$18,$85,$8F,$A5,$45
-    .byte $C9,$70,$F0,$15,$20,$61,$C4,$A9,$78,$85,$36,$A9,$35,$85,$0E,$A9
-    .byte $C1,$85,$0F,$20,$E4,$CC,$A2,$02,$60,$20,$C5,$D0,$A9,$FF,$85,$51
-    .byte $85,$52,$85,$53,$A9,$03,$85,$55,$A9,$06,$85,$40,$A9,$03,$85,$47
-    .byte $A9,$10,$85,$48,$20,$61,$C4,$A9,$02,$85,$8E,$20,$8B,$C3,$20,$7A
-    .byte $C5,$20,$B6,$CA,$20,$CC,$CA,$20,$E2,$CA,$20,$F8,$CA,$A9,$F2,$85
-    .byte $0E,$A9,$C8,$85,$0F,$20,$E4,$CC,$A9,$0F,$A2,$1F,$9D,$80,$01,$CA
-    .byte $10,$FA,$A9,$EF,$8D,$10,$02,$8D,$14,$02,$A9,$B4,$85,$0E,$A9,$C4
-    .byte $85,$0F,$20,$E4,$CC,$A2,$01,$60,$E7,$E1,$ED,$E5,$C0,$EF,$F6,$E5
-    .byte $F2,$F2,$E5,$F4,$F2,$F9,$E3,$EF,$EE,$F4,$E9,$EE,$F5,$E5,$86,$56
-    .byte $84,$57,$A9,$08,$85,$36,$20,$D8,$C1,$20,$35,$C1,$60
+    LDA $8E
+    PHA
+    INC $8D
+    JSR $D07C
+    LDX #$35
+    LDY #$00
+    JSR L_B4C5
+    LDA #$3C
+    STA $36
+    JSR $C135
+    LDA #$08
+    JSR $D02E
+    DEC $8D
+    LDA #$05
+    STA $0A
+L_B328:
+    LDX #$0D
+    LDY #$00
+    JSR L_B4C5
+    LDX #$01
+    LDY #$00
+    JSR L_B4C5
+    LDX #$09
+    LDY #$00
+    JSR L_B4C5
+    LDX #$01
+    LDY #$40
+    JSR L_B4C5
+    DEC $0A
+    BNE L_B328
+    LDA #$01
+    STA $36
+    LDA #$31
+    STA $56
+    JSR $C1D8
+    JSR $C135
+    LDA $EC
+    BNE L_B383
+    LDA $37
+    BPL L_B363
+    INC $37
+    JMP L_B372
+L_B363:
+    LDX equipped_item
+    LDA carried_item0,X
+    CMP #$0C
+    BNE L_B383
+    LDA #$FF
+    STA carried_item0,X
+    JSR $C234
+L_B372:
+    JSR $D16A
+    LDA #$19
+    STA $56
+    JSR $CC09
+    PLA
+    JSR $D02E
+    LDX #$00
+    RTS
+L_B383:
+    PLA
+    JSR $C461
+    LDA #$00
+    STA $EC
+    STA $3E
+    LDA #$80
+    STA $3F
+    JSR $C38B
+    JSR $D08A
+    JSR $C2B1
+    LDA #$16
+    STA mmc3_r1_shadow
+    LDA #$36
+    STA mmc3_r2_shadow
+    LDA #$00
+    STA a:$001C
+    STA a:$001D
+    STA a:$001E
+    STA scroll_x_fine
+    STA scroll_x_tile
+    LDA #$6B
+    STA vram_dst_lo
+    LDA #$21
+    STA vram_dst_hi
+    LDA #$AF
+    STA vram_src_lo
+    LDA #$B4
+    STA vram_src_hi
+    LDA #$09
+    STA vram_len
+    LDA #$05
+    JSR $CC8F
+    LDA #$4C
+    STA vram_dst_lo
+    LDA #$22
+    STA vram_dst_hi
+    LDA #$B8
+    STA vram_src_lo
+    LDA #$B4
+    STA vram_src_hi
+    LDA #$05
+    STA vram_len
+    LDA #$05
+    JSR $CC8F
+    LDA #$8C
+    STA vram_dst_lo
+    LDA #$22
+    STA vram_dst_hi
+    LDA #$BD
+    STA vram_src_lo
+    LDA #$B4
+    STA vram_src_hi
+    LDA #$08
+    STA vram_len
+    LDA #$05
+    JSR $CC8F
+    LDA #$05
+    STA player_x_tile
+    LDA #$00
+    STA player_x_fine
+    LDA #$70
+    STA player_y
+    LDA #$39
+    STA $56
+    JSR $C375
+    JSR $C1D8
+    LDA #$E0
+    STA $0E
+    LDA #$C4
+    STA $0F
+    JSR $CCE4
+L_B41D:
+    JSR $CC09
+    AND #$10
+    BNE L_B431
+    LDA player_y
+    EOR #$10
+    STA player_y
+    LDA #$0C
+    STA $8F
+    JMP L_B41D
+L_B431:
+    LDA #$18
+    STA $8F
+    LDA player_y
+    CMP #$70
+    BEQ L_B450
+    JSR $C461
+    LDA #$78
+    STA $36
+    LDA #$35
+    STA $0E
+    LDA #$C1
+    STA $0F
+    JSR $CCE4
+    LDX #$02
+    RTS
+L_B450:
+    JSR $D0C5
+    LDA #$FF
+    STA carried_item0
+    STA carried_item1
+    STA carried_item2
+    LDA #$03
+    STA equipped_item
+    LDA #$06
+    STA cur_character
+    LDA #$03
+    STA map_screen_x
+    LDA #$10
+    STA map_screen_y
+    JSR $C461
+    LDA #$02
+    STA $8E
+    JSR $C38B
+    JSR $C57A
+    JSR $CAB6
+    JSR $CACC
+    JSR $CAE2
+    JSR $CAF8
+    LDA #$F2
+    STA $0E
+    LDA #$C8
+    STA $0F
+    JSR $CCE4
+    LDA #$0F
+    LDX #$1F
+L_B493:
+    STA $0180,X
+    DEX
+    BPL L_B493
+    LDA #$EF
+    STA $0210
+    STA $0214
+    LDA #$B4
+    STA $0E
+    LDA #$C4
+    STA $0F
+    JSR $CCE4
+    LDX #$01
+    RTS
+    .byte $E7,$E1,$ED,$E5,$C0,$EF,$F6,$E5,$F2,$F2,$E5,$F4,$F2,$F9,$E3,$EF
+    .byte $EE,$F4,$E9,$EE,$F5,$E5
+L_B4C5:
+    STX $56
+    STY $57
+    LDA #$08
+    STA $36
+    JSR $C1D8
+    JSR $C135
+    RTS
     LDX #$0F
     LDY #$07
 L_B4D8:

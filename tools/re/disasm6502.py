@@ -66,13 +66,16 @@ BRANCHES = {0x90, 0xB0, 0xF0, 0x30, 0xD0, 0x10, 0x50, 0x70}  # conditional rel
 class BankDisasm:
     def __init__(self, data: bytes, origin: int, name: str,
                  names: dict[int, str] | None = None,
-                 label_names: dict[int, str] | None = None):
+                 label_names: dict[int, str] | None = None,
+                 dispatchers: dict[int, str] | None = None):
         self.data = data
         self.origin = origin
         self.end = origin + len(data)
         self.name = name
         self.names = names or {}          # addr -> register/RAM name (data operands)
         self.label_names = label_names or {}  # addr -> code label name
+        self.dispatchers = dispatchers or {}  # bank-switch far-call dispatcher addr -> scheme
+        self.farcall_targets: list[tuple[int, int]] = []  # (bank_index, cpu_addr)
         self.starts: set[int] = set()    # cpu addrs that begin an instruction
         self.lengths: dict[int, int] = {}
         self.labels: set[int] = set()    # cpu addrs needing a label
@@ -94,6 +97,8 @@ class BankDisasm:
         seen = set()
         while work:
             pc = work.pop()
+            a_imm = None          # last LDA #imm value (for far-call target tracking)
+            ptr: dict[int, int] = {}  # tracked $0E/$0F pointer bytes
             while True:
                 if pc in seen or not self._in_window(pc):
                     break
@@ -108,6 +113,16 @@ class BankDisasm:
                 seen.add(pc)
                 self.starts.add(pc)
                 self.lengths[pc] = ln
+                # --- light dataflow: track immediate $0E/$0F setups for far-calls ---
+                if op == 0x85:  # STA zp
+                    z = self._byte(pc + 1)
+                    if a_imm is not None and z in (0x0E, 0x0F):
+                        ptr[z] = a_imm
+                    a_imm = None
+                elif op == 0xA9:  # LDA #imm
+                    a_imm = self._byte(pc + 1)
+                else:
+                    a_imm = None
                 # collect control-flow targets within window
                 if md == REL:
                     tgt = (pc + 2 + ((self._byte(pc + 1) ^ 0x80) - 0x80)) & 0xFFFF
@@ -119,6 +134,12 @@ class BankDisasm:
                     if self._in_window(tgt):
                         self.labels.add(tgt)
                         work.append(tgt)
+                    # far-call dispatcher: resolve cross-bank target from $0E/$0F
+                    if op == 0x20 and tgt in self.dispatchers and 0x0E in ptr and 0x0F in ptr:
+                        target = ptr[0x0E] | (ptr[0x0F] << 8)
+                        b = _farcall_bank(self.dispatchers[tgt], target)
+                        if b is not None:
+                            self.farcall_targets.append((b, target))
                 if op in TERMINATORS:
                     break
                 pc += ln
@@ -208,12 +229,25 @@ class BankDisasm:
         return "\n".join(out) + "\n"
 
 
+def _farcall_bank(scheme: str, target: int) -> int | None:
+    """Map a far-call target address to the PRG bank the dispatcher forces in."""
+    if scheme == "0C0D":          # R6=$0C ($8000=bank12), R7=$0D ($A000=bank13)
+        if 0x8000 <= target < 0xA000:
+            return 12
+        if 0xA000 <= target < 0xC000:
+            return 13
+    return None
+
+
 def disassemble_bank(data: bytes, origin: int, name: str, entries: set[int],
                      force_labels: set[int] | None = None,
                      names: dict[int, str] | None = None,
-                     label_names: dict[int, str] | None = None) -> dict:
-    bd = BankDisasm(data, origin, name, names=names, label_names=label_names)
+                     label_names: dict[int, str] | None = None,
+                     dispatchers: dict[int, str] | None = None) -> dict:
+    bd = BankDisasm(data, origin, name, names=names, label_names=label_names,
+                    dispatchers=dispatchers)
     bd.trace(entries, force_labels)
     code_bytes = sum(bd.lengths.values())
     return {"text": bd.render(), "code_bytes": code_bytes,
-            "instructions": len(bd.starts), "labels": len(bd.labels)}
+            "instructions": len(bd.starts), "labels": len(bd.labels),
+            "farcall_targets": bd.farcall_targets}

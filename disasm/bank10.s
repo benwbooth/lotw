@@ -1,4 +1,4 @@
-; PRG bank 10 (swappable) — file 0x14010..0x16010 (data: no execution coverage)
+; PRG bank 10 (swappable) — file 0x14010..0x16010 (data: no code reached)
 .segment "CODE10"
     .byte $62,$80,$A2,$80,$02,$81,$82,$80,$E2,$80,$42,$81,$C2,$80,$22,$81
     .byte $62,$81,$82,$81,$22,$81,$AB,$B3,$BB,$B3,$D4,$B3,$E7,$B3,$FE,$B3

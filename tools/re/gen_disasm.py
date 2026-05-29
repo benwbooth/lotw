@@ -108,18 +108,52 @@ def main():
         swap_origin[n] = origin
         swap_entries[n] = {c for c in cpus if origin <= c < origin + BANK_LEN}
 
+    # Bank-switch far-call dispatchers: resolve cross-bank code entries (this is
+    # how bank 12 code, never hit by coverage, is reached). Scheme 0C0D forces
+    # R6=$0C ($8000=bank12) / R7=$0D ($A000=bank13).
+    DISPATCHERS = {0xCC9C: "0C0D", 0xCD08: "0C0D"}
+    fstart = PRG_BASE + FIX_BANKS[0] * BANK_LEN
+    fdata = rom[fstart:fstart + len(FIX_BANKS) * BANK_LEN]
+
+    def disasm_fix():
+        return disassemble_bank(fdata, FIX_ORIGIN, "FIX", fix_entries,
+                                force_labels=FIX_ANCHORS | set(routines),
+                                names=names, label_names=routines, dispatchers=DISPATCHERS)
+
+    def disasm_swap(n):
+        data = rom[PRG_BASE + n * BANK_LEN: PRG_BASE + (n + 1) * BANK_LEN]
+        return disassemble_bank(data, swap_origin[n], f"{n:02d}", swap_entries[n],
+                                force_labels=set(routines),
+                                names=names, label_names=routines, dispatchers=DISPATCHERS)
+
+    # --- fixpoint: disassemble, harvest far-call targets, feed back as entries ---
+    rf = None
+    swap_results: dict[int, dict] = {}
+    for _ in range(16):
+        rf = disasm_fix()
+        swap_results = {n: disasm_swap(n) for n in range(N_SWAP) if swap_entries[n]}
+        targets = list(rf["farcall_targets"])
+        for r in swap_results.values():
+            targets += r["farcall_targets"]
+        added = False
+        for bank, cpu in targets:
+            origin = 0x8000 if bank == 12 else 0xA000  # 0C0D scheme windows
+            swap_origin[bank] = origin
+            if cpu not in swap_entries[bank]:
+                swap_entries[bank].add(cpu)
+                added = True
+        if not added:
+            break
+
     stats = []
 
-    # --- swappable banks 0-13 (disassemble if executed; else .byte data) ---
+    # --- write swappable bank .s (disassembled if it has entries, else data) ---
     for n in range(N_SWAP):
         start = PRG_BASE + n * BANK_LEN
         data = rom[start:start + BANK_LEN]
-        entries = swap_entries[n]
-        if entries:
+        if n in swap_results:
+            r = swap_results[n]
             origin = swap_origin[n]
-            r = disassemble_bank(data, origin, f"{n:02d}", entries,
-                                 force_labels=set(routines),
-                                 names=names, label_names=routines)
             (OUT / f"bank{n:02d}.s").write_text(
                 INCLUDE +
                 f"; PRG bank {n} (swappable, runs at ${origin:04X}) — "
@@ -130,15 +164,10 @@ def main():
         else:
             (OUT / f"bank{n:02d}.s").write_text(
                 f"; PRG bank {n} (swappable) — file 0x{start:05X}..0x{start+BANK_LEN:05X} "
-                f"(data: no execution coverage)\n"
+                f"(data: no code reached)\n"
                 f'.segment "CODE{n:02d}"\n' + emit_bytes(data) + "\n")
 
     # --- fixed banks 14+15 as one $C000-$FFFF code unit ---
-    fstart = PRG_BASE + FIX_BANKS[0] * BANK_LEN
-    fdata = rom[fstart:fstart + len(FIX_BANKS) * BANK_LEN]
-    rf = disassemble_bank(fdata, FIX_ORIGIN, "FIX", fix_entries,
-                          force_labels=FIX_ANCHORS | set(routines),
-                          names=names, label_names=routines)
     (OUT / "bankfix.s").write_text(
         INCLUDE +
         f"; PRG banks 14+15 (FIXED, contiguous $C000-$FFFF) — file 0x{fstart:05X}..0x{fstart+len(fdata):05X}\n"

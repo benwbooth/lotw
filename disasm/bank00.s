@@ -1,4 +1,4 @@
-; PRG bank 0 (swappable) — file 0x00010..0x02010 (data: no execution coverage)
+; PRG bank 0 (swappable) — file 0x00010..0x02010 (data: no code reached)
 .segment "CODE00"
     .byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$FC,$40,$40,$40,$40
     .byte $40,$40,$40,$40,$FC,$6F,$50,$6C,$FC,$A2,$9E,$FC,$6F,$6F,$6F,$6F

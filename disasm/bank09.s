@@ -1,4 +1,4 @@
-; PRG bank 9 (swappable) — file 0x12010..0x14010 (data: no execution coverage)
+; PRG bank 9 (swappable) — file 0x12010..0x14010 (data: no code reached)
 .segment "CODE09"
     .byte $2E,$2E,$2F,$2F,$8A,$9A,$8B,$9B,$88,$98,$89,$99,$86,$96,$87,$97
     .byte $AA,$AC,$AB,$AD,$BA,$AC,$BB,$AD,$1C,$1C,$1D,$1D,$04,$04,$04,$04

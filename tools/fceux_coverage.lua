@@ -203,18 +203,36 @@ local function rnd(m)
   rng = (rng * 1103515245 + 12345) % 2147483648
   return math.mod(math.floor(rng / 65536), m)
 end
+-- Persona varies behaviour per session to widen coverage into different code:
+--   0 forward (right-heavy, jumps), 1 suicidal (no jump, walk into hazards -> die
+--   -> GAME OVER in bank 12), 2 menu-masher (start/select/A through menus/shop),
+--   3 climber (up/down for ladders/doors/room transitions).
+local persona = math.mod(explore_seed or 0, 4)
 local held = {}
 local function explore_input(i)
   if math.mod(i, 12) == 1 then          -- re-roll inputs periodically
     held = {}
     local mv = rnd(100)
-    if mv < 38 then held.right = true elseif mv < 66 then held.left = true end
-    if rnd(100) < 45 then held.A = true end       -- jump
-    if rnd(100) < 30 then held.B = true end       -- magic/attack
+    if mv < 40 then held.right = true elseif mv < 70 then held.left = true end
     local vv = rnd(100)
-    if vv < 14 then held.up = true elseif vv < 28 then held.down = true end
-    if rnd(100) < 6 then held.start = true end     -- menus / start
-    if rnd(100) < 4 then held.select = true end    -- change character
+    if persona == 0 then
+      if rnd(100) < 55 then held.A = true end
+      if rnd(100) < 30 then held.B = true end
+      if vv < 12 then held.up = true elseif vv < 22 then held.down = true end
+    elseif persona == 1 then            -- suicidal: never jump, push into things
+      if rnd(100) < 25 then held.B = true end
+      if vv < 25 then held.up = true elseif vv < 50 then held.down = true end
+    elseif persona == 2 then            -- menu masher
+      if rnd(100) < 50 then held.A = true end
+      if rnd(100) < 30 then held.B = true end
+      if rnd(100) < 35 then held.start = true end
+      if rnd(100) < 20 then held.select = true end
+    else                                -- climber
+      if rnd(100) < 35 then held.A = true end
+      if vv < 40 then held.up = true elseif vv < 75 then held.down = true end
+    end
+    if rnd(100) < 5 then held.start = true end
+    if rnd(100) < 4 then held.select = true end
   end
   return held
 end

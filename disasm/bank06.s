@@ -1,4 +1,4 @@
-; PRG bank 6 (swappable) — file 0x0C010..0x0E010 (data: no execution coverage)
+; PRG bank 6 (swappable) — file 0x0C010..0x0E010 (data: no code reached)
 .segment "CODE06"
     .byte $7D,$7D,$7D,$7D,$7D,$7D,$7D,$7D,$7D,$7D,$7D,$73,$7D,$D2,$D2,$D2
     .byte $D2,$D2,$D2,$7D,$EF,$BE,$BE,$73,$7D,$D2,$D2,$D2,$92,$92,$D2,$7D
