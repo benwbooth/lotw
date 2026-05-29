@@ -1,0 +1,3 @@
+{ "name": "sub_C1D8", "addr": "C1D8", "entry": "none",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "builds 2-sprite OAM ($0210-$0217) from player($43/$44/$45)/scroll($7B/$7C)/attr($57)/tile($56); $85!=0 & $84 even -> offscreen $EF; attr bit6 swaps tile order" }

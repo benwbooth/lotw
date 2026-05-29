@@ -1,0 +1,3 @@
+{ "name": "sub_CA1E", "addr": "CA1E", "entry": "none",
+  "inputs": [], "compare": ["a"],
+  "notes": "A = save_inventory[((map_screen_y<<2)&4)|map_screen_x] << ((map_screen_y>>1)+1)" }

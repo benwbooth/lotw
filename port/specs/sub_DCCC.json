@@ -1,0 +1,3 @@
+{ "name": "sub_DCCC", "addr": "DCCC", "entry": "lda_a",
+  "inputs": ["y"], "compare": ["c"],
+  "notes": "classifies *(($0C/$0D)+Y)&$3F; carry out (x==0 -> player_x_fine==0; x==2 -> 1; else x>=$30)" }

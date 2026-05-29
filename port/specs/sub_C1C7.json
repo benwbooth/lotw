@@ -1,0 +1,3 @@
+{ "name": "sub_C1C7", "addr": "C1C7", "entry": "lda_a",
+  "inputs": [], "compare": ["ram","x","a"], "shaper": null,
+  "notes": "scroll_x16 = (tile<<4|fine): low->$1C/X, carry of 4th ASL->$1D/A" }

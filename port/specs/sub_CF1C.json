@@ -1,0 +1,3 @@
+{ "name": "sub_CF1C", "addr": "CF1C", "entry": "none",
+  "inputs": [], "compare": ["c"], "shaper": null,
+  "notes": "carry = ($0A>=$B0) || ($0F>=$3F && $0E!=0); reads $0A,$0F,$0E" }

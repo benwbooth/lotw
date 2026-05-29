@@ -1,0 +1,3 @@
+{ "name": "sub_FCB4", "addr": "FCB4", "entry": "lda_y",
+  "inputs": ["y"], "compare": ["ram","a"], "shaper": null,
+  "notes": "A = (RAM[$00]*(Y+1) & $FF) >> 4 -> RAM[$00] and A; Y ends 0" }

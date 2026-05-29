@@ -1,0 +1,2 @@
+{ "name": "sub_F2D3", "addr": "F2D3", "entry": "lda_a",
+  "inputs": ["y"], "compare": ["c"], "shaper": null, "notes": "carry = (*(($0C/$0D)+Y) & $3F) >= $30" }

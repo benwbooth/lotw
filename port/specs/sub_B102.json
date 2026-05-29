@@ -1,0 +1,2 @@
+{ "name": "sub_B102", "addr": "B102", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "copy 128 bytes ROM $B71C -> $0240" }

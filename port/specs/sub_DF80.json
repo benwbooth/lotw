@@ -1,0 +1,3 @@
+{ "name": "sub_DF80", "addr": "DF80", "entry": "none",
+  "inputs": [], "compare": ["a","x","y"], "shaper": null,
+  "notes": "b = *(($10/$11)+$0B); X = b&$3F; A = ($74 if X==$3E else b)" }

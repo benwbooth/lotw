@@ -1,0 +1,3 @@
+{ "name": "sub_EF04", "addr": "EF04", "entry": "none",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "$F9=$0E, $FA=$0F, $FB=$0A" }

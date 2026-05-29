@@ -1,0 +1,3 @@
+{ "name": "sub_CA36", "addr": "CA36", "entry": "none",
+  "inputs": ["ram"], "compare": ["ram"], "shaper": null,
+  "notes": "clears high-bit run in save_inventory[((msy<<2)&4)|msx] via ROR-of-$FF mask, count=(msy>>1)+1" }

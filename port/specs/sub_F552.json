@@ -1,0 +1,2 @@
+{ "name": "sub_F552", "addr": "F552", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "INC $F3; $ED = (($F3&$0C)<<1)|$41" }

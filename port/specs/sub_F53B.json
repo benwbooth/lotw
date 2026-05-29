@@ -1,0 +1,3 @@
+{ "name": "sub_F53B", "addr": "F53B", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "notes": "sets $EF bits 6-7 from $F6/$F5: F6<0 -> $40-clear path Y=0; else F5==0 -> no write; else Y=$40. writes $08 and $EF" }

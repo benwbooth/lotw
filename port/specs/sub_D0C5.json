@@ -1,0 +1,3 @@
+{ "name": "sub_D0C5", "addr": "D0C5", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "Restore inventory/counts/gold/keys from save area (inverse of $D0A5)." }

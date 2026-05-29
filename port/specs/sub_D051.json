@@ -1,0 +1,3 @@
+{ "name":"sub_D051", "addr":"D051", "entry":"none",
+  "inputs":[], "compare":["a","c"], "shaper":null,
+  "notes":"If equipped carried_item0,X==8 and magic!=0 -> A=strength*4,CLC; else A=strength,SEC." }

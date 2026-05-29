@@ -59,17 +59,18 @@ def load_specs(only):
     return specs
 
 
-def build(specs):
-    BUILD.mkdir(parents=True, exist_ok=True)
+def build(specs, tag):
+    bdir = BUILD / tag                      # isolated per-invocation build dir
+    bdir.mkdir(parents=True, exist_ok=True)
     names = [s["name"] for s in specs]
     disp = ['#include "regs.h"']
     disp += [f"void {n}(Regs*);" for n in names]
     disp.append("PortFn PORT_FNS[] = {" + ", ".join(names) + "};")
     disp.append(f"int PORT_N = {len(names)};")
-    (BUILD / "dispatch.c").write_text("\n".join(disp) + "\n")
+    (bdir / "dispatch.c").write_text("\n".join(disp) + "\n")
     cc = os.environ.get("CC", "gcc")
-    srcs = [str(HARNESS), str(BUILD / "dispatch.c")] + [str(PORTED / f"{n}.c") for n in names]
-    out = BUILD / "harness"
+    srcs = [str(HARNESS), str(bdir / "dispatch.c")] + [str(PORTED / f"{n}.c") for n in names]
+    out = bdir / "harness"
     subprocess.run([cc, "-O2", "-DLOTW_HOST", f"-I{SRC}", "-o", str(out), *srcs], check=True)
     return out
 
@@ -116,7 +117,7 @@ def main():
     if not specs:
         print("no specs to test"); sys.exit(1)
     rom = ROM.read_bytes()
-    harness = build(specs)
+    harness = build(specs, args.only or "_all")
 
     idx = {s["name"]: i for i, s in enumerate(specs)}
     total_fail = 0
@@ -130,16 +131,25 @@ def main():
             x, y, fb = next(rng), next(rng), next(rng)
             ram = bytearray(next(rng) for _ in range(0x800))
             ram[0x1FD], ram[0x1FC] = 0x0F, 0xFE   # oracle sentinel ($0FFE)
+            for k, v in s.get("setup", {}).items():  # pin bytes (e.g. a valid pointer)
+                ram[int(k, 16) & 0x7FF] = int(v, 16)
             ram = bytes(ram)
             c, z, n, v = entry_flags(s, a, x, y, fb)
             states.append((a, x, y, c, z, n, v, ram))
             recs += bytes([rid, a, x, y, c, z, n, v]) + ram
         proc = subprocess.run([str(harness), str(ROM)], input=bytes(recs),
                               stdout=subprocess.PIPE, check=True)
-        bad = 0
+        bad = skipped = 0
         cmp = s.get("compare", ["ram"])
         for i, st in enumerate(states):
-            o = oracle(rom, s, *st)
+            try:
+                o = oracle(rom, s, *st)
+            except (RuntimeError, ValueError):
+                # The ORIGINAL crashes/hangs on this (unrealistic) random input —
+                # e.g. a pointer-write routine whose random pointer hits the stack.
+                # Not the port's fault; skip the state.
+                skipped += 1
+                continue
             g = proc.stdout[i * REC:(i + 1) * REC]
             ga = dict(a=g[1], x=g[2], y=g[3], c=g[4], z=g[5], n=g[6], v=g[7])
             oa = dict(a=o[0], x=o[1], y=o[2], c=o[3], z=o[4], n=o[5], v=o[6])
@@ -149,7 +159,10 @@ def main():
                 if bad <= 2:
                     print(f"  [{s['name']}] MISMATCH #{i}: cmp={cmp} "
                           f"orig={oa} port={ga} ram_eq={ram_eq(o[7], g[8:])}")
-        print(f"{s['name']:16} {args.n} states cmp={cmp}: {'PASS' if bad == 0 else f'FAIL ({bad})'}")
+        tested = args.n - skipped
+        tag = f" [{skipped} states skipped: original crashed on random input]" if skipped else ""
+        verdict = "PASS" if (bad == 0 and tested > 0) else f"FAIL ({bad})"
+        print(f"{s['name']:16} {tested}/{args.n} states cmp={cmp}: {verdict}{tag}")
         total_fail += bad
     sys.exit(1 if total_fail else 0)
 

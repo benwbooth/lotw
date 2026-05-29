@@ -1,0 +1,3 @@
+{ "name": "sub_EA2E", "addr": "EA2E", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "DEC $F3; on 0 load $ED/$EF from ptr $E7:E8 and set $EE; else every 4th tick EOR $EF #$40." }

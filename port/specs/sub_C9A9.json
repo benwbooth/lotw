@@ -1,0 +1,3 @@
+{ "name": "sub_C9A9", "addr": "C9A9", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "copy 768 bytes from ptr ($75/$76) to $0500-$07FF; leaves $77/$78 modified" }

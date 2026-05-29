@@ -1,0 +1,3 @@
+{ "name": "sub_FCC4", "addr": "FCC4", "entry": "none",
+  "inputs": ["ram"], "compare": ["ram"], "shaper": null,
+  "notes": "X=$02; loads 4-byte ROM record $FDCB+($A2+X) into $9C..$9F+X, index at $9B+X" }

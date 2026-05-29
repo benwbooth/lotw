@@ -1,0 +1,3 @@
+{ "name": "sub_FD45", "addr": "FD45", "entry": "none",
+  "inputs": [], "compare": ["ram","c"], "shaper": null,
+  "notes": "anim stepper, X=$02; countdown $9E,X, advance phase $9B,X, load $FDCB table; carry result" }

@@ -1,0 +1,3 @@
+{ "name": "sub_CA85", "addr": "CA85", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "16-bit ($0C)*12 -> $0C:$0D; X/Y hold scratch (4c hi/lo), not compared." }

@@ -1,0 +1,3 @@
+{ "name": "sub_E3D6", "addr": "E3D6", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"], "shaper": null,
+  "notes": "OAM bytes from $F9&$1F; writes $0280/$0284/$08/$0287/$0283" }

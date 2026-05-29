@@ -1,0 +1,3 @@
+{ "name": "sub_D017", "addr": "D017", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["a"],
+  "notes": "A=item index; returns bit mask = ROM[$FFBB + cur_character*2 (+1 if A>=8)] << ((A&7)+1)" }

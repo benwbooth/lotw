@@ -1,0 +1,3 @@
+{ "name": "sub_D08A", "addr": "D08A", "entry": "none",
+  "inputs": [], "compare": ["ram","a","x","y"], "shaper": null,
+  "notes": "16 stride-$10 slots from $0400: byte+1=0, byte+6=2; then $E9=0; A=X=Y=0 on exit" }
