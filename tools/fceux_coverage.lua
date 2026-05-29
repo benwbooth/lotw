@@ -192,10 +192,43 @@ end
 
 local replay_frames = parse_replay(replay_path)
 
+-- Optional exploration mode: after the replay prefix is exhausted, drive
+-- deterministic pseudo-random inputs (LCG seeded by LOTW_COV_EXPLORE) to wander
+-- rooms, fight, use items, and die — widening code coverage past the fixtures.
+local explore_seed = tonumber(os.getenv("LOTW_COV_EXPLORE") or "")
+local replay_len = 0
+for k in pairs(replay_frames) do if k > replay_len then replay_len = k end end
+local rng = explore_seed or 0
+local function rnd(m)
+  rng = (rng * 1103515245 + 12345) % 2147483648
+  return math.mod(math.floor(rng / 65536), m)
+end
+local held = {}
+local function explore_input(i)
+  if math.mod(i, 12) == 1 then          -- re-roll inputs periodically
+    held = {}
+    local mv = rnd(100)
+    if mv < 38 then held.right = true elseif mv < 66 then held.left = true end
+    if rnd(100) < 45 then held.A = true end       -- jump
+    if rnd(100) < 30 then held.B = true end       -- magic/attack
+    local vv = rnd(100)
+    if vv < 14 then held.up = true elseif vv < 28 then held.down = true end
+    if rnd(100) < 6 then held.start = true end     -- menus / start
+    if rnd(100) < 4 then held.select = true end    -- change character
+  end
+  return held
+end
+
 FCEU.speedmode("maximum")
 for i = 1, max_frames do
   frame = i
-  joypad.set(1, replay_frames[i] or {})
+  local btns
+  if explore_seed and i > replay_len then
+    btns = explore_input(i)
+  else
+    btns = replay_frames[i] or {}
+  end
+  joypad.set(1, btns)
   FCEU.frameadvance()
 end
 

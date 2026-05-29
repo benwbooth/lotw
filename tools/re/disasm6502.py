@@ -64,11 +64,15 @@ BRANCHES = {0x90, 0xB0, 0xF0, 0x30, 0xD0, 0x10, 0x50, 0x70}  # conditional rel
 
 
 class BankDisasm:
-    def __init__(self, data: bytes, origin: int, name: str):
+    def __init__(self, data: bytes, origin: int, name: str,
+                 names: dict[int, str] | None = None,
+                 label_names: dict[int, str] | None = None):
         self.data = data
         self.origin = origin
         self.end = origin + len(data)
         self.name = name
+        self.names = names or {}          # addr -> register/RAM name (data operands)
+        self.label_names = label_names or {}  # addr -> code label name
         self.starts: set[int] = set()    # cpu addrs that begin an instruction
         self.lengths: dict[int, int] = {}
         self.labels: set[int] = set()    # cpu addrs needing a label
@@ -121,7 +125,10 @@ class BankDisasm:
 
     # ---- emit ----
     def _label(self, addr: int) -> str:
-        return f"L_{addr:04X}"
+        return self.label_names.get(addr) or f"L_{addr:04X}"
+
+    def _zp(self, a: int) -> str:
+        return self.names.get(a) or f"${a:02X}"
 
     def _operand(self, pc: int, mn: str, md: int) -> str:
         d = self.data
@@ -133,25 +140,29 @@ class BankDisasm:
         if md == IMM:
             return f"#${d[o+1]:02X}"
         if md == ZP:
-            return f"${d[o+1]:02X}"
+            return self._zp(d[o+1])
         if md == ZPX:
-            return f"${d[o+1]:02X},X"
+            return self._zp(d[o+1]) + ",X"
         if md == ZPY:
-            return f"${d[o+1]:02X},Y"
+            return self._zp(d[o+1]) + ",Y"
         if md == IZX:
-            return f"(${d[o+1]:02X},X)"
+            return f"({self._zp(d[o+1])},X)"
         if md == IZY:
-            return f"(${d[o+1]:02X}),Y"
+            return f"({self._zp(d[o+1])}),Y"
         if md == REL:
             tgt = (pc + 2 + ((d[o+1] ^ 0x80) - 0x80)) & 0xFFFF
             return self._label(tgt) if tgt in self.starts else f"${tgt:04X}"
         # absolute family
         addr = d[o+1] | (d[o+2] << 8)
         if md == IND:
-            return f"(${addr:04X})"
-        # pick label or literal; force a: when operand < $0100
+            nm = self.names.get(addr)
+            return f"({nm})" if nm else f"(${addr:04X})"
+        # priority: in-window code label, then named register/RAM, then literal.
+        # force `a:` when the chosen symbol/value < $0100 (else ca65 picks zp form).
         if addr in self.starts and self._in_window(addr):
             base = self._label(addr)
+        elif addr in self.names:
+            base = (f"a:{self.names[addr]}" if addr < 0x100 else self.names[addr])
         elif addr < 0x100:
             base = f"a:${addr:04X}"
         else:
@@ -198,8 +209,10 @@ class BankDisasm:
 
 
 def disassemble_bank(data: bytes, origin: int, name: str, entries: set[int],
-                     force_labels: set[int] | None = None) -> dict:
-    bd = BankDisasm(data, origin, name)
+                     force_labels: set[int] | None = None,
+                     names: dict[int, str] | None = None,
+                     label_names: dict[int, str] | None = None) -> dict:
+    bd = BankDisasm(data, origin, name, names=names, label_names=label_names)
     bd.trace(entries, force_labels)
     code_bytes = sum(bd.lengths.values())
     return {"text": bd.render(), "code_bytes": code_bytes,

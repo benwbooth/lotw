@@ -23,11 +23,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from disasm6502 import disassemble_bank
+import symbols
 
 ROOT = Path(__file__).resolve().parents[2]
 ROM = ROOT / "rom" / "lotw.nes"
 OUT = ROOT / "disasm"
 COVERAGE = ROOT / "build" / "coverage" / "merged_coverage.tsv"
+ANALYSIS_SYMS = ROOT / "build" / "analysis_symbols.json"  # optional, from agents
+INCLUDE = '.include "lotw.inc"\n'
 
 HEADER_LEN = 0x10
 PRG_BASE = 0x10
@@ -65,6 +68,17 @@ def main():
     assert len(rom) == CHR_BASE + CHR_LEN, f"unexpected ROM size {len(rom)}"
     OUT.mkdir(exist_ok=True)
 
+    symbols.load_extra(ANALYSIS_SYMS)
+    names = symbols.REGS_RAM
+    routines = symbols.ROUTINES
+
+    # --- lotw.inc (address constants; including it changes no bytes) ---
+    inc = ["; Symbol address constants for the matching disassembly.",
+           "; Generated from tools/re/symbols.py — including this changes no bytes."]
+    for addr, name in sorted(names.items()):
+        inc.append(f"{name} = ${addr:04X}")
+    (OUT / "lotw.inc").write_text("\n".join(inc) + "\n")
+
     # --- header.s ---
     hdr = rom[0:HEADER_LEN]
     (OUT / "header.s").write_text(
@@ -72,17 +86,27 @@ def main():
         '.segment "HEADER"\n' + emit_bytes(hdr) + "\n"
     )
 
-    # --- coverage-derived code entries ---
-    swap_entries: dict[int, set[int]] = {n: set() for n in range(N_SWAP)}
+    # --- coverage-derived code entries (use observed cpu_addr for true window) ---
+    obs: dict[int, list[int]] = {n: [] for n in range(N_SWAP)}  # bank -> cpu_addrs
     fix_entries: set[int] = set(FIX_ANCHORS)
     if COVERAGE.exists():
         for line in COVERAGE.read_text().splitlines()[1:]:
-            off = int(line.split("\t", 1)[0], 16)
+            cols = line.split("\t")
+            off, cpu = int(cols[0], 16), int(cols[2], 16)
             bank = off // BANK_LEN
             if bank < N_SWAP:
-                swap_entries[bank].add(SWAP_ORIGIN + (off & 0x1FFF))
-            else:  # fixed region: PRG offset 0x1C000 -> CPU $C000
-                fix_entries.add(FIX_ORIGIN + (off - FIX_BANKS[0] * BANK_LEN))
+                obs[bank].append(cpu)
+            else:
+                fix_entries.add(cpu)  # cpu is already $C000-$FFFF
+    # Pick each swappable code bank's window from the majority observed cpu addr.
+    swap_origin: dict[int, int] = {}
+    swap_entries: dict[int, set[int]] = {}
+    for n in range(N_SWAP):
+        cpus = obs[n]
+        hi = sum(1 for c in cpus if c >= 0xA000)
+        origin = 0xA000 if hi * 2 > len(cpus) else 0x8000
+        swap_origin[n] = origin
+        swap_entries[n] = {c for c in cpus if origin <= c < origin + BANK_LEN}
 
     stats = []
 
@@ -92,9 +116,14 @@ def main():
         data = rom[start:start + BANK_LEN]
         entries = swap_entries[n]
         if entries:
-            r = disassemble_bank(data, SWAP_ORIGIN, f"{n:02d}", entries)
+            origin = swap_origin[n]
+            r = disassemble_bank(data, origin, f"{n:02d}", entries,
+                                 force_labels=set(routines),
+                                 names=names, label_names=routines)
             (OUT / f"bank{n:02d}.s").write_text(
-                f"; PRG bank {n} (swappable) — file 0x{start:05X}..0x{start+BANK_LEN:05X}\n"
+                INCLUDE +
+                f"; PRG bank {n} (swappable, runs at ${origin:04X}) — "
+                f"file 0x{start:05X}..0x{start+BANK_LEN:05X}\n"
                 f"; {r['instructions']} instructions, {r['code_bytes']}/{BANK_LEN} code bytes, "
                 f"{r['labels']} labels\n" + r["text"])
             stats.append((f"{n:02d}", r["instructions"], r["code_bytes"], BANK_LEN))
@@ -107,8 +136,11 @@ def main():
     # --- fixed banks 14+15 as one $C000-$FFFF code unit ---
     fstart = PRG_BASE + FIX_BANKS[0] * BANK_LEN
     fdata = rom[fstart:fstart + len(FIX_BANKS) * BANK_LEN]
-    rf = disassemble_bank(fdata, FIX_ORIGIN, "FIX", fix_entries, force_labels=FIX_ANCHORS)
+    rf = disassemble_bank(fdata, FIX_ORIGIN, "FIX", fix_entries,
+                          force_labels=FIX_ANCHORS | set(routines),
+                          names=names, label_names=routines)
     (OUT / "bankfix.s").write_text(
+        INCLUDE +
         f"; PRG banks 14+15 (FIXED, contiguous $C000-$FFFF) — file 0x{fstart:05X}..0x{fstart+len(fdata):05X}\n"
         f"; {rf['instructions']} instructions, {rf['code_bytes']}/{len(fdata)} code bytes, "
         f"{rf['labels']} labels\n" + rf["text"])
@@ -124,7 +156,7 @@ def main():
     # --- lotw.cfg ---
     mem = ['    HDR:   start=$0000, size=$0010, file=%O, fill=yes;']
     for n in range(N_SWAP):
-        mem.append(f'    PRG{n:02d}: start=${SWAP_ORIGIN:04X}, size=$2000, file=%O, fill=yes;')
+        mem.append(f'    PRG{n:02d}: start=${swap_origin[n]:04X}, size=$2000, file=%O, fill=yes;')
     mem.append(f'    PRGF:  start=${FIX_ORIGIN:04X}, size=$4000, file=%O, fill=yes;')
     mem.append('    CHR:   start=$0000, size=$10000, file=%O, fill=yes;')
     seg = ['    HEADER: load=HDR,   type=ro;']
@@ -151,7 +183,7 @@ def main():
         ".PHONY: all verify clean\n\n"
         "all: $(OUT)\n\n"
         "build:\n\tmkdir -p build\n\n"
-        "%.o: %.s\n\t$(AS) -o $@ $<\n\n"
+        "%.o: %.s lotw.inc\n\t$(AS) -o $@ $<\n\n"
         "$(OUT): $(OBJS) $(CFG) | build\n\t$(LD) -C $(CFG) -o $(OUT) $(OBJS)\n\n"
         "verify: $(OUT)\n"
         "\t@a=$$(sha256sum $(OUT) | cut -d' ' -f1); \\\n"

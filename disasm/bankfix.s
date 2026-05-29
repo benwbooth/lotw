@@ -1,58 +1,59 @@
+.include "lotw.inc"
 ; PRG banks 14+15 (FIXED, contiguous $C000-$FFFF) — file 0x1C010..0x20010
-; 6979 instructions, 14015/16384 code bytes, 863 labels
+; 6979 instructions, 14015/16384 code bytes, 869 labels
 ; PRG bank FIX — CPU origin $C000
 .segment "CODEFIX"
-L_C000:
+main_init:
     SEI
     LDX #$FF
     TXS
     LDA #$00
-    STA $2000
-    STA $2001
-    STA $4010
+    STA PPUCTRL
+    STA PPUMASK
+    STA DMC_FREQ
     LDA #$1F
     STA a:$0027
-    STA $4015
+    STA APU_STATUS
     LDA #$C0
-    STA $4017
+    STA APU_FRAME
 L_C01C:
-    LDA $2002
+    LDA PPUSTATUS
     BPL L_C01C
 L_C021:
-    LDA $2002
+    LDA PPUSTATUS
     BPL L_C021
 L_C026:
     LDX #$FF
     TXS
     LDA #$00
-    STA $A000
-    JSR L_CD08
+    STA MMC3_MIRROR
+    JSR farcall_bank_0C0D_seed
     JMP L_C041
     .byte $80,$A9,$07,$85,$25,$8D,$00,$80,$A9,$0D,$8D,$01,$80
 L_C041:
-    JSR L_D1C8
+    JSR ram_state_init
     LDA #$64
     STA $0E
     LDA #$AE
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
 L_C04F:
     LDA #$00
     STA $46
-    STA $7B
-    STA $43
+    STA scroll_x_fine
+    STA player_x_fine
     LDA #$30
-    STA $7C
+    STA scroll_x_tile
     LDA #$3C
-    STA $44
+    STA player_x_tile
     LDA #$A0
-    STA $45
-    JSR L_C8F2
+    STA player_y
+    JSR scene_assemble
     LDA #$08
     STA $20
-    JSR L_D42B
-L_C06D:
-    LDA $58
+    JSR game_update
+main_loop_dispatch:
+    LDA health
     BNE L_C093
     LDA #$00
     STA $85
@@ -61,10 +62,10 @@ L_C06D:
     STA $0E
     LDA #$B3
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     CPX #$00
     BNE L_C08A
-    JMP L_C06D
+    JMP main_loop_dispatch
 L_C08A:
     DEX
     BNE L_C090
@@ -74,10 +75,10 @@ L_C090:
 L_C093:
     LDA #$01
     STA $36
-    LDA $7C
+    LDA scroll_x_tile
     STA $7E
-    JSR L_CC43
-    JSR L_D42B
+    JSR read_controllers
+    JSR game_update
     LDA $EC
     BNE L_C0C9
     JSR L_F628
@@ -90,51 +91,51 @@ L_C093:
     PLP
     BCS L_C0C3
     LDA $7E
-    CMP $7C
+    CMP scroll_x_tile
     BEQ L_C0C3
     INC $3D
 L_C0C3:
     JSR L_C135
-    JMP L_C06D
+    JMP main_loop_dispatch
 L_C0C9:
     LDA #$EB
     STA $0E
     LDA #$A2
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
 L_C0D4:
-    JSR L_CC43
+    JSR read_controllers
     LDA #$BC
     STA $0E
     LDA #$AB
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     LDA #$E6
     STA $0E
     LDA #$A5
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     LDA #$5D
     STA $0E
     LDA #$A7
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     LDA #$E3
     STA $0E
     LDA #$A3
     STA $0F
-    JSR L_CC9C
-    LDA $58
+    JSR farcall_bank_0C0D
+    LDA health
     BNE L_C0D4
-    LDA $43
+    LDA player_x_fine
     LSR A
     LSR A
     LSR A
     LSR A
-    STA $44
-    LDA $43
+    STA player_x_tile
+    LDA player_x_fine
     AND #$0F
-    STA $43
+    STA player_x_fine
     LDA #$EF
     STA $0200
     LDA #$00
@@ -144,7 +145,7 @@ L_C0D4:
     STA $0E
     LDA #$B3
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     DEX
     BNE L_C132
     JMP L_C04F
@@ -173,61 +174,61 @@ L_C158:
     BNE L_C158
     RTS
 L_C15D:
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $7B
+    ORA scroll_x_fine
     STA $08
-    LDA $44
+    LDA player_x_tile
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $43
+    ORA player_x_fine
     SEC
     SBC $08
     CMP #$60
     BCC L_C19D
     CMP #$91
     BCC L_C1C2
-    LDA $7C
+    LDA scroll_x_tile
     CMP #$30
     BCS L_C192
-    LDA $44
+    LDA player_x_tile
     SEC
     SBC #$09
-    STA $7C
-    LDA $43
-    STA $7B
+    STA scroll_x_tile
+    LDA player_x_fine
+    STA scroll_x_fine
     LDA #$01
     STA $7F
     JMP L_C1BD
 L_C192:
     LDA #$30
-    STA $7C
+    STA scroll_x_tile
     LDA #$00
-    STA $7B
+    STA scroll_x_fine
     JMP L_C1C2
 L_C19D:
-    LDA $7C
-    ORA $7B
+    LDA scroll_x_tile
+    ORA scroll_x_fine
     BEQ L_C1C2
-    LDA $44
+    LDA player_x_tile
     SEC
     SBC #$06
     BCC L_C1B7
-    STA $7C
-    LDA $43
-    STA $7B
+    STA scroll_x_tile
+    LDA player_x_fine
+    STA scroll_x_fine
     LDA #$FF
     STA $7F
     JMP L_C1BD
 L_C1B7:
     LDA #$00
-    STA $7B
-    STA $7C
+    STA scroll_x_fine
+    STA scroll_x_tile
 L_C1BD:
     JSR L_C1C7
     CLC
@@ -237,12 +238,12 @@ L_C1C2:
     SEC
     RTS
 L_C1C7:
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $7B
+    ORA scroll_x_fine
     TAX
     LDA #$00
     ROL A
@@ -260,24 +261,24 @@ L_C1D8:
     STA $0214
     RTS
 L_C1EB:
-    LDA $45
+    LDA player_y
     CLC
     ADC #$2B
     STA $0210
     STA $0214
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $7B
+    ORA scroll_x_fine
     STA $08
-    LDA $44
+    LDA player_x_tile
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $43
+    ORA player_x_fine
     SEC
     SBC $08
     STA $0213
@@ -302,7 +303,7 @@ L_C22B:
     STX $0211
     RTS
 L_C234:
-    LDA $55
+    LDA equipped_item
     CMP #$03
     LDX #$13
     BCC L_C247
@@ -334,7 +335,7 @@ L_C26F:
     LDX #$02
     LDY #$10
 L_C273:
-    LDA $51,X
+    LDA carried_item0,X
     BMI L_C2A0
     ASL A
     ASL A
@@ -408,24 +409,24 @@ L_C2DB:
     STA $0206,X
     AND #$40
     BNE L_C302
-    LDA $0400,Y
+    LDA sprite_tables,Y
     STA $0201,X
     ADC #$02
     STA $0205,X
     JMP L_C30D
 L_C302:
-    LDA $0400,Y
+    LDA sprite_tables,Y
     STA $0205,X
     ADC #$02
     STA $0201,X
 L_C30D:
     LDA $040C,Y
     SEC
-    SBC $7B
+    SBC scroll_x_fine
     AND #$0F
     STA $08
     LDA $040D,Y
-    SBC $7C
+    SBC scroll_x_tile
     CMP #$10
     BCS L_C35A
     ASL A
@@ -486,26 +487,26 @@ L_C382:
     INX
     BNE L_C382
     RTS
-    LDA $23
+    LDA ppuctrl_shadow
     PHA
     AND #$7B
-    STA $2000
+    STA PPUCTRL
     LDA #$00
     STA $29
     LDA $24
     PHA
     AND #$E7
-    STA $2001
+    STA PPUMASK
     LDA #$20
-    STA $2006
+    STA PPUADDR
     LDA #$00
-    STA $2006
+    STA PPUADDR
     LDA #$C0
     LDY #$05
 L_C3AD:
     LDX #$C0
 L_C3AF:
-    STA $2007
+    STA PPUDATA
     DEX
     BNE L_C3AF
     DEY
@@ -513,7 +514,7 @@ L_C3AF:
     LDA #$00
     LDX #$40
 L_C3BC:
-    STA $2007
+    STA PPUDATA
     DEX
     BNE L_C3BC
     LDA #$C0
@@ -521,7 +522,7 @@ L_C3BC:
 L_C3C6:
     LDX #$C0
 L_C3C8:
-    STA $2007
+    STA PPUDATA
     DEX
     BNE L_C3C8
     DEY
@@ -529,14 +530,14 @@ L_C3C8:
     LDA #$00
     LDX #$40
 L_C3D5:
-    STA $2007
+    STA PPUDATA
     DEX
     BNE L_C3D5
     PLA
     STA $24
     PLA
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     RTS
 L_C3E5:
     INC $92
@@ -713,43 +714,43 @@ L_C546:
 L_C569:
     JSR L_CC97
     LDA #$00
-    STA $16
+    STA vram_dst_lo
     LDA #$3F
-    STA $17
+    STA vram_dst_hi
     LDA #$02
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
     JSR L_CC97
-    LDA $23
+    LDA ppuctrl_shadow
     PHA
     AND #$7B
-    STA $2000
+    STA PPUCTRL
     LDA #$00
     STA $29
     LDA $24
     PHA
     AND #$E7
-    STA $2001
+    STA PPUMASK
     LDA #$23
-    STA $2006
+    STA PPUADDR
     LDA #$20
-    STA $2006
+    STA PPUADDR
     LDY #$A0
     LDX #$00
 L_C59F:
     LDA $FECB,X
-    STA $2007
+    STA PPUDATA
     INX
     DEY
     BNE L_C59F
     LDA #$23
-    STA $2006
+    STA PPUADDR
     LDA #$F0
-    STA $2006
+    STA PPUADDR
     LDY #$10
     LDA #$00
 L_C5B7:
-    STA $2007
+    STA PPUDATA
     DEY
     BNE L_C5B7
     LDA #$01
@@ -757,11 +758,11 @@ L_C5B7:
     PLA
     STA $24
     PLA
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     RTS
 L_C5CB:
-    LDA $7C
+    LDA scroll_x_tile
     AND #$FE
     STA $0C
     LDA #$00
@@ -770,7 +771,7 @@ L_C5CB:
     JSR L_C5F7
     RTS
 L_C5DC:
-    LDA $7C
+    LDA scroll_x_tile
     AND #$FE
     STA $0C
     LDA #$00
@@ -785,11 +786,11 @@ L_C5DC:
     JSR L_C5F7
     RTS
 L_C5F7:
-    LDA $23
+    LDA ppuctrl_shadow
     PHA
     AND #$7F
     ORA #$04
-    STA $2000
+    STA PPUCTRL
     LDA $29
     PHA
     LDA #$00
@@ -797,36 +798,36 @@ L_C5F7:
     LDA $24
     PHA
     AND #$E7
-    STA $2001
+    STA PPUMASK
     LDA $0C
     PHA
     LDA $0D
     PHA
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     AND #$1C
-    STA $16
-    LDA $7C
+    STA vram_dst_lo
+    LDA scroll_x_tile
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
     LDA #$12
     STA $0A
 L_C636:
     LDA #$0C
     STA $0B
-    LDA $17
-    STA $2006
-    LDA $16
-    STA $2006
+    LDA vram_dst_hi
+    STA PPUADDR
+    LDA vram_dst_lo
+    STA PPUADDR
     LDY #$00
     STY $08
 L_C648:
@@ -836,20 +837,20 @@ L_C648:
     ASL A
     TAY
     LDA ($79),Y
-    STA $2007
+    STA PPUDATA
     INY
     LDA ($79),Y
-    STA $2007
+    STA PPUDATA
     INC $08
     DEC $0B
     BNE L_C648
     LDA #$0C
     STA $0B
-    LDA $17
-    STA $2006
-    LDY $16
+    LDA vram_dst_hi
+    STA PPUADDR
+    LDY vram_dst_lo
     INY
-    STY $2006
+    STY PPUADDR
     LDY #$00
     STY $08
 L_C673:
@@ -861,23 +862,23 @@ L_C673:
     INY
     INY
     LDA ($79),Y
-    STA $2007
+    STA PPUDATA
     INY
     LDA ($79),Y
-    STA $2007
+    STA PPUDATA
     INC $08
     DEC $0B
     BNE L_C673
-    INC $16
-    INC $16
-    LDA $16
+    INC vram_dst_lo
+    INC vram_dst_lo
+    LDA vram_dst_lo
     AND #$20
     BEQ L_C6A1
     LDA #$00
-    STA $16
-    LDA $17
+    STA vram_dst_lo
+    LDA vram_dst_hi
     EOR #$04
-    STA $17
+    STA vram_dst_hi
 L_C6A1:
     CLC
     LDA #$0C
@@ -892,22 +893,22 @@ L_C6A1:
     STA $0D
     PLA
     STA $0C
-    LDA $7C
+    LDA scroll_x_tile
     LSR A
     AND #$07
-    STA $16
-    LDA $7C
+    STA vram_dst_lo
+    LDA scroll_x_tile
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$C0
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$23
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
     LDA #$09
     STA $0A
 L_C6D8:
@@ -937,12 +938,12 @@ L_C6DA:
     ROL $08
     ROL A
     ROL $08
-    LDA $17
-    STA $2006
-    LDA $16
-    STA $2006
+    LDA vram_dst_hi
+    STA PPUADDR
+    LDA vram_dst_lo
+    STA PPUADDR
     LDA $08
-    STA $2007
+    STA PPUDATA
     CLC
     LDA #$02
     ADC $0C
@@ -952,11 +953,11 @@ L_C6DA:
     STA $0D
     CLC
     LDA #$08
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$00
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
     DEX
     BNE L_C6DA
     CLC
@@ -968,19 +969,19 @@ L_C6DA:
     STA $0D
     CLC
     LDA #$D1
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$FF
-    ADC $17
-    STA $17
-    LDA $16
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    LDA vram_dst_lo
     AND #$08
     BEQ L_C758
     LDA #$C0
-    STA $16
-    LDA $17
+    STA vram_dst_lo
+    LDA vram_dst_hi
     EOR #$04
-    STA $17
+    STA vram_dst_hi
 L_C758:
     DEC $0A
     BEQ L_C75F
@@ -991,45 +992,45 @@ L_C75F:
     PLA
     STA $29
     PLA
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     RTS
 L_C76C:
     JSR L_CC97
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     AND #$1F
-    STA $16
-    LDA $7C
+    STA vram_dst_lo
+    LDA scroll_x_tile
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
-    LDA $7C
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    LDA scroll_x_tile
     STA $08
     LDA #$10
     STA $09
 L_C793:
     LDA $08
     STA $0C
-    JSR L_C833
-    INC $16
-    INC $16
-    LDA $16
+    JSR farcall_bank_09_r7
+    INC vram_dst_lo
+    INC vram_dst_lo
+    LDA vram_dst_lo
     AND #$20
     BEQ L_C7AE
     LDA #$00
-    STA $16
-    LDA $17
+    STA vram_dst_lo
+    LDA vram_dst_hi
     EOR #$04
-    STA $17
+    STA vram_dst_hi
 L_C7AE:
     INC $08
     DEC $09
@@ -1037,23 +1038,23 @@ L_C7AE:
     RTS
 L_C7B5:
     JSR L_CC97
-    LDA $7C
+    LDA scroll_x_tile
     ASL A
     AND #$1F
-    STA $16
-    LDA $7C
+    STA vram_dst_lo
+    LDA scroll_x_tile
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
-    LDA $7C
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    LDA scroll_x_tile
     STA $08
     LDA #$10
     STA $09
@@ -1061,16 +1062,16 @@ L_C7DC:
     LDA $08
     STA $0C
     JSR L_C85C
-    INC $16
-    INC $16
-    LDA $16
+    INC vram_dst_lo
+    INC vram_dst_lo
+    LDA vram_dst_lo
     AND #$20
     BEQ L_C7F7
     LDA #$00
-    STA $16
-    LDA $17
+    STA vram_dst_lo
+    LDA vram_dst_hi
     EOR #$04
-    STA $17
+    STA vram_dst_hi
 L_C7F7:
     INC $08
     DEC $09
@@ -1080,52 +1081,52 @@ L_C7FE:
     JSR L_CC97
     LDA $7F
     BMI L_C80F
-    LDA $7C
+    LDA scroll_x_tile
     CLC
     ADC #$10
     STA $0C
     JMP L_C813
 L_C80F:
-    LDA $7C
+    LDA scroll_x_tile
     STA $0C
 L_C813:
     LDA $0C
     ASL A
     AND #$1F
-    STA $16
+    STA vram_dst_lo
     LDA $0C
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
-    JSR L_C833
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    JSR farcall_bank_09_r7
     RTS
-L_C833:
-    LDA $31
+farcall_bank_09_r7:
+    LDA mmc3_r7_shadow
     PHA
     LDA #$07
-    STA $25
-    STA $8000
+    STA mmc3_select_shadow
+    STA MMC3_BANK_SELECT
     LDA #$09
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     LDA #$00
     STA $0D
     JSR L_CA54
-    JSR L_C871
+    JSR metasprite_build
     LDA #$07
-    STA $25
-    STA $8000
+    STA mmc3_select_shadow
+    STA MMC3_BANK_SELECT
     PLA
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     RTS
 L_C85C:
     LDA #$00
@@ -1137,9 +1138,9 @@ L_C85C:
     CLC
     ADC $76
     STA $0D
-    JSR L_C871
+    JSR metasprite_build
     RTS
-L_C871:
+metasprite_build:
     LDA #$00
     STA $0B
     LDX #$16
@@ -1164,23 +1165,23 @@ L_C877:
     DEX
     DEX
     BPL L_C877
-    LDA $17
+    LDA vram_dst_hi
     CLC
     ADC #$03
-    STA $19
-    LDA $16
+    STA vram_src_hi
+    LDA vram_dst_lo
     LSR A
     LSR A
     CLC
     ADC #$C0
     STA $0B
     LDX #$33
-    LDA $16
+    LDA vram_dst_lo
     AND #$02
     BNE L_C8B5
     LDX #$CC
 L_C8B5:
-    STX $18
+    STX vram_src_lo
     LDY #$00
     LDX #$0A
 L_C8BB:
@@ -1202,7 +1203,7 @@ L_C8BB:
     AND #$C0
     ORA $0171,X
     STA $0171,X
-    LDA $16
+    LDA vram_dst_lo
     AND #$02
     BNE L_C8E8
     LSR $0171,X
@@ -1212,20 +1213,20 @@ L_C8E8:
     DEX
     BPL L_C8BB
     LDA #$03
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
-L_C8F2:
+scene_assemble:
     JSR L_C9D2
     JSR L_C9A9
-    JSR L_C909
+    JSR text_attr_build
     JSR L_C9FB
     RTS
 L_C8FF:
     JSR L_C9D2
-    JSR L_C909
+    JSR text_attr_build
     JSR L_C9FB
     RTS
-L_C909:
+text_attr_build:
     LDY #$00
     LDA ($77),Y
     ADC #$A0
@@ -1234,7 +1235,7 @@ L_C909:
     STA $79
     INY
     LDA ($77),Y
-    STA $2D
+    STA mmc3_r3_shadow
     INY
     LDA ($77),Y
     STA $70
@@ -1247,11 +1248,11 @@ L_C909:
     INY
     LDA ($77),Y
     ORA #$00
-    STA $2A
+    STA mmc3_r0_shadow
     INY
     LDA ($77),Y
     ORA #$00
-    STA $2B
+    STA mmc3_r1_shadow
     LDY #$07
     JSR L_CA1E
     LDA #$00
@@ -1342,19 +1343,19 @@ L_C9C7:
     INC $78
     RTS
 L_C9D2:
-    LDA $48
+    LDA map_screen_y
     LSR A
-    CMP $30
+    CMP mmc3_r6_shadow
     BEQ L_C9E0
-    STA $30
+    STA mmc3_r6_shadow
     LDA #$FF
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
 L_C9E0:
-    LDA $48
+    LDA map_screen_y
     AND #$01
     ASL A
     ASL A
-    ORA $47
+    ORA map_screen_x
     ASL A
     ASL A
     CLC
@@ -1374,7 +1375,7 @@ L_C9FD:
     STA a:$00A0,Y
     INY
     BMI L_C9FD
-    LDA $40
+    LDA cur_character
     CMP #$06
     BCS L_CA1D
     ASL A
@@ -1392,15 +1393,15 @@ L_CA13:
 L_CA1D:
     RTS
 L_CA1E:
-    LDA $48
+    LDA map_screen_y
     ASL A
     ASL A
     AND #$04
-    ORA $47
+    ORA map_screen_x
     TAX
-    LDA $0300,X
+    LDA save_inventory,X
     PHA
-    LDA $48
+    LDA map_screen_y
     LSR A
     TAX
     INX
@@ -1411,7 +1412,7 @@ L_CA31:
     BNE L_CA31
     RTS
 L_CA36:
-    LDA $48
+    LDA map_screen_y
     LSR A
     TAX
     INX
@@ -1422,15 +1423,15 @@ L_CA3E:
     DEX
     BNE L_CA3E
     PHA
-    LDA $48
+    LDA map_screen_y
     ASL A
     ASL A
     AND #$04
-    ORA $47
+    ORA map_screen_x
     TAX
     PLA
-    AND $0300,X
-    STA $0300,X
+    AND save_inventory,X
+    STA save_inventory,X
     RTS
 L_CA54:
     LDA $0D
@@ -1485,19 +1486,19 @@ L_CA85:
 L_CAA5:
     JSR L_CC97
     LDA #$60
-    STA $16
+    STA vram_dst_lo
     LDA #$23
-    STA $17
+    STA vram_dst_hi
     LDA #$04
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
 L_CAB6:
-    LDA $58
+    LDA health
     CMP #$6D
     BCC L_CABE
     LDA #$6D
 L_CABE:
-    STA $58
+    STA health
     STA $08
     LDX #$00
     JSR L_CB0E
@@ -1505,12 +1506,12 @@ L_CABE:
     STA $3C
     RTS
 L_CACC:
-    LDA $59
+    LDA magic
     CMP #$6D
     BCC L_CAD4
     LDA #$6D
 L_CAD4:
-    STA $59
+    STA magic
     STA $08
     LDX #$06
     JSR L_CB0E
@@ -1518,12 +1519,12 @@ L_CAD4:
     STA $3C
     RTS
 L_CAE2:
-    LDA $5B
+    LDA keys
     CMP #$6D
     BCC L_CAEA
     LDA #$6D
 L_CAEA:
-    STA $5B
+    STA keys
     STA $08
     LDX #$0C
     JSR L_CB0E
@@ -1531,12 +1532,12 @@ L_CAEA:
     STA $3C
     RTS
 L_CAF8:
-    LDA $5A
+    LDA gold
     CMP #$6D
     BCC L_CB00
     LDA #$6D
 L_CB00:
-    STA $5A
+    STA gold
     STA $08
     LDX #$12
     JSR L_CB0E
@@ -1627,7 +1628,7 @@ L_CC17:
     JSR L_C2B1
     JSR L_C234
     JSR L_C135
-    JSR L_CC43
+    JSR read_controllers
     BNE L_CC17
     RTS
 L_CC2D:
@@ -1637,18 +1638,18 @@ L_CC2D:
     JSR L_C2B1
     JSR L_C234
     JSR L_C135
-    JSR L_CC43
+    JSR read_controllers
     BEQ L_CC2D
     RTS
-L_CC43:
+read_controllers:
     LDX #$01
-    STX $4016
+    STX JOY1
     DEX
-    STX $4016
+    STX JOY1
     LDX #$08
 L_CC4E:
-    LDA $4016
-    ORA $4017
+    LDA JOY1
+    ORA APU_FRAME
     LSR A
     ROL $20
     LSR A
@@ -1659,13 +1660,13 @@ L_CC4E:
     ORA $21
     STA $20
     RTS
-L_CC64:
-    STA $38
+rng_update:
+    STA rng_count
     BEQ L_CC8E
-    LDX $3B
-    LDY $3A
+    LDX rng_s2
+    LDY rng_s1
 L_CC6C:
-    STY $39
+    STY rng_s0
     TYA
     ASL A
     TAY
@@ -1678,101 +1679,101 @@ L_CC6C:
 L_CC78:
     CLC
     TYA
-    ADC $3A
+    ADC rng_s1
     TAY
     TXA
-    ADC $3B
+    ADC rng_s2
     CLC
-    ADC $39
+    ADC rng_s0
     AND #$7F
     TAX
-    STX $3B
-    STY $3A
-    CMP $38
+    STX rng_s2
+    STY rng_s1
+    CMP rng_count
     BCS L_CC6C
 L_CC8E:
     RTS
-L_CC8F:
+queue_ppu_job_and_wait:
     PHA
 L_CC90:
-    LDA $28
+    LDA nmi_vram_req
     BNE L_CC90
     PLA
-    STA $28
+    STA nmi_vram_req
 L_CC97:
-    LDA $28
+    LDA nmi_vram_req
     BNE L_CC97
     RTS
-L_CC9C:
-    LDA $30
+farcall_bank_0C0D:
+    LDA mmc3_r6_shadow
     STA $32
-    LDA $31
+    LDA mmc3_r7_shadow
     STA $33
     LDA #$CC
     PHA
     LDA #$C7
     PHA
     LDY #$06
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA #$0C
-    STA $30
-    STA $8001
+    STA mmc3_r6_shadow
+    STA MMC3_BANK_DATA
     INY
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA #$0D
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     JMP ($000E)
     LDY #$07
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA $33
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     DEY
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA $32
-    STA $30
-    STA $8001
+    STA mmc3_r6_shadow
+    STA MMC3_BANK_DATA
     RTS
-L_CCE4:
+farcall_return_home:
     LDA #$CD
     PHA
     LDA #$07
     PHA
     LDY #$07
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA $33
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     DEY
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA $32
-    STA $30
-    STA $8001
+    STA mmc3_r6_shadow
+    STA MMC3_BANK_DATA
     JMP ($000E)
-L_CD08:
-    LDA $30
+farcall_bank_0C0D_seed:
+    LDA mmc3_r6_shadow
     STA $32
-    LDA $31
+    LDA mmc3_r7_shadow
     STA $33
     LDY #$06
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA #$0C
-    STA $30
-    STA $8001
+    STA mmc3_r6_shadow
+    STA MMC3_BANK_DATA
     INY
-    STY $25
-    STY $8000
+    STY mmc3_select_shadow
+    STY MMC3_BANK_SELECT
     LDA #$0D
-    STA $31
-    STA $8001
+    STA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     RTS
 L_CD2C:
     STY $09
@@ -1876,7 +1877,7 @@ L_CDB6:
     CMP #$1A
     BCC L_CE0A
 L_CDC7:
-    LDA $0400,X
+    LDA sprite_tables,X
     AND #$F9
     CMP #$E1
     BEQ L_CE0A
@@ -1933,7 +1934,7 @@ L_CE1E:
     LDA $0401,X
     BEQ L_CE6C
     BMI L_CE6C
-    LDA $0400,X
+    LDA sprite_tables,X
     AND #$F9
     CMP #$E1
     BEQ L_CE6C
@@ -1996,7 +1997,7 @@ L_CE8F:
 L_CE90:
     SEC
     LDA $0F
-    SBC $44
+    SBC player_x_tile
     BEQ L_CEB4
     CMP #$02
     BCC L_CEAB
@@ -2004,14 +2005,14 @@ L_CE90:
     BCC L_CEB2
     SEC
     LDA $0E
-    SBC $43
+    SBC player_x_fine
     BEQ L_CEB2
     BMI L_CEB2
     JMP L_CEB4
 L_CEAB:
     LDA $0E
     SEC
-    SBC $43
+    SBC player_x_fine
     BMI L_CEB4
 L_CEB2:
     CLC
@@ -2022,7 +2023,7 @@ L_CEB4:
 L_CEB6:
     LDA $0A
     SEC
-    SBC $45
+    SBC player_y
     CMP #$10
     BCC L_CEC3
     CMP #$F1
@@ -2038,7 +2039,7 @@ L_CEC7:
     STA $EA
     LDA $0A
     SEC
-    SBC $45
+    SBC player_y
     CMP #$10
     BCC L_CED8
     CMP #$E1
@@ -2046,7 +2047,7 @@ L_CEC7:
 L_CED8:
     SEC
     LDA $0F
-    SBC $44
+    SBC player_x_tile
     BEQ L_CF02
     CMP #$FF
     BEQ L_CF02
@@ -2056,14 +2057,14 @@ L_CED8:
     BCC L_CF00
     SEC
     LDA $0E
-    SBC a:$0043
+    SBC a:player_x_fine
     BEQ L_CF00
     BMI L_CF00
     JMP L_CF02
 L_CEF8:
     LDA $0E
     SEC
-    SBC a:$0043
+    SBC a:player_x_fine
     BMI L_CF02
 L_CF00:
     CLC
@@ -2108,7 +2109,7 @@ L_CF30:
 L_CF32:
     TXA
     PHA
-    LDY $60,X
+    LDY inventory_counts,X
     JSR L_CF3F
     PLA
     TAX
@@ -2122,121 +2123,121 @@ L_CF3F:
     AND #$07
     ASL A
     ASL A
-    STA $16
+    STA vram_dst_lo
     TXA
     AND #$08
     ASL A
     ASL A
     ASL A
     ASL A
-    ORA $16
-    STA $16
+    ORA vram_dst_lo
+    STA vram_dst_lo
     LDA #$00
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$C2
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
     TYA
     JSR L_CFF9
     PLA
     JSR L_D017
     BCS L_CF7C
-    LDA $18
+    LDA vram_src_lo
     SEC
     SBC #$40
-    STA $18
-    LDA $19
+    STA vram_src_lo
+    LDA vram_src_hi
     SEC
     SBC #$40
-    STA $19
+    STA vram_src_hi
 L_CF7C:
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
 L_CF82:
     LDA #$DE
-    STA $16
+    STA vram_dst_lo
     LDA #$21
-    STA $17
+    STA vram_dst_hi
     JSR L_D051
     JSR L_CFF9
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     LDA #$1E
-    STA $16
+    STA vram_dst_lo
     LDA #$22
-    STA $17
+    STA vram_dst_hi
     JSR L_D038
     JSR L_CFF9
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     LDA #$5E
-    STA $16
+    STA vram_dst_lo
     LDA #$22
-    STA $17
+    STA vram_dst_hi
     JSR L_D067
     JSR L_CFF9
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
 L_CFBC:
     LDA #$47
-    STA $16
+    STA vram_dst_lo
     LDA #$22
-    STA $17
-    LDA $7C
+    STA vram_dst_hi
+    LDA scroll_x_tile
     AND #$10
     BEQ L_CFD7
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$04
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
 L_CFD7:
     LDA $81
     JSR L_CFF9
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     CLC
     LDA #$0E
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$00
-    ADC $17
-    STA $17
+    ADC vram_dst_hi
+    STA vram_dst_hi
     LDA $83
     JSR L_CFF9
     LDA #$06
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
 L_CFF9:
     LDX #$D0
-    STX $19
+    STX vram_src_hi
 L_CFFD:
     CMP #$0A
     BCC L_D008
     SBC #$0A
-    INC $19
+    INC vram_src_hi
     JMP L_CFFD
 L_D008:
     ADC #$D0
-    STA $18
-    LDA $19
+    STA vram_src_lo
+    LDA vram_src_hi
     CMP #$D0
     BNE L_D016
     LDA #$C0
-    STA $19
+    STA vram_src_hi
 L_D016:
     RTS
 L_D017:
     PHA
-    LDA $40
+    LDA cur_character
     ASL A
     TAX
     PLA
@@ -2257,56 +2258,56 @@ L_D02E:
     CMP $8E
     BEQ L_D037
     STA $8E
-    JSR L_FC08
+    JSR song_init
 L_D037:
     RTS
 L_D038:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$06
     BNE L_D04D
-    LDA $59
+    LDA magic
     BEQ L_D04D
-    LDA $5C
+    LDA stat_jump
     LSR A
     LSR A
     CLC
-    ADC $5C
+    ADC stat_jump
     CLC
     RTS
 L_D04D:
-    LDA $5C
+    LDA stat_jump
     SEC
     RTS
 L_D051:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$08
     BNE L_D063
-    LDA $59
+    LDA magic
     BEQ L_D063
-    LDA $5D
+    LDA stat_strength
     ASL A
     ASL A
     CLC
     RTS
 L_D063:
-    LDA $5D
+    LDA stat_strength
     SEC
     RTS
 L_D067:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$09
     BNE L_D078
-    LDA $59
+    LDA magic
     BEQ L_D078
-    LDA $5F
+    LDA shot_range
     ASL A
     CLC
     RTS
 L_D078:
-    LDA $5F
+    LDA shot_range
     SEC
     RTS
 L_D07C:
@@ -2340,38 +2341,38 @@ L_D08E:
 L_D0A5:
     LDX #$07
 L_D0A7:
-    LDA $0300,X
+    LDA save_inventory,X
     STA $0308,X
     DEX
     BPL L_D0A7
     LDX #$0F
 L_D0B2:
-    LDA $60,X
-    STA $0310,X
+    LDA inventory_counts,X
+    STA save_inventory_counts,X
     DEX
     BPL L_D0B2
-    LDA $5A
-    STA $0321
-    LDA $5B
-    STA $0320
+    LDA gold
+    STA save_gold
+    LDA keys
+    STA save_keys
     RTS
 L_D0C5:
     LDX #$07
 L_D0C7:
     LDA $0308,X
-    STA $0300,X
+    STA save_inventory,X
     DEX
     BPL L_D0C7
     LDX #$0F
 L_D0D2:
-    LDA $0310,X
-    STA $60,X
+    LDA save_inventory_counts,X
+    STA inventory_counts,X
     DEX
     BPL L_D0D2
-    LDA $0321
-    STA $5A
-    LDA $0320
-    STA $5B
+    LDA save_gold
+    STA gold
+    LDA save_keys
+    STA keys
     RTS
 L_D0E5:
     LDY #$1F
@@ -2416,29 +2417,29 @@ L_D124:
     DEX
     BPL L_D0E9
     LDA #$13
-    STA $1A
+    STA vram_len
     LDA #$00
     STA $1B
     LDA #$E6
-    STA $16
+    STA vram_dst_lo
     LDA #$24
-    STA $17
+    STA vram_dst_hi
     LDA #$62
-    STA $18
+    STA vram_src_lo
     LDA #$03
-    STA $19
+    STA vram_src_hi
     LDA #$05
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     LDA #$06
-    STA $16
+    STA vram_dst_lo
     LDA #$25
-    STA $17
+    STA vram_dst_hi
     LDA #$76
-    STA $18
+    STA vram_src_lo
     LDA #$03
-    STA $19
+    STA vram_src_hi
     LDA #$05
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     RTS
 L_D15F:
     LDX #$1F
@@ -2455,14 +2456,14 @@ L_D16A:
     STA $85
     JSR L_C1D8
 L_D174:
-    INC $58
+    INC health
     JSR L_CAB6
     LDA #$16
     STA $8F
     LDA #$02
     STA $36
     JSR L_C135
-    LDX $58
+    LDX health
     CPX #$63
     BCC L_D174
     LDA #$17
@@ -2480,14 +2481,14 @@ L_D199:
     STA $85
     JSR L_C1D8
 L_D1A3:
-    INC $59
+    INC magic
     JSR L_CACC
     LDA #$16
     STA $8F
     LDA #$02
     STA $36
     JSR L_C135
-    LDX $59
+    LDX magic
     CPX #$63
     BCC L_D1A3
     LDA #$17
@@ -2498,7 +2499,7 @@ L_D1A3:
     PLA
     STA $85
     RTS
-L_D1C8:
+ram_state_init:
     LDX #$00
 L_D1CA:
     LDA $9B9F,X
@@ -2520,114 +2521,117 @@ L_D1E1:
     LDX #$00
 L_D1E9:
     LDA $9D3E,X
-    STA $0300,X
+    STA save_inventory,X
     INX
     BNE L_D1E9
     LDX #$00
 L_D1F4:
     LDA $9DC9,X
-    STA $0400,X
+    STA sprite_tables,X
     INX
     BNE L_D1F4
     RTS
-L_D1FE:
+nmi_handler:
     PHA
     TXA
     PHA
     TYA
     PHA
-    LDA $2002
-    STA $26
+    LDA PPUSTATUS
+    STA nmi_scratch
     LDA #$00
-    STA $2003
+    STA OAMADDR
     LDA #$02
-    STA $4014
-    LDA $28
+    STA OAMDMA
+    LDA nmi_vram_req
     BEQ L_D21E
     LDX #$00
-    STX $28
+    STX nmi_vram_req
     CMP #$07
     BCC L_D221
 L_D21E:
-    JMP L_D351
+    JMP nmi_tail
 L_D221:
     ASL A
     TAX
-    LDA $D244,X
+    LDA nmi_vram_dispatch_table,X
     STA $06
     LDA $D245,X
     STA $07
-    LDA $2002
-    LDX $17
-    LDY $16
-    STX $2006
-    STY $2006
-    LDA $23
+    LDA PPUSTATUS
+    LDX vram_dst_hi
+    LDY vram_dst_lo
+    STX PPUADDR
+    STY PPUADDR
+    LDA ppuctrl_shadow
     AND #$04
-    STA $2000
+    STA PPUCTRL
     JMP ($0006)
     .byte $51,$D3,$52,$D2,$5F,$D2,$90,$D2,$E5,$D2,$34,$D3,$44,$D3,$A6,$1A
     .byte $A5,$18,$8D,$07,$20,$CA,$D0,$FA,$4C,$51,$D3
-    LDA $2002
+vram_upload_palette:
+    LDA PPUSTATUS
     LDA #$3F
-    STA $2006
+    STA PPUADDR
     LDA #$00
-    STA $2006
+    STA PPUADDR
     LDX #$20
     LDY #$00
 L_D270:
     LDA $0180,Y
-    STA $2007
+    STA PPUDATA
     INY
     DEX
     BNE L_D270
-    LDA $2002
+    LDA PPUSTATUS
     LDA #$3F
-    STA $2006
+    STA PPUADDR
     LDA #$00
-    STA $2006
-    STA $2006
-    STA $2006
-    JMP L_D351
-    LDA $23
+    STA PPUADDR
+    STA PPUADDR
+    STA PPUADDR
+    JMP nmi_tail
+vram_upload_hud:
+    LDA ppuctrl_shadow
     ORA #$04
-    STA $2000
+    STA PPUCTRL
     LDX #$17
 L_D299:
     LDA $0140,X
-    STA $2007
+    STA PPUDATA
     DEX
     BPL L_D299
-    LDX $17
-    STX $2006
-    LDX $16
+    LDX vram_dst_hi
+    STX PPUADDR
+    LDX vram_dst_lo
     INX
-    STX $2006
+    STX PPUADDR
     LDX #$17
 L_D2AF:
     LDA $0158,X
-    STA $2007
+    STA PPUDATA
     DEX
     BPL L_D2AF
     LDX #$0A
 L_D2BA:
-    LDY $19
-    STY $2006
+    LDY vram_src_hi
+    STY PPUADDR
     LDY $0170,X
-    STY $2006
-    LDA $2007
-    LDA $2007
-    AND $18
+    STY PPUADDR
+    LDA PPUDATA
+    LDA PPUDATA
+    AND vram_src_lo
     ORA $0171,X
-    LDY $19
-    STY $2006
+    LDY vram_src_hi
+    STY PPUADDR
     LDY $0170,X
-    STY $2006
-    STA $2007
+    STY PPUADDR
+    STA PPUDATA
     DEX
     DEX
     BPL L_D2BA
-    JMP L_D351
+    JMP nmi_tail
+vram_blit_stack:
     TSX
     TXA
     LDX #$FF
@@ -2636,118 +2640,120 @@ L_D2BA:
     LDY #$04
 L_D2ED:
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     PLA
-    STA $2007
+    STA PPUDATA
     DEY
     BNE L_D2ED
     TXS
-    JMP L_D351
-    LDX $1A
+    JMP nmi_tail
+vram_copy_indirect:
+    LDX vram_len
     LDY #$00
 L_D338:
-    LDA ($18),Y
-    STA $2007
+    LDA (vram_src_lo),Y
+    STA PPUDATA
     INY
     DEX
     BNE L_D338
-    JMP L_D351
-    LDA $19
-    STA $2007
-    LDA $18
-    STA $2007
-    JMP L_D351
-L_D351:
-    JSR L_D41D
-    LDA $2002
-    JSR L_D36E
+    JMP nmi_tail
+vram_poke2:
+    LDA vram_src_hi
+    STA PPUDATA
+    LDA vram_src_lo
+    STA PPUDATA
+    JMP nmi_tail
+nmi_tail:
+    JSR ppu_commit_banks
+    LDA PPUSTATUS
+    JSR statusbar_split
     LDA $36
     BEQ L_D360
     DEC $36
 L_D360:
-    JSR L_D408
-    LDA $25
-    STA $8000
+    JSR frame_counters
+    LDA mmc3_select_shadow
+    STA MMC3_BANK_SELECT
     PLA
     TAY
     PLA
     TAX
     PLA
     RTI
-L_D36E:
+statusbar_split:
     LDA $24
-    STA $2001
-    LDA $23
+    STA PPUMASK
+    LDA ppuctrl_shadow
     AND #$FE
     ORA $1D
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     LDX $1C
     LDY $1E
-    STX $2005
-    STY $2005
+    STX PPUSCROLL
+    STY PPUSCROLL
     LDA $29
     BEQ L_D3BE
-    LDA $2002
-    LDA $23
+    LDA PPUSTATUS
+    LDA ppuctrl_shadow
     AND #$FE
     LDX #$00
     LDY #$C4
-    STA $2000
-    STX $2005
-    STY $2005
+    STA PPUCTRL
+    STX PPUSCROLL
+    STY PPUSCROLL
     LDA #$01
-    STA $8000
+    STA MMC3_BANK_SELECT
     LDA #$16
-    STA $8001
+    STA MMC3_BANK_DATA
     LDA #$04
-    STA $8000
+    STA MMC3_BANK_SELECT
     LDA #$3E
-    STA $8001
+    STA MMC3_BANK_DATA
     LDA #$05
-    STA $8000
+    STA MMC3_BANK_SELECT
     LDA #$3F
-    STA $8001
+    STA MMC3_BANK_DATA
 L_D3BE:
-    JSR L_F89A
+    JSR sound_tick
     LDA $29
     BNE L_D3C6
     RTS
 L_D3C6:
-    BIT $2002
+    BIT PPUSTATUS
     BVS L_D3C6
 L_D3CB:
-    BIT $2002
+    BIT PPUSTATUS
     BVS L_D3D5
-    BIT $2002
+    BIT PPUSTATUS
     BVC L_D3CB
 L_D3D5:
     LDX #$12
@@ -2755,25 +2761,25 @@ L_D3D7:
     DEX
     BNE L_D3D7
     LDA #$01
-    STA $8000
-    LDA $23
+    STA MMC3_BANK_SELECT
+    LDA ppuctrl_shadow
     LDX $1C
     LDY $1E
-    STA $2000
-    STX $2005
-    STY $2005
-    LDA $2B
-    STA $8001
+    STA PPUCTRL
+    STX PPUSCROLL
+    STY PPUSCROLL
+    LDA mmc3_r1_shadow
+    STA MMC3_BANK_DATA
     LDA #$04
-    STA $8000
-    LDA $2E
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA mmc3_r4_shadow
+    STA MMC3_BANK_DATA
     LDA #$05
-    STA $8000
-    LDA $2F
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA mmc3_r5_shadow
+    STA MMC3_BANK_DATA
     RTS
-L_D408:
+frame_counters:
     DEC $84
     BEQ L_D40D
     RTS
@@ -2789,16 +2795,16 @@ L_D415:
     LDA #$3C
     STA $84
     RTS
-L_D41D:
+ppu_commit_banks:
     LDX #$07
 L_D41F:
-    LDA $2A,X
-    STX $8000
-    STA $8001
+    LDA mmc3_r0_shadow,X
+    STX MMC3_BANK_SELECT
+    STA MMC3_BANK_DATA
     DEX
     BPL L_D41F
     RTS
-L_D42B:
+game_update:
     LDA #$FF
     STA $E3
     LDA $EB
@@ -2818,7 +2824,7 @@ L_D442:
     LDA #$00
     STA $20
 L_D44F:
-    LDA $40
+    LDA cur_character
     CMP #$04
     BNE L_D45B
     LDA $84
@@ -2908,10 +2914,10 @@ L_D4DF:
 L_D4E8:
     LDA #$1B
     STA $8F
-    LDA $5C
+    LDA stat_jump
     STA $4F
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$06
     BNE L_D506
     JSR L_E7F0
@@ -2950,15 +2956,15 @@ L_D521:
     JMP L_D54E
 L_D536:
     LDA $0E
-    STA $43
+    STA player_x_fine
     LDA $0F
-    STA $44
+    STA player_x_tile
     LDA $0A
     CMP #$EF
     BCC L_D546
     LDA #$00
 L_D546:
-    STA $45
+    STA player_y
     JSR L_DBDD
     JMP L_D8AF
 L_D54E:
@@ -2983,7 +2989,7 @@ L_D55E:
     JSR L_CD2C
     LDA $4B
     CLC
-    ADC $55
+    ADC equipped_item
     BMI L_D584
     CMP #$04
     BCC L_D586
@@ -2992,7 +2998,7 @@ L_D55E:
 L_D584:
     LDA #$03
 L_D586:
-    STA $55
+    STA equipped_item
     LDA #$0C
     STA $8F
     JMP L_D55E
@@ -3001,8 +3007,8 @@ L_D58F:
     STA $8F
     JMP L_D8AF
 L_D596:
-    LDY $55
-    LDX $51,Y
+    LDY equipped_item
+    LDX carried_item0,Y
     CPX #$02
     BCS L_D5BC
     LDA $86,X
@@ -3027,13 +3033,13 @@ L_D5B7:
 L_D5BC:
     CPX #$0B
     BNE L_D5D2
-    LDA $59
+    LDA magic
     BEQ L_D5C5
     RTS
 L_D5C5:
-    LDX $55
+    LDX equipped_item
     LDA #$FF
-    STA $51,X
+    STA carried_item0,X
     JSR L_C234
     JSR L_D199
     RTS
@@ -3042,16 +3048,16 @@ L_D5D2:
     BEQ L_D5D7
     RTS
 L_D5D7:
-    LDA $48
+    LDA map_screen_y
     CMP #$11
     BCC L_D5E2
     LDA #$03
-    STA $55
+    STA equipped_item
     RTS
 L_D5E2:
-    LDX $55
+    LDX equipped_item
     LDA #$FF
-    STA $51,X
+    STA carried_item0,X
     JSR L_C234
     LDA #$12
     STA $8F
@@ -3060,13 +3066,13 @@ L_D5E2:
 L_D5F3:
     LDY #$0C
     LDA ($77),Y
-    STA $47
+    STA map_screen_x
     INY
     LDA ($77),Y
-    STA $48
+    STA map_screen_y
     INY
     LDA ($77),Y
-    STA $44
+    STA player_x_tile
     SEC
     SBC #$08
     BCS L_D60A
@@ -3076,56 +3082,56 @@ L_D60A:
     BCC L_D610
     LDA #$30
 L_D610:
-    STA $7C
+    STA scroll_x_tile
     LDA #$00
-    STA $43
-    STA $7B
+    STA player_x_fine
+    STA scroll_x_fine
     INY
     LDA ($77),Y
-    STA $45
+    STA player_y
     JMP L_D895
 L_D620:
     JSR L_D67D
     LDA #$11
-    STA $48
+    STA map_screen_y
     LDX $6E
     DEX
-    STX $47
+    STX map_screen_x
     LDA #$12
-    STA $7C
+    STA scroll_x_tile
     LDA #$10
-    STA $45
+    STA player_y
     LDA #$1A
-    STA $44
+    STA player_x_tile
     LDA #$00
-    STA $43
-    STA $7B
+    STA player_x_fine
+    STA scroll_x_fine
     JMP L_D895
 L_D641:
     LDA #$00
     STA $EB
     JSR L_D67D
     LDA #$3E
-    STA $2E
+    STA mmc3_r4_shadow
     JMP L_D866
 L_D64F:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$0F
     BNE L_D675
-    LDA $47
+    LDA map_screen_x
     CMP #$01
     BNE L_D675
-    LDA $48
+    LDA map_screen_y
     CMP #$05
     BNE L_D675
-    LDA $7C
+    LDA scroll_x_tile
     CMP #$10
     BNE L_D675
-    LDA $7B
+    LDA scroll_x_fine
     CMP #$00
     BNE L_D675
-    LDA $45
+    LDA player_y
     CMP #$A0
     BEQ L_D676
 L_D675:
@@ -3142,17 +3148,17 @@ L_D67D:
     STA $85
     JSR L_C1D8
     JSR L_C234
-    LDA $7C
+    LDA scroll_x_tile
     CMP #$21
     BCC L_D692
     LDA #$20
 L_D692:
-    STA $7C
+    STA scroll_x_tile
     JSR L_C76C
-    LDA $7C
+    LDA scroll_x_tile
     CLC
     ADC #$10
-    STA $7C
+    STA scroll_x_tile
     JSR L_C76C
     LDA #$01
     STA $08
@@ -3169,7 +3175,7 @@ L_D6A7:
     STA $1D
 L_D6B6:
     LDA #$FF
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     DEX
     BNE L_D6A7
     INC $08
@@ -3184,12 +3190,12 @@ L_D6B6:
     JSR L_C540
     RTS
 L_D6D4:
-    LDA $45
+    LDA player_y
     CMP #$10
     BCC L_D739
     CMP #$A1
     BCS L_D750
-    LDX $48
+    LDX map_screen_y
     CPX #$10
     BEQ L_D731
     JSR L_DBDD
@@ -3198,37 +3204,37 @@ L_D6D4:
     LDA $56
     AND #$07
     STA $56
-    LDA $44
+    LDA player_x_tile
     BEQ L_D714
     CMP #$3E
     BCC L_D731
-    LDX $47
+    LDX map_screen_x
     INX
     CPX #$04
     BCS L_D731
-    STX $47
+    STX map_screen_x
     LDA #$40
     STA $57
     JSR L_C1D8
     LDA #$00
-    STA $7C
-    STA $43
-    STA $44
+    STA scroll_x_tile
+    STA player_x_fine
+    STA player_x_tile
     JMP L_D772
 L_D714:
-    LDX $47
+    LDX map_screen_x
     DEX
     BMI L_D731
-    STX $47
+    STX map_screen_x
     LDA #$00
     STA $57
     JSR L_C1D8
     LDA #$30
-    STA $7C
+    STA scroll_x_tile
     LDA #$3F
-    STA $44
+    STA player_x_tile
     LDA #$00
-    STA $43
+    STA player_x_fine
     JMP L_D772
 L_D731:
     CLC
@@ -3240,29 +3246,29 @@ L_D736:
 L_D739:
     JSR L_DC87
     BCC L_D731
-    LDX $48
+    LDX map_screen_y
     BEQ L_D733
     CPX #$10
     BEQ L_D731
     DEX
-    STX $48
+    STX map_screen_y
     LDA #$B0
-    STA $45
+    STA player_y
     JMP L_D761
 L_D750:
-    LDX $48
+    LDX map_screen_y
     CPX #$10
     BEQ L_D736
     INX
     CPX #$10
     BCS L_D731
-    STX $48
+    STX map_screen_y
     LDA #$00
-    STA $45
+    STA player_y
 L_D761:
     JSR L_D08A
     JSR L_D07C
-    JSR L_C8F2
+    JSR scene_assemble
     JSR L_C5CB
     JSR L_C569
     SEC
@@ -3271,11 +3277,11 @@ L_D772:
     JSR L_D08A
     JSR L_D07C
     LDA #$00
-    STA $7B
-    JSR L_C8F2
+    STA scroll_x_fine
+    JSR scene_assemble
     JSR L_C76C
     JSR L_C569
-    LDA $44
+    LDA player_x_tile
     BNE L_D7F8
     LDA #$FC
     STA a:$001C
@@ -3316,18 +3322,18 @@ L_D7C3:
     ADC #$04
     STA $1C
     LDA #$FF
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     DEC $0B
     BPL L_D7A5
     DEC $0A
     BPL L_D7A1
     LDA #$00
-    STA $16
+    STA vram_dst_lo
     LDA #$24
-    STA $17
+    STA vram_dst_hi
     LDA #$10
     STA $0C
-    JSR L_C833
+    JSR farcall_bank_09_r7
     JMP L_D864
 L_D7F8:
     LDA #$01
@@ -3369,50 +3375,50 @@ L_D832:
     SBC #$04
     STA $1C
     LDA #$FF
-    JSR L_CC8F
+    JSR queue_ppu_job_and_wait
     DEC $0B
     BPL L_D814
     DEC $0A
     BPL L_D810
     LDA #$1E
-    STA $16
+    STA vram_dst_lo
     LDA #$20
-    STA $17
+    STA vram_dst_hi
     LDA #$2F
     STA $0C
-    JSR L_C833
+    JSR farcall_bank_09_r7
 L_D864:
     SEC
     RTS
 L_D866:
     LDA #$10
-    STA $48
+    STA map_screen_y
     LDA #$03
-    STA $47
+    STA map_screen_x
     LDA #$12
-    STA $7C
+    STA scroll_x_tile
     LDA #$B0
-    STA $45
+    STA player_y
     LDA #$1A
-    STA $44
+    STA player_x_tile
     LDA #$00
-    STA $43
-    STA $7B
+    STA player_x_fine
+    STA scroll_x_fine
     JMP L_D895
 L_D883:
     LDA #$00
-    STA $48
-    STA $47
-    STA $7C
-    STA $45
-    STA $43
-    STA $7B
+    STA map_screen_y
+    STA map_screen_x
+    STA scroll_x_tile
+    STA player_y
+    STA player_x_fine
+    STA scroll_x_fine
     LDA #$01
-    STA $44
+    STA player_x_tile
 L_D895:
     JSR L_C3E5
     JSR L_D08A
-    JSR L_C8F2
+    JSR scene_assemble
     JSR L_C5CB
     JSR L_D07C
     JSR L_C1C7
@@ -3425,11 +3431,11 @@ L_D8AF:
     JSR L_D94E
     RTS
 L_D8B6:
-    LDA $43
+    LDA player_x_fine
     STA $0E
-    LDA $44
+    LDA player_x_tile
     STA $0F
-    LDA $45
+    LDA player_y
     STA $0A
     LDA $4B
     BEQ L_D8CB
@@ -3639,12 +3645,12 @@ L_DA14:
     STA $4B
     RTS
 L_DA1B:
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCS L_DA30
     LDA $87
     BEQ L_DA30
-    LDA $59
+    LDA magic
     BEQ L_DA30
     LDX $09
     LDA #$80
@@ -3688,13 +3694,13 @@ L_DA49:
     PHA
     LDA #$0E
     STA $8E
-    JSR L_FC08
+    JSR song_init
     LDA #$78
     STA $36
     JSR L_C135
     PLA
     STA $8E
-    JSR L_FC08
+    JSR song_init
     PLA
     STA $85
     SEC
@@ -3746,10 +3752,10 @@ L_DAB2:
 L_DAD2:
     SBC #$08
     TAX
-    LDA $60,X
+    LDA inventory_counts,X
     CMP #$0B
     BCS L_DAEC
-    INC $60,X
+    INC inventory_counts,X
     LDA #$13
     STA $8F
     CPX #$0E
@@ -3798,17 +3804,17 @@ L_DBE5:
     STA $50
     JMP L_DC82
 L_DBEC:
-    LDA $44
+    LDA player_x_tile
     STA $0C
     STA $0F
-    LDA $43
+    LDA player_x_fine
     STA $0E
-    LDX $45
+    LDX player_y
     STX $0D
     INX
     STX $0A
     JSR L_CA54
-    LDA $43
+    LDA player_x_fine
     BNE L_DC10
     LDA #$01
     STA $50
@@ -3819,16 +3825,16 @@ L_DBEC:
 L_DC10:
     LDA #$00
     STA $50
-    LDA $45
+    LDA player_y
     CMP #$B0
     BCS L_DC4A
     JSR L_CDB2
     BCC L_DC38
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCS L_DC4D
-    LDY $55
-    LDX $51,Y
+    LDY equipped_item
+    LDX carried_item0,Y
     CPX #$05
     BNE L_DC4D
     LDA $4E
@@ -3840,7 +3846,7 @@ L_DC38:
     LDY #$01
     JSR L_DCCC
     BCS L_DC4D
-    LDA $43
+    LDA player_x_fine
     BEQ L_DC4A
     LDY #$0D
     JSR L_DCCC
@@ -3850,13 +3856,13 @@ L_DC4A:
     RTS
 L_DC4D:
     LDA $4E
-    CMP $5C
+    CMP stat_jump
     BCC L_DC6E
     SEC
     SBC #$07
-    CMP $5C
+    CMP stat_jump
     BCC L_DC5C
-    LDA $5C
+    LDA stat_jump
 L_DC5C:
     SEC
     SBC #$01
@@ -3873,7 +3879,7 @@ L_DC6E:
     LDY #$01
     JSR L_DCA8
     BCS L_DC82
-    LDA $43
+    LDA player_x_fine
     BEQ L_DC82
     LDY #$0D
     JSR L_DCA8
@@ -3935,7 +3941,7 @@ L_DCCC:
     CPX #$30
     RTS
 L_DCDA:
-    LDA $43
+    LDA player_x_fine
     BEQ L_DCE0
     CLC
     RTS
@@ -3943,11 +3949,11 @@ L_DCE0:
     SEC
     RTS
 L_DCE2:
-    LDX $45
+    LDX player_y
     BEQ L_DD18
     DEX
     STX $0D
-    LDX $44
+    LDX player_x_tile
     STX $0C
     JSR L_CA54
     LDY #$00
@@ -3959,7 +3965,7 @@ L_DCE2:
     BEQ L_DD1E
     CMP #$03
     BEQ L_DD23
-    LDA $43
+    LDA player_x_fine
     BEQ L_DD18
     LDY #$0C
     LDA ($0C),Y
@@ -3981,15 +3987,15 @@ L_DD1E:
     PLA
     JMP L_E424
 L_DD23:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$0E
     BNE L_DD18
     LDX #$02
     LDY $6E
     LDA #$0E
 L_DD31:
-    CMP $51,X
+    CMP carried_item0,X
     BNE L_DD36
     INY
 L_DD36:
@@ -4092,8 +4098,8 @@ L_DDE0:
     LDA $0491
     BNE L_DE18
     STY $0B
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$07
     BNE L_DDF4
     JSR L_E7F0
@@ -4127,8 +4133,8 @@ L_DE1A:
     STY $0B
     LDA #$01
     STA $F4
-    LDY $55
-    LDX $51,Y
+    LDY equipped_item
+    LDX carried_item0,Y
     DEX
     DEX
     BEQ L_DE3F
@@ -4144,25 +4150,25 @@ L_DE39:
 L_DE3C:
     JMP L_DEE8
 L_DE3F:
-    LDA $59
+    LDA magic
     BEQ L_DE9D
-    LDA $45
+    LDA player_y
     AND #$0F
-    ORA $43
+    ORA player_x_fine
     BNE L_DE9D
     LDA $FD
     AND #$0F
     ASL A
     TAX
     CLC
-    LDA $44
+    LDA player_x_tile
     ADC $FEAB,X
     STA $049D
     STA $0C
     LDA #$00
     STA $049C
     CLC
-    LDA $45
+    LDA player_y
     ADC $FEAC,X
     STA $049E
     STA $0D
@@ -4226,7 +4232,7 @@ L_DEE0:
     SEC
     RTS
 L_DEE8:
-    LDA $59
+    LDA magic
     BEQ L_DE9D
     LDA $FD
     AND #$0F
@@ -4293,20 +4299,20 @@ L_DF5E:
     STA $0C
     ASL A
     AND #$1F
-    STA $16
+    STA vram_dst_lo
     LDA $FA
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
-    JSR L_C833
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    JSR farcall_bank_09_r7
     RTS
 L_DF80:
     LDY $0B
@@ -4327,7 +4333,7 @@ L_DF90:
     STA $4A
     PLP
     BEQ L_DFCF
-    LDA $45
+    LDA player_y
     AND #$0F
     BEQ L_E00D
     CMP #$06
@@ -4361,7 +4367,7 @@ L_DFCF:
     STA $4C
     PLP
     BEQ L_E00D
-    LDA $43
+    LDA player_x_fine
     BEQ L_E00D
     CMP #$06
     BCC L_DFFB
@@ -4395,7 +4401,7 @@ L_E00F:
     LDA #$03
     STA $8F
     INC $8D
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCS L_E039
     JSR L_E620
@@ -4405,23 +4411,23 @@ L_E00F:
     JSR L_CF30
     JSR L_CF82
     LDA #$08
-    STA $7B
+    STA scroll_x_fine
     JSR L_C1C7
     JSR L_C1D8
     JSR L_C492
 L_E039:
-    JSR L_CC43
+    JSR read_controllers
     BNE L_E039
 L_E03E:
-    JSR L_CC43
+    JSR read_controllers
     AND #$10
     BEQ L_E03E
 L_E045:
-    JSR L_CC43
+    JSR read_controllers
     BNE L_E045
     LDA #$04
     STA $8F
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCS L_E074
     JSR L_E642
@@ -4439,7 +4445,7 @@ L_E074:
     DEC $8D
     RTS
 L_E077:
-    LDA $48
+    LDA map_screen_y
     CMP #$10
     BNE L_E080
     JMP L_E0F4
@@ -4454,7 +4460,7 @@ L_E08E:
     BCC L_E096
     JMP L_E5FD
 L_E096:
-    LDA $5A
+    LDA gold
     CMP #$0A
     BCS L_E0A3
     LDA #$06
@@ -4465,7 +4471,7 @@ L_E0A3:
 L_E0A5:
     TXA
     PHA
-    DEC $5A
+    DEC gold
     JSR L_CAF8
     LDA #$0C
     STA $8F
@@ -4485,7 +4491,7 @@ L_E0A5:
     JSR L_CF30
     JSR L_CF82
     LDA #$08
-    STA $7B
+    STA scroll_x_fine
     JSR L_C1C7
     JSR L_C1D8
     JSR L_C492
@@ -4498,32 +4504,32 @@ L_E0A5:
     JMP L_E08E
 L_E0F4:
     LDA #$00
-    STA $58
-    STA $59
-    LDA $40
+    STA health
+    STA magic
+    LDA cur_character
     CMP #$06
     BCS L_E112
     LDY #$02
 L_E102:
-    LDX $51,Y
+    LDX carried_item0,Y
     BMI L_E108
-    INC $60,X
+    INC inventory_counts,X
 L_E108:
     LDX #$FF
-    STX $51,Y
+    STX carried_item0,Y
     DEY
     BPL L_E102
     JSR L_D0A5
 L_E112:
     JSR L_E620
     LDA #$06
-    STA $40
+    STA cur_character
     LDA #$06
     JSR L_E660
     JSR L_CAB6
     JSR L_CACC
     LDA #$03
-    STA $55
+    STA equipped_item
     JSR L_C234
     LDA #$F1
     STA $56
@@ -4552,7 +4558,7 @@ L_E13F:
     LDX #$00
 L_E15F:
     STX $8E
-    JSR L_FC08
+    JSR song_init
     LDA $37
     BPL L_E13F
     LDA $20
@@ -4561,13 +4567,13 @@ L_E15F:
     LDX #$0D
     LDA #$10
 L_E172:
-    STA $60,X
+    STA inventory_counts,X
     DEX
     BPL L_E172
     LDA #$80
     STA $37
-    STA $5A
-    STA $5B
+    STA gold
+    STA keys
     LDA #$1A
     STA $8F
     JMP L_E13F
@@ -4618,7 +4624,7 @@ L_E1CE:
 L_E1D9:
     JMP L_E13F
 L_E1DC:
-    STX $40
+    STX cur_character
     TXA
     ASL A
     ASL A
@@ -4628,7 +4634,7 @@ L_E1DC:
     LDX #$03
 L_E1E7:
     LDA $FFA7,Y
-    STA $5C,X
+    STA stat_jump,X
     DEY
     DEX
     BPL L_E1E7
@@ -4641,25 +4647,25 @@ L_E1E7:
     JSR L_C135
     LDX #$05
     JSR L_C540
-    LDA $40
+    LDA cur_character
     CLC
     ADC #$38
-    STA $2C
+    STA mmc3_r2_shadow
     LDA #$3D
-    STA $2D
+    STA mmc3_r3_shadow
     LDA #$3E
-    STA $2E
+    STA mmc3_r4_shadow
     LDA #$3F
-    STA $2F
+    STA mmc3_r5_shadow
     LDA #$0D
     STA $56
     LDA #$00
     STA $57
-    LDA $45
+    LDA player_y
     AND #$F0
-    STA $45
+    STA player_y
     LDA #$04
-    STA $43
+    STA player_x_fine
     JSR L_D07C
     JSR L_C1D8
     JSR L_C135
@@ -4674,12 +4680,12 @@ L_E1E7:
     LDA #$00
     STA $57
     LDA #$63
-    STA $58
-    STA $59
+    STA health
+    STA magic
     JSR L_CAB6
     JSR L_CACC
     LDA #$02
-    STA $55
+    STA equipped_item
     JSR L_C234
     LDA #$08
     JSR L_E660
@@ -4687,7 +4693,7 @@ L_E1E7:
     JSR L_CF30
     JSR L_CF82
     LDA #$08
-    STA $7B
+    STA scroll_x_fine
     JSR L_C1C7
     JSR L_C1D8
     JSR L_C492
@@ -4695,35 +4701,35 @@ L_E1E7:
     JMP L_E5FD
 L_E27D:
     LDA #$10
-    STA $7C
+    STA scroll_x_tile
     JSR L_C7B5
     JSR L_C1C7
     LDA #$D4
     STA $0E
     LDA #$B4
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     JSR L_D0E5
 L_E295:
-    JSR L_CC43
+    JSR read_controllers
     BNE L_E295
 L_E29A:
-    JSR L_CC43
+    JSR read_controllers
     BEQ L_E29A
     LDA #$20
-    STA $7C
+    STA scroll_x_tile
     JSR L_C7B5
     JSR L_C1C7
     RTS
 L_E2AA:
     LDA #$30
-    STA $7C
+    STA scroll_x_tile
     JSR L_C7B5
     JSR L_D15F
     JSR L_D0E5
     JSR L_C1C7
 L_E2BA:
-    JSR L_CC43
+    JSR read_controllers
     BNE L_E2BA
     LDA #$00
     STA $F9
@@ -4745,7 +4751,7 @@ L_E2BA:
 L_E2EB:
     LDA #$01
     STA $36
-    JSR L_CC43
+    JSR read_controllers
     BIT $20
     BMI L_E32D
     BVS L_E333
@@ -4798,7 +4804,7 @@ L_E347:
     STA $0E
     LDA #$B5
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     BCC L_E355
     RTS
 L_E355:
@@ -4811,7 +4817,7 @@ L_E355:
     PLA
 L_E364:
     LDA #$20
-    STA $7C
+    STA scroll_x_tile
     JSR L_C7B5
     JSR L_C1C7
     JSR L_E7B2
@@ -4938,7 +4944,7 @@ L_E424:
     PHA
     LDA $83
     PHA
-    LDA $47
+    LDA map_screen_x
     JSR L_E660
     PLA
     STA $83
@@ -4956,7 +4962,7 @@ L_E450:
     JSR L_E514
     BCS L_E4A7
     LDX #$00
-    LDA $44
+    LDA player_x_tile
     AND #$0F
     CMP #$03
     BCC L_E450
@@ -4995,12 +5001,12 @@ L_E48E:
     JSR L_E6FF
     PLA
     TAX
-    INC $60,X
+    INC inventory_counts,X
     LDA #$10
 L_E49D:
     STA $8F
 L_E49F:
-    JSR L_CC43
+    JSR read_controllers
     BNE L_E49F
     JMP L_E450
 L_E4A7:
@@ -5009,7 +5015,7 @@ L_E4AA:
     JSR L_E562
     BCS L_E504
     LDX #$FF
-    LDA $45
+    LDA player_y
     CMP #$58
     BCS L_E4DD
     LDX #$00
@@ -5018,11 +5024,11 @@ L_E4AA:
     LDX #$08
 L_E4BF:
     STX $08
-    LDA $44
+    LDA player_x_tile
     LSR A
     ORA $08
     TAX
-    LDA $60,X
+    LDA inventory_counts,X
     BEQ L_E4D4
     TXA
     PHA
@@ -5035,19 +5041,19 @@ L_E4D4:
     STA $8F
     JMP L_E4AA
 L_E4DB:
-    DEC $60,X
+    DEC inventory_counts,X
 L_E4DD:
     STX $08
-    LDX $51
+    LDX carried_item0
     BMI L_E4E5
-    INC $60,X
+    INC inventory_counts,X
 L_E4E5:
-    LDA $52
-    STA $51
-    LDA $53
-    STA $52
+    LDA carried_item1
+    STA carried_item0
+    LDA carried_item2
+    STA carried_item1
     LDA $08
-    STA $53
+    STA carried_item2
     LDA #$12
     STA $8F
     JSR L_E6B7
@@ -5056,19 +5062,19 @@ L_E4E5:
     JSR L_CF82
     JMP L_E4AA
 L_E504:
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$0D
     BNE L_E513
     LDA #$03
-    STA $55
+    STA equipped_item
     JSR L_C234
 L_E513:
     RTS
 L_E514:
     LDA #$01
     STA $36
-    JSR L_CC43
+    JSR read_controllers
     LDA $20
     AND #$80
     BNE L_E55E
@@ -5089,11 +5095,11 @@ L_E514:
     CMP #$0D
     BCS L_E54F
     LDA $0E
-    STA $43
+    STA player_x_fine
     LDA $0F
-    STA $44
+    STA player_x_tile
     LDA $0A
-    STA $45
+    STA player_y
 L_E54F:
     JSR L_D8E3
     JSR L_D94E
@@ -5109,7 +5115,7 @@ L_E560:
 L_E562:
     LDA #$01
     STA $36
-    JSR L_CC43
+    JSR read_controllers
     LDA $20
     AND #$80
     BNE L_E5B0
@@ -5133,11 +5139,11 @@ L_E562:
     BNE L_E5A1
 L_E595:
     LDA $0E
-    STA $43
+    STA player_x_fine
     LDA $0F
-    STA $44
+    STA player_x_tile
     LDA $0A
-    STA $45
+    STA player_y
 L_E5A1:
     JSR L_D8E3
     JSR L_D94E
@@ -5153,7 +5159,7 @@ L_E5B2:
 L_E5B4:
     LDA #$01
     STA $36
-    JSR L_CC43
+    JSR read_controllers
     LDA $20
     AND #$80
     BNE L_E5FC
@@ -5177,11 +5183,11 @@ L_E5B4:
     BNE L_E5F3
 L_E5E7:
     LDA $0E
-    STA $43
+    STA player_x_fine
     LDA $0F
-    STA $44
+    STA player_x_tile
     LDA $0A
-    STA $45
+    STA player_y
 L_E5F3:
     JSR L_C1D8
     JSR L_C135
@@ -5208,19 +5214,19 @@ L_E620:
     TAY
     LDA $8E
     STA $FE
-    LDA $43
+    LDA player_x_fine
     PHA
-    LDA $44
+    LDA player_x_tile
     PHA
-    LDA $45
+    LDA player_y
     PHA
-    LDA $7B
+    LDA scroll_x_fine
     PHA
-    LDA $7C
+    LDA scroll_x_tile
     PHA
-    LDA $47
+    LDA map_screen_x
     PHA
-    LDA $48
+    LDA map_screen_y
     PHA
     TYA
     PHA
@@ -5233,19 +5239,19 @@ L_E642:
     PLA
     TAY
     PLA
-    STA $48
+    STA map_screen_y
     PLA
-    STA $47
+    STA map_screen_x
     PLA
-    STA $7C
+    STA scroll_x_tile
     PLA
-    STA $7B
+    STA scroll_x_fine
     PLA
-    STA $45
+    STA player_y
     PLA
-    STA $44
+    STA player_x_tile
     PLA
-    STA $43
+    STA player_x_fine
     TYA
     PHA
     TXA
@@ -5265,27 +5271,27 @@ L_E66B:
     AND #$0C
     LSR A
     LSR A
-    STA $47
+    STA map_screen_x
     LDA $08
     AND #$03
     ASL A
     ASL A
     ASL A
     ASL A
-    STA $7C
+    STA scroll_x_tile
     CLC
     ADC #$07
-    STA $44
+    STA player_x_tile
     LDA #$10
-    STA $48
+    STA map_screen_y
     LDA #$08
-    STA $43
+    STA player_x_fine
     LDA #$A0
-    STA $45
+    STA player_y
     LDA #$00
     STA $4F
     STA $4E
-    STA $7B
+    STA scroll_x_fine
     JSR L_D07C
     JSR L_C8FF
     PLA
@@ -5307,7 +5313,7 @@ L_E6B7:
     LDX #$02
     LDY #$10
 L_E6BF:
-    LDA $51,X
+    LDA carried_item0,X
     BMI L_E6D6
     ASL A
     ASL A
@@ -5346,7 +5352,7 @@ L_E6FF:
     LDA #$EF
     LDX $80
     BMI L_E72D
-    LDA $60,X
+    LDA inventory_counts,X
     CMP #$0B
     BCC L_E712
     LDA #$EF
@@ -5376,7 +5382,7 @@ L_E72D:
     LDA #$EF
     LDX $82
     BMI L_E769
-    LDA $60,X
+    LDA inventory_counts,X
     CMP #$0B
     BCC L_E74E
     LDA #$EF
@@ -5437,18 +5443,18 @@ L_E7B4:
     DEX
     BPL L_E7B4
     LDA #$34
-    STA $2C
+    STA mmc3_r2_shadow
     LDA #$35
-    STA $2D
+    STA mmc3_r3_shadow
     LDA #$36
-    STA $2E
+    STA mmc3_r4_shadow
     LDA #$37
-    STA $2F
+    STA mmc3_r5_shadow
     RTS
 L_E7CE:
-    LDA $58
+    LDA health
     BEQ L_E7D9
-    DEC $58
+    DEC health
     JSR L_CAB6
     CLC
     RTS
@@ -5457,14 +5463,14 @@ L_E7D9:
     RTS
 L_E7DB:
     STA $08
-    LDA $58
+    LDA health
     SEC
     SBC $08
-    STA $58
+    STA health
     PHP
     BCS L_E7EB
     LDA #$00
-    STA $58
+    STA health
 L_E7EB:
     JSR L_CAB6
     PLP
@@ -5472,10 +5478,10 @@ L_E7EB:
 L_E7F0:
     TXA
     PHA
-    LDA $59
+    LDA magic
     SEC
     BEQ L_E7FD
-    DEC $59
+    DEC magic
     JSR L_CACC
     CLC
 L_E7FD:
@@ -5489,11 +5495,11 @@ L_E7FD:
     .byte $CA,$60
 L_E842:
     STA $08
-    LDA $5A
+    LDA gold
     SEC
     SBC $08
     BCC L_E851
-    STA $5A
+    STA gold
     JSR L_CAF8
     SEC
 L_E851:
@@ -5501,9 +5507,9 @@ L_E851:
     .byte $E6,$5B,$20,$E2,$CA,$18,$60,$18,$65,$5B,$90,$05,$A9,$6D,$4C,$69
     .byte $E8,$C9,$6E,$90,$02,$A9,$6D,$85,$5B,$20,$E2,$CA,$60
 L_E86F:
-    LDA $5B
+    LDA keys
     BEQ L_E87A
-    DEC $5B
+    DEC keys
     JSR L_CAE2
     CLC
     RTS
@@ -5511,12 +5517,12 @@ L_E87A:
     SEC
     RTS
 L_E87C:
-    LDA $48
+    LDA map_screen_y
     CMP #$10
     BNE L_E883
     RTS
 L_E883:
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCC L_E88C
     JMP L_E901
@@ -5688,14 +5694,14 @@ L_E9A5:
     ORA ($E7),Y
     BNE L_E9CB
     LDA #$0C
-    JSR L_CC64
+    JSR rng_update
     ASL A
     ASL A
     ASL A
     ASL A
     STA $0A
     LDA #$40
-    JSR L_CC64
+    JSR rng_update
     STA $0F
     JMP L_E9D6
 L_E9CB:
@@ -5729,11 +5735,11 @@ L_E9E7:
     STA $FC
     LDY #$04
     LDA ($E7),Y
-    STA $F2
+    STA boss_life
     INY
     LDA ($E7),Y
     STA $F8
-    LDX $40
+    LDX cur_character
     LDA #$00
     SEC
 L_EA0D:
@@ -5779,7 +5785,7 @@ L_EA4E:
     RTS
 L_EA4F:
     LDA #$1E
-    JSR L_CC64
+    JSR rng_update
     TAX
     BNE L_EA93
     LDX #$03
@@ -5800,7 +5806,7 @@ L_EA64:
     STA $F4
     LDY #$04
     LDA ($E7),Y
-    STA $F2
+    STA boss_life
     INY
     LDA ($E7),Y
     STA $F8
@@ -5809,7 +5815,7 @@ L_EA64:
     LDA #$81
     STA $ED
     LDA #$04
-    JSR L_CC64
+    JSR rng_update
     STA $EF
     LDA #$80
     STA $F1
@@ -5921,7 +5927,7 @@ L_EE19:
     LDX #$00
     LDA $FA
     SEC
-    SBC $44
+    SBC player_x_tile
     BEQ L_EE26
     INX
     BCC L_EE26
@@ -5930,13 +5936,13 @@ L_EE26:
     STX $F4
     LDA $FB
     SEC
-    SBC $45
+    SBC player_y
     BCC L_EE46
     LDY #$09
     LDA ($E7),Y
     BEQ L_EE52
     LDA #$03
-    JSR L_CC64
+    JSR rng_update
     TAX
     BNE L_EE52
     LDA #$80
@@ -5945,7 +5951,7 @@ L_EE26:
     JMP L_EE52
 L_EE46:
     LDA #$03
-    JSR L_CC64
+    JSR rng_update
     TAX
     BNE L_EE52
     LDA #$04
@@ -6074,46 +6080,46 @@ L_EF6E:
     STA $F7
     JSR L_EFF1
     JSR L_CF08
-    BCS L_EF85
+    BCS enemy_drop_choose
     LDA $0A
     STA $FB
     RTS
-L_EF85:
+enemy_drop_choose:
     LDX #$00
-    LDA $58
+    LDA health
     CMP #$14
-    BCC L_EFC4
+    BCC item_spawn_setup
     INX
-    LDA $59
+    LDA magic
     CMP #$1E
-    BCC L_EFC4
+    BCC item_spawn_setup
     LDX #$04
-    LDA $5B
+    LDA keys
     CMP #$02
-    BCC L_EFC4
+    BCC item_spawn_setup
     LDA #$14
-    JSR L_CC64
+    JSR rng_update
     CMP #$09
-    BCS L_EFAC
+    BCS drop_money_chooser
     TAY
-    LDX $EFE7,Y
-    JMP L_EFC4
-L_EFAC:
+    LDX drop_item_table,Y
+    JMP item_spawn_setup
+drop_money_chooser:
     LDX #$00
-    LDA $58
-    CMP $59
+    LDA health
+    CMP magic
     BCC L_EFBE
     INX
-    LDA $59
-    CMP $5A
-    BCC L_EFC4
+    LDA magic
+    CMP gold
+    BCC item_spawn_setup
     JMP L_EFC2
 L_EFBE:
-    CMP $5A
-    BCC L_EFC4
+    CMP gold
+    BCC item_spawn_setup
 L_EFC2:
     LDX #$02
-L_EFC4:
+item_spawn_setup:
     TXA
     CLC
     ADC #$02
@@ -6225,18 +6231,18 @@ L_F136:
     LDX $EE
     DEX
     BNE L_F178
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCC L_F154
     LDA $E3
     BEQ L_F15A
-    LDX $55
-    LDA $51,X
+    LDX equipped_item
+    LDA carried_item0,X
     CMP #$0A
     BEQ L_F173
     JMP L_F15A
 L_F154:
-    LDA $40
+    LDA cur_character
     CMP #$04
     BEQ L_F178
 L_F15A:
@@ -6516,7 +6522,7 @@ L_F347:
     RTS
 L_F349:
     LDA #$3D
-    STA $2E
+    STA mmc3_r4_shadow
     LDY #$03
     LDA ($E7),Y
     STA $0A
@@ -6551,7 +6557,7 @@ L_F364:
     STA $F8
     LDY #$04
     LDA ($E7),Y
-    STA $F2
+    STA boss_life
     STA $0415
     STA $0425
     STA $0435
@@ -6559,12 +6565,12 @@ L_F364:
     STA $0E
     LDA #$A7
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     LDA #$53
     STA $0E
     LDA #$CB
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     RTS
 L_F3B0:
     LDA $F4
@@ -6845,7 +6851,7 @@ L_F59F:
     STX $0411
     STX $0421
     STX $0431
-    LDA $F2
+    LDA boss_life
     CMP $0415
     BCC L_F5B5
     LDA $0415
@@ -6872,10 +6878,10 @@ L_F5C5:
     STA $0432
     AND #$40
     BEQ L_F600
-    LDA $0400
+    LDA sprite_tables
     LDX $0410
     STA $0410
-    STX $0400
+    STX sprite_tables
     LDA $0420
     LDX $0430
     STA $0430
@@ -6883,10 +6889,10 @@ L_F5C5:
 L_F600:
     LDA $EF
     BPL L_F61C
-    LDA $0400
+    LDA sprite_tables
     LDX $0420
     STA $0420
-    STX $0400
+    STX sprite_tables
     LDA $0410
     LDX $0430
     STA $0430
@@ -6896,7 +6902,7 @@ L_F61C:
     STA $0E
     LDA #$CB
     STA $0F
-    JSR L_CC9C
+    JSR farcall_bank_0C0D
     RTS
 L_F628:
     LDA #$0B
@@ -6929,7 +6935,7 @@ L_F64B:
     LDA $E3
     SEC
     SBC #$0B
-    CMP $5E
+    CMP shots_allowed
     BCC L_F634
     RTS
 L_F664:
@@ -6972,7 +6978,7 @@ L_F6A9:
     STA $ED
     LDA #$22
     CLC
-    ADC $40
+    ADC cur_character
     STA $8F
 L_F6B8:
     JMP L_F735
@@ -6985,7 +6991,7 @@ L_F6BB:
     BCS L_F722
     JSR L_CDB2
     BCC L_F729
-    LDA $2D
+    LDA mmc3_r3_shadow
     CMP #$30
     BCC L_F6ED
     LDA $08
@@ -7046,11 +7052,11 @@ L_F73C:
     JSR L_E99A
     RTS
 L_F740:
-    LDA $43
+    LDA player_x_fine
     STA $0E
-    LDA $44
+    LDA player_x_tile
     STA $0F
-    LDA $45
+    LDA player_y
     STA $0A
     LDA $F7
     BEQ L_F757
@@ -7127,7 +7133,7 @@ L_F7B5:
     STA ($0C),Y
     LDA $FA
     SEC
-    SBC $7C
+    SBC scroll_x_tile
     CMP #$11
     BCC L_F7D3
     CMP #$FE
@@ -7137,20 +7143,20 @@ L_F7D3:
     STA $0C
     ASL A
     AND #$1F
-    STA $16
+    STA vram_dst_lo
     LDA $FA
     AND #$10
     LSR A
     LSR A
-    STA $17
+    STA vram_dst_hi
     CLC
     LDA #$00
-    ADC $16
-    STA $16
+    ADC vram_dst_lo
+    STA vram_dst_lo
     LDA #$20
-    ADC $17
-    STA $17
-    JSR L_C833
+    ADC vram_dst_hi
+    STA vram_dst_hi
+    JSR farcall_bank_09_r7
 L_F7F4:
     JMP L_F896
 L_F7F7:
@@ -7239,11 +7245,11 @@ L_F893:
 L_F896:
     JSR L_E99A
     RTS
-L_F89A:
-    JSR L_FD74
+sound_tick:
+    JSR sound_set_default_banks
     LDA #$40
     STA $02
-    JSR L_FA60
+    JSR sfx_overlay_voice
     LDA $8D
     BEQ L_F8CD
     LDA #$00
@@ -7252,19 +7258,19 @@ L_F89A:
     LDA $A9
     AND #$C0
     ORA #$30
-    STA $4004
+    STA SQ2_VOL
 L_F8B7:
     LDA $99
     AND #$C0
     ORA #$30
-    STA $4000
+    STA SQ1_VOL
     LDA #$00
-    STA $4008
+    STA TRI_LINEAR
     LDA #$30
-    STA $400C
+    STA NOISE_VOL
     JMP L_F8EC
 L_F8CD:
-    JSR L_FD87
+    JSR sound_set_song_banks
     LDA #$00
     STA $02
     JSR L_F8F0
@@ -7278,7 +7284,7 @@ L_F8CD:
     STA $02
     JSR L_FB1F
 L_F8EC:
-    JSR L_FD9C
+    JSR sound_restore_game_banks
     RTS
 L_F8F0:
     BIT $94
@@ -7312,13 +7318,13 @@ L_F916:
     ORA #$01
     STA $27
     LDA $9A
-    STA $4001
+    STA SQ1_SWEEP
     LDA $04
-    STA $4002
+    STA SQ1_LO
     LDA $05
     AND #$07
     ORA #$18
-    STA $4003
+    STA SQ1_HI
     JSR L_FCC4
     JMP L_F948
 L_F942:
@@ -7333,7 +7339,7 @@ L_F94E:
     DEC $9D
     BNE L_F958
     JSR L_FD11
-    STA $4000
+    STA SQ1_VOL
 L_F958:
     JSR L_FD45
     BCS L_F95E
@@ -7342,7 +7348,7 @@ L_F95E:
     LDA $99
     AND #$C0
     ORA #$30
-    STA $4000
+    STA SQ1_VOL
     LDA $27
     AND #$FE
     STA $27
@@ -7387,15 +7393,15 @@ L_F9AB:
     ORA #$02
     STA $27
     LDA $A9
-    STA $4004
+    STA SQ2_VOL
     LDA $AA
-    STA $4005
+    STA SQ2_SWEEP
     LDA $04
-    STA $4006
+    STA SQ2_LO
     LDA $05
     AND #$07
     ORA #$18
-    STA $4007
+    STA SQ2_HI
     JSR L_FCC4
     JMP L_F9DD
 L_F9D2:
@@ -7419,7 +7425,7 @@ L_F9E9:
     DEC $AD
     BNE L_F9F3
     JSR L_FD11
-    STA $4004
+    STA SQ2_VOL
 L_F9F3:
     JSR L_FD45
     BCS L_F9F9
@@ -7428,7 +7434,7 @@ L_F9F9:
     LDA $A9
     AND #$C0
     ORA #$30
-    STA $4004
+    STA SQ2_VOL
     LDA $27
     AND #$FD
     STA $27
@@ -7465,22 +7471,22 @@ L_FA2D:
     ORA #$04
     STA $27
     LDA $BA
-    STA $4008
+    STA TRI_LINEAR
     LDA $04
-    STA $400A
+    STA TRI_LO
     LDA $05
     AND #$07
     ORA #$F8
-    STA $400B
+    STA TRI_HI
     RTS
 L_FA54:
     LDA #$00
-    STA $4008
+    STA TRI_LINEAR
     LDA $27
     AND #$FB
     STA $27
     RTS
-L_FA60:
+sfx_overlay_voice:
     LDA $8F
     BEQ L_FA74
     LDA $D4
@@ -7547,13 +7553,13 @@ L_FAC6:
     ORA $27
     STA $27
     LDA $DA
-    STA $4005
+    STA SQ2_SWEEP
     LDA $04
-    STA $4006
+    STA SQ2_LO
     LDA $05
     AND #$07
     ORA #$C0
-    STA $4007
+    STA SQ2_HI
     JSR L_FCC4
     JMP L_FAF8
 L_FAF2:
@@ -7568,7 +7574,7 @@ L_FAFF:
     DEC $DD
     BNE L_FB09
     JSR L_FD11
-    STA $4004
+    STA SQ2_VOL
 L_FB09:
     JSR L_FD45
     BCS L_FB0F
@@ -7577,7 +7583,7 @@ L_FB0F:
     LDA $D9
     AND #$C0
     ORA #$30
-    STA $4004
+    STA SQ2_VOL
     LDA $27
     AND #$FD
     STA $27
@@ -7613,9 +7619,9 @@ L_FB45:
     ORA $27
     STA $27
     LDA $CA
-    STA $400E
+    STA NOISE_LO
     LDA #$80
-    STA $400F
+    STA NOISE_HI
     JSR L_FCC4
     JMP L_FB6B
 L_FB65:
@@ -7630,14 +7636,14 @@ L_FB72:
     DEC $CD
     BNE L_FB7C
     JSR L_FD11
-    STA $400C
+    STA NOISE_VOL
 L_FB7C:
     JSR L_FD45
     BCS L_FB82
     RTS
 L_FB82:
     LDA #$30
-    STA $400C
+    STA NOISE_VOL
     LDA $27
     AND #$F7
     STA $27
@@ -7710,17 +7716,17 @@ L_FBFE:
     RTS
     STA $9A,X
     RTS
-L_FC08:
+song_init:
     LDX #$0A
     LDA $8E
     CMP #$0A
     BCC L_FC12
     LDX #$0C
 L_FC12:
-    STX $34
+    STX snd_music_bank0
     INX
-    STX $35
-    JSR L_FD87
+    STX snd_music_bank1
+    JSR sound_set_song_banks
     LDA #$00
     STA $92
     LDA #$00
@@ -7733,9 +7739,9 @@ L_FC12:
 L_FC2B:
     ASL A
     TAX
-    LDA $8000,X
+    LDA MMC3_BANK_SELECT,X
     STA $0E
-    LDA $8001,X
+    LDA MMC3_BANK_DATA,X
     STA $0F
     LDA #$93
     STA $0C
@@ -7778,7 +7784,7 @@ L_FC5B:
     STA $0F
     DEX
     BNE L_FC41
-    JSR L_D41D
+    JSR ppu_commit_banks
     RTS
 L_FC81:
     LDX $02
@@ -7788,7 +7794,7 @@ L_FC81:
     AND #$0F
     ASL A
     TAX
-    LDA $FDB1,X
+    LDA note_period_table,X
     STA $04
     LDA $FDB2,X
     STA $05
@@ -7928,35 +7934,35 @@ L_FD6B:
     INC $96,X
 L_FD73:
     RTS
-L_FD74:
+sound_set_default_banks:
     LDX #$06
     LDY #$0A
-    STX $8000
-    STY $8001
+    STX MMC3_BANK_SELECT
+    STY MMC3_BANK_DATA
     INX
     INY
-    STX $8000
-    STY $8001
+    STX MMC3_BANK_SELECT
+    STY MMC3_BANK_DATA
     RTS
-L_FD87:
+sound_set_song_banks:
     LDA #$06
-    STA $8000
-    LDA $34
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA snd_music_bank0
+    STA MMC3_BANK_DATA
     LDA #$07
-    STA $8000
-    LDA $35
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA snd_music_bank1
+    STA MMC3_BANK_DATA
     RTS
-L_FD9C:
+sound_restore_game_banks:
     LDA #$06
-    STA $8000
-    LDA $30
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA mmc3_r6_shadow
+    STA MMC3_BANK_DATA
     LDA #$07
-    STA $8000
-    LDA $31
-    STA $8001
+    STA MMC3_BANK_SELECT
+    LDA mmc3_r7_shadow
+    STA MMC3_BANK_DATA
     RTS
     .byte $AE,$06,$4E,$06,$F4,$05,$9E,$05,$4D,$05,$00,$00,$01,$05,$B9,$04
     .byte $75,$04,$35,$04,$F9,$03,$C0,$03,$8A,$03,$00,$01,$01,$0F,$F7,$01
@@ -7993,12 +7999,12 @@ L_FD9C:
     .byte $03,$20,$1A,$01,$03,$20,$12,$03,$05,$08,$54,$FC,$8B,$FC,$46,$FF
     .byte $26,$FC,$00,$7C,$0F,$0F,$2A,$36,$0F,$0C,$25,$36,$0F,$0C,$3C,$36
     .byte $0F,$06,$15,$36,$0F,$06,$30,$25,$00,$00,$00,$00,$00,$00,$00
-L_FFE0:
+reset:
     SEI
     LDA #$00
-    STA $8000
-    STA $A001
-    STA $E000
-    JMP L_C000
+    STA MMC3_BANK_SELECT
+    STA MMC3_PRGRAM
+    STA MMC3_IRQ_DISABLE
+    JMP main_init
     .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$FE,$D1,$E0,$FF,$FE
     .byte $D1

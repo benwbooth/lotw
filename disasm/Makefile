@@ -13,7 +13,7 @@ all: $(OUT)
 build:
 	mkdir -p build
 
-%.o: %.s
+%.o: %.s lotw.inc
 	$(AS) -o $@ $<
 
 $(OUT): $(OBJS) $(CFG) | build

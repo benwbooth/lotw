@@ -54,6 +54,7 @@ def run_one(name: str, extra_frames: int, timeout: float) -> dict:
     done = out / "DONE"
 
     env = dict(os.environ)
+    env["SDL_AUDIODRIVER"] = "dummy"  # mute: no real audio device (max-speed = noise)
     env.update(
         LOTW_COV_OUT_DIR=str(out),
         LOTW_COV_REPLAY=str(replay),
@@ -62,7 +63,7 @@ def run_one(name: str, extra_frames: int, timeout: float) -> dict:
     )
     cmd = [
         "xvfb-run", "-a",
-        "fceux", "--loadlua", str(SCRIPT), str(ROM),
+        "fceux", "--sound", "0", "--loadlua", str(SCRIPT), str(ROM),
     ]
     print(f"[{name}] {frames} frames -> {out}")
     proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL,
@@ -88,6 +89,49 @@ def run_one(name: str, extra_frames: int, timeout: float) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
 
+    cov = out / "coverage.tsv"
+    n = sum(1 for _ in cov.open()) - 1 if cov.exists() else 0
+    print(f"[{name}] covered PRG offsets: {n}  (done={done.exists()})")
+    return {"name": name, "out": out, "covered": n, "done": done.exists()}
+
+
+def run_explore(seed: int, frames: int, timeout: float, prefix: str = "start_game") -> dict:
+    """Run a deterministic exploration session: a replay prefix to reach gameplay,
+    then LCG-driven pseudo-random input for `frames` frames to wander code."""
+    replay = fixture_path(prefix)
+    total = replay_frames(replay) + frames
+    name = f"explore_{seed}"
+    out = OUTROOT / name
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    done = out / "DONE"
+    env = dict(os.environ)
+    env["SDL_AUDIODRIVER"] = "dummy"  # mute: no real audio device (max-speed = noise)
+    env.update(
+        LOTW_COV_OUT_DIR=str(out),
+        LOTW_COV_REPLAY=str(replay),
+        LOTW_COV_FRAMES=str(total),
+        LOTW_COV_EXPLORE=str(seed),
+        LOTW_COV_DONE=str(done),
+    )
+    cmd = ["xvfb-run", "-a", "fceux", "--sound", "0", "--loadlua", str(SCRIPT), str(ROM)]
+    print(f"[{name}] {total} frames (prefix {prefix} + {frames} explore) -> {out}")
+    proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+    t0 = time.time()
+    try:
+        while not done.exists() and proc.poll() is None and time.time() - t0 < timeout:
+            time.sleep(0.25)
+    finally:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            proc.wait(timeout=5)
+        except (ProcessLookupError, subprocess.TimeoutExpired):
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
     cov = out / "coverage.tsv"
     n = sum(1 for _ in cov.open()) - 1 if cov.exists() else 0
     print(f"[{name}] covered PRG offsets: {n}  (done={done.exists()})")
@@ -136,20 +180,30 @@ def merge(results: list[dict]):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("target", help="fixture name (no .replay) or 'all'")
+    ap.add_argument("target", help="fixture name (no .replay), 'all', or 'explore'")
     ap.add_argument("--extra-frames", type=int, default=120,
                     help="frames to run past the replay end (idle exploration)")
-    ap.add_argument("--timeout", type=float, default=300.0)
+    ap.add_argument("--explore-seeds", type=int, default=0,
+                    help="number of pseudo-random exploration sessions to add")
+    ap.add_argument("--explore-frames", type=int, default=12000,
+                    help="explore frames per session (after the start_game prefix)")
+    ap.add_argument("--timeout", type=float, default=600.0)
     args = ap.parse_args()
 
     if not ROM.exists():
         sys.exit(f"ROM missing: {ROM}")
-    if args.target == "all":
-        names = sorted(p.stem for p in FIXDIR.glob("*.replay"))
-    else:
-        names = [args.target]
 
-    results = [run_one(n, args.extra_frames, args.timeout) for n in names]
+    results = []
+    if args.target in ("all", "explore"):
+        if args.target == "all":
+            for n in sorted(p.stem for p in FIXDIR.glob("*.replay")):
+                results.append(run_one(n, args.extra_frames, args.timeout))
+        seeds = args.explore_seeds or (6 if args.target == "explore" else 0)
+        for s in range(1, seeds + 1):
+            results.append(run_explore(s * 2654435761 % 2147483647,
+                                       args.explore_frames, args.timeout))
+    else:
+        results.append(run_one(args.target, args.extra_frames, args.timeout))
     merge(results)
 
 

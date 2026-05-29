@@ -1,6 +1,7 @@
-; PRG bank 13 (swappable) — file 0x1A010..0x1C010
-; 289 instructions, 614/8192 code bytes, 28 labels
-; PRG bank 13 — CPU origin $8000
+.include "lotw.inc"
+; PRG bank 13 (swappable, runs at $A000) — file 0x1A010..0x1C010
+; 830 instructions, 1730/8192 code bytes, 105 labels
+; PRG bank 13 — CPU origin $A000
 .segment "CODE13"
     .byte $7A,$7B,$7C,$7D,$7E,$00,$00,$1F,$1F,$1F,$1F,$1F,$00,$00,$00,$7F
     .byte $80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -233,17 +234,18 @@
     .byte $60,$A5,$0A,$C9,$A1,$B0,$06,$A5,$0E,$C9,$F1,$90,$02,$38,$60,$18
     .byte $60,$A5,$20,$29,$0F,$0A,$AA,$BD,$8B,$FE,$8D,$49,$00,$BD,$8C,$FE
     .byte $8D,$4B,$00,$60
-    JSR $B631
+L_AE64:
+    JSR L_B631
     LDA #$37
-    STA $2C
+    STA mmc3_r2_shadow
     LDA #$00
     STA $29
     LDA #$A0
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     LDA #$00
     STA $24
-    STA $2001
+    STA PPUMASK
     LDA #$00
     STA $1C
     STA $1D
@@ -251,10 +253,10 @@
     STA $1E
     LDA #$0F
     LDX #$1F
-L_8E8B:
+L_AE8B:
     STA $0180,X
     DEX
-    BPL L_8E8B
+    BPL L_AE8B
     LDA #$69
     STA $0E
     LDA #$C5
@@ -262,42 +264,42 @@ L_8E8B:
     JSR $CCE4
     JSR $D08A
     JSR $C375
-    JSR $B102
+    JSR L_B102
     LDA #$15
-    STA $2C
+    STA mmc3_r2_shadow
     LDA #$09
     STA $8E
     JSR $FC08
-    JSR $B648
+    JSR L_B648
     LDA #$1E
     STA $24
-    STA $2001
+    STA PPUMASK
     LDA #$78
     STA $36
-L_8EBE:
+L_AEBE:
     LDA $36
-    BNE L_8EBE
-    JSR $B6A6
+    BNE L_AEBE
+    JSR L_B6A6
     LDA #$14
     STA $8C
-L_8EC9:
+L_AEC9:
     LDA #$01
     STA $36
     JSR $CC43
     CMP #$FF
-    BNE L_8EDA
+    BNE L_AEDA
     LDA #$1A
     STA $8F
     STA $37
-L_8EDA:
+L_AEDA:
     AND #$10
-    BNE L_8F17
+    BNE L_AF17
     LDA $21
     CMP #$83
-    BEQ L_8F1A
+    BEQ L_AF1A
     LDA $84
     AND #$07
-    BNE L_8F05
+    BNE L_AF05
     LDA $0182
     AND #$0F
     STA $08
@@ -305,51 +307,229 @@ L_8EDA:
     AND #$F0
     SEC
     SBC #$10
-    BCS L_8EFD
+    BCS L_AEFD
     LDA #$30
-L_8EFD:
+L_AEFD:
     STA $0193
     ORA $08
     STA $0182
-L_8F05:
+L_AF05:
     LDA #$35
     STA $0E
     LDA #$C1
     STA $0F
     JSR $CCE4
     LDA $8C
-    BNE L_8EC9
-    JMP $AF1D
-L_8F17:
-    JMP $B0B1
-L_8F1A:
-    JMP $B13D
-    .byte $20,$61,$C4,$20,$75,$C3,$20,$8A,$D0,$20,$0E,$B1,$A9,$04,$20,$64
-    .byte $CC,$85,$47,$A9,$10,$20,$64,$CC,$85,$48,$A9,$F2,$85,$0E,$A9,$C8
-    .byte $85,$0F,$20,$E4,$CC,$A9,$40,$20,$64,$CC,$85,$44,$85,$0C,$A9,$00
-    .byte $85,$43,$A9,$0B,$20,$64,$CC,$0A,$0A,$0A,$0A,$85,$45,$85,$0D,$20
-    .byte $54,$CA,$A0,$00,$B1,$0C,$29,$3F,$C9,$30,$B0,$D9,$C9,$02,$F0,$D5
-    .byte $C5,$70,$F0,$D1,$C8,$B1,$0C,$29,$3F,$C9,$30,$90,$C8,$F0,$C6,$A5
-    .byte $44,$38,$E9,$08,$B0,$02,$A9,$00,$C9,$30,$90,$02,$A9,$30,$85,$7C
-    .byte $A9,$00,$85,$7B,$A9,$05,$20,$64,$CC,$AA,$A8,$38,$A9,$00,$2A,$88
-    .byte $10,$FC,$25,$41,$F0,$EE,$BD,$AC,$B0,$85,$51,$A9,$00,$85,$55,$86
-    .byte $40,$8A,$0A,$0A,$18,$69,$03,$A8,$A2,$03,$B9,$A7,$FF,$95,$5C,$88
-    .byte $CA,$10,$F7,$A5,$40,$18,$69,$38,$85,$2C,$A9,$3E,$85,$2E,$A9,$20
-    .byte $85,$2F,$A9,$0D,$85,$56,$A9,$00,$85,$57,$A9,$01,$85,$42,$A9,$64
-    .byte $85,$58,$85,$59,$A9,$8B,$85,$0E,$A9,$C3,$85,$0F,$20,$E4,$CC,$20
-    .byte $7A,$C5,$A9,$CB,$85,$0E,$A9,$C5,$85,$0F,$20,$E4,$CC,$20,$B6,$CA
-    .byte $20,$CC,$CA,$20,$F8,$CA,$20,$E2,$CA,$20,$C7,$C1,$20,$7C,$D0,$20
-    .byte $D8,$C1,$20,$34,$C2,$A9,$92,$85,$0E,$A9,$C4,$85,$0F,$20,$E4,$CC
-    .byte $A9,$0A,$85,$8C,$A9,$01,$85,$36,$A5,$7C,$85,$7E,$20,$1A,$B1,$20
-    .byte $43,$CC,$29,$10,$F0,$03,$4C,$B1,$B0,$A5,$FE,$85,$20,$A5,$49,$05
-    .byte $4B,$F0,$04,$C6,$42,$D0,$0B,$A9,$80,$85,$42,$20,$E4,$B0,$A5,$20
-    .byte $85,$FE,$A9,$2B,$85,$0E,$A9,$D4,$85,$0F,$20,$E4,$CC,$A9,$28,$85
-    .byte $0E,$A9,$F6,$85,$0F,$20,$E4,$CC,$A9,$7C,$85,$0E,$A9,$E8,$85,$0F
-    .byte $20,$E4,$CC,$A9,$82,$85,$0E,$A9,$F7,$85,$0F,$20,$E4,$CC,$A9,$5D
-    .byte $85,$0E,$A9,$C1,$85,$0F,$20,$E4,$CC,$20,$D8,$C1,$20,$B1,$C2,$A5
-    .byte $7E,$C5,$7C,$F0,$02,$E6,$3D,$A9,$35,$85,$0E,$A9,$C1,$85,$0F,$20
-    .byte $E4,$CC,$A5,$8C,$F0,$03,$4C,$21,$B0,$20,$61,$C4,$4C,$64,$AE,$03
-    .byte $04,$05,$02,$08
+    BNE L_AEC9
+    JMP L_AF1D
+L_AF17:
+    JMP L_B0B1
+L_AF1A:
+    JMP L_B13D
+L_AF1D:
+    JSR $C461
+    JSR $C375
+    JSR $D08A
+    JSR L_B10E
+    LDA #$04
+    JSR $CC64
+    STA map_screen_x
+    LDA #$10
+    JSR $CC64
+    STA map_screen_y
+    LDA #$F2
+    STA $0E
+    LDA #$C8
+    STA $0F
+    JSR $CCE4
+L_AF42:
+    LDA #$40
+    JSR $CC64
+    STA player_x_tile
+    STA $0C
+    LDA #$00
+    STA player_x_fine
+    LDA #$0B
+    JSR $CC64
+    ASL A
+    ASL A
+    ASL A
+    ASL A
+    STA player_y
+    STA $0D
+    JSR $CA54
+    LDY #$00
+    LDA ($0C),Y
+    AND #$3F
+    CMP #$30
+    BCS L_AF42
+    CMP #$02
+    BEQ L_AF42
+    CMP $70
+    BEQ L_AF42
+    INY
+    LDA ($0C),Y
+    AND #$3F
+    CMP #$30
+    BCC L_AF42
+    BEQ L_AF42
+    LDA player_x_tile
+    SEC
+    SBC #$08
+    BCS L_AF85
+    LDA #$00
+L_AF85:
+    CMP #$30
+    BCC L_AF8B
+    LDA #$30
+L_AF8B:
+    STA scroll_x_tile
+    LDA #$00
+    STA scroll_x_fine
+L_AF91:
+    LDA #$05
+    JSR $CC64
+    TAX
+    TAY
+    SEC
+    LDA #$00
+L_AF9B:
+    ROL A
+    DEY
+    BPL L_AF9B
+    AND $41
+    BEQ L_AF91
+    LDA $B0AC,X
+    STA carried_item0
+    LDA #$00
+    STA equipped_item
+    STX cur_character
+    TXA
+    ASL A
+    ASL A
+    CLC
+    ADC #$03
+    TAY
+    LDX #$03
+L_AFB7:
+    LDA $FFA7,Y
+    STA stat_jump,X
+    DEY
+    DEX
+    BPL L_AFB7
+    LDA cur_character
+    CLC
+    ADC #$38
+    STA mmc3_r2_shadow
+    LDA #$3E
+    STA mmc3_r4_shadow
+    LDA #$20
+    STA mmc3_r5_shadow
+    LDA #$0D
+    STA $56
+    LDA #$00
+    STA $57
+    LDA #$01
+    STA $42
+    LDA #$64
+    STA health
+    STA magic
+    LDA #$8B
+    STA $0E
+    LDA #$C3
+    STA $0F
+    JSR $CCE4
+    JSR $C57A
+    LDA #$CB
+    STA $0E
+    LDA #$C5
+    STA $0F
+    JSR $CCE4
+    JSR $CAB6
+    JSR $CACC
+    JSR $CAF8
+    JSR $CAE2
+    JSR $C1C7
+    JSR $D07C
+    JSR $C1D8
+    JSR $C234
+    LDA #$92
+    STA $0E
+    LDA #$C4
+    STA $0F
+    JSR $CCE4
+    LDA #$0A
+    STA $8C
+L_B021:
+    LDA #$01
+    STA $36
+    LDA scroll_x_tile
+    STA $7E
+    JSR L_B11A
+    JSR $CC43
+    AND #$10
+    BEQ L_B036
+    JMP L_B0B1
+L_B036:
+    LDA $FE
+    STA $20
+    LDA $49
+    ORA $4B
+    BEQ L_B044
+    DEC $42
+    BNE L_B04F
+L_B044:
+    LDA #$80
+    STA $42
+    JSR L_B0E4
+    LDA $20
+    STA $FE
+L_B04F:
+    LDA #$2B
+    STA $0E
+    LDA #$D4
+    STA $0F
+    JSR $CCE4
+    LDA #$28
+    STA $0E
+    LDA #$F6
+    STA $0F
+    JSR $CCE4
+    LDA #$7C
+    STA $0E
+    LDA #$E8
+    STA $0F
+    JSR $CCE4
+    LDA #$82
+    STA $0E
+    LDA #$F7
+    STA $0F
+    JSR $CCE4
+    LDA #$5D
+    STA $0E
+    LDA #$C1
+    STA $0F
+    JSR $CCE4
+    JSR $C1D8
+    JSR $C2B1
+    LDA $7E
+    CMP scroll_x_tile
+    BEQ L_B094
+    INC $3D
+L_B094:
+    LDA #$35
+    STA $0E
+    LDA #$C1
+    STA $0F
+    JSR $CCE4
+    LDA $8C
+    BEQ L_B0A6
+    JMP L_B021
+L_B0A6:
+    JSR $C461
+    JMP L_AE64
+    .byte $03,$04,$05,$02,$08
+L_B0B1:
     JSR $C461
     LDA #$8B
     STA $0E
@@ -358,7 +538,7 @@ L_8F1A:
     JSR $CCE4
     JSR $C57A
     JSR $C375
-    JSR $B631
+    JSR L_B631
     JSR $CAB6
     JSR $CAF8
     JSR $CAE2
@@ -371,79 +551,348 @@ L_8F1A:
     STA $0F
     JSR $CCE4
     RTS
-    .byte $A9,$04,$20,$64,$CC,$AA,$BD,$FE,$B0,$85,$20,$A9,$0A,$20,$64,$CC
-    .byte $AA,$D0,$06,$A5,$20,$09,$40,$85,$20,$60,$81,$84,$82,$00
+L_B0E4:
+    LDA #$04
+    JSR $CC64
+    TAX
+    LDA $B0FE,X
+    STA $20
+    LDA #$0A
+    JSR $CC64
+    TAX
+    BNE L_B0FD
+    LDA $20
+    ORA #$40
+    STA $20
+L_B0FD:
+    RTS
+    .byte $81,$84,$82,$00
+L_B102:
     LDX #$7F
-L_9104:
+L_B104:
     LDA $B71C,X
     STA $0240,X
     DEX
-    BPL L_9104
+    BPL L_B104
     RTS
-    .byte $A2,$1F,$BD,$FC,$B6,$9D,$40,$02,$CA,$10,$F7,$60,$A2,$EF,$A5,$84
-    .byte $29,$30,$F0,$02,$A2,$80,$8E,$40,$02,$8E,$44,$02,$8E,$48,$02,$8E
-    .byte $4C,$02,$8E,$50,$02,$8E,$54,$02,$8E,$58,$02,$8E,$5C,$02,$60,$E6
-    .byte $92,$20,$9B,$B2,$20,$61,$C4,$20,$8B,$C3,$20,$EE,$B2,$A9,$20,$85
-    .byte $2A,$A9,$22,$85,$2B,$A5,$24,$09,$18,$85,$24,$A9,$FF,$20,$8F,$CC
-    .byte $A9,$0A,$85,$8E,$20,$08,$FC,$A9,$00,$8D,$1C,$00,$8D,$1D,$00,$8D
-    .byte $0A,$00,$85,$7B,$85,$7C,$20,$CC,$B2,$A9,$40,$85,$18,$A9,$01,$85
-    .byte $19,$A9,$20,$85,$1A,$A9,$9C,$85,$0C,$A9,$B7,$85,$0D,$20,$5D,$B2
-    .byte $20,$EA,$B1,$B0,$08,$20,$5D,$B2,$20,$15,$B2,$90,$F0,$A9,$20,$85
-    .byte $8F,$A5,$D4,$F0,$FC,$A5,$D4,$D0,$FC,$A9,$3C,$85,$36,$A5,$36,$D0
-    .byte $FC,$A9,$00,$85,$94,$85,$A4,$85,$B4,$85,$C4,$A9,$18,$85,$8F,$A2
-    .byte $0A,$8A,$48,$A9,$30,$A2,$1F,$9D,$80,$01,$CA,$10,$FA,$20,$69,$C5
-    .byte $A9,$01,$85,$36,$20,$35,$C1,$20,$CC,$B2,$20,$69,$C5,$A9,$02,$85
-    .byte $36,$20,$35,$C1,$68,$AA,$CA,$D0,$D8,$4C,$E7,$B1,$20,$FC,$B2,$A0
-    .byte $00,$B1,$0C,$F0,$20,$C9,$0D,$F0,$12,$29,$0F,$85,$08,$B1,$0C,$29
-    .byte $F0,$0A,$05,$08,$99,$40,$01,$C8,$4C,$EF,$B1,$20,$4E,$B2,$A9,$05
-    .byte $20,$78,$B2,$18,$60,$38,$60,$20,$FC,$B2,$A0,$00,$B1,$0C,$F0,$2E
-    .byte $C9,$0D,$F0,$15,$29,$0F,$85,$08,$B1,$0C,$29,$F0,$0A,$05,$08,$18
-    .byte $69,$10,$99,$40,$01,$C8,$4C,$1A,$B2,$C8,$98,$18,$65,$0C,$85,$0C
-    .byte $90,$02,$E6,$0D,$20,$4E,$B2,$A9,$05,$20,$78,$B2,$18,$60,$38,$60
-    .byte $A9,$08,$85,$17,$A5,$0A,$0A,$26,$17,$0A,$26,$17,$85,$16,$60,$E6
-    .byte $0A,$A5,$0A,$29,$07,$F0,$08,$A9,$FF,$20,$78,$B2,$4C,$5D,$B2,$A5
-    .byte $0A,$C9,$F0,$D0,$04,$A9,$00,$85,$0A,$60,$48,$A5,$0A,$18,$69,$06
-    .byte $C9,$F0,$90,$03,$18,$69,$10,$85,$1E,$68,$20,$8F,$CC,$A9,$FF,$20
-    .byte $8F,$CC,$A9,$FF,$20,$8F,$CC,$A9,$FF,$20,$8F,$CC,$60,$A9,$00,$85
-    .byte $B4,$A9,$10,$85,$0D,$A5,$A0,$F0,$02,$C6,$A0,$A5,$B0,$F0,$02,$C6
-    .byte $B0,$A5,$D0,$F0,$02,$C6,$D0,$A9,$14,$85,$0C,$20,$B1,$C2,$A9,$01
-    .byte $85,$36,$20,$35,$C1,$C6,$0C,$D0,$F2,$C6,$0D,$D0,$D8,$60,$A9,$0F
-    .byte $8D,$80,$01,$A9,$0C,$8D,$81,$01,$A9,$10,$8D,$82,$01,$A9,$30,$8D
-    .byte $83,$01,$A9,$0F,$A2,$1B,$9D,$84,$01,$CA,$10,$FA,$20,$69,$C5,$60
-    .byte $A2,$00,$A9,$EF,$9D,$00,$02,$E8,$E8,$E8,$E8,$D0,$F7,$60,$A0,$1F
-    .byte $A9,$C0,$99,$40,$01,$88,$10,$FA,$60,$A5,$8E,$48,$E6,$8D,$20,$7C
-    .byte $D0,$A2,$35,$A0,$00,$20,$C5,$B4,$A9,$3C,$85,$36,$20,$35,$C1,$A9
-    .byte $08,$20,$2E,$D0,$C6,$8D,$A9,$05,$85,$0A,$A2,$0D,$A0,$00,$20,$C5
-    .byte $B4,$A2,$01,$A0,$00,$20,$C5,$B4,$A2,$09,$A0,$00,$20,$C5,$B4,$A2
-    .byte $01,$A0,$40,$20,$C5,$B4,$C6,$0A,$D0,$E0,$A9,$01,$85,$36,$A9,$31
-    .byte $85,$56,$20,$D8,$C1,$20,$35,$C1,$A5,$EC,$D0,$29,$A5,$37,$10,$05
-    .byte $E6,$37,$4C,$72,$B3,$A6,$55,$B5,$51,$C9,$0C,$D0,$18,$A9,$FF,$95
-    .byte $51,$20,$34,$C2,$20,$6A,$D1,$A9,$19,$85,$56,$20,$09,$CC,$68,$20
-    .byte $2E,$D0,$A2,$00,$60,$68,$20,$61,$C4,$A9,$00,$85,$EC,$85,$3E,$A9
-    .byte $80,$85,$3F,$20,$8B,$C3,$20,$8A,$D0,$20,$B1,$C2,$A9,$16,$85,$2B
-    .byte $A9,$36,$85,$2C,$A9,$00,$8D,$1C,$00,$8D,$1D,$00,$8D,$1E,$00,$85
-    .byte $7B,$85,$7C,$A9,$6B,$85,$16,$A9,$21,$85,$17,$A9,$AF,$85,$18,$A9
-    .byte $B4,$85,$19,$A9,$09,$85,$1A,$A9,$05,$20,$8F,$CC,$A9,$4C,$85,$16
-    .byte $A9,$22,$85,$17,$A9,$B8,$85,$18,$A9,$B4,$85,$19,$A9,$05,$85,$1A
-    .byte $A9,$05,$20,$8F,$CC,$A9,$8C,$85,$16,$A9,$22,$85,$17,$A9,$BD,$85
-    .byte $18,$A9,$B4,$85,$19,$A9,$08,$85,$1A,$A9,$05,$20,$8F,$CC,$A9,$05
-    .byte $85,$44,$A9,$00,$85,$43,$A9,$70,$85,$45,$A9,$39,$85,$56,$20,$75
-    .byte $C3,$20,$D8,$C1,$A9,$E0,$85,$0E,$A9,$C4,$85,$0F,$20,$E4,$CC,$20
-    .byte $09,$CC,$29,$10,$D0,$0D,$A5,$45,$49,$10,$85,$45,$A9,$0C,$85,$8F
-    .byte $4C,$1D,$B4,$A9,$18,$85,$8F,$A5,$45,$C9,$70,$F0,$15,$20,$61,$C4
-    .byte $A9,$78,$85,$36,$A9,$35,$85,$0E,$A9,$C1,$85,$0F,$20,$E4,$CC,$A2
-    .byte $02,$60,$20,$C5,$D0,$A9,$FF,$85,$51,$85,$52,$85,$53,$A9,$03,$85
-    .byte $55,$A9,$06,$85,$40,$A9,$03,$85,$47,$A9,$10,$85,$48,$20,$61,$C4
-    .byte $A9,$02,$85,$8E,$20,$8B,$C3,$20,$7A,$C5,$20,$B6,$CA,$20,$CC,$CA
-    .byte $20,$E2,$CA,$20,$F8,$CA,$A9,$F2,$85,$0E,$A9,$C8,$85,$0F,$20,$E4
-    .byte $CC,$A9,$0F,$A2,$1F,$9D,$80,$01,$CA,$10,$FA,$A9,$EF,$8D,$10,$02
-    .byte $8D,$14,$02,$A9,$B4,$85,$0E,$A9,$C4,$85,$0F,$20,$E4,$CC,$A2,$01
-    .byte $60,$E7,$E1,$ED,$E5,$C0,$EF,$F6,$E5,$F2,$F2,$E5,$F4,$F2,$F9,$E3
-    .byte $EF,$EE,$F4,$E9,$EE,$F5,$E5,$86,$56,$84,$57,$A9,$08,$85,$36,$20
-    .byte $D8,$C1,$20,$35,$C1,$60
+L_B10E:
+    LDX #$1F
+L_B110:
+    LDA $B6FC,X
+    STA $0240,X
+    DEX
+    BPL L_B110
+    RTS
+L_B11A:
+    LDX #$EF
+    LDA $84
+    AND #$30
+    BEQ L_B124
+    LDX #$80
+L_B124:
+    STX $0240
+    STX $0244
+    STX $0248
+    STX $024C
+    STX $0250
+    STX $0254
+    STX $0258
+    STX $025C
+    RTS
+L_B13D:
+    INC $92
+    JSR L_B29B
+    JSR $C461
+    JSR $C38B
+    JSR L_B2EE
+    LDA #$20
+    STA mmc3_r0_shadow
+    LDA #$22
+    STA mmc3_r1_shadow
+    LDA $24
+    ORA #$18
+    STA $24
+    LDA #$FF
+    JSR $CC8F
+    LDA #$0A
+    STA $8E
+    JSR $FC08
+    LDA #$00
+    STA a:$001C
+    STA a:$001D
+    STA a:$000A
+    STA scroll_x_fine
+    STA scroll_x_tile
+    JSR L_B2CC
+    LDA #$40
+    STA vram_src_lo
+    LDA #$01
+    STA vram_src_hi
+    LDA #$20
+    STA vram_len
+    LDA #$9C
+    STA $0C
+    LDA #$B7
+    STA $0D
+L_B18B:
+    JSR L_B25D
+    JSR L_B1EA
+    BCS L_B19B
+    JSR L_B25D
+    JSR L_B215
+    BCC L_B18B
+L_B19B:
+    LDA #$20
+    STA $8F
+L_B19F:
+    LDA $D4
+    BEQ L_B19F
+L_B1A3:
+    LDA $D4
+    BNE L_B1A3
+    LDA #$3C
+    STA $36
+L_B1AB:
+    LDA $36
+    BNE L_B1AB
+    LDA #$00
+    STA $94
+    STA $A4
+    STA $B4
+    STA $C4
+    LDA #$18
+    STA $8F
+    LDX #$0A
+L_B1BF:
+    TXA
+    PHA
+    LDA #$30
+    LDX #$1F
+L_B1C5:
+    STA $0180,X
+    DEX
+    BPL L_B1C5
+    JSR $C569
+    LDA #$01
+    STA $36
+    JSR $C135
+    JSR L_B2CC
+    JSR $C569
+    LDA #$02
+    STA $36
+    JSR $C135
+    PLA
+    TAX
+    DEX
+    BNE L_B1BF
+L_B1E7:
+    JMP L_B1E7
+L_B1EA:
+    JSR L_B2FC
+    LDY #$00
+L_B1EF:
+    LDA ($0C),Y
+    BEQ L_B213
+    CMP #$0D
+    BEQ L_B209
+    AND #$0F
+    STA $08
+    LDA ($0C),Y
+    AND #$F0
+    ASL A
+    ORA $08
+    STA $0140,Y
+    INY
+    JMP L_B1EF
+L_B209:
+    JSR L_B24E
+    LDA #$05
+    JSR L_B278
+    CLC
+    RTS
+L_B213:
+    SEC
+    RTS
+L_B215:
+    JSR L_B2FC
+    LDY #$00
+L_B21A:
+    LDA ($0C),Y
+    BEQ L_B24C
+    CMP #$0D
+    BEQ L_B237
+    AND #$0F
+    STA $08
+    LDA ($0C),Y
+    AND #$F0
+    ASL A
+    ORA $08
+    CLC
+    ADC #$10
+    STA $0140,Y
+    INY
+    JMP L_B21A
+L_B237:
+    INY
+    TYA
+    CLC
+    ADC $0C
+    STA $0C
+    BCC L_B242
+    INC $0D
+L_B242:
+    JSR L_B24E
+    LDA #$05
+    JSR L_B278
+    CLC
+    RTS
+L_B24C:
+    SEC
+    RTS
+L_B24E:
+    LDA #$08
+    STA vram_dst_hi
+    LDA $0A
+    ASL A
+    ROL vram_dst_hi
+    ASL A
+    ROL vram_dst_hi
+    STA vram_dst_lo
+    RTS
+L_B25D:
+    INC $0A
+    LDA $0A
+    AND #$07
+    BEQ L_B26D
+    LDA #$FF
+    JSR L_B278
+    JMP L_B25D
+L_B26D:
+    LDA $0A
+    CMP #$F0
+    BNE L_B277
+    LDA #$00
+    STA $0A
+L_B277:
+    RTS
+L_B278:
+    PHA
+    LDA $0A
+    CLC
+    ADC #$06
+    CMP #$F0
+    BCC L_B285
+    CLC
+    ADC #$10
+L_B285:
+    STA $1E
+    PLA
+    JSR $CC8F
+    LDA #$FF
+    JSR $CC8F
+    LDA #$FF
+    JSR $CC8F
+    LDA #$FF
+    JSR $CC8F
+    RTS
+L_B29B:
+    LDA #$00
+    STA $B4
+    LDA #$10
+    STA $0D
+L_B2A3:
+    LDA $A0
+    BEQ L_B2A9
+    DEC $A0
+L_B2A9:
+    LDA $B0
+    BEQ L_B2AF
+    DEC $B0
+L_B2AF:
+    LDA $D0
+    BEQ L_B2B5
+    DEC $D0
+L_B2B5:
+    LDA #$14
+    STA $0C
+L_B2B9:
+    JSR $C2B1
+    LDA #$01
+    STA $36
+    JSR $C135
+    DEC $0C
+    BNE L_B2B9
+    DEC $0D
+    BNE L_B2A3
+    RTS
+L_B2CC:
+    LDA #$0F
+    STA $0180
+    LDA #$0C
+    STA $0181
+    LDA #$10
+    STA $0182
+    LDA #$30
+    STA $0183
+    LDA #$0F
+    LDX #$1B
+L_B2E4:
+    STA $0184,X
+    DEX
+    BPL L_B2E4
+    JSR $C569
+    RTS
+L_B2EE:
+    LDX #$00
+    LDA #$EF
+L_B2F2:
+    STA $0200,X
+    INX
+    INX
+    INX
+    INX
+    BNE L_B2F2
+    RTS
+L_B2FC:
+    LDY #$1F
+    LDA #$C0
+L_B300:
+    STA $0140,Y
+    DEY
+    BPL L_B300
+    RTS
+    .byte $A5,$8E,$48,$E6,$8D,$20,$7C,$D0,$A2,$35,$A0,$00,$20,$C5,$B4,$A9
+    .byte $3C,$85,$36,$20,$35,$C1,$A9,$08,$20,$2E,$D0,$C6,$8D,$A9,$05,$85
+    .byte $0A,$A2,$0D,$A0,$00,$20,$C5,$B4,$A2,$01,$A0,$00,$20,$C5,$B4,$A2
+    .byte $09,$A0,$00,$20,$C5,$B4,$A2,$01,$A0,$40,$20,$C5,$B4,$C6,$0A,$D0
+    .byte $E0,$A9,$01,$85,$36,$A9,$31,$85,$56,$20,$D8,$C1,$20,$35,$C1,$A5
+    .byte $EC,$D0,$29,$A5,$37,$10,$05,$E6,$37,$4C,$72,$B3,$A6,$55,$B5,$51
+    .byte $C9,$0C,$D0,$18,$A9,$FF,$95,$51,$20,$34,$C2,$20,$6A,$D1,$A9,$19
+    .byte $85,$56,$20,$09,$CC,$68,$20,$2E,$D0,$A2,$00,$60,$68,$20,$61,$C4
+    .byte $A9,$00,$85,$EC,$85,$3E,$A9,$80,$85,$3F,$20,$8B,$C3,$20,$8A,$D0
+    .byte $20,$B1,$C2,$A9,$16,$85,$2B,$A9,$36,$85,$2C,$A9,$00,$8D,$1C,$00
+    .byte $8D,$1D,$00,$8D,$1E,$00,$85,$7B,$85,$7C,$A9,$6B,$85,$16,$A9,$21
+    .byte $85,$17,$A9,$AF,$85,$18,$A9,$B4,$85,$19,$A9,$09,$85,$1A,$A9,$05
+    .byte $20,$8F,$CC,$A9,$4C,$85,$16,$A9,$22,$85,$17,$A9,$B8,$85,$18,$A9
+    .byte $B4,$85,$19,$A9,$05,$85,$1A,$A9,$05,$20,$8F,$CC,$A9,$8C,$85,$16
+    .byte $A9,$22,$85,$17,$A9,$BD,$85,$18,$A9,$B4,$85,$19,$A9,$08,$85,$1A
+    .byte $A9,$05,$20,$8F,$CC,$A9,$05,$85,$44,$A9,$00,$85,$43,$A9,$70,$85
+    .byte $45,$A9,$39,$85,$56,$20,$75,$C3,$20,$D8,$C1,$A9,$E0,$85,$0E,$A9
+    .byte $C4,$85,$0F,$20,$E4,$CC,$20,$09,$CC,$29,$10,$D0,$0D,$A5,$45,$49
+    .byte $10,$85,$45,$A9,$0C,$85,$8F,$4C,$1D,$B4,$A9,$18,$85,$8F,$A5,$45
+    .byte $C9,$70,$F0,$15,$20,$61,$C4,$A9,$78,$85,$36,$A9,$35,$85,$0E,$A9
+    .byte $C1,$85,$0F,$20,$E4,$CC,$A2,$02,$60,$20,$C5,$D0,$A9,$FF,$85,$51
+    .byte $85,$52,$85,$53,$A9,$03,$85,$55,$A9,$06,$85,$40,$A9,$03,$85,$47
+    .byte $A9,$10,$85,$48,$20,$61,$C4,$A9,$02,$85,$8E,$20,$8B,$C3,$20,$7A
+    .byte $C5,$20,$B6,$CA,$20,$CC,$CA,$20,$E2,$CA,$20,$F8,$CA,$A9,$F2,$85
+    .byte $0E,$A9,$C8,$85,$0F,$20,$E4,$CC,$A9,$0F,$A2,$1F,$9D,$80,$01,$CA
+    .byte $10,$FA,$A9,$EF,$8D,$10,$02,$8D,$14,$02,$A9,$B4,$85,$0E,$A9,$C4
+    .byte $85,$0F,$20,$E4,$CC,$A2,$01,$60,$E7,$E1,$ED,$E5,$C0,$EF,$F6,$E5
+    .byte $F2,$F2,$E5,$F4,$F2,$F9,$E3,$EF,$EE,$F4,$E9,$EE,$F5,$E5,$86,$56
+    .byte $84,$57,$A9,$08,$85,$36,$20,$D8,$C1,$20,$35,$C1,$60
     LDX #$0F
     LDY #$07
-L_94D8:
+L_B4D8:
     LDA $0308,Y
     LSR A
     LSR A
@@ -456,67 +905,67 @@ L_94D8:
     STA $0322,X
     DEX
     DEY
-    BPL L_94D8
+    BPL L_B4D8
     LDX #$0F
-L_94F1:
-    LDA $0310,X
+L_B4F1:
+    LDA save_inventory_counts,X
     AND #$0F
     STA $0332,X
     DEX
-    BPL L_94F1
-    LDA $0320
+    BPL L_B4F1
+    LDA save_keys
     LDX #$0F
-L_9501:
+L_B501:
     LSR A
     ROL $0322,X
     DEX
     DEX
-    BPL L_9501
-    LDA $0321
+    BPL L_B501
+    LDA save_gold
     LDX #$0F
-L_950E:
+L_B50E:
     LSR A
     ROL $0332,X
     DEX
     DEX
-    BPL L_950E
+    BPL L_B50E
     LDA #$00
     LDX #$1F
-L_951A:
+L_B51A:
     CLC
     ADC $0322,X
     DEX
-    BPL L_951A
+    BPL L_B51A
     STA $0389
     LDA #$0A
     LDX #$1F
-L_9528:
+L_B528:
     EOR $0322,X
     DEX
-    BPL L_9528
+    BPL L_B528
     STA $038A
     LDA $0389
     LDX #$0E
-L_9536:
+L_B536:
     LSR A
     ROL $0322,X
     DEX
     DEX
-    BPL L_9536
+    BPL L_B536
     LDA $038A
     LDX #$0E
-L_9543:
+L_B543:
     LSR A
     ROL $0332,X
     DEX
     DEX
-    BPL L_9543
+    BPL L_B543
     LDA $0331
-    STA $3A
+    STA rng_s1
     LDA $0341
-    STA $3B
+    STA rng_s2
     LDX #$0E
-L_9557:
+L_B557:
     STX $08
     LDA #$20
     JSR $CC64
@@ -529,91 +978,188 @@ L_9557:
     EOR $0332,X
     STA $0332,X
     DEX
-    BPL L_9557
+    BPL L_B557
     RTS
-    .byte $A2,$1F,$BD,$22,$03,$9D,$42,$03,$CA,$10,$F7,$AD,$51,$03,$85,$3A
-    .byte $AD,$61,$03,$85,$3B,$A2,$0E,$86,$08,$A9,$20,$20,$64,$CC,$A6,$08
-    .byte $5D,$42,$03,$9D,$42,$03,$A9,$20,$20,$64,$CC,$A6,$08,$5D,$52,$03
-    .byte $9D,$52,$03,$CA,$10,$E1,$A2,$0E,$5E,$52,$03,$6A,$CA,$CA,$10,$F8
-    .byte $8D,$8A,$03,$A2,$0E,$5E,$42,$03,$6A,$CA,$CA,$10,$F8,$8D,$89,$03
-    .byte $A9,$00,$A2,$1F,$18,$7D,$42,$03,$CA,$10,$F9,$CD,$89,$03,$F0,$03
-    .byte $4C,$29,$B6,$A9,$0A,$A2,$1F,$5D,$42,$03,$CA,$10,$FA,$CD,$8A,$03
-    .byte $F0,$03,$4C,$29,$B6,$A2,$0F,$5E,$42,$03,$6A,$CA,$CA,$10,$F8,$8D
-    .byte $20,$03,$A2,$0F,$5E,$52,$03,$6A,$CA,$CA,$10,$F8,$8D,$21,$03,$A2
-    .byte $0F,$A0,$07,$BD,$42,$03,$0A,$0A,$0A,$0A,$CA,$1D,$42,$03,$CA,$99
-    .byte $08,$03,$88,$10,$EE,$A2,$0F,$BD,$52,$03,$9D,$10,$03,$CA,$10,$F7
-    .byte $18,$60,$A9,$1C,$85,$8F,$85,$90,$38,$60
+    LDX #$1F
+L_B579:
+    LDA $0322,X
+    STA $0342,X
+    DEX
+    BPL L_B579
+    LDA $0351
+    STA rng_s1
+    LDA $0361
+    STA rng_s2
+    LDX #$0E
+L_B58E:
+    STX $08
+    LDA #$20
+    JSR $CC64
+    LDX $08
+    EOR $0342,X
+    STA $0342,X
+    LDA #$20
+    JSR $CC64
+    LDX $08
+    EOR $0352,X
+    STA $0352,X
+    DEX
+    BPL L_B58E
+    LDX #$0E
+L_B5AF:
+    LSR $0352,X
+    ROR A
+    DEX
+    DEX
+    BPL L_B5AF
+    STA $038A
+    LDX #$0E
+L_B5BC:
+    LSR $0342,X
+    ROR A
+    DEX
+    DEX
+    BPL L_B5BC
+    STA $0389
+    LDA #$00
+    LDX #$1F
+L_B5CB:
+    CLC
+    ADC $0342,X
+    DEX
+    BPL L_B5CB
+    CMP $0389
+    BEQ L_B5DA
+    JMP L_B629
+L_B5DA:
+    LDA #$0A
+    LDX #$1F
+L_B5DE:
+    EOR $0342,X
+    DEX
+    BPL L_B5DE
+    CMP $038A
+    BEQ L_B5EC
+    JMP L_B629
+L_B5EC:
+    LDX #$0F
+L_B5EE:
+    LSR $0342,X
+    ROR A
+    DEX
+    DEX
+    BPL L_B5EE
+    STA save_keys
+    LDX #$0F
+L_B5FB:
+    LSR $0352,X
+    ROR A
+    DEX
+    DEX
+    BPL L_B5FB
+    STA save_gold
+    LDX #$0F
+    LDY #$07
+L_B60A:
+    LDA $0342,X
+    ASL A
+    ASL A
+    ASL A
+    ASL A
+    DEX
+    ORA $0342,X
+    DEX
+    STA $0308,Y
+    DEY
+    BPL L_B60A
+    LDX #$0F
+L_B61E:
+    LDA $0352,X
+    STA save_inventory_counts,X
+    DEX
+    BPL L_B61E
+    CLC
+    RTS
+L_B629:
+    LDA #$1C
+    STA $8F
+    STA $90
+    SEC
+    RTS
+L_B631:
     LDX #$40
-L_9633:
+L_B633:
     LDA $9B9F,X
     STA $00,X
     INX
     CPX #$8C
-    BNE L_9633
+    BNE L_B633
     LDA #$0F
     LDX #$1F
-L_9641:
+L_B641:
     STA $0180,X
     DEX
-    BPL L_9641
+    BPL L_B641
     RTS
-    LDA $23
+L_B648:
+    LDA ppuctrl_shadow
     PHA
     AND #$7B
-    STA $2000
+    STA PPUCTRL
     LDA #$00
     STA $29
     LDA $24
     PHA
     AND #$E7
-    STA $2001
+    STA PPUMASK
     LDA #$20
-    STA $2006
+    STA PPUADDR
     LDA #$00
-    STA $2006
+    STA PPUADDR
     LDX #$00
-L_9668:
+L_B668:
     LDA $9EC9,X
-    STA $2007
+    STA PPUDATA
     INX
-    BNE L_9668
+    BNE L_B668
     LDX #$00
-L_9673:
+L_B673:
     LDA $9FC9,X
-    STA $2007
+    STA PPUDATA
     INX
-    BNE L_9673
+    BNE L_B673
     LDX #$00
-L_967E:
+L_B67E:
     LDA $A0C9,X
-    STA $2007
+    STA PPUDATA
     INX
-    BNE L_967E
+    BNE L_B67E
     LDX #$00
-L_9689:
+L_B689:
     LDA $A1C9,X
-    STA $2007
+    STA PPUDATA
     INX
-    BNE L_9689
+    BNE L_B689
     LDA $A2E9
-    STA $2A
+    STA mmc3_r0_shadow
     LDA $A2EA
-    STA $2B
+    STA mmc3_r1_shadow
     PLA
     STA $24
     PLA
-    STA $23
-    STA $2000
+    STA ppuctrl_shadow
+    STA PPUCTRL
     RTS
+L_B6A6:
     LDA #$40
     STA $09
-L_96AA:
+L_B6AA:
     LDA #$05
     STA $36
-    JSR $B6F0
+    JSR L_B6F0
     LDX #$00
     LDY #$20
-    JSR $B6D0
+    JSR L_B6D0
     LDA #$35
     STA $0E
     LDA #$C1
@@ -623,10 +1169,10 @@ L_96AA:
     SEC
     SBC #$10
     STA $09
-    BPL L_96AA
+    BPL L_B6AA
     JSR $C569
     RTS
-L_96D0:
+L_B6D0:
     LDA $0180,X
     AND #$0F
     STA $08
@@ -634,22 +1180,24 @@ L_96D0:
     AND #$F0
     SEC
     SBC $09
-    BCS L_96E6
+    BCS L_B6E6
     LDA #$0F
-    JMP $B6E8
-L_96E6:
+    JMP L_B6E8
+L_B6E6:
     ORA $08
+L_B6E8:
     STA $0180,X
     INX
     DEY
-    BNE L_96D0
+    BNE L_B6D0
     RTS
+L_B6F0:
     LDX #$1F
-L_96F2:
+L_B6F2:
     LDA $A2C9,X
     STA $0180,X
     DEX
-    BPL L_96F2
+    BPL L_B6F2
     RTS
     .byte $80,$C1,$00,$60,$80,$C3,$00,$68,$80,$C5,$00,$70,$80,$C7,$00,$78
     .byte $80,$C9,$00,$80,$80,$CB,$00,$88,$80,$CD,$00,$90,$80,$CF,$00,$98
