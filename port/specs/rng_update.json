@@ -1,0 +1,3 @@
+{ "name": "rng_update", "addr": "CC64", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"], "shaper": "rng_count",
+  "notes": "16-bit shift/add LCG; A=modulus in, result in rng_s2 ($3B)" }

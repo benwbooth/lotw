@@ -1,0 +1,2 @@
+{ "name": "sub_E41E", "addr": "E41E", "entry": "lda_a",
+  "inputs": [], "compare": ["x"], "notes": "X = $F9 & $1F" }

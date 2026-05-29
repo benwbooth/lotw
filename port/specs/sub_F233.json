@@ -1,0 +1,2 @@
+{ "name": "sub_F233", "addr": "F233", "entry": "lda_a",
+  "inputs": ["y"], "compare": ["c"], "notes": "carry = (*(($0C/$0D)+Y) & $3F) >= $30" }
