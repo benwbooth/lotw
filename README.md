@@ -1,63 +1,53 @@
-# Legacy of the Wizard Rust Port
+# Legacy of the Wizard — Decompilation
 
-This repository is a Rust-first PC port effort for the NES game `Legacy of the
-Wizard`. The target runtime is `crates/lotw-runtime`: Rust code, SDL for the
-window path, and Rust-owned tooling for ROM validation, replay parsing, trace
-comparison, static analysis, and proof reports.
+A from-scratch reverse-engineering effort on the NES game *Legacy of the Wizard*
+(USA), in two stages:
 
-This is not an emulator project. The target is Rust-only tooling and a native
-Rust runtime while game behavior is reconstructed from verified traces.
+1. **Matching disassembly** — a complete, labeled, commented **6502 assembly**
+   source (ca65/ld65) that re-assembles to a **byte-identical ROM**. This is
+   the ground truth: every byte is classified as code or data and accounted for.
+2. **Readable C port** — game systems hand-rewritten in **C**, verified by
+   *differential testing* against a reference emulator (same inputs ⇒ same
+   RAM/PPU/APU state), plus assets extracted to open formats: tiles/rooms →
+   **PNG**, music/SFX → **MIDI** and a **PLAY-like DSL**.
+
+This is *attempt 2*. The earlier proof-ledger approach is archived at git tag
+`attempt-1` (branch `archive/attempt-1`).
+
+## ROM
+
+| | |
+|---|---|
+| File | `Legacy of the Wizard (USA).nes` (canonical copy at `rom/lotw.nes`, gitignored) |
+| Size | 196,624 bytes (16-byte iNES header + 192 KiB) |
+| Mapper | 4 (MMC3) |
+| PRG-ROM | 128 KiB (8 × 16 KiB; MMC3 swaps 8 KiB windows) |
+| CHR-ROM | 64 KiB (4096 tiles; MMC3 swaps 1–2 KiB windows) |
+| Mirroring | horizontal · no battery |
+| sha256 | `079f648d669966357fe4414a986573eacd7ecadf5c4f289c288427b8c5f491f1` |
+
+Pinned in `config/rom.sha256`. ROMs are never committed.
 
 ## Layout
 
-- `crates/lotw-port`: shared Rust library for ROM, CHR, replay, trace, video,
-  and runtime support.
-- `crates/lotw-runtime`: Rust PC runtime. Use `--features sdl` for a window.
-- `crates/lotw-tools`: Rust command-line tooling and the `goal` runner.
-- `tools/`: FCEUX Lua scripts for reference trace capture.
+- `rom/`        — the source ROM (gitignored, sha-pinned in `config/`).
+- `disasm/`     — Stage 1 matching 6502 disassembly (ca65 `.s` + `ld65` config).
+- `src/`        — Stage 2 C port.
+- `tools/re/`   — RE tooling (disassembler, tracer, asset extractors).
+- `tools/*.lua` — FCEUX scripts for replay-driven reference capture.
+- `assets/`     — extracted assets (PNG / MIDI / DSL).
+- `fixtures/`   — replay fixtures (gameplay coverage for tracing & diff tests).
+- `docs/`       — the growing knowledge base: bank map, memory map, system docs.
 
-## Quick Start
+## Toolchain
 
-```sh
-nix develop
-cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal status
-cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal rust-rom
-cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal progress
-cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal test
-```
+`nix develop` provides: `cc65` (ca65/ld65/da65), `fceux`, `gcc`/`make`/`cmake`,
+`SDL2`, `cargo`/`rustc`, `python3`.
 
-Run the Rust SDL window:
+## Verification loops
 
-```sh
-nix develop --command cargo run --quiet --manifest-path Cargo.toml -p lotw-tools -- goal run
-```
+- **Stage 1:** `disasm/` assembles → output sha256 must equal the ROM's.
+- **Stage 2:** each C system runs against the emulator on the replay fixtures;
+  RAM/PPU/APU state must match frame-for-frame.
 
-## Main Commands
-
-- `build`: Cargo workspace build.
-- `test`: source audit, symbol audit, `cargo fmt --check`,
-  `cargo test --workspace`, and clippy including the SDL runtime feature.
-- `symbol-audit`: validates that `symbols.yaml` keeps every function/RAM entry
-  evidence-shaped before an AI naming pass consumes it.
-- `decomp-worklist`: writes ranked queues for replay-covered block splits and
-  unverified static frontier blockers from the current proof ledgers.
-- `run`: Rust SDL runtime.
-- `progress`: writes game logic, raw CHR tile decode, assembled sprite PNG,
-  room/background PNG, trace-frame render, and music/SFX DSL conversion metrics
-  to `build/progress/progress_summary.txt`.
-- `rust-runtime`: headless Rust runtime capture.
-- `rust-port-capture`: Rust runtime frame/trace report.
-- `rust-trace-compare`: FCEUX reference trace compared with Rust runtime output.
-- `extract`: Rust ROM artifact extraction into `build/generated`, including
-  CHR PNG output.
-- `static-*`, `native-block-*`, `whole-program-report`: analysis and proof
-  pipeline. Commands whose native-code proof path has not been rewritten are
-  disabled instead of falling back to another language.
-- `block-exec`: Rust block execution oracle for replay and explicit-state block
-  execution.
-
-Rust unit tests use Rust-compiled fixture executables for command-path checks;
-they do not embed shell fixtures.
-
-ROM files and generated ROM-derived artifacts are intentionally ignored and must
-not be committed.
+See `docs/PLAN.md` for the full strategy and phase breakdown.

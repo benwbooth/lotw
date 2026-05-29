@@ -1,5 +1,5 @@
 {
-  description = "Legacy of the Wizard Rust/SDL port workspace";
+  description = "Legacy of the Wizard — matching 6502 decompilation + C port";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -13,14 +13,25 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
+            # Matching disassembly toolchain (ca65/ld65/da65 round-trip to the ROM)
+            cc65
+            # Reference emulator: tracing, code/data coverage, replay capture
+            fceux
+            # C port build + tooling
+            gcc
+            gnumake
+            cmake
+            pkg-config
+            SDL2
+            # RE tooling
             cargo
             clippy
-            fceux
-            p7zip
-            pkg-config
             rustc
             rustfmt
-            SDL2
+            python3
+            # Utilities
+            p7zip
+            xxd
             xvfb
           ];
         };
