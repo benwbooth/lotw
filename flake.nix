@@ -32,7 +32,7 @@
             # Utilities
             p7zip
             xxd
-            xvfb
+            xvfb-run
           ];
         };
       });

@@ -16,3 +16,6 @@ disasm/build/
 *.o
 __pycache__/
 .venv/
+
+# exploratory recon image scratch (canonical assets produced in P4)
+assets/chr/
