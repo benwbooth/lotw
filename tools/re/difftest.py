@@ -1,29 +1,39 @@
 #!/usr/bin/env python3
-"""Differential test: prove a ported C routine behaves identically to the
-original 6502. The m6502 interpreter runs the ORIGINAL bytes (oracle); the
-compiled C port runs the same injected states; RAM images are compared.
+"""Differential test: prove ported C routines behave identically to the original
+6502. The m6502 interpreter runs the ORIGINAL bytes (oracle); the compiled C
+port runs the same injected states (RAM + A/X/Y); RAM, registers, and the carry
+flag are compared per the routine's declared outputs.
 
-The C port is an INDEPENDENT reimplementation (written from the asm's meaning),
-so agreement across thousands of random states is strong evidence both are
-correct. Usage (inside `nix develop` or with gcc on PATH):
-    python3 tools/re/difftest.py
+The C ports are INDEPENDENT reimplementations, so agreement across thousands of
+random states is strong evidence of correctness. Run inside `nix develop`:
+    python3 tools/re/difftest.py [n_states]
 """
 import os
-import struct
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from m6502 import CPU, ROM
+from m6502 import CPU, ROM, C as FLAG_C, N as FLAG_N, Z as FLAG_Z, U, I
 
 ROOT = Path(__file__).resolve().parents[2]
-HARNESS_SRC = [ROOT / "test" / "host_harness.c", ROOT / "src" / "rng.c"]
+HARNESS_SRC = [ROOT / "test" / "host_harness.c", ROOT / "src" / "rng.c", ROOT / "src" / "leaves.c"]
 HARNESS_BIN = ROOT / "build" / "host_harness"
+REC_IN = 4 + 0x800
+REC_OUT = 4 + 0x800
 
-# routine_id -> (name, cpu_addr, bank-map, build initial state)
+
+def rng_count_shaper(r):
+    # rng_update: count in $80-$FF (one iteration, always terminates) or 0.
+    return 0 if (r & 0x1F) == 0 else (0x80 | (r & 0x7F))
+
+
+# id -> spec. compare: subset of {ram, a, x, y, c}
 ROUTINES = {
-    0: dict(name="rng_update", pc=0xCC64, region="fixed"),
+    0: dict(name="rng_update", pc=0xCC64, compare=["ram"], a_shaper=rng_count_shaper),
+    1: dict(name="sub_E41E",   pc=0xE41E, compare=["x"]),
+    2: dict(name="sub_F233",   pc=0xF233, compare=["c"]),
+    3: dict(name="inc16_95",   pc=0xFD6B, compare=["ram", "x"]),
 }
 
 
@@ -37,26 +47,21 @@ def lcg(seed):
 def build_harness():
     HARNESS_BIN.parent.mkdir(exist_ok=True)
     cc = os.environ.get("CC", "gcc")
-    cmd = [cc, "-O2", "-DLOTW_HOST", "-o", str(HARNESS_BIN), *map(str, HARNESS_SRC)]
-    subprocess.run(cmd, check=True)
+    subprocess.run([cc, "-O2", "-DLOTW_HOST", "-o", str(HARNESS_BIN), *map(str, HARNESS_SRC)],
+                   check=True)
 
 
-def oracle(rom, rid, a, ram):
+def oracle(rom, info, a, x, y, ram):
     c = CPU()
     c.map_fixed(rom)
+    c.map_bank(rom, 13, 0xA000)            # bank 13 also resident
     c.mem[0x0000:0x0800] = ram
-    info = ROUTINES[rid]
-    # Entry flags model the caller's `LDA a` just before the JSR (Z/N reflect A),
-    # which routines like rng_update rely on (STA doesn't set flags).
-    from m6502 import Z, N, U, I
-    p = (U | I) | (Z if a == 0 else 0) | (a & N)
-    c.run_routine(info["pc"], a=a, p=p, max_steps=20000)
-    return c.a, bytes(c.mem[0x0000:0x0800])
+    p = (U | I) | (FLAG_Z if a == 0 else 0) | (a & FLAG_N)   # entry flags ~ caller's LDA a
+    c.run_routine(info["pc"], a=a, x=x, y=y, p=p, max_steps=20000)
+    return c.a, c.x, c.y, 1 if (c.p & FLAG_C) else 0, bytes(c.mem[0x0000:0x0800])
 
 
-# Stack page ($0100-$01FF) is dirtied by the oracle's JSR/RTS call mechanism
-# (the C port uses the host stack), so it is excluded from the RAM comparison.
-def ram_eq(x, y):
+def ram_eq(x, y):  # stack page is the oracle's call-mechanism scratch
     return x[:0x100] == y[:0x100] and x[0x200:] == y[0x200:]
 
 
@@ -64,40 +69,44 @@ def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 20000
     rom = ROM.read_bytes()
     build_harness()
-
-    fails = 0
+    total_fail = 0
     for rid, info in ROUTINES.items():
         rng = lcg(0xC0FFEE ^ rid)
-        records = bytearray()
-        states = []
-        for k in range(n):
-            # count: mostly $80-$FF (one loop iteration, always terminates since
-            # the masked result is <=$7F < count), plus some 0 (early return).
-            r = next(rng)
-            a = 0 if (k % 20 == 0) else (0x80 | (r & 0x7F))
-            ram = bytes(next(rng) for _ in range(0x800))
-            states.append((a, ram))
-            records += bytes([rid, a]) + ram
-        # run compiled C port over all states
-        proc = subprocess.run([str(HARNESS_BIN)], input=bytes(records),
+        states, records = [], bytearray()
+        for _ in range(n):
+            a = info.get("a_shaper", lambda r: r)(next(rng))
+            x, y = next(rng), next(rng)
+            ram = bytearray(next(rng) for _ in range(0x800))
+            # The oracle pushes a sentinel return address ($0FFE) at $01FC/$01FD;
+            # seed those bytes so pointer reads into the stack page agree.
+            ram[0x1FD], ram[0x1FC] = 0x0F, 0xFE
+            ram = bytes(ram)
+            states.append((a, x, y, ram))
+            records += bytes([rid, a, x, y]) + ram
+        proc = subprocess.run([str(HARNESS_BIN), str(ROM)], input=bytes(records),
                               stdout=subprocess.PIPE, check=True)
-        rec = 1 + 0x800
-        assert len(proc.stdout) == n * rec, f"harness output size {len(proc.stdout)}"
         bad = 0
-        for i, (a, ram) in enumerate(states):
-            exp_a, exp_ram = oracle(rom, rid, a, ram)
-            got = proc.stdout[i * rec:(i + 1) * rec]
-            got_a, got_ram = got[0], got[1:]
-            if not ram_eq(exp_ram, got_ram):
+        for i, (a, x, y, ram) in enumerate(states):
+            oa, ox, oy, oc, oram = oracle(rom, info, a, x, y, ram)
+            g = proc.stdout[i * REC_OUT:(i + 1) * REC_OUT]
+            ga, gx, gy, gc, gram = g[0], g[1], g[2], g[3], g[4:]
+            ok = True
+            for what in info["compare"]:
+                if what == "ram" and not ram_eq(oram, gram): ok = False
+                if what == "a" and oa != ga: ok = False
+                if what == "x" and ox != gx: ok = False
+                if what == "y" and oy != gy: ok = False
+                if what == "c" and oc != gc: ok = False
+            if not ok:
                 bad += 1
-                if bad <= 3:
-                    diffs = [f"${j:04X}:orig={exp_ram[j]:02X},port={got_ram[j]:02X}"
-                             for j in range(0x800) if exp_ram[j] != got_ram[j]]
-                    print(f"  [{info['name']}] MISMATCH state#{i} a={a:02X}: {diffs[:6]}")
-        status = "PASS" if bad == 0 else f"FAIL ({bad}/{n})"
-        print(f"{info['name']:14} ({n} random states): {status}")
-        fails += bad
-    sys.exit(1 if fails else 0)
+                if bad <= 2:
+                    print(f"  [{info['name']}] MISMATCH #{i} a={a:02X} x={x:02X} y={y:02X}: "
+                          f"orig(a={oa:02X},x={ox:02X},y={oy:02X},c={oc}) "
+                          f"port(a={ga:02X},x={gx:02X},y={gy:02X},c={gc})")
+        print(f"{info['name']:14} {n} states, cmp={info['compare']}: "
+              f"{'PASS' if bad == 0 else f'FAIL ({bad})'}")
+        total_fail += bad
+    sys.exit(1 if total_fail else 0)
 
 
 if __name__ == "__main__":
