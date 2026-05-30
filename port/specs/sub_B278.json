@@ -1,0 +1,5 @@
+{ "name": "sub_B278", "addr": "B278", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"],
+  "calls": ["queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "$1E = $0A+6 (+$10 if >=$F0); submit 4 PPU jobs; net RAM $1E,$28=0" }

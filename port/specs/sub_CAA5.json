@@ -1,0 +1,5 @@
+{ "name": "sub_CAA5", "addr": "CAA5", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CC97", "queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "set VRAM dst $2360, submit job type $04; frame-syncs via $28" }

@@ -1,0 +1,5 @@
+{ "name": "sub_CF3F", "addr": "CF3F", "entry": "none",
+  "inputs": ["x", "y"], "compare": ["ram"],
+  "calls": ["sub_CFF9", "sub_D017", "queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "X=cell index -> VRAM dst $20C2+((X&7)<<2|(X&8)<<4); Y=digit via CFF9; D017 carry clear -> src-=$4040; submit job $06" }

@@ -1,0 +1,5 @@
+{ "name": "sub_CFBC", "addr": "CFBC", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CFF9", "queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "draw $81 and $83 into status nametable; dst base $2247 (+$0400 if scroll_x_tile&$10); two VRAM jobs" }

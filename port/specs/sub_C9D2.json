@@ -1,0 +1,5 @@
+{ "name": "sub_C9D2", "addr": "C9D2", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "CHR bank shadow $30 + tile pointers $75-$78 from map_screen_x/y; net RAM $30,$76,$78,$77,$75,$28" }
