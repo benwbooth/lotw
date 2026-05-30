@@ -1,0 +1,5 @@
+{ "name": "sub_F506", "addr": "F506", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"],
+  "calls": ["sub_EFF1", "sub_CF08", "sub_CEC7", "sub_F136", "sub_F275", "sub_E7DB", "sub_CAB6", "sub_CB0E", "sub_CBFA", "sub_CA54", "sub_CA85", "sub_F2D3"],
+  "setup": {}, "shaper": null,
+  "notes": "Push $F7; loop: EFF1; CF08 BCS exit($EE=0,$F3=$F0,SEC); CEC7 BCS -> F136; F275 BCC done(C=0); step $F7 toward 0, loop. Restore $F7." }

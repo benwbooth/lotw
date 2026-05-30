@@ -1,0 +1,5 @@
+{ "name": "sub_C5F7", "addr": "C5F7", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": [],
+  "setup": {"0C":"40","0D":"02","79":"60","7A":"02"},
+  "shaper": null,
+  "notes": "PPU nametable+attribute strip render via ptrs $0C/$0D and $79/$7A. Net RAM: $08,$0A,$0B,$0C,$0D,$16,$17; $23/$24/$29 restored. Tile data to PPU (HW). Pin ptrs to safe RAM." }

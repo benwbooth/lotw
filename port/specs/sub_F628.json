@@ -1,0 +1,8 @@
+{ "name": "sub_F628", "addr": "F628", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_F664", "sub_F6BB", "sub_CACC", "sub_CB0E", "sub_CBFA",
+            "sub_CD70", "sub_CDB2", "sub_CF08", "sub_D051", "sub_D067",
+            "sub_E7F0", "sub_E98F", "sub_E99A", "sub_EFF1", "sub_F740",
+            "sub_F773"],
+  "setup": {"5E": "05"}, "shaper": null,
+  "notes": "Iterate shot table from $04B0 stepping each record; F6BB if active, F664 if free slot and conditions on $20/$FD. Sets $E3/$E5/$E6. RAM-only." }
