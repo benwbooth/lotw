@@ -59,17 +59,18 @@ def load_specs(only):
     return specs
 
 
-def build(specs, tag):
+def build(dispatch_names, link_names, tag):
+    """dispatch_names: routines callable by id (the ones under test).
+    link_names: all .c to compile/link (under-test + their ported callees)."""
     bdir = BUILD / tag                      # isolated per-invocation build dir
     bdir.mkdir(parents=True, exist_ok=True)
-    names = [s["name"] for s in specs]
     disp = ['#include "regs.h"']
-    disp += [f"void {n}(Regs*);" for n in names]
-    disp.append("PortFn PORT_FNS[] = {" + ", ".join(names) + "};")
-    disp.append(f"int PORT_N = {len(names)};")
+    disp += [f"void {n}(Regs*);" for n in dispatch_names]
+    disp.append("PortFn PORT_FNS[] = {" + ", ".join(dispatch_names) + "};")
+    disp.append(f"int PORT_N = {len(dispatch_names)};")
     (bdir / "dispatch.c").write_text("\n".join(disp) + "\n")
     cc = os.environ.get("CC", "gcc")
-    srcs = [str(HARNESS), str(bdir / "dispatch.c")] + [str(PORTED / f"{n}.c") for n in names]
+    srcs = [str(HARNESS), str(bdir / "dispatch.c")] + [str(PORTED / f"{n}.c") for n in link_names]
     out = bdir / "harness"
     subprocess.run([cc, "-O2", "-DLOTW_HOST", f"-I{SRC}", "-o", str(out), *srcs], check=True)
     return out
@@ -117,7 +118,12 @@ def main():
     if not specs:
         print("no specs to test"); sys.exit(1)
     rom = ROM.read_bytes()
-    harness = build(specs, args.only or "_all")
+    dispatch_names = [s["name"] for s in specs]
+    link = set(dispatch_names)
+    for s in specs:                            # also link ported callees this port calls
+        link |= set(s.get("calls", []))
+    link = [n for n in link if (PORTED / f"{n}.c").exists()]
+    harness = build(dispatch_names, link, args.only or "_all")
 
     idx = {s["name"]: i for i, s in enumerate(specs)}
     total_fail = 0

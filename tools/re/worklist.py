@@ -68,11 +68,12 @@ def all_jsr_targets(mem, fix, b13):
     return targets
 
 
-def analyze(mem, entry):
-    """Trace one routine body: follow branches + fallthrough, record (don't
-    recurse into) JSR/JMP callees. Returns size/instr/callees/hw."""
+def analyze(mem, entry, routine_entries=frozenset()):
+    """Trace one routine body: follow branches/local JMPs + fallthrough, record
+    (don't recurse into) JSR callees and tail-JMPs to other routines.
+    Returns size/instr/callees/hw/has_indirect."""
     seen, work, callees = set(), [entry], set()
-    hw = False
+    hw = has_indirect = False
     while work:
         pc = work.pop()
         while True:
@@ -91,16 +92,23 @@ def analyze(mem, entry):
                     hw = True
             if md == REL:
                 work.append((pc + 2 + ((mem[pc + 1] ^ 0x80) - 0x80)) & 0xFFFF)
-            elif op == 0x20:
+            elif op == 0x20:                       # JSR
                 callees.add(mem[pc + 1] | (mem[pc + 2] << 8))
-            elif op == 0x4C:  # tail JMP
-                callees.add(mem[pc + 1] | (mem[pc + 2] << 8))
+            elif op == 0x4C:                       # JMP abs
+                t = mem[pc + 1] | (mem[pc + 2] << 8)
+                if t in routine_entries:           # tail-call into another routine
+                    callees.add(t)
+                else:                              # local jump (loop / in-routine)
+                    work.append(t)
+                break
+            elif op == 0x6C:                       # JMP (indirect) — control transfer
+                has_indirect = True
                 break
             if op in TERMINATORS:
                 break
             pc += ln
     size = sum(MODE_LEN[OPS[mem[p]][1]] for p in seen)
-    return dict(size=size, ninstr=len(seen), callees=callees, hw=hw)
+    return dict(size=size, ninstr=len(seen), callees=callees, hw=hw, has_indirect=has_indirect)
 
 
 def main():
@@ -110,7 +118,7 @@ def main():
     names = symbols.ROUTINES
     rows = []
     for t in sorted(targets):
-        r = analyze(mem, t)
+        r = analyze(mem, t, targets)
         # callees that are themselves real routines (in $A000-$FFFF code)
         deps = {c for c in r["callees"] if 0xA000 <= c < 0x10000}
         rows.append((t, names.get(t, ""), r["size"], r["ninstr"],
