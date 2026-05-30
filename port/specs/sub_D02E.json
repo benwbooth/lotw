@@ -1,0 +1,3 @@
+{ "name": "sub_D02E", "addr": "D02E", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"], "calls": ["song_init", "sound_set_song_banks", "ppu_commit_banks"], "setup": {},
+  "shaper": null, "notes": "if A==$8E return; else store A->$8E and JSR song_init" }

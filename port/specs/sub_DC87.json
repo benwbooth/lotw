@@ -1,0 +1,4 @@
+{ "name": "sub_DC87", "addr": "DC87", "entry": "lda_a",
+  "inputs": [], "compare": ["c"],
+  "calls": ["sub_CA54", "sub_CA85"], "setup": {}, "shaper": null,
+  "notes": "C=1 if $86|$4F!=0; C=0 if $0E!=0; else build ptr=($0F,0), CA54, C=1 iff (*ptr&$3F)==0." }

@@ -1,0 +1,3 @@
+{ "name": "sub_CAE2", "addr": "CAE2", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": ["sub_CB0E", "sub_CBFA"], "setup": {},
+  "shaper": null, "notes": "clamp keys($5B)<=$6D, store, $08=v, X=$0C, sub_CB0E, $3C=1" }

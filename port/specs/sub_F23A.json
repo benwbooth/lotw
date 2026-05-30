@@ -1,0 +1,4 @@
+{ "name": "sub_F23A", "addr": "F23A", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"],
+  "calls": ["sub_CA54", "sub_CA85", "sub_F2D3"], "setup": {}, "shaper": null,
+  "notes": "Collision test: $0C/$0D=($0F,$0A), CA54, probe map via F2D3; C set on hit else CLC. CA54 mutates $0C-$11. Both oracle/C deref same CA54-computed pointer." }
