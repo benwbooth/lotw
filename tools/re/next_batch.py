@@ -38,7 +38,7 @@ def main():
         if t in ported or t in EXCLUDE:
             continue
         r = analyze(mem, t, targets)
-        if r["hw"]:
+        if r["reads_dyn"]:        # reads a dynamic input register (controller/PPU) — needs harness modelling
             blocked_hw += 1; continue
         if r["has_indirect"]:
             blocked_indirect += 1; continue

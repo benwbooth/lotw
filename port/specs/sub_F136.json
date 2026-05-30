@@ -1,0 +1,5 @@
+{ "name": "sub_F136", "addr": "F136", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E7DB", "sub_CAB6", "sub_CB0E", "sub_CBFA"],
+  "setup": {}, "shaper": null,
+  "notes": "lava/damage check: if armed conditions met, apply $F8 damage via E7DB and set state flags." }

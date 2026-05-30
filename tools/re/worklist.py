@@ -72,8 +72,13 @@ def analyze(mem, entry, routine_entries=frozenset()):
     """Trace one routine body: follow branches/local JMPs + fallthrough, record
     (don't recurse into) JSR callees and tail-JMPs to other routines.
     Returns size/instr/callees/hw/has_indirect."""
+    # Dynamic input registers whose READ value depends on live hardware state
+    # (controller shift regs, PPU status/data). Reading these can't be diff-tested
+    # without modelling. Writes to any register are fine (REG_W, host-ignored).
+    DYN_READ = {0x2002, 0x2004, 0x2007, 0x4015, 0x4016, 0x4017}
+    WRITE_ABS = {0x8D, 0x9D, 0x99, 0x8E, 0x8C}
     seen, work, callees = set(), [entry], set()
-    hw = has_indirect = False
+    hw = has_indirect = reads_dyn = False
     while work:
         pc = work.pop()
         while True:
@@ -90,6 +95,8 @@ def analyze(mem, entry, routine_entries=frozenset()):
                 a = mem[pc + 1] | (mem[pc + 2] << 8)
                 if 0x2000 <= a < 0x4020:
                     hw = True
+                    if a in DYN_READ and op not in WRITE_ABS:
+                        reads_dyn = True
             if md == REL:
                 work.append((pc + 2 + ((mem[pc + 1] ^ 0x80) - 0x80)) & 0xFFFF)
             elif op == 0x20:                       # JSR
@@ -108,7 +115,8 @@ def analyze(mem, entry, routine_entries=frozenset()):
                 break
             pc += ln
     size = sum(MODE_LEN[OPS[mem[p]][1]] for p in seen)
-    return dict(size=size, ninstr=len(seen), callees=callees, hw=hw, has_indirect=has_indirect)
+    return dict(size=size, ninstr=len(seen), callees=callees, hw=hw,
+                has_indirect=has_indirect, reads_dyn=reads_dyn)
 
 
 def main():

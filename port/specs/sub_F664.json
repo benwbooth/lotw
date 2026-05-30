@@ -1,0 +1,7 @@
+{ "name": "sub_F664", "addr": "F664", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E98F", "sub_CD70", "sub_F740", "sub_CF08", "sub_E7F0",
+            "sub_D067", "sub_D051", "sub_F773", "sub_E99A",
+            "sub_CACC", "sub_CB0E", "sub_CBFA"],
+  "setup": {"E5": "40", "E6": "02"}, "shaper": null,
+  "notes": "fire player weapon: build projectile entity ($E5 record pinned to $0240), spend magic via E7F0; tail L_F735 inlined." }
