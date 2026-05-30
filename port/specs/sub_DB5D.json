@@ -1,0 +1,3 @@
+{ "name": "sub_DB5D", "addr": "DB5D", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"], "calls": ["sub_E852"], "setup": {}, "shaper": null,
+  "notes": "item-action: $8F=$15 then increment keys via sub_E852 (clears carry)" }

@@ -1,0 +1,3 @@
+{ "name": "sub_F04B", "addr": "F04B", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": [], "setup": {}, "shaper": null,
+  "notes": "phase-step dispatch[1]: attr bits $EF from $F5/$F6, advance $F3, toggle bit2 of $ED every 4th" }

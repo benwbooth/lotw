@@ -1,0 +1,4 @@
+{ "name": "sub_DB3C", "addr": "DB3C", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E82C"], "setup": {},
+  "shaper": null, "notes": "set $8F=$11; gold($5A) += $02 via sub_E82C" }

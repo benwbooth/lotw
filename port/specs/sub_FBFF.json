@@ -1,0 +1,3 @@
+{ "name":"sub_FBFF", "addr":"FBFF", "entry":"lda_a", "inputs":["a","x"],
+  "compare":["ram"], "calls":[], "setup":{}, "shaper":null,
+  "notes":"STA $99,X / RTS: store A into ($99+X)" }

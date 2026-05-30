@@ -1,0 +1,4 @@
+{ "name": "sub_DB47", "addr": "DB47", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E82C"], "setup": {},
+  "shaper": null, "notes": "set $8F=$11; gold($5A) += $32 via sub_E82C" }

@@ -1,0 +1,4 @@
+{ "name": "sub_FBC5", "addr": "FBC5", "entry": "none",
+  "inputs": ["a", "x"], "compare": ["ram", "a", "x", "y"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "X=channel index (zp,X). Packs hi-nibble of A into bits6-7 of $99,X; $A2,X=(A<<4); $9A,X=ROM[$FDD2+(A<<4)]." }

@@ -1,0 +1,3 @@
+{ "name": "sub_DB26", "addr": "DB26", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": ["sub_E800"], "setup": {}, "shaper": null,
+  "notes": "item-action: $8F=$1E then add 5 to health via sub_E800" }

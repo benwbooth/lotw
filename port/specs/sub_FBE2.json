@@ -1,0 +1,4 @@
+{ "name": "sub_FBE2", "addr": "FBE2", "entry": "none",
+  "inputs": ["x"], "compare": ["ram", "a", "x"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "X=channel index. If $02==$40 or $92==0: $A0,X = (clamp(($0F+$05)-$08))*2+1; else no-op." }

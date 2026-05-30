@@ -19,6 +19,17 @@ def main():
     mem = build_mem()
     fix, b13 = gather_entries()
     targets = {t for t in all_jsr_targets(mem, fix, b13) if 0xA000 <= t < 0x10000}
+    # Jump-table handlers are reached via indirect JMP, not JSR, so they aren't in
+    # the JSR-target set. Add the curated code entries (disasm/entries.txt, which
+    # the completeness audit populated with these handlers) to the routine universe.
+    ent = ROOT / "disasm" / "entries.txt"
+    if ent.exists():
+        for ln in ent.read_text().splitlines():
+            ln = ln.split("#", 1)[0].split()
+            if ln:
+                a = int(ln[0], 16)
+                if 0xA000 <= a < 0x10000:
+                    targets.add(a)
 
     # already-ported addresses + addr->name map (from specs, the source of truth)
     ported, name_of = {}, {}

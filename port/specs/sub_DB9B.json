@@ -1,0 +1,4 @@
+{ "name": "sub_DB9B", "addr": "DB9B", "entry": "none",
+  "inputs": [], "compare": ["ram", "a", "x"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "$8F=$13; cascade $3C into first zero of $88/$89/$8A/$8B. X=$3C; A=last byte loaded." }
