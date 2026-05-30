@@ -119,9 +119,18 @@ def main():
         print("no specs to test"); sys.exit(1)
     rom = ROM.read_bytes()
     dispatch_names = [s["name"] for s in specs]
-    link = set(dispatch_names)
-    for s in specs:                            # also link ported callees this port calls
-        link |= set(s.get("calls", []))
+    # Transitive closure of 'calls' across ALL specs, so a spec need only declare
+    # its DIRECT callees (the harness pulls in callees-of-callees automatically).
+    all_calls = {}
+    for p in SPECS.glob("*.json"):
+        cs = json.loads(p.read_text())
+        all_calls[cs["name"]] = cs.get("calls", [])
+    link, frontier = set(dispatch_names), list(dispatch_names)
+    while frontier:
+        n = frontier.pop()
+        for c in all_calls.get(n, []):
+            if c not in link:
+                link.add(c); frontier.append(c)
     link = [n for n in link if (PORTED / f"{n}.c").exists()]
     harness = build(dispatch_names, link, args.only or "_all")
 

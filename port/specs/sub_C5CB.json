@@ -1,0 +1,6 @@
+{ "name": "sub_C5CB", "addr": "C5CB", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CA54", "sub_C5F7", "sub_CA85"],
+  "setup": {"79":"60", "7A":"02"},
+  "shaper": null,
+  "notes": "Set ptr $0C/$0D=(scroll_x_tile&$FE); JSR CA54 then C5F7 (PPU strip render). Pin metatile ptr $79/$7A to safe RAM." }

@@ -1,0 +1,4 @@
+{ "name": "sub_F4C3", "addr": "F4C3", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"],
+  "calls": ["sub_F506", "sub_F0E1", "sub_CA54", "sub_CA85", "sub_CAB6", "sub_CB0E", "sub_CBFA", "sub_CE7C", "sub_CE90", "sub_CEB6", "sub_CEC7", "sub_CF08", "sub_E7DB", "sub_EFF1", "sub_F136", "sub_F23A", "sub_F275", "sub_F2D3"], "setup": {}, "shaper": null,
+  "notes": "F7=($F0>>2)+1; F506; if C clear ret; else clear F5/F6, F0E1; if C clear ret; else F7=0" }
