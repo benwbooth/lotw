@@ -1,0 +1,5 @@
+{ "name": "sub_EA94", "addr": "EA94", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_EAFD", "sub_EB69", "sub_EB90", "sub_EBD8", "sub_EC76", "sub_ECA8", "sub_ED2A", "sub_ED6F", "sub_ED9F"],
+  "setup": {"E7": "40", "E8": "02"}, "shaper": null,
+  "notes": "boss-state dispatcher: idx = RAM8(($E7)+8) clamped <9 else 0; stores selected handler addr into $0E/$0F then JMP ($000E) to one of the 9 $EAAD table handlers." }
