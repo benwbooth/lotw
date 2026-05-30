@@ -1,0 +1,5 @@
+{ "name": "sub_F01E", "addr": "F01E", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_F03B", "sub_F04B", "sub_F071", "sub_F0B9"],
+  "setup": {}, "shaper": null,
+  "notes": "phase dispatcher: idx=(RAM8(RAM16($E7)+7)&3), JMP ($000E) over table @ $F033 -> F03B/F04B/F071/F0B9" }
