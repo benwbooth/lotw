@@ -1,0 +1,3 @@
+{ "name": "queue_ppu_job_and_wait", "addr": "CC8F", "entry": "none",
+  "inputs": ["a"], "compare": ["ram"], "calls": [], "oracle": {"vram_sync": true},
+  "notes": "frame-sync VRAM job submit; net nmi_vram_req=0 (NMI consumes job)" }

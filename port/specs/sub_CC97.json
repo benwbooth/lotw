@@ -1,0 +1,3 @@
+{ "name": "sub_CC97", "addr": "CC97", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": [], "oracle": {"vram_sync": true},
+  "notes": "wait for VRAM job done; net nmi_vram_req=0" }

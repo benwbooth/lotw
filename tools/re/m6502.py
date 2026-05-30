@@ -30,6 +30,7 @@ class CPU:
         self.p = U | I
         self.pc = 0
         self.cycles = 0
+        self.ppu_status = None      # opt-in: PPUSTATUS read value (else flat memory)
 
     # ---- ROM mapping ----
     def map_fixed(self, rom: bytes):
@@ -52,7 +53,12 @@ class CPU:
         return self.mem[0x100 + self.s]
 
     def _rd(self, a):
-        return self.mem[a & 0xFFFF]
+        a &= 0xFFFF
+        # Opt-in PPUSTATUS model (only when a routine's spec sets it) so
+        # sprite-0/vblank polls terminate; otherwise pure flat memory.
+        if self.ppu_status is not None and 0x2002 <= a < 0x4000 and (a & 7) == 2:
+            return self.ppu_status
+        return self.mem[a]
 
     def _wr(self, a, v):
         self.mem[a & 0xFFFF] = v & 0xFF
@@ -122,16 +128,21 @@ class CPU:
             raise ValueError(f"unimplemented opcode ${op:02X} at ${(self.pc-1)&0xFFFF:04X}")
         f(self)
 
-    def run_routine(self, pc, a=0, x=0, y=0, p=(U | I), s=0xFD, max_steps=200000):
-        """Push a sentinel return address; run the routine until it RTSes back."""
+    def run_routine(self, pc, a=0, x=0, y=0, p=(U | I), s=0xFD, max_steps=200000,
+                    vram_sync=False):
+        """Push a sentinel return address; run the routine until it RTSes back.
+        vram_sync (opt-in): once past a soft step limit, clear the NMI VRAM-job
+        request $28 so a frame-sync wait-loop terminates (models the NMI)."""
         self.a, self.x, self.y, self.p, self.s = a & 0xFF, x & 0xFF, y & 0xFF, p, s & 0xFF
         SENT = 0x0FFE  # sentinel return-1 (RTS will jump to SENT+1)
         self._push((SENT >> 8) & 0xFF)
         self._push(SENT & 0xFF)
         self.pc = pc
-        for _ in range(max_steps):
+        for i in range(max_steps):
             if self.pc == (SENT + 1) & 0xFFFF:
                 return
+            if vram_sync and i >= 4000 and self.mem[0x28] != 0:
+                self.mem[0x28] = 0   # NMI consumes the queued VRAM job
             self.step()
         raise RuntimeError("routine did not return within step budget")
 

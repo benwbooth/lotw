@@ -96,8 +96,13 @@ def oracle(rom, spec, a, x, y, c, z, n, v, ram):
     cpu.map_fixed(rom)
     cpu.map_bank(rom, 13, 0xA000)
     cpu.mem[0x0000:0x0800] = ram
+    # opt-in oracle hooks for NMI/PPU-synced routines (default: flat memory)
+    oh = spec.get("oracle", {})
+    if "ppu_status" in oh:
+        cpu.ppu_status = int(str(oh["ppu_status"]), 16)
     p = (U | I) | (FC if c else 0) | (FZ if z else 0) | (FN if n else 0) | (FV if v else 0)
-    cpu.run_routine(int(spec["addr"], 16), a=a, x=x, y=y, p=p, max_steps=200000)
+    cpu.run_routine(int(spec["addr"], 16), a=a, x=x, y=y, p=p, max_steps=200000,
+                    vram_sync=bool(oh.get("vram_sync")))
     return (cpu.a, cpu.x, cpu.y,
             1 if cpu.p & FC else 0, 1 if cpu.p & FZ else 0,
             1 if cpu.p & FN else 0, 1 if cpu.p & FV else 0,
