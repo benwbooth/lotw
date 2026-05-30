@@ -28,18 +28,21 @@ def main():
         ported[a] = s["name"]
     name_of = {f"{a:04X}": symbols.ROUTINES.get(a, f"sub_{a:04X}") for a in targets}
 
-    # Known not-portable-in-isolation (dispatchers, spin-waits, RTS-trampolines)
-    # identified in the first round; their patterns aren't caught by has_indirect.
+    # Known not-portable-in-isolation: dispatchers, RTS-trampolines, and spin-waits
+    # (loop until an NMI/PPU-driven var changes — the oracle has no such driver, so
+    # they never terminate). $D36E = sprite-0-hit status-bar split (spin-wait).
     EXCLUDE = {0xCC97, 0xCC8F, 0xE642, 0xE620, 0xD64F, 0xF01E, 0xEA94,
-               0xCC9C, 0xCCE4, 0xCD08, 0xC833}
+               0xCC9C, 0xCCE4, 0xCD08, 0xC833, 0xD36E}
 
     ready, blocked_hw, blocked_indirect, blocked_deps = [], 0, 0, 0
     for t in sorted(targets):
         if t in ported or t in EXCLUDE:
             continue
         r = analyze(mem, t, targets)
-        if r["reads_dyn"]:        # reads a dynamic input register (controller/PPU) — needs harness modelling
-            blocked_hw += 1; continue
+        # Note: reads_dyn (bounded reads of $4016/$2002/$2007) ARE diff-testable
+        # under flat-memory register semantics (oracle and host read the same
+        # NES_MEM[addr]); only spin-waits aren't, and those self-eliminate via
+        # oracle timeout -> FAIL -> agent SKIP. So we no longer block on reads_dyn.
         if r["has_indirect"]:
             blocked_indirect += 1; continue
         deps = {c for c in r["callees"] if 0xA000 <= c < 0x10000}

@@ -1,0 +1,3 @@
+{ "name": "read_controllers", "addr": "CC43", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": [],
+  "notes": "Controller read; $4016/$4017 via RAM8 (flat). Diff-test verifies logic under flat-memory register semantics (trivial all-zero); real input wired on NES/PC build." }

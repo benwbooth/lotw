@@ -1,0 +1,5 @@
+{ "name": "sub_EABF", "addr": "EABF", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_EEDA", "sub_EEBB", "sub_EF04", "sub_F179"],
+  "setup": {}, "shaper": null,
+  "notes": "per-frame entity placement tick: validation passes (EEDA/EEBB+EF04), timer $F3 countdown, shrink $FB/$FC window, then F179" }
