@@ -1,0 +1,4 @@
+{ "name": "song_init", "addr": "FC08", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sound_set_song_banks", "ppu_commit_banks"], "setup": {},
+  "notes": "Loads song $8E channel state: sets music banks, copies 4x(8 data+8 zero) blocks from song pointer table at $8000,X into $0093+. Reads bank-switched ROM at $8000 (oracle has it unmapped=0)." }

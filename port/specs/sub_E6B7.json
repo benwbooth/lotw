@@ -1,0 +1,3 @@
+{ "name": "sub_E6B7", "addr": "E6B7", "entry": "none",
+  "inputs": [], "compare": ["ram"], "calls": [], "setup": {},
+  "shaper": null, "notes": "build sprite buffer entries at $0240+ for 3 carried items $51..$53" }

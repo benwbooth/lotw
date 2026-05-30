@@ -1,0 +1,4 @@
+{ "name":"sub_FD11", "addr":"FD11", "entry":"none",
+  "inputs":[], "compare":["ram","a"],
+  "calls":["sub_FCB4"], "setup":{}, "shaper":null,
+  "notes":"sound envelope step for channel $02; merges step into $99,X control byte -> A" }

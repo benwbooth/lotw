@@ -1,0 +1,4 @@
+{ "name":"sub_C520", "addr":"C520", "entry":"none",
+  "inputs":["x","y"], "compare":["ram","x","y"],
+  "calls":[], "setup":{}, "shaper":null,
+  "notes":"Identical to $B6D0: for Y bytes at $0180+X: hi nibble -= $09 (clamp $0F on borrow), keep lo nibble." }

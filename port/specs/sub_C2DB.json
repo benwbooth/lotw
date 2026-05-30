@@ -1,0 +1,4 @@
+{ "name":"sub_C2DB", "addr":"C2DB", "entry":"none",
+  "inputs":["x","y"], "compare":["ram"],
+  "calls":[], "setup":{}, "shaper":null,
+  "notes":"render object record (sprite_tables+Y) to OAM shadow $0200+X; 16-bit scroll subtract; blanks pair to $EF when inactive/offscreen" }

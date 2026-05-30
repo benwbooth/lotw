@@ -1,0 +1,4 @@
+{ "name":"sub_B0E4", "addr":"B0E4", "entry":"none",
+  "inputs":[], "compare":["ram"],
+  "calls":["rng_update"], "setup":{}, "shaper":null,
+  "notes":"random table entry $B0FE+rand(4) -> $20; 1-in-10 ORs #$40" }

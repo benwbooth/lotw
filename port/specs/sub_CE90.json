@@ -1,0 +1,4 @@
+{ "name":"sub_CE90", "addr":"CE90", "entry":"none",
+  "inputs":[], "compare":["c"],
+  "calls":[], "setup":{}, "shaper":null,
+  "notes":"carry = player within +/-1 tile in X with fine tiebreak; reads $0F/$0E/$44/$43" }

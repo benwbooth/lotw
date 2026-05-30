@@ -1,0 +1,4 @@
+{ "name":"sub_EE19", "addr":"EE19", "entry":"none",
+  "inputs":[], "compare":["ram"],
+  "calls":["rng_update"], "setup":{"E7":"40","E8":"02"}, "shaper":null,
+  "notes":"X/Y direction code into $F4 from $FA/$FB vs player tile; rng-gated bit7/$04 via ($E7),Y=9 flag" }

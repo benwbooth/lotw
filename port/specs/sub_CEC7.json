@@ -1,0 +1,4 @@
+{ "name":"sub_CEC7", "addr":"CEC7", "entry":"none",
+  "inputs":[], "compare":["ram","c"],
+  "calls":[], "setup":{}, "shaper":null,
+  "notes":"proximity test: sets $EA & carry when player adjacent in X within Y window; reads $0A/$0F/$0E/$45/$44/$43" }

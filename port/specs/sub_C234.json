@@ -1,0 +1,4 @@
+{ "name":"sub_C234", "addr":"C234", "entry":"none",
+  "inputs":[], "compare":["ram"],
+  "calls":[], "setup":{}, "shaper":null,
+  "notes":"inventory sprite-shadow builder $0220-$023F from equipped_item ($0055) and carried_item0..2 ($0051-$0053)" }

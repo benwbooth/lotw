@@ -1,0 +1,4 @@
+{ "name":"sub_FC81", "addr":"FC81", "entry":"none",
+  "inputs":[], "compare":["ram"],
+  "calls":["inc16_95"], "setup":{"02":"02","97":"40","98":"02"}, "shaper":null,
+  "notes":"sound: note via ptr ($95+$02), advance ptr, period lookup $FDB1/$FDB2, sub $A1,X, shift >> (note>>4) -> $04/$05" }

@@ -1,0 +1,4 @@
+{ "name": "sub_E3BA", "addr": "E3BA", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E400"], "setup": {}, "shaper": null,
+  "notes": "dec tile-Y $F7 (wrap 0->4), then sub_E400 recomputes sprite coords" }
