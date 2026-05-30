@@ -53,3 +53,7 @@ FBE2   # [high] sound command jump table $FBBB[1], JMP($0006) L_FBA8. Sound comm
 FBFF   # [high] audio command table target STA $99,X/RTS
 FC02   # [high] sound command jump table $FBBB[3], JMP($0006) L_FBA8. Sound command ha
 FC05   # [high] sound command jump table $FBBB[4], JMP($0006) L_FBA8. Sound command ha
+DBB7   # item handler (missed code after \$DB06 table)
+D16A   # item handler (\$DB16 table)
+D199   # item handler (\$DB16 table)
+D620   # inventory path helper (called from DA86)

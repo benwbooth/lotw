@@ -1,0 +1,6 @@
+{ "name": "sub_FB1F", "addr": "FB1F", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_FB8E", "sub_FCC4", "sub_FCDF", "sub_FCF9", "sub_FD11", "sub_FD45", "inc16_95"],
+  "setup": {"02": "30", "C5": "44", "C6": "02"},
+  "shaper": null,
+  "notes": "Noise channel update; APU writes (400C/400E/400F) ignored; stream pointer $C5/$C6 pinned, $02=$30 so FB8E advances same stream" }

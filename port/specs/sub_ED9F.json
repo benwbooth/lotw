@@ -1,0 +1,5 @@
+{ "name": "sub_ED9F", "addr": "ED9F", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_EE53", "sub_CD70", "sub_F11B", "sub_EF04", "sub_F01E"],
+  "setup": {"0C": "40", "0D": "02", "0E": "40", "0F": "02", "E7": "40", "E8": "02"}, "shaper": null,
+  "notes": "DEC $F1; if 0 -> $EE=0 RTS. else $F4==0:EE53; else if $F3>=8 popcount($F4^EE53result) over low 4 bits, DEY!=0 restores $F4. then CD70/F11B; carry-> $EE=0 RTS else EF04/F01E/RTS" }
