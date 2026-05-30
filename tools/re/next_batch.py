@@ -31,19 +31,31 @@ def main():
                 if 0xA000 <= a < 0x10000:
                     targets.add(a)
 
-    # already-ported addresses + addr->name map (from specs, the source of truth)
-    ported, name_of = {}, {}
-    for p in SPECS.glob("*.json"):
+    # Ported = every src/ported/<name>.c (includes inspection-ported routines that
+    # have no diff-test spec, e.g. statusbar_split). Resolve name -> address.
+    name2addr = {v: k for k, v in symbols.ROUTINES.items()}
+    ported = {}
+    seen_names = set()
+    for p in SPECS.glob("*.json"):          # specs carry the authoritative address
         s = json.loads(p.read_text())
-        a = int(s["addr"], 16)
-        ported[a] = s["name"]
+        ported[int(s["addr"], 16)] = s["name"]
+        seen_names.add(s["name"])
+    for cf in (ROOT / "src" / "ported").glob("*.c"):   # spec-less inspection ports
+        nm = cf.stem
+        if nm in seen_names:
+            continue
+        a = int(nm[4:], 16) if nm.startswith("sub_") else name2addr.get(nm)
+        if a is not None:
+            ported[a] = nm
     name_of = {f"{a:04X}": symbols.ROUTINES.get(a, f"sub_{a:04X}") for a in targets}
 
     # Known not-portable-in-isolation: dispatchers, RTS-trampolines, and spin-waits
     # (loop until an NMI/PPU-driven var changes — the oracle has no such driver, so
     # they never terminate). $D36E = sprite-0-hit status-bar split (spin-wait).
-    EXCLUDE = {0xCC97, 0xCC8F, 0xE642, 0xE620, 0xD64F, 0xF01E, 0xEA94,
-               0xCC9C, 0xCCE4, 0xCD08, 0xC833, 0xD36E}
+    # Genuinely not portable as isolated Regs-ABI functions: the two indirect
+    # far-call dispatchers (dissolved — callers inline them) and the RTS-
+    # trampolines (manipulate the return stack). Everything else is fair game.
+    EXCLUDE = {0xCC9C, 0xCCE4, 0xD64F, 0xE620, 0xE642}
 
     ready, blocked_hw, blocked_indirect, blocked_deps = [], 0, 0, 0
     for t in sorted(targets):
