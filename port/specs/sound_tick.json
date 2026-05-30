@@ -1,0 +1,6 @@
+{ "name": "sound_tick", "addr": "F89A", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sound_set_default_banks", "sound_set_song_banks", "sound_restore_game_banks",
+            "sfx_overlay_voice", "sub_F8F0", "sub_F96E", "sub_FA09", "sub_FB1F"],
+  "setup": {}, "shaper": null,
+  "notes": "Per-frame audio driver. set_default_banks; $02=$40, sfx_overlay_voice. If $8D!=0 force fixed APU volumes (SQ2 unless bit7 $D4, SQ1, TRI=0, NOISE=$30). Else set_song_banks and run F8F0/F96E/FA09/FB1F with $02=0,$10,$20,$30. restore_game_banks. APU writes ignored by host." }

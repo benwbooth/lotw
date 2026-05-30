@@ -1,0 +1,5 @@
+{ "name": "sub_ED2A", "addr": "ED2A", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_ED5D", "sub_EBD8"],
+  "setup": {"E7": "40", "E8": "02"}, "shaper": null,
+  "notes": "boss-state handler [4]: if $F4!=0 tail-call sub_EBD8; else probe four step dirs (A=1,2,4,8) via sub_ED5D, first carry-hit sets $F4=1, else write ($E7)+4 to boss_life $F2 and clear $FC." }
