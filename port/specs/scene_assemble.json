@@ -1,0 +1,6 @@
+{ "name":"scene_assemble", "addr":"C8F2", "entry":"none",
+  "inputs":[], "compare":["ram"],
+  "calls":["sub_C9D2","sub_C9A9","text_attr_build","sub_C9FB"],
+  "setup":{"47":"08","48":"00"}, "shaper":null,
+  "oracle":{"vram_sync":true},
+  "notes":"sequential dispatch to C9D2/C9A9/text_attr_build/C9FB; C9D2 may frame-sync via queue_ppu_job_and_wait on $28" }

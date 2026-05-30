@@ -1,0 +1,5 @@
+{ "name": "sub_C85C", "addr": "C85C", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CA54", "metasprite_build"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "$0D=0; sub_CA54; $0D=($0D-5)+$76; metasprite_build (queues ppu job)" }

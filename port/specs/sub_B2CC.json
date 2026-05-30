@@ -1,0 +1,5 @@
+{ "name": "sub_B2CC", "addr": "B2CC", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C569"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "init palette buffer $0180..$019F then sub_C569 (frame-syncs $28)" }

@@ -1,0 +1,5 @@
+{ "name": "sub_CF30", "addr": "CF30", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CF3F"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "loop X=$0F..0 calling sub_CF3F with Y=inventory_counts[$60+X]" }
