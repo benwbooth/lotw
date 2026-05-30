@@ -1,0 +1,3 @@
+{ "name": "sub_E852", "addr": "E852", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"], "calls": ["sub_CAE2", "sub_CB0E", "sub_CBFA"], "setup": {},
+  "shaper": null, "notes": "increment keys, refresh display via CAE2, return C=0" }

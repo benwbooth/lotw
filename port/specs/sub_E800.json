@@ -1,0 +1,4 @@
+{ "name": "sub_E800", "addr": "E800", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"],
+  "calls": ["sub_CAB6", "sub_CB0E", "sub_CBFA"], "setup": {},
+  "shaper": null, "notes": "health($58) += A clamped to $6D on overflow or >=$6E; then sub_CAB6" }

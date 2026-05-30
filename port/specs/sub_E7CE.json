@@ -1,0 +1,3 @@
+{ "name": "sub_E7CE", "addr": "E7CE", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"], "calls": ["sub_CAB6", "sub_CB0E", "sub_CBFA"], "setup": {},
+  "shaper": null, "notes": "decrement health; C=1 if already 0, else C=0 and refresh display via CAB6" }

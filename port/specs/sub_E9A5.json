@@ -1,0 +1,6 @@
+{ "name": "sub_E9A5", "addr": "E9A5", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["rng_update", "sub_CE7C", "sub_CEB6", "sub_CE90", "sub_F23A", "sub_CA54", "sub_CA85", "sub_F2D3"],
+  "setup": { "E7": "40", "E8": "02" },
+  "shaper": null,
+  "notes": "Spawn tick. DEC $F3; if >=$3C return. Pick spawn pos (rng_update or record ($E7)), validate via CE7C+F23A; on success commit $F9/$FA/$FB and reset state, set boss_life/$F8, then inlined L_EA30 tail sets $EE/$ED/$EF. Reads record via ($E7) pointer." }

@@ -1,0 +1,3 @@
+{ "name": "sub_E842", "addr": "E842", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram", "c"], "calls": ["sub_CAF8", "sub_CB0E", "sub_CBFA"], "setup": {},
+  "shaper": null, "notes": "subtract A from gold; if borrow C=0 unchanged, else store, refresh via CAF8, C=1" }
