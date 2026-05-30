@@ -1,0 +1,5 @@
+{ "name": "sub_F3B0", "addr": "F3B0", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_EE19", "sub_CD70", "sub_F4E3", "sub_F506", "sub_EF11", "sub_F4C3", "sub_EF04", "sub_F1E4", "sub_F53B", "sub_F552"],
+  "setup": {},
+  "notes": "Movement/direction dispatcher over $F0-$F7; chooses EE19/CD70 path then F4E3/F506/F4C3/EF04 then F1E4/F53B/F552. Pure RAM effects." }

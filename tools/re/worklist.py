@@ -77,10 +77,13 @@ def analyze(mem, entry, routine_entries=frozenset()):
     # without modelling. Writes to any register are fine (REG_W, host-ignored).
     DYN_READ = {0x2002, 0x2004, 0x2007, 0x4015, 0x4016, 0x4017}
     WRITE_ABS = {0x8D, 0x9D, 0x99, 0x8E, 0x8C}
+    DISP_0C0D = {0xCC9C, 0xCD08}            # far-call dispatchers (R7=$0D -> bank13 @ $A000)
     seen, work, callees = set(), [entry], set()
     hw = has_indirect = reads_dyn = False
     while work:
         pc = work.pop()
+        a_imm = None          # last LDA #imm; ptr tracks $0E/$0F for far-call targets
+        ptr = {}
         while True:
             if pc in seen or not (0xA000 <= pc < 0x10000):
                 break
@@ -97,10 +100,25 @@ def analyze(mem, entry, routine_entries=frozenset()):
                     hw = True
                     if a in DYN_READ and op not in WRITE_ABS:
                         reads_dyn = True
+            # light dataflow for far-call target resolution
+            if op == 0x85:                         # STA zp
+                z = mem[pc + 1]
+                if a_imm is not None and z in (0x0E, 0x0F):
+                    ptr[z] = a_imm
+                a_imm = None
+            elif op == 0xA9:                       # LDA #imm
+                a_imm = mem[pc + 1]
+            else:
+                a_imm = None
             if md == REL:
                 work.append((pc + 2 + ((mem[pc + 1] ^ 0x80) - 0x80)) & 0xFFFF)
             elif op == 0x20:                       # JSR
-                callees.add(mem[pc + 1] | (mem[pc + 2] << 8))
+                tgt = mem[pc + 1] | (mem[pc + 2] << 8)
+                if tgt in DISP_0C0D and 0x0E in ptr and 0x0F in ptr:
+                    ft = ptr[0x0E] | (ptr[0x0F] << 8)   # far-call target (bank13 if $A000-$BFFF)
+                    callees.add(ft if 0xA000 <= ft < 0xC000 else tgt)
+                else:
+                    callees.add(tgt)
             elif op == 0x4C:                       # JMP abs
                 t = mem[pc + 1] | (mem[pc + 2] << 8)
                 if t in routine_entries:           # tail-call into another routine
