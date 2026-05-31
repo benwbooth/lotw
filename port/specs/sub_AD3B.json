@@ -1,0 +1,4 @@
+{ "name": "sub_AD3B", "addr": "AD3B", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "Animate/flip player sprite: fold $20 V-flag into $56 bit4, advance walk ctr $4D every 8 steps toggling $56 bit2 or $57 bit6. Pure RAM." }

@@ -1,0 +1,4 @@
+{ "name": "sub_ACE0", "addr": "ACE0", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "Pick player metasprite tile $56 / flip attr $57 from buttons $20 + velocity $49/$4B + climb $4E/$4F. Pure RAM." }

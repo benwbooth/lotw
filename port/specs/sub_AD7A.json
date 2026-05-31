@@ -1,0 +1,4 @@
+{ "name": "sub_AD7A", "addr": "AD7A", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "Build player 2-tile OAM $0210-$0217 (hide when stunned $85/$84), tiles $56/$56+2 with flip $57. Pure OAM/RAM." }

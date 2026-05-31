@@ -1,0 +1,4 @@
+{ "name": "sub_AE41", "addr": "AE41", "entry": "none",
+  "inputs": [], "compare": ["ram","c"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "Bounds check candidate pos: carry SET (blocked) if $0A>=$A1 or $0E>=$F1, else CLEAR. Carry-only output." }

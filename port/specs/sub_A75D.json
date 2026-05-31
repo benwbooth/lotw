@@ -1,0 +1,4 @@
+{ "name": "sub_A75D", "addr": "A75D", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "title sprite cycler: DEC $3E (wrap 7), copy 4-byte OAM entry from $0280 or $0210 table (index $3E*4) into $0200-$0203, blank source Y to $EF." }

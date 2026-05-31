@@ -1,0 +1,6 @@
+{ "name": "sub_AAEE", "addr": "AAEE", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C1D8", "sub_C2B1", "sub_C135"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
+  "exclude_ram": ["28", "36"],
+  "notes": "refresh: C1D8 + C2B1, $36=1, frame-sync C135. C135 frame-syncs $28/$36." }

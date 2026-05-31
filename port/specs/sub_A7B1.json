@@ -1,0 +1,1 @@
+{ "name":"sub_A7B1","addr":"A7B1","entry":"lda_a","inputs":["a","y"],"compare":["ram"],"calls":[],"setup":{},"shaper":null }

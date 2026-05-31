@@ -1,0 +1,6 @@
+{ "name": "sub_A5B5", "addr": "A5B5", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C135"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
+  "exclude_ram": ["16", "17", "28", "36"],
+  "notes": "4-pass palette/attr fade over $0180-$018C: hi nibble -=$10 (saturate to $0F on underflow), $36=5 then frame-sync C135 each pass. C135 frame-syncs $28/$36." }

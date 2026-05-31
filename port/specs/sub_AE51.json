@@ -1,0 +1,4 @@
+{ "name": "sub_AE51", "addr": "AE51", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "Derive velocity $49/$4B from D-pad low nibble of $20 indexing ROM tables $FE8B/$FE8C. Pure RAM." }

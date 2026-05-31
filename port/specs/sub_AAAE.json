@@ -1,0 +1,4 @@
+{ "name": "sub_AAAE", "addr": "AAAE", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": [], "setup": {}, "shaper": null,
+  "notes": "patch sprite-table rows $0410/$0420/$0430 low 5 bits from $56, set X-fine cols $041C/$042C/$043C to player_x_fine, derive col tiles from player_x_tile (+1,-2,-3). Pure data." }
