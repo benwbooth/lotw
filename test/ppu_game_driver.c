@@ -55,9 +55,25 @@ int main(int argc, char **argv)
     RAM8(0x44) = 0x3C;             /* player_x_tile */
     RAM8(0x45) = 0xA0;             /* player_y */
 
-    RAM8(0x58) = 0x10;             /* health > 0 so game_update doesn't take the death path */
-    RAM8(0x59) = 0x10;             /* magic */
+    /* Reproduce the essential character-select / world-entry state that AE64 sets
+     * up (it's rng-randomized normally; we pick a valid room + character 0). */
+    RAM8(0x8E) = 0x09;             /* level */
+    RAM8(0x41) = 0xFF;             /* character roster: all available */
+    RAM8(0x39) = 0xC5; RAM8(0x3A) = 0x17; RAM8(0x3B) = 0x42;   /* seed RNG */
+    RAM8(0x47) = 0x01; RAM8(0x48) = 0x05;   /* map_screen_x / map_screen_y (a valid room) */
+    RAM8(0x40) = 0x00;             /* cur_character = 0 */
+    for (int i = 0; i < 4; i++) RAM8(0x5C + i) = NES_MEM[0xFFA7 + i];  /* stat_jump from table */
+    RAM8(0x51) = NES_MEM[0xB0AC];  /* carried_item0 from roster table */
+    RAM8(0x55) = 0x00;             /* equipped_item */
+    RAM8(0x2C) = 0x38;             /* mmc3_r2_shadow = char($40)+$38 (character CHR) */
+    RAM8(0x2E) = 0x3E; RAM8(0x2F) = 0x20;
+    RAM8(0x56) = 0x0D; RAM8(0x57) = 0x00; RAM8(0x42) = 0x01;
+    RAM8(0x58) = 0x64;             /* health */
+    RAM8(0x59) = 0x64;             /* magic */
     RAM8(0xEB) = 0x00;             /* reset flag clear */
+    /* spawn position */
+    RAM8(0x44) = 0x20; RAM8(0x45) = 0x80; RAM8(0x43) = 0x00;
+    RAM8(0x7C) = 0x18; RAM8(0x7B) = 0x00;
     fprintf(stderr, "scene_assemble...\n");    scene_assemble(&r);
     /* C7B5 lays out the room: uploads the nametable columns to VRAM (the
      * room/title-entry path our warp-in skipped). */
@@ -94,12 +110,24 @@ int main(int argc, char **argv)
       fprintf(stderr, "palette:");
       for (int i = 0; i < 0x20; i++) fprintf(stderr, " %02X", ppu_pal[i]);
       fprintf(stderr, "\nctrl=%02X mask=%02X scrollx=%d scrolly=%d\n",
-              ppu_ctrl, ppu_mask, ppu_scroll_x, ppu_scroll_y); }
+              ppu_ctrl, ppu_mask, ppu_scroll_x, ppu_scroll_y);
+      fprintf(stderr, "NT0 attr ($3C0):");
+      for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[0x3C0 + i]);
+      fprintf(stderr, "\nNT0 tiles row0:");
+      for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[i]);
+      fprintf(stderr, "\nNT0 tiles row8 ($100):");
+      for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[0x100 + i]);
+      fprintf(stderr, "\n"); }
 
     if (!(ppu_mask & 0x18)) ppu_mask = 0x1E;   /* force rendering on to visualize VRAM */
     static u8 frame[PPU_W * PPU_H * 3];
     ppu_render(frame);
     ppm_write("build/game_frame.ppm", frame, PPU_W, PPU_H);
+
+    /* also render at scroll 0 to inspect the raw nametable without the shift */
+    ppu_scroll_x = 0; ppu_scroll_y = 0;
+    ppu_render(frame);
+    ppm_write("build/game_frame_s0.ppm", frame, PPU_W, PPU_H);
 
     long lit = 0;
     for (int i = 0; i < PPU_W * PPU_H; i++)
