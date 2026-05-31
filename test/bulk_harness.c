@@ -11,10 +11,13 @@
  * WATCHDOG: a ported routine may be an unbounded loop that waits on hardware /
  * controller / NMI state (these never change in flat host memory), so it would
  * spin a CPU core forever. A per-record setitimer(ITIMER_REAL) fires after a
- * short budget; the SIGALRM handler siglongjmp's back and the record is flagged
- * (id |= 0x80) so the diff-test skips it — the same states the m6502 oracle
- * skips via its step limit. No real terminating routine takes anywhere near the
- * budget (native C runs them in microseconds).
+ * short budget; the SIGALRM handler siglongjmp's back and the record's flag byte
+ * out[0] is set to 1 (else 0) so the diff-test skips it — the same states the
+ * m6502 oracle skips via its step limit. No real terminating routine takes
+ * anywhere near the budget (native C runs them in microseconds).
+ *
+ * out[0] is a dedicated 0/1 watchdog flag, NOT the id echo: there are >128
+ * routines, so id values overlap any high-bit flag scheme.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,15 +83,15 @@ int main(int argc, char **argv)
             arm_watchdog();
             PORT_FNS[id](&r);
             disarm_watchdog();
-            out[0] = id;
+            out[0] = 0;                  /* watchdog flag: completed */
             out[1] = r.a; out[2] = r.x; out[3] = r.y;
             out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
             memcpy(out + HDR, NES_MEM, 0x800);
         } else {
             /* Watchdog tripped: the port did not terminate on this state.
-             * Flag the record (high bit of id) so the diff-test skips it. */
+             * Set the flag byte so the diff-test skips it. */
             disarm_watchdog();
-            out[0] = id | 0x80;
+            out[0] = 1;                  /* watchdog flag: timed out */
             out[1] = r.a; out[2] = r.x; out[3] = r.y;
             out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
             memcpy(out + HDR, in + HDR, 0x800);

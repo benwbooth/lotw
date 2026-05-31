@@ -160,15 +160,15 @@ def main():
             recs += bytes([rid, a, x, y, c, z, n, v]) + ram
         proc = subprocess.run([str(harness), str(ROM)], input=bytes(recs),
                               stdout=subprocess.PIPE, check=True)
-        bad = skipped = 0
+        bad = skipped = wd_skip = oracle_skip = 0
         cmp = s.get("compare", ["ram"])
         for i, st in enumerate(states):
             g = proc.stdout[i * REC:(i + 1) * REC]
-            if g[0] & 0x80:
+            if g[0]:
                 # Harness watchdog tripped: the port did not terminate on this
                 # state (unbounded hardware/controller/NMI wait under flat memory).
                 # The oracle skips these too via its step limit; skip the state.
-                skipped += 1
+                skipped += 1; wd_skip += 1
                 continue
             try:
                 o = oracle(rom, s, *st)
@@ -176,7 +176,7 @@ def main():
                 # The ORIGINAL crashes/hangs on this (unrealistic) random input —
                 # e.g. a pointer-write routine whose random pointer hits the stack.
                 # Not the port's fault; skip the state.
-                skipped += 1
+                skipped += 1; oracle_skip += 1
                 continue
             ga = dict(a=g[1], x=g[2], y=g[3], c=g[4], z=g[5], n=g[6], v=g[7])
             oa = dict(a=o[0], x=o[1], y=o[2], c=o[3], z=o[4], n=o[5], v=o[6])
@@ -187,7 +187,7 @@ def main():
                     print(f"  [{s['name']}] MISMATCH #{i}: cmp={cmp} "
                           f"orig={oa} port={ga} ram_eq={ram_eq(o[7], g[8:])}")
         tested = args.n - skipped
-        tag = f" [{skipped} states skipped: original crashed on random input]" if skipped else ""
+        tag = f" [skip={skipped}: watchdog={wd_skip} oracle={oracle_skip}]" if skipped else ""
         verdict = "PASS" if (bad == 0 and tested > 0) else f"FAIL ({bad})"
         print(f"{s['name']:16} {tested}/{args.n} states cmp={cmp}: {verdict}{tag}")
         total_fail += bad
