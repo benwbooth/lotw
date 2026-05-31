@@ -110,8 +110,31 @@ def oracle(rom, spec, a, x, y, c, z, n, v, ram):
             bytes(cpu.mem[0x0000:0x0800]))
 
 
-def ram_eq(p, q):
-    return p[:0x100] == q[:0x100] and p[0x200:] == q[0x200:]  # exclude stack page
+def ram_eq(p, q, exclude=None):
+    # Stack page ($0100-$01FF) is always excluded. `exclude` is an optional set of
+    # additional byte addresses to skip (per-spec "exclude_ram": bytes a routine
+    # fills from an UNMAPPED switchable bank, which flat memory can't model — e.g.
+    # song_init's $93-$D2 channel block read via the music-bank pointer table).
+    if not exclude:
+        return p[:0x100] == q[:0x100] and p[0x200:] == q[0x200:]
+    for a in range(0x800):
+        if 0x100 <= a < 0x200 or a in exclude:
+            continue
+        if p[a] != q[a]:
+            return False
+    return True
+
+
+def parse_exclude(spec):
+    """spec 'exclude_ram': list of "HH" addrs and/or "HH-HH" inclusive ranges."""
+    out = set()
+    for item in spec.get("exclude_ram", []):
+        if "-" in item:
+            lo, hi = item.split("-")
+            out.update(range(int(lo, 16), int(hi, 16) + 1))
+        else:
+            out.add(int(item, 16))
+    return out
 
 
 def main():
@@ -162,6 +185,7 @@ def main():
                               stdout=subprocess.PIPE, check=True)
         bad = skipped = wd_skip = oracle_skip = 0
         cmp = s.get("compare", ["ram"])
+        excl = parse_exclude(s)
         for i, st in enumerate(states):
             g = proc.stdout[i * REC:(i + 1) * REC]
             if g[0]:
@@ -180,12 +204,22 @@ def main():
                 continue
             ga = dict(a=g[1], x=g[2], y=g[3], c=g[4], z=g[5], n=g[6], v=g[7])
             oa = dict(a=o[0], x=o[1], y=o[2], c=o[3], z=o[4], n=o[5], v=o[6])
-            ok = all((ram_eq(o[7], g[8:]) if w == "ram" else oa[w] == ga[w]) for w in cmp)
+            ok = all((ram_eq(o[7], g[8:], excl) if w == "ram" else oa[w] == ga[w]) for w in cmp)
             if not ok:
                 bad += 1
+                if bad == 1 and os.environ.get("DUMP_FAIL"):
+                    import struct
+                    with open(os.environ["DUMP_FAIL"], "wb") as fh:
+                        fh.write(bytes([st[0], st[1], st[2]]) + st[7])
                 if bad <= 2:
                     print(f"  [{s['name']}] MISMATCH #{i}: cmp={cmp} "
                           f"orig={oa} port={ga} ram_eq={ram_eq(o[7], g[8:])}")
+                    op, gp = o[7], g[8:]
+                    diffs = [(a_, op[a_], gp[a_]) for a_ in range(0x800)
+                             if op[a_] != gp[a_] and not (0x100 <= a_ < 0x200)]
+                    print(f"    RAM diffs (addr orig port): "
+                          + " ".join(f"${a_:03X}:{ov:02X}/{gv:02X}" for a_, ov, gv in diffs[:24]))
+                    print(f"    input regs a={st[0]:02X} x={st[1]:02X} y={st[2]:02X}")
         tested = args.n - skipped
         tag = f" [skip={skipped}: watchdog={wd_skip} oracle={oracle_skip}]" if skipped else ""
         verdict = "PASS" if (bad == 0 and tested > 0) else f"FAIL ({bad})"
