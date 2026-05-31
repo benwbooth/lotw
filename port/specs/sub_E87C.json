@@ -1,0 +1,7 @@
+{ "name": "sub_E87C", "addr": "E87C", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E98F","sub_E99A","sub_E9A5","sub_EA2E","sub_EABF","sub_EA94","sub_EF1C","sub_F430","sub_F53B","sub_F552","sub_F3B0","sub_F349","sub_F55E","sub_EA4F"],
+  "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28","36"]},
+  "exclude_ram": ["28","36","93-D2","500-7FF"],
+  "notes": "Per-room enemy/boss update dispatcher. exclude_ram: NMI counters $28/$36 + bank-derived song_init $93-D2 / C9A9 $500-7FF buffers reachable via the handlers." }
