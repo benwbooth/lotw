@@ -5,7 +5,18 @@
  * preserved. (Diff-tested with oracle vram_sync, which models the NMI clearing $28.) */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+void nmi_handler(Regs *r);
+#endif
 void queue_ppu_job_and_wait(Regs *r)
 {
-    RAM8(0x28) = 0;   /* job submitted (r->a) and processed by the NMI */
+#ifdef LOTW_SHIM
+    /* Shim build: actually perform the queued job by running one NMI (which
+     * dispatches the vram_* uploader into the software PPU, then clears $28).
+     * One queue-and-wait == one frame's NMI, matching hardware. */
+    RAM8(0x28) = r->a;   /* STA nmi_vram_req = A (job type) */
+    nmi_handler(r);      /* NMI applies it and clears $28 */
+#else
+    RAM8(0x28) = 0;      /* flat-memory port: job applied synchronously by the oracle */
+#endif
 }

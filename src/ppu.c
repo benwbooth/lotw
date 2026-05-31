@@ -66,6 +66,28 @@ void ppu_load_chr(const u8 *chr, unsigned len)
     s_chr_len = len;
 }
 
+/* PRG-ROM + CPU-side bank mapping: MMC3 swaps 8 KiB PRG banks into $8000/$A000;
+ * the shim copies the selected bank into NES_MEM so the game's bank-switched data
+ * reads ($8000-$BFFF) hit real data. */
+extern u8 NES_MEM[0x10000];
+static u8  s_prg[0x40000];
+static unsigned s_prg_len;
+
+void ppu_load_prg(const u8 *prg, unsigned len)
+{
+    if (len > sizeof s_prg) len = sizeof s_prg;
+    memcpy(s_prg, prg, len);
+    s_prg_len = len;
+}
+
+void ppu_map_prg(u16 cpu_base, u8 bank8k)   /* map an 8KiB PRG bank to $8000 or $A000 */
+{
+    if (!s_prg_len) return;
+    unsigned nbanks = s_prg_len / 0x2000;
+    unsigned off = (unsigned)(bank8k % nbanks) * 0x2000;
+    memcpy(&NES_MEM[cpu_base], &s_prg[off], 0x2000);
+}
+
 void ppu_reset(void)
 {
     memset(ppu_vram, 0, sizeof ppu_vram);
@@ -226,7 +248,12 @@ void nes_reg_write(u16 addr, u8 val)
     }
     /* ---- MMC3 (CHR banking + mirroring) ---- */
     case 0x8000: s_mmc3_sel = val; recompute_chr(); break;
-    case 0x8001: s_mmc3_bank[s_mmc3_sel & 7] = val; recompute_chr(); break;
+    case 0x8001:
+        s_mmc3_bank[s_mmc3_sel & 7] = val;
+        recompute_chr();
+        if ((s_mmc3_sel & 7) == 6) ppu_map_prg(0x8000, val);   /* R6 -> $8000 */
+        else if ((s_mmc3_sel & 7) == 7) ppu_map_prg(0xA000, val); /* R7 -> $A000 */
+        break;
     case 0xA000: s_mirror = (val & 1) ? 0 : 1; break;  /* MMC3: 0=vert,1=horiz arrangement */
     default: break;                            /* APU / other: ignored here */
     }

@@ -17,6 +17,10 @@
 /* CHR pattern data (tile bitmaps). The cartridge has up to 64 KiB of CHR-ROM
  * banked into the PPU's $0000-$1FFF pattern space by the MMC3. Load it once. */
 void ppu_load_chr(const u8 *chr, unsigned len);
+void ppu_load_prg(const u8 *prg, unsigned len);
+void ppu_map_prg(u16 cpu_base, u8 bank8k);     /* map an 8KiB PRG bank to $8000/$A000 */
+void ppu_set_vblank(int on);
+void ppu_set_sprite0(int on);
 
 /* Reset PPU state (call once at startup). */
 void ppu_reset(void);
