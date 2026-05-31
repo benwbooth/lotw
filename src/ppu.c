@@ -282,6 +282,8 @@ u8 nes_reg_read(u16 addr)
     }
 }
 
+int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
+
 /* set/clear the vblank + sprite-0 status bits (frame driver uses these) */
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }

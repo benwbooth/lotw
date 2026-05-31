@@ -118,8 +118,19 @@ int main(int argc, char **argv)
       fprintf(stderr, "\nNT0 tiles row8 ($100):");
       for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[0x100 + i]);
       fprintf(stderr, "\n"); }
+    { int act = 0;
+      fprintf(stderr, "active OAM sprites (Y<$F0):");
+      for (int i = 0; i < 64; i++) {
+          u8 *o = ppu_oam + i*4;
+          if (o[0] < 0xEF) { act++; if (act <= 10) fprintf(stderr, " [%d:y%d t%02X a%02X x%d]", i,o[0],o[1],o[2],o[3]); }
+      }
+      fprintf(stderr, "  total=%d\n", act);
+      fprintf(stderr, "HUD bufs $0140:"); for(int i=0;i<8;i++) fprintf(stderr," %02X",NES_MEM[0x140+i]);
+      fprintf(stderr, "  CHR win:"); extern int ppu_chr_win_dbg(int); for(int i=0;i<8;i++) fprintf(stderr," %d", ppu_chr_win_dbg(i));
+      fprintf(stderr, "\n"); }
 
     if (!(ppu_mask & 0x18)) ppu_mask = 0x1E;   /* force rendering on to visualize VRAM */
+    ppu_ctrl |= 0x08;              /* sprites from $1000 (character CHR) */
     static u8 frame[PPU_W * PPU_H * 3];
     ppu_render(frame);
     ppm_write("build/game_frame.ppm", frame, PPU_W, PPU_H);
