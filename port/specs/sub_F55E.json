@@ -1,0 +1,4 @@
+{ "name": "sub_F55E", "addr": "F55E", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CB53","sub_CB94","sub_CBFA"], "setup": {}, "shaper": null,
+  "notes": "Boss 3-row sprite block -> OAM $0401-$043F + meter (far-call CB53). Pure OAM/data." }
