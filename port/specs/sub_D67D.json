@@ -1,0 +1,6 @@
+{ "name": "sub_D67D", "addr": "D67D", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C375", "sub_C1D8", "sub_C234", "sub_C76C", "sub_C540", "queue_ppu_job_and_wait"],
+  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03", "77": "40", "78": "02"}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
+  "notes": "Full screen redraw: C375 OAM, C1D8/C234 sprite shadows, clamp scroll_x_tile $7C to $20, two C76C column builds, then 16x31 queue_ppu_job_and_wait scroll loop updating $1C/$1D, finally C540 x=8 palette refresh. Frame-syncs on $28/$36; pin C76C/C540 pointers." }

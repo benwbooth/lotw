@@ -1,0 +1,5 @@
+{ "name": "sub_F430", "addr": "F430", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C540", "sub_C135", "sub_CF08", "sub_EFF1"], "setup": {"77": "40", "78": "02"}, "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "($EE&$7F)==0 init branch does 3x C540 (palette refresh, frame-syncs on $28/$36, writes via ($77)) + $36/C135 between; then state machine on $F0/$F1 computing $F7 delta, EFF1, CF08 carry test, updates $FB/$EF/$EE/$F3/$EB. $77 pinned to $0240." }

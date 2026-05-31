@@ -1,0 +1,6 @@
+{ "name": "sub_E660", "addr": "E660", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"],
+  "calls": ["sub_C3E5", "sub_D07C", "sub_C8FF", "sub_C5DC", "sub_D8E3", "sub_C1D8", "sub_C1C7"],
+  "setup": {"79": "60", "7A": "02", "75": "00", "76": "02"}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
+  "notes": "Fade-out (C3E5) then warp/init from A: map_screen_x=(A&C)>>2, scroll_x_tile=(A&3)<<4, player_x_tile=+7, fixed player_y/x_fine/map_screen_y; D07C sprite clear, C8FF scene, A==4 sets $7A=$BF, C5DC strip render, D8E3/C1D8 sprites, C1C7 scroll16. Frame-syncs $28/$36; pin C5DC metatile ptr." }

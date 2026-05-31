@@ -1,0 +1,7 @@
+{ "name": "sub_D6D4", "addr": "D6D4", "entry": "none",
+  "inputs": [], "compare": ["ram", "c"],
+  "calls": ["sub_DBDD", "sub_DC87", "sub_C1D8", "sub_D08A", "sub_D07C", "scene_assemble", "sub_C5CB", "sub_C569", "sub_C76C", "queue_ppu_job_and_wait", "farcall_bank_09_r7", "sub_C3E5", "sub_C1C7", "sub_C492"],
+  "setup": {"47": "01", "48": "01", "79": "00", "7A": "03", "0C": "40", "0D": "02", "77": "40", "78": "02"},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "screen-edge transition/scroll. player_y picks top/bottom/horizontal. vert -> L_D761 rebuild; horiz -> L_D772 scroll-wipe animation (queue_ppu_job_and_wait/farcall_bank_09_r7). JMP D866/D883 fixed-warp tails inlined (-> D895 full rebuild). Frame-sync $28, spin $36 (C5CB/C569/C492/C76C/C135)." }

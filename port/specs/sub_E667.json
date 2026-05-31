@@ -1,0 +1,6 @@
+{ "name": "sub_E667", "addr": "E667", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram"],
+  "calls": ["sub_C430", "sub_D07C", "sub_C8FF", "sub_C5DC", "sub_D8E3", "sub_C1D8", "sub_C1C7"],
+  "setup": {"79": "60", "7A": "02", "75": "00", "76": "02"}, "shaper": null,
+  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
+  "notes": "Like E660 but fade via C430. Init from A: map_screen_x=(A&C)>>2, scroll_x_tile=(A&3)<<4, player_x_tile=+7, fixed player_y/x_fine/map_screen_y; D07C, C8FF, A==4 sets $7A=$BF, C5DC, D8E3/C1D8, C1C7. Frame-syncs $28/$36; pin C5DC metatile ptr." }
