@@ -1,0 +1,5 @@
+{ "name": "sub_C430", "addr": "C430", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C135"], "setup": {}, "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "4 passes decrementing high nibble of $0184..$01A0 (clamp $0F on borrow), each pass sets $36=5 then JSR C135 which frame-syncs on $28/$36." }

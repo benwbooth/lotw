@@ -1,0 +1,7 @@
+{ "name": "sub_C4E0", "addr": "C4E0", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C520", "sub_C135", "sub_C569"],
+  "setup": {"77": "40", "78": "02"},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "5-pass dual-palette dim loop; per pass copy 4B ($77)+$E0->$0180 and +$F0->$0190, C520(0,4), C520($10,4), C135; then C569. $77 ptr pinned to $0240." }

@@ -1,0 +1,5 @@
+{ "name": "sub_C540", "addr": "C540", "entry": "lda_x",
+  "inputs": ["x"], "compare": ["ram"],
+  "calls": ["sub_C569", "sub_C135", "sub_C9FB"], "setup": {"77": "40", "78": "02"}, "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "X passes: fill $0180..$019F with $30, C569, $36=1/C135, C9FB (reload via ($77)), C569, $36=2/C135. Frame-syncs on $28/$36. $77 pinned to $0240 for the C9FB pointer read." }

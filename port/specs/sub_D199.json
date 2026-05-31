@@ -1,0 +1,7 @@
+{ "name": "sub_D199", "addr": "D199", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C1D8", "sub_CACC", "sub_C135"],
+  "setup": {},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "fill magic bar to $63: save/zero $85, C1D8; loop INC magic, CACC, $8F=$16,$36=2, C135 until magic>=$63; then $8F=$17,$36=$10,C135; restore $85. C135 frame-syncs $28/spins $36." }

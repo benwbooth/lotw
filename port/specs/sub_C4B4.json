@@ -1,0 +1,7 @@
+{ "name": "sub_C4B4", "addr": "C4B4", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C520", "sub_C135", "sub_C569"],
+  "setup": {"77": "40", "78": "02"},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "5-pass palette dim loop; per pass copy 4B ($77)+$E0 -> $0180, C520(0,4), C135; then C569. $77 ptr pinned to $0240. C135/C569 frame-sync $28/spin $36, left 0 by C port." }

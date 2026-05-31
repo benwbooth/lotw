@@ -1,0 +1,7 @@
+{ "name": "sub_D16A", "addr": "D16A", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C1D8", "sub_CAB6", "sub_C135"],
+  "setup": {},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "fill health bar to $63: save/zero $85, C1D8; loop INC health, CAB6, $8F=$16,$36=2, C135 until health>=$63; then $8F=$17,$36=$10,C135; restore $85. C135 frame-syncs $28/spins $36." }

@@ -1,0 +1,7 @@
+{ "name": "sub_C492", "addr": "C492", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_C9FB", "sub_C520", "sub_C135", "sub_C569"],
+  "setup": {"77": "40", "78": "02"},
+  "shaper": null,
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "5-pass palette dim loop ($09=$40..$00); per pass C9FB,C520(4,$1C),C135; then C569. C135/C569 frame-sync $28 and spin on $36, left 0 by C port. $77 ptr pinned to $0240 for C9FB." }

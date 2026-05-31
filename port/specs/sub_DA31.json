@@ -1,0 +1,6 @@
+{ "name": "sub_DA31", "addr": "DA31", "entry": "lda_a",
+  "inputs": ["a"], "compare": ["ram", "c"],
+  "calls": ["sub_E86F", "sub_C2B1", "sub_C1D8", "sub_C135", "song_init"],
+  "setup": {"77": "40", "78": "02"},
+  "oracle": {"sync_clear": ["28", "36"]},
+  "notes": "use-key/open-door: E86F consumes a key (C=1 if none -> $8F=6,CLC,RTS). Else reads door type via ($77),Y (Y=$0A), sets OAM $04A0-$04A2 and $8F=$1F, refreshes sprites (C2B1/C1D8 with $85=0), plays door song $0E (song_init), waits ~120 frames (C135, $36 NMI spin left 0 by sync_clear), restores $8E/$85 song, SEC/RTS. Callees C7FE/CAA5/C569 (via C135) frame-sync on $28 -> sync_clear ['28','36']. $77/$78 pinned to $0240 so the ($77),Y door read hits safe RAM, not the oracle's stack page." }
