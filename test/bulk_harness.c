@@ -40,6 +40,10 @@ int main(int argc, char **argv)
         Regs r;
         r.a = in[1]; r.x = in[2]; r.y = in[3];
         r.c = in[4]; r.z = in[5]; r.n = in[6]; r.v = in[7];
+        /* Reset the non-ROM space ($0000-$9FFF) per record so routines that write
+         * outside RAM (e.g. into $0800-$9FFF) match the oracle's fresh-per-state
+         * memory; ROM at $A000-$FFFF is constant. Then inject the test RAM. */
+        memset(NES_MEM, 0, 0xA000);
         memcpy(NES_MEM, in + HDR, 0x800);
         if (id >= PORT_N) { fprintf(stderr, "bad id %u\n", id); return 2; }
         PORT_FNS[id](&r);

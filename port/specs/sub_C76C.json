@@ -1,0 +1,6 @@
+{ "name": "sub_C76C", "addr": "C76C", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_CC97", "farcall_bank_09_r7"], "shaper": null,
+  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03"},
+  "oracle": {"vram_sync": true},
+  "notes": "compute VRAM dest from scroll_x_tile, loop 16 times building metasprite columns via bank-9 far-call; sub_CC97 frame-syncs on nmi_vram_req $28; MMC3 writes HW-only; pin pointers" }

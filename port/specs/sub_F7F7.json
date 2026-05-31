@@ -1,0 +1,6 @@
+{ "name": "sub_F7F7", "addr": "F7F7", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_EFF1", "sub_CF1C", "sub_F23A", "sub_CE7C", "sub_CDB2", "sub_E7CE", "sub_CA54", "farcall_bank_09_r7"], "shaper": null,
+  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03", "E5": "40", "E6": "02"},
+  "oracle": {"vram_sync": true},
+  "notes": "per-frame column scroll/update step; branches on $ED phase, runs scroll candidate via CF1C/F23A/CE7C/CDB2, places column and far-calls bank-9 renderer (incl. L_F7AA backward-jump path); MMC3 writes HW-only; pin pointers; vram_sync for $28 frame-sync in callees" }
