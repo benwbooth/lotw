@@ -129,10 +129,12 @@ class CPU:
         f(self)
 
     def run_routine(self, pc, a=0, x=0, y=0, p=(U | I), s=0xFD, max_steps=200000,
-                    vram_sync=False):
+                    vram_sync=False, sync_clear=None):
         """Push a sentinel return address; run the routine until it RTSes back.
-        vram_sync (opt-in): once past a soft step limit, clear the NMI VRAM-job
-        request $28 so a frame-sync wait-loop terminates (models the NMI)."""
+        sync_clear (opt-in): zero-page addresses the NMI would clear/decrement;
+        once past a soft step limit they are zeroed so a frame-sync wait-loop on
+        them terminates. vram_sync=True is shorthand for sync_clear=[0x28]."""
+        sc = sync_clear if sync_clear is not None else ([0x28] if vram_sync else [])
         self.a, self.x, self.y, self.p, self.s = a & 0xFF, x & 0xFF, y & 0xFF, p, s & 0xFF
         SENT = 0x0FFE  # sentinel return-1 (RTS will jump to SENT+1)
         self._push((SENT >> 8) & 0xFF)
@@ -141,9 +143,9 @@ class CPU:
         for i in range(max_steps):
             if self.pc == (SENT + 1) & 0xFFFF:
                 return
-            if vram_sync and i >= 4000:
-                self.mem[0x28] = 0   # NMI consumes the queued VRAM job ($28)
-                self.mem[0x36] = 0   # ...and decrements the pending-job counter ($36)
+            if sc and i >= 4000:
+                for addr in sc:
+                    self.mem[addr] = 0   # NMI consumed/decremented this sync var
             self.step()
         raise RuntimeError("routine did not return within step budget")
 

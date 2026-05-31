@@ -101,8 +101,9 @@ def oracle(rom, spec, a, x, y, c, z, n, v, ram):
     if "ppu_status" in oh:
         cpu.ppu_status = int(str(oh["ppu_status"]), 16)
     p = (U | I) | (FC if c else 0) | (FZ if z else 0) | (FN if n else 0) | (FV if v else 0)
+    sc = [int(x, 16) for x in oh["sync_clear"]] if "sync_clear" in oh else None
     cpu.run_routine(int(spec["addr"], 16), a=a, x=x, y=y, p=p, max_steps=200000,
-                    vram_sync=bool(oh.get("vram_sync")))
+                    vram_sync=bool(oh.get("vram_sync")), sync_clear=sc)
     return (cpu.a, cpu.x, cpu.y,
             1 if cpu.p & FC else 0, 1 if cpu.p & FZ else 0,
             1 if cpu.p & FN else 0, 1 if cpu.p & FV else 0,
