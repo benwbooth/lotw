@@ -1,0 +1,1 @@
+{ "name":"sub_A622","addr":"A622","entry":"none","inputs":[],"compare":["ram"],"calls":["sub_E98F","sub_A7B1","sub_A683","sub_A6B1","sub_A6A2","sub_E99A"],"setup":{"E5":"40","E6":"02"},"shaper":null }
