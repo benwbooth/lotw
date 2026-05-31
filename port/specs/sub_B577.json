@@ -1,0 +1,4 @@
+{ "name": "sub_B577", "addr": "B577", "entry": "none",
+  "inputs": [], "compare": ["ram","c"],
+  "calls": ["rng_update"], "setup": {}, "shaper": null,
+  "notes": "Password DECODE+VALIDATE (far-call $0C0D target, bank13): decrypt $0342-$0361 via rng, verify 2 checksums, unpack save_keys/gold/stats/inventory; CLC valid / SEC bad. Pure data+RNG." }
