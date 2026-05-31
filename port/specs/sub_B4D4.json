@@ -1,0 +1,4 @@
+{ "name": "sub_B4D4", "addr": "B4D4", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["rng_update"], "setup": {}, "shaper": null,
+  "notes": "Password ENCODE (far-call $0C0D target, bank13): packs save state into $0322-$0341 nibble cells + checksums $0389/$038A, XOR-encrypts via rng_update. Pure data+RNG." }
