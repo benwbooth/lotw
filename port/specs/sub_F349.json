@@ -1,0 +1,4 @@
+{ "name": "sub_F349", "addr": "F349", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_F275","sub_A7E1","sub_CB53","sub_CB94","sub_CBFA"], "setup": {}, "shaper": null,
+  "notes": "Boss spawn/init: read boss descriptor via ($E7), validate via F275, set boss state, far-call A7E1+CB53 (bank side-effects modelled). Reads via ($E7) pointer (same flat mem in oracle+harness)." }
