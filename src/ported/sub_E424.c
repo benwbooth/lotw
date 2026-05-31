@@ -28,6 +28,7 @@
 #include "ram.h"
 #include "regs.h"
 
+void sub_E5FD(Regs *r);
 void sub_E620(Regs *r); void sub_E660(Regs *r); void sub_E6FF(Regs *r);
 void sub_CFBC(Regs *r); void sub_E778(Regs *r); void sub_C492(Regs *r);
 void sub_E514(Regs *r); void sub_E842(Regs *r); void read_controllers(Regs *r);
@@ -58,8 +59,7 @@ void sub_E424(Regs *r)
     for (;;) {                               /* L_E450 */
         sub_E514(r);                         /* JSR L_E514 (returns carry) */
         if (r->c) {                          /* BCS L_E4A7 -> JMP L_E5FD */
-            /* L_E4A7: JMP L_E5FD — non-local handoff to the leave-shop handler.
-             * Target L_E5FD not yet ported; transfer documented, no data effects. */
+            sub_E5FD(r);                     /* leave-shop -> level-resume tail */
             return;
         }
 

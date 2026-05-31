@@ -49,6 +49,7 @@
 #define mmc3_r4_shadow   RAM8(0x2E)   /* $002E */
 #define mmc3_r5_shadow   RAM8(0x2F)   /* $002F */
 
+void sub_E5FD(Regs *r);
 void sub_E620(Regs *r); void sub_E660(Regs *r); void sub_E778(Regs *r);
 void sub_C492(Regs *r); void sub_E514(Regs *r); void sub_CAF8(Regs *r);
 void sub_C135(Regs *r); void sub_C430(Regs *r); void sub_D16A(Regs *r);
@@ -294,8 +295,7 @@ L_E186:
     }
 
 L_E5FD:
-    /* JMP L_E5FD — non-local transfer to the shared level-redraw/resume tail at
-     * $E5FD (which itself ends in JMP $D8AF). Target not yet ported; the data
-     * effects above are complete and the transfer is documented here. */
+    /* JMP L_E5FD — tail to the shared level-redraw/resume handler ($E5FD). */
+    sub_E5FD(r);
     return;
 }

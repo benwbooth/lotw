@@ -20,10 +20,10 @@
 #include "regs.h"
 
 void sub_CA54(Regs *r);
-/* Non-local JMP targets (PLA/PLA then JMP). Not yet ported — see header.
- * void sub_E077(Regs *r);   ($05 handler)
- * void sub_E424(Regs *r);   ($04 handler)
- * void sub_D5F3(Regs *r);   ($03 key-door handler) */
+/* Non-local JMP targets (PLA/PLA then JMP) — now ported; called as tail handoffs. */
+void sub_E077(Regs *r);   /* $05 handler */
+void sub_E424(Regs *r);   /* $04 handler */
+void sub_D5F3(Regs *r);   /* $03 key-door handler */
 
 void sub_DCE2(Regs *r)
 {
@@ -58,13 +58,13 @@ void sub_DCE2(Regs *r)
     return;                          /* L_DD18: RTS */
 
 hit_E077:
-    /* L_DD19: PLA / PLA / JMP L_E077 — non-local return to grandparent.
-     * Target L_E077 not yet ported; transfer documented, no data effects here. */
+    /* L_DD19: PLA / PLA / JMP L_E077 — drop the caller frame, tail to E077. */
+    sub_E077(r);
     return;
 
 hit_E424:
-    /* L_DD1E: PLA / PLA / JMP L_E424 — non-local return to grandparent.
-     * Target L_E424 not yet ported; transfer documented, no data effects here. */
+    /* L_DD1E: PLA / PLA / JMP L_E424 — drop the caller frame, tail to E424. */
+    sub_E424(r);
     return;
 
 hit_D5F3:
@@ -85,8 +85,8 @@ hit_D5F3:
                 return;
         }
 
-        /* PLA / PLA / JMP L_D5F3 — non-local return to grandparent.
-         * Target L_D5F3 not yet ported; transfer documented, no data effects here. */
+        /* PLA / PLA / JMP L_D5F3 — drop the caller frame, tail to D5F3. */
+        sub_D5F3(r);
         return;
     }
 }
