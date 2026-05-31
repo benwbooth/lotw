@@ -55,7 +55,7 @@ def main():
     # Genuinely not portable as isolated Regs-ABI functions: the two indirect
     # far-call dispatchers (dissolved — callers inline them) and the RTS-
     # trampolines (manipulate the return stack). Everything else is fair game.
-    EXCLUDE = {0xCC9C, 0xCCE4, 0xD64F, 0xE620, 0xE642}
+    EXCLUDE = {0xCC9C}   # far-call dispatcher (dissolves; callers inline)
 
     ready, blocked_hw, blocked_indirect, blocked_deps = [], 0, 0, 0
     for t in sorted(targets):
