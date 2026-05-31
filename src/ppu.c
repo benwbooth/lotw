@@ -240,6 +240,11 @@ void ppu_debug_tilesheet(int which, u8 *out)
 extern u8 NES_MEM[0x10000];
 void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
 
+/* Controller 1 shift register. Button bit order (LSB first, = NES shift order):
+ * bit0 A, 1 B, 2 Select, 3 Start, 4 Up, 5 Down, 6 Left, 7 Right. */
+static u8 s_buttons, s_ctrl_latch, s_strobe;
+void ppu_set_buttons(u8 b) { s_buttons = b; }
+
 void nes_reg_write(u16 addr, u8 val)
 {
     switch (addr) {
@@ -281,6 +286,10 @@ void nes_reg_write(u16 addr, u8 val)
         else if ((s_mmc3_sel & 7) == 7) ppu_map_prg(0xA000, val); /* R7 -> $A000 */
         break;
     case 0xA000: s_mirror = (val & 1) ? 0 : 1; break;  /* MMC3: 0=vert,1=horiz arrangement */
+    case 0x4016:                                       /* controller strobe */
+        s_strobe = val & 1;
+        if (s_strobe) s_ctrl_latch = s_buttons;
+        break;
     default:
         if (addr >= 0x4000 && addr <= 0x4017 && addr != 0x4014 && apu_write_hook)
             apu_write_hook(addr, val);             /* route APU regs to the synth */
@@ -306,7 +315,13 @@ u8 nes_reg_read(u16 addr)
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
         return ret;
     }
-    case 0x4016: case 0x4017: return 0;        /* controllers: none (headless) */
+    case 0x4016: {                             /* controller 1 serial read */
+        if (s_strobe) return s_buttons & 1;    /* strobing -> always button A */
+        u8 bit = s_ctrl_latch & 1;
+        s_ctrl_latch >>= 1;                    /* shift out one button bit */
+        return bit;
+    }
+    case 0x4017: return 0;                      /* controller 2 / APU-frame read: none */
     default: return 0;
     }
 }

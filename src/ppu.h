@@ -20,6 +20,7 @@ void ppu_load_chr(const u8 *chr, unsigned len);
 void ppu_load_prg(const u8 *prg, unsigned len);
 void ppu_map_prg(u16 cpu_base, u8 bank8k);     /* map an 8KiB PRG bank to $8000/$A000 */
 void ppu_set_vblank(int on);
+void ppu_set_buttons(u8 b);
 void ppu_set_sprite0(int on);
 
 /* Reset PPU state (call once at startup). */

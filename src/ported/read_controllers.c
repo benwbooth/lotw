@@ -13,6 +13,21 @@ void read_controllers(Regs *r)
 {
     u8 x, a, c;
 
+#ifdef LOTW_SHIM
+    /* Shim build: hit the real controller shift register via REG_W/REG_R so each
+     * read returns the next button bit (flat RAM8 returns the same value 8x). */
+    REG_W(0x4016, 0x01);
+    REG_W(0x4016, 0x00);
+    for (x = 8; x != 0; x--) {
+        a = (u8)(REG_R(0x4016) | REG_R(0x4017));
+        c = a & 1; a >>= 1;
+        RAM8(0x20) = (u8)((RAM8(0x20) << 1) | c);
+        c = a & 1;
+        RAM8(0x21) = (u8)((RAM8(0x21) << 1) | c);
+    }
+    RAM8(0x20) = RAM8(0x20) | RAM8(0x21);
+    (void)r; return;
+#endif
     RAM8(0x4016) = 0x01;          /* LDX #$01 / STX JOY1  — strobe on  */
     RAM8(0x4016) = 0x00;          /* DEX / STX JOY1       — strobe off */
     for (x = 8; x != 0; x--) {
