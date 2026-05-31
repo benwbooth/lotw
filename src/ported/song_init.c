@@ -43,10 +43,17 @@ void song_init(Regs *r)
      * last MMC3-register writes from sound_set_song_banks resident at $8000/$8001
      * ($07 and snd_music_bank1) while $8002+ read as 0. Model that exactly. */
     {
+#ifdef LOTW_SHIM
+        /* Shim build: the music bank is really mapped at $8000, so read the
+         * actual song-pointer-table entry (this is the faithful behavior). */
+        RAM8(0x0E) = RAM8((u16)(0x8000 + idx));
+        RAM8(0x0F) = RAM8((u16)(0x8001 + idx));
+#else
         u8 lo = (idx == 0) ? 0x07 : (idx == 1 ? RAM8(0x35) : 0x00);
         u8 hi = (idx + 1 == 0) ? 0x07 : ((idx + 1 == 1) ? RAM8(0x35) : 0x00);
         RAM8(0x0E) = lo;            /* $8000+idx */
         RAM8(0x0F) = hi;            /* $8001+idx */
+#endif
     }
     RAM8(0x0C) = 0x93;
     RAM8(0x0D) = 0x00;

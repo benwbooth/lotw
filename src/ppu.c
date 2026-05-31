@@ -238,6 +238,7 @@ void ppu_debug_tilesheet(int which, u8 *out)
 
 /* ---- register hooks (the REG_W/REG_R the game drives) ---- */
 extern u8 NES_MEM[0x10000];
+void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
 
 void nes_reg_write(u16 addr, u8 val)
 {
@@ -280,7 +281,10 @@ void nes_reg_write(u16 addr, u8 val)
         else if ((s_mmc3_sel & 7) == 7) ppu_map_prg(0xA000, val); /* R7 -> $A000 */
         break;
     case 0xA000: s_mirror = (val & 1) ? 0 : 1; break;  /* MMC3: 0=vert,1=horiz arrangement */
-    default: break;                            /* APU / other: ignored here */
+    default:
+        if (addr >= 0x4000 && addr <= 0x4017 && addr != 0x4014 && apu_write_hook)
+            apu_write_hook(addr, val);             /* route APU regs to the synth */
+        break;
     }
 }
 
