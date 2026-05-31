@@ -141,8 +141,9 @@ class CPU:
         for i in range(max_steps):
             if self.pc == (SENT + 1) & 0xFFFF:
                 return
-            if vram_sync and i >= 4000 and self.mem[0x28] != 0:
-                self.mem[0x28] = 0   # NMI consumes the queued VRAM job
+            if vram_sync and i >= 4000:
+                self.mem[0x28] = 0   # NMI consumes the queued VRAM job ($28)
+                self.mem[0x36] = 0   # ...and decrements the pending-job counter ($36)
             self.step()
         raise RuntimeError("routine did not return within step budget")
 

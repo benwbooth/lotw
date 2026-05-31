@@ -1,0 +1,5 @@
+{ "name": "sub_F782", "addr": "F782", "entry": "lda_a",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_E98F", "sub_E99A", "sub_F7F7", "sub_CA54", "farcall_bank_09_r7"],
+  "setup": {},
+  "notes": "per-frame active-job tick: if $0491 set, copy $0490.. via E98F, DEC $F3, tail-call sub_F7F7 or finalize via L_F7AA (CA54 pointer build + bank-9 far-call + E99A copyback)." }
