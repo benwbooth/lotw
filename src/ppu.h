@@ -31,6 +31,7 @@ void ppu_render(u8 *out);
 /* Render one 16-wide tile sheet of a pattern table to `out` for verification:
  * `which` selects the $0000 (0) or $1000 (1) half; uses a fixed grayscale.
  * out must be 128*128*3 bytes. */
+void ppu_render_statusbar(u8 *out, int rows);
 void ppu_debug_tilesheet(int which, u8 *out);
 
 /* --- direct state access (for tests / the frame driver) --- */

@@ -81,6 +81,9 @@ int main(int argc, char **argv)
     fprintf(stderr, "C7B5 (screen layout)...\n");
     RAM8(0x7C) = 0x10; sub_C7B5(&r); sub_C1C7(&r);
     RAM8(0x7C) = 0x20; sub_C7B5(&r); sub_C1C7(&r);
+    void sub_C57A(Regs*); void sub_D0E5(Regs*);
+    fprintf(stderr, "C57A (status-bar setup)...\n");
+    sub_C57A(&r); sub_D0E5(&r);
 
     /* run a few per-frame iterations so the NMI flushes the staged room to VRAM */
     void sub_F628(Regs*); void sub_E87C(Regs*); void sub_F782(Regs*);
@@ -128,11 +131,17 @@ int main(int argc, char **argv)
       fprintf(stderr, "HUD bufs $0140:"); for(int i=0;i<8;i++) fprintf(stderr," %02X",NES_MEM[0x140+i]);
       fprintf(stderr, "  CHR win:"); extern int ppu_chr_win_dbg(int); for(int i=0;i<8;i++) fprintf(stderr," %d", ppu_chr_win_dbg(i));
       fprintf(stderr, "\n"); }
+    { fprintf(stderr, "split flag $29=%02X  scroll vars $1C=%02X $1D=%02X $1E=%02X\n",
+              NES_MEM[0x29], NES_MEM[0x1C], NES_MEM[0x1D], NES_MEM[0x1E]);
+      fprintf(stderr, "NT0 row24 ($300, where HUD shows at scrollY=$C4):");
+      for (int i = 0; i < 24; i++) fprintf(stderr, " %02X", ppu_vram[0x300 + i]);
+      fprintf(stderr, "\n"); }
 
     if (!(ppu_mask & 0x18)) ppu_mask = 0x1E;   /* force rendering on to visualize VRAM */
     ppu_ctrl |= 0x08;              /* sprites from $1000 (character CHR) */
     static u8 frame[PPU_W * PPU_H * 3];
     ppu_render(frame);
+    if (NES_MEM[0x29]) { void ppu_render_statusbar(u8*,int); ppu_render_statusbar(frame, 40); }
     ppm_write("build/game_frame.ppm", frame, PPU_W, PPU_H);
 
     /* also render at scroll 0 to inspect the raw nametable without the shift */

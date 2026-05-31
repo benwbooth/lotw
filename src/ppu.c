@@ -193,6 +193,31 @@ void ppu_render(u8 *out)
     }
 }
 
+/* Render the top status-bar band as the sprite-0 split does: the top `rows`
+ * scanlines are drawn from NT0 at scroll (0,$C4) with the HUD CHR banks
+ * (R1=$16, R4=$3E, R5=$3F per statusbar_split), overwriting the play area. */
+void ppu_render_statusbar(u8 *out, int rows)
+{
+    u8 b1 = s_mmc3_bank[1], b4 = s_mmc3_bank[4], b5 = s_mmc3_bank[5];
+    s_mmc3_bank[1] = 0x16; s_mmc3_bank[4] = 0x3E; s_mmc3_bank[5] = 0x3F;
+    recompute_chr();
+    int bg_pt = (ppu_ctrl & 0x10) ? 0x1000 : 0x0000;
+    for (int sy = 0; sy < rows && sy < PPU_H; sy++) {
+        int wy = sy + 0xC4, ty = wy >> 3, fy = wy & 7;   /* HUD scroll Y = $C4 */
+        for (int sx = 0; sx < PPU_W; sx++) {
+            int tx = sx >> 3, fx = sx & 7;               /* HUD scroll X = 0 */
+            u8 tile = ppu_vram[nt_offset(tx, ty)];
+            unsigned a = bg_pt + tile * 16 + fy;
+            int bit = 7 - fx;
+            int v = ((chr_at(a) >> bit) & 1) | (((chr_at(a + 8) >> bit) & 1) << 1);
+            u8 idx = v ? ppu_pal[attr_bits(tx, ty) * 4 + v] : ppu_pal[0];
+            put(out, sx, sy, idx);
+        }
+    }
+    s_mmc3_bank[1] = b1; s_mmc3_bank[4] = b4; s_mmc3_bank[5] = b5;
+    recompute_chr();
+}
+
 void ppu_debug_tilesheet(int which, u8 *out)
 {
     static const u8 gray[4] = {0, 12, 0x10, 0x30};   /* master-palette indices */
