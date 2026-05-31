@@ -1,0 +1,5 @@
+{ "name": "sub_B25D", "addr": "B25D", "entry": "none",
+  "inputs": [], "compare": ["ram"],
+  "calls": ["sub_B278"], "setup": {}, "shaper": null,
+  "oracle": {"vram_sync": true},
+  "notes": "INC $0A to next multiple of 8, sub_B278($FF) per step; wrap $F0->0. sub_B278 frame-syncs on $28." }

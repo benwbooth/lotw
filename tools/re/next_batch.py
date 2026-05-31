@@ -68,7 +68,9 @@ def main():
         # oracle timeout -> FAIL -> agent SKIP. So we no longer block on reads_dyn.
         if r["has_indirect"]:
             blocked_indirect += 1; continue
-        deps = {c for c in r["callees"] if 0xA000 <= c < 0x10000}
+        # A self JMP/JSR (tail-loop or recursion) is always portable — it becomes a
+        # while-loop / self-call in C — so it's never an unmet dependency.
+        deps = {c for c in r["callees"] if 0xA000 <= c < 0x10000 and c != t}
         unmet = deps - set(ported)
         if unmet:
             blocked_deps += 1; continue

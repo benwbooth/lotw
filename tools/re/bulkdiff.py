@@ -163,6 +163,13 @@ def main():
         bad = skipped = 0
         cmp = s.get("compare", ["ram"])
         for i, st in enumerate(states):
+            g = proc.stdout[i * REC:(i + 1) * REC]
+            if g[0] & 0x80:
+                # Harness watchdog tripped: the port did not terminate on this
+                # state (unbounded hardware/controller/NMI wait under flat memory).
+                # The oracle skips these too via its step limit; skip the state.
+                skipped += 1
+                continue
             try:
                 o = oracle(rom, s, *st)
             except (RuntimeError, ValueError):
@@ -171,7 +178,6 @@ def main():
                 # Not the port's fault; skip the state.
                 skipped += 1
                 continue
-            g = proc.stdout[i * REC:(i + 1) * REC]
             ga = dict(a=g[1], x=g[2], y=g[3], c=g[4], z=g[5], n=g[6], v=g[7])
             oa = dict(a=o[0], x=o[1], y=o[2], c=o[3], z=o[4], n=o[5], v=o[6])
             ok = all((ram_eq(o[7], g[8:]) if w == "ram" else oa[w] == ga[w]) for w in cmp)

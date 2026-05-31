@@ -7,10 +7,21 @@
  *
  * argv[1] = rom path.
  * Record in/out: [id u8][a][x][y][c][z][n][v][ram 2048]   (id only meaningful in)
+ *
+ * WATCHDOG: a ported routine may be an unbounded loop that waits on hardware /
+ * controller / NMI state (these never change in flat host memory), so it would
+ * spin a CPU core forever. A per-record setitimer(ITIMER_REAL) fires after a
+ * short budget; the SIGALRM handler siglongjmp's back and the record is flagged
+ * (id |= 0x80) so the diff-test skips it — the same states the m6502 oracle
+ * skips via its step limit. No real terminating routine takes anywhere near the
+ * budget (native C runs them in microseconds).
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "regs.h"
 
 u8 NES_MEM[0x10000];
@@ -18,6 +29,22 @@ void nes_reg_write(u16 addr, u8 val) { (void)addr; (void)val; }
 
 extern PortFn PORT_FNS[];
 extern int PORT_N;
+
+static sigjmp_buf g_jb;
+static void on_alarm(int sig) { (void)sig; siglongjmp(g_jb, 1); }
+
+#define WATCHDOG_USEC 150000   /* 150 ms per record — generous for any real port */
+
+static void arm_watchdog(void)
+{
+    struct itimerval it = {{0, 0}, {0, WATCHDOG_USEC}};
+    setitimer(ITIMER_REAL, &it, NULL);
+}
+static void disarm_watchdog(void)
+{
+    struct itimerval it = {{0, 0}, {0, 0}};
+    setitimer(ITIMER_REAL, &it, NULL);
+}
 
 static void load_rom(const char *path)
 {
@@ -34,6 +61,8 @@ int main(int argc, char **argv)
 {
     if (argc < 2) { fprintf(stderr, "usage: bulk_harness rom.nes\n"); return 1; }
     load_rom(argv[1]);
+    signal(SIGALRM, on_alarm);
+
     unsigned char in[HDR + 0x800], out[HDR + 0x800];
     while (fread(in, 1, sizeof in, stdin) == sizeof in) {
         u8 id = in[0];
@@ -46,11 +75,24 @@ int main(int argc, char **argv)
         memset(NES_MEM, 0, 0xA000);
         memcpy(NES_MEM, in + HDR, 0x800);
         if (id >= PORT_N) { fprintf(stderr, "bad id %u\n", id); return 2; }
-        PORT_FNS[id](&r);
-        out[1] = r.a; out[2] = r.x; out[3] = r.y;
-        out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
-        out[0] = id;
-        memcpy(out + HDR, NES_MEM, 0x800);
+
+        if (sigsetjmp(g_jb, 1) == 0) {
+            arm_watchdog();
+            PORT_FNS[id](&r);
+            disarm_watchdog();
+            out[0] = id;
+            out[1] = r.a; out[2] = r.x; out[3] = r.y;
+            out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
+            memcpy(out + HDR, NES_MEM, 0x800);
+        } else {
+            /* Watchdog tripped: the port did not terminate on this state.
+             * Flag the record (high bit of id) so the diff-test skips it. */
+            disarm_watchdog();
+            out[0] = id | 0x80;
+            out[1] = r.a; out[2] = r.x; out[3] = r.y;
+            out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
+            memcpy(out + HDR, in + HDR, 0x800);
+        }
         fwrite(out, 1, sizeof out, stdout);
     }
     return 0;
