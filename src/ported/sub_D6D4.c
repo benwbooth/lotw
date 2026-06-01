@@ -38,7 +38,20 @@ void sub_C3E5(Regs *r);
 void sub_C1C7(Regs *r);
 void sub_C492(Regs *r);
 
-/* L_D895: the common screen-rebuild tail after a fixed-coord warp (D866/D883). */
+/* L_D895: the common screen-rebuild tail after a fixed-coord warp (D866/D883).
+ *
+ * LOCKSTEP NOTE — frame-budget limit (architectural, not a bug): on real hardware
+ * this rebuild's nametable+attribute build (C5CB -> C5F7) is heavy enough that it
+ * does not finish within the post-vblank remainder of one frame. FCEUX's end-of-
+ * frame RAM sample therefore catches an INTERMEDIATE state — e.g. with the C9D2
+ * job already drained ($28=0) and the source pointer ($0E/$0F) advanced, but C1C7
+ * ($1D=0) and C492 ($36=5) not yet reached — i.e. the rebuild visibly spans two
+ * frames. The C port executes every routine instantaneously between vblank yields,
+ * so it can never materialise that split and is ~1 frame faster across each heavy
+ * rebuild. Reproducing it would require cycle/scanline-accurate CPU timing (a 6502
+ * core), which the readable C port deliberately avoids. The lockstep diff is
+ * content-aligned by controller-read count to absorb this; the residual is a
+ * transient <=1-frame walk-phase offset that re-converges when the player stops. */
 static void scene_rebuild_full(Regs *r)
 {
     sub_C3E5(r);
