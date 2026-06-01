@@ -38,12 +38,21 @@ void nmi_handler(Regs *r)
     REG_W(0x2003, 0x00);                  /* OAMADDR = 0 */
     REG_W(0x4014, 0x02);                  /* OAMDMA from page $02 */
 
-    u8 req = RAM8(0x28);                  /* nmi_vram_req */
-    if (req == 0 || req >= 0x07) {        /* BEQ L_D21E / CMP #$07 BCC else */
+    u8 req = RAM8(0x28);                  /* LDA nmi_vram_req */
+    if (req == 0) {                       /* BEQ L_D21E */
         nmi_tail(r);
         return;
     }
-    RAM8(0x28) = 0x00;                    /* clear the request */
+    RAM8(0x28) = 0x00;                    /* LDX #$00 / STX nmi_vram_req — the real code
+                                           * clears the request for EVERY non-zero value,
+                                           * BEFORE the CMP #$07 below. (Clearing only for
+                                           * 1..6 left req>=7 jobs — e.g. the A=$FF reveal
+                                           * jobs — pending forever, hanging callers that
+                                           * spin on $28.) */
+    if (req >= 0x07) {                    /* CMP #$07 / BCC L_D221 — else fall to nmi_tail */
+        nmi_tail(r);
+        return;
+    }
     /* JMP ($0006): the real code copies the handler address from the $D244 jump
      * table into $06/$07 before dispatching. We dispatch via the switch below, but
      * still write $06/$07 so they match the hardware byte-for-byte. */
