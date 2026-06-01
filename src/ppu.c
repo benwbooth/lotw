@@ -391,6 +391,10 @@ int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
 
 /* set/clear the vblank + sprite-0 status bits (frame driver uses these) */
 u8 (*nes_next_input)(void) = 0;   /* per-read input hook (lockstep); NULL = use s_buttons */
+
+/* Yield one frame in the live-input build so a button-poll spin-loop's $4016 latch
+ * refreshes; no-op under per-read lockstep input. See the ppu.h doc comment. */
+void nes_input_poll_yield(Regs *r) { if (!nes_next_input && nes_vblank_wait) nes_vblank_wait(r); }
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }
 

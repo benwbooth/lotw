@@ -12,6 +12,9 @@
  * (read_controllers yields $20=0 in flat memory). Integration-verified. */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+#include "ppu.h"          /* nes_input_poll_yield — keep button polls fast-CPU-safe */
+#endif
 
 void sub_C7B5(Regs *r); void sub_D15F(Regs *r); void sub_D0E5(Regs *r);
 void sub_C1C7(Regs *r); void read_controllers(Regs *r); void sub_E3D6(Regs *r);
@@ -24,8 +27,14 @@ void sub_E2AA(Regs *r)
     RAM8(0x7C) = 0x30;                  /* scroll_x_tile */
     sub_C7B5(r); sub_D15F(r); sub_D0E5(r); sub_C1C7(r);
 
-    do { read_controllers(r); }         /* L_E2BA: wait for release */
-    while (RAM8(0x20) != 0);
+    /* L_E2BA: wait for release. Yield a frame per iteration in the live-input
+     * build so the pad latch refreshes (the main loop below already yields via
+     * $36=1/C135); no-op under per-read lockstep input. */
+#ifdef LOTW_SHIM
+    do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) != 0);
+#else
+    do { read_controllers(r); } while (RAM8(0x20) != 0);
+#endif
 
     RAM8(0xF9) = 0; RAM8(0xF5) = 0; RAM8(0xF7) = 0;
     RAM8(0x0281) = 0xF5; RAM8(0x0291) = 0xF5;     /* cursor OAM Y */

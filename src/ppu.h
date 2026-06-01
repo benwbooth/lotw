@@ -44,6 +44,16 @@ void ppu_set_sprite0(int on);
  * use whatever ppu_set_buttons last latched (the interactive/SDL path). */
 extern u8 (*nes_next_input)(void);
 
+/* Frame-yield for faithful "wait for button" spin-loops (E00F/E27D/AE11/E424/...).
+ * On real hardware those loops re-read the LIVE controller every iteration, so the
+ * player's press/release ends them. In the interactive/SDL build the $4016 latch
+ * only refreshes when the coroutine yields a frame, so a non-yielding poll spins
+ * forever on stale input (a hang on this effectively-infinite-speed CPU). This
+ * yields one frame so the latch refreshes — BUT only in the live-input build: in
+ * the lockstep co-sim (nes_next_input set) input advances per read and the loops
+ * must keep matching the real ROM's many-reads-per-frame, so it's a no-op there. */
+void nes_input_poll_yield(Regs *r);
+
 /* Reset PPU state (call once at startup). */
 void ppu_reset(void);
 
