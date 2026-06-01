@@ -25,6 +25,9 @@
  * Integration-verified. */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+#include "ppu.h"         /* nes_vblank_wait — drive the title/select frames */
+#endif
 
 /* JSR / far-call targets */
 void sub_B631(Regs *r); void sub_D08A(Regs *r); void sub_C375(Regs *r);
@@ -52,9 +55,9 @@ void sub_B13D(Regs *r);         /* L_B13D: resume-saved-game */
 static void farcall_cce4(Regs *r, u8 lo, u8 hi, void (*target)(Regs *))
 {
     RAM8(0x0E) = lo; RAM8(0x0F) = hi;
-    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33);
+    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33); RAM8(0x25) = 0x06; NES_PRG_SYNC();
     target(r);
-    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
 }
 
 /* JSR $CC43 leaves the combined pad in A (== $20). */
@@ -88,7 +91,11 @@ restart:                                            /* L_AE64 */
     RAM8(0x24) = 0x1E;
     REG_W(0x2001, 0x1E);                            /* PPUMASK */
     RAM8(0x36) = 0x78;
+#ifdef LOTW_SHIM
+    while (RAM8(0x36) != 0) nes_vblank_wait(r);     /* L_AEBE: ~120-frame title hold */
+#else
     while (RAM8(0x36) != 0) { }                     /* L_AEBE: vblank wait */
+#endif
     sub_B6A6(r);
     RAM8(0x8C) = 0x14;
 

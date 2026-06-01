@@ -17,9 +17,9 @@ void sub_B6A6(Regs *r)
         /* JSR farcall_return_home ($CCE4) -> $C135: restore banks from $32/$33,
          * run C135, and on return the $CD08 seed re-maps banks 12/13 ($30/$31). */
         RAM8(0x0E) = 0x35; RAM8(0x0F) = 0xC1;
-        RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33);  /* return_home restore */
+        RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33); RAM8(0x25) = 0x06; NES_PRG_SYNC();  /* return_home restore (select=06) */
         sub_C135(r);
-        RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;  /* $CD08 seed: banks 12/13, select=$07 */
+        RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();  /* $CD08 seed: banks 12/13, select=$07 */
         RAM8(0x09) = (u8)(RAM8(0x09) - 0x10);   /* SEC / SBC #$10 / STA $09 */
     } while (!(RAM8(0x09) & 0x80));     /* BPL L_B6AA */
     sub_C569(r);                        /* JSR $C569 */

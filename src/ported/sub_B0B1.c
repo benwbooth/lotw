@@ -19,9 +19,9 @@ void sub_CAF8(Regs *r); void sub_CAE2(Regs *r); void sub_C135(Regs *r);
 static void farcall_cce4(Regs *r, u8 lo, u8 hi, void (*target)(Regs *))
 {
     RAM8(0x0E) = lo; RAM8(0x0F) = hi;
-    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33);
+    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33); RAM8(0x25) = 0x06; NES_PRG_SYNC();
     target(r);
-    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
 }
 
 void sub_B0B1(Regs *r)

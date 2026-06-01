@@ -139,47 +139,83 @@ static void put(u8 *out, int x, int y, u8 palidx)
     p[0] = c[0]; p[1] = c[1]; p[2] = c[2];
 }
 
+/* Sample one background pixel at world coords (wx,wy) over the 2x2 nametable
+ * arrangement. Each nametable is 256x240 (32x30 tiles) with its attribute table
+ * at +$3C0; vertical wrap is at 240 (the 30-row layout), NOT 256. Returns the
+ * resolved palette index (color 0 -> universal backdrop). */
+static u8 bg_pixel(int wx, int wy, int bg_pt)
+{
+    wx &= 0x1FF;                                  /* two NTs across (512px) */
+    wy %= 480; if (wy < 0) wy += 480;             /* two NTs down (2*240px) */
+    int ntx = (wx >> 8) & 1, nty = (wy >= 240) ? 1 : 0;
+    int lx = wx & 0xFF, ly = (wy >= 240) ? wy - 240 : wy;
+    int phys = (s_mirror == 0) ? nty : ntx;       /* mirroring picks the physical NT */
+    unsigned nt = phys ? 0x400 : 0;
+    int cx = lx >> 3, cy = ly >> 3, fx = lx & 7, fy = ly & 7;
+    u8 tile = ppu_vram[nt + cy * 32 + cx];
+    u8 ab = ppu_vram[nt + 0x3C0 + (cy >> 2) * 8 + (cx >> 2)];
+    int pal = (ab >> ((((cy & 2) ? 2 : 0) + ((cx & 2) ? 1 : 0)) * 2)) & 3;
+    unsigned a = bg_pt + tile * 16 + fy;
+    int v = ((chr_at(a) >> (7 - fx)) & 1) | (((chr_at(a + 8) >> (7 - fx)) & 1) << 1);
+    return v ? ppu_pal[pal * 4 + v] : ppu_pal[0];
+}
+
 void ppu_render(u8 *out)
 {
     int bg_pt = (ppu_ctrl & 0x10) ? 0x1000 : 0x0000;   /* BG pattern table */
     int sp_pt = (ppu_ctrl & 0x08) ? 0x1000 : 0x0000;   /* 8x8 sprite pattern table */
-    u8 backdrop = ppu_pal[0];
+    int tall  = (ppu_ctrl & 0x20) ? 1 : 0;             /* 8x16 sprite mode */
 
-    /* ---- background ---- */
+    /* Status-bar sprite-0 split: the top rows are the HUD (scroll (0,$C4), NT0,
+     * HUD CHR banks); the rest is the play area at scroll ($1C,$1E) with the game
+     * banks. The split scanline is sprite 0's Y. (See statusbar_split.) */
+    int split  = NES_MEM[0x29] != 0;
+    int splitY = split ? (ppu_oam[0] + 1) : 0;
+    if (splitY < 0) splitY = 0; else if (splitY > PPU_H) splitY = PPU_H;
+
+    /* ---- play-area background: rows [splitY, 240) at the current scroll ---- */
     if (ppu_mask & 0x08) {
-        for (int sy = 0; sy < PPU_H; sy++) {
-            int wy = sy + ppu_scroll_y;
-            int ty = (wy >> 3), fy = wy & 7;
-            for (int sx = 0; sx < PPU_W; sx++) {
-                int wx = sx + ppu_scroll_x;
-                int tx = (wx >> 3), fx = wx & 7;
-                u8 tile = ppu_vram[nt_offset(tx, ty)];
-                unsigned a = bg_pt + tile * 16 + fy;
-                int bit = 7 - fx;
-                int v = ((chr_at(a) >> bit) & 1) | (((chr_at(a + 8) >> bit) & 1) << 1);
-                u8 idx = v ? ppu_pal[attr_bits(tx, ty) * 4 + v] : backdrop;
-                put(out, sx, sy, idx);
-            }
+        int bx = (ppu_ctrl & 1) ? 256 : 0, by = (ppu_ctrl & 2) ? 240 : 0;
+        for (int sy = splitY; sy < PPU_H; sy++) {
+            int wy = by + ppu_scroll_y + (sy - splitY);   /* v reloads at the split */
+            for (int sx = 0; sx < PPU_W; sx++)
+                put(out, sx, sy, bg_pixel(bx + ppu_scroll_x + sx, wy, bg_pt));
         }
     } else {
-        for (int i = 0; i < PPU_W * PPU_H; i++) {
-            const u8 *c = NES_PAL[backdrop & 0x3F];
-            out[i*3]=c[0]; out[i*3+1]=c[1]; out[i*3+2]=c[2];
-        }
+        for (int sy = splitY; sy < PPU_H; sy++)
+            for (int sx = 0; sx < PPU_W; sx++) put(out, sx, sy, ppu_pal[0]);
     }
 
-    /* ---- sprites (8x8 mode; draw front-priority on top of BG) ---- */
+    /* ---- status-bar region: rows [0, splitY) from NT0 at (0,$C4), HUD banks ---- */
+    if (split && (ppu_mask & 0x08)) {
+        u8 b1 = s_mmc3_bank[1], b4 = s_mmc3_bank[4], b5 = s_mmc3_bank[5];
+        s_mmc3_bank[1] = 0x16; s_mmc3_bank[4] = 0x3E; s_mmc3_bank[5] = 0x3F;
+        recompute_chr();
+        for (int sy = 0; sy < splitY; sy++)
+            for (int sx = 0; sx < PPU_W; sx++)
+                put(out, sx, sy, bg_pixel(sx, 0xC4 + sy, bg_pt));
+        s_mmc3_bank[1] = b1; s_mmc3_bank[4] = b4; s_mmc3_bank[5] = b5;
+        recompute_chr();
+    }
+
+    /* ---- sprites (8x8 or 8x16; lower index = higher priority) ---- */
     if (ppu_mask & 0x10) {
-        for (int i = 63; i >= 0; i--) {            /* lower index = higher priority */
+        for (int i = 63; i >= 0; i--) {
             u8 *o = ppu_oam + i * 4;
-            int y = o[0] + 1, tile = o[1], at = o[2], x = o[3];
-            int pal = 0x10 + (at & 3) * 4;
-            int hflip = at & 0x40, vflip = at & 0x80;
-            if (y >= PPU_H || y < 0) continue;
-            for (int row = 0; row < 8; row++) {
+            int y = o[0] + 1, at = o[2], x = o[3];
+            int pal = 0x10 + (at & 3) * 4, hflip = at & 0x40, vflip = at & 0x80;
+            int h = tall ? 16 : 8;
+            if (y >= PPU_H || y + h <= 0) continue;
+            for (int row = 0; row < h; row++) {
                 int py = y + row; if (py < 0 || py >= PPU_H) continue;
-                int sr = vflip ? 7 - row : row;
-                unsigned a = sp_pt + tile * 16 + sr;
+                int sr = vflip ? (h - 1 - row) : row;
+                unsigned a;
+                if (tall) {                        /* tile bit0 = table; pairs of tiles */
+                    unsigned base = ((o[1] & 1) ? 0x1000u : 0x0000u) + (o[1] & 0xFE) * 16;
+                    a = base + (sr < 8 ? sr : 16 + (sr - 8));
+                } else {
+                    a = sp_pt + o[1] * 16 + sr;
+                }
                 u8 p0 = chr_at(a), p1 = chr_at(a + 8);
                 for (int col = 0; col < 8; col++) {
                     int px = x + col; if (px < 0 || px >= PPU_W) continue;
@@ -239,6 +275,26 @@ void ppu_debug_tilesheet(int which, u8 *out)
 /* ---- register hooks (the REG_W/REG_R the game drives) ---- */
 extern u8 NES_MEM[0x10000];
 void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
+
+/* ---- frame-sync hook (see ppu.h) ---- */
+void nmi_handler(Regs *r);           /* ported $D1FE NMI; the default fires it */
+
+/* Default vblank-wait: run exactly one NMI inline. The hardware NMI preserves the
+ * CPU registers (PHA/TXA/PHA/TYA/PHA ... PLA/RTI), so save/restore the Regs around
+ * it — firing it inside a mid-routine wait must not clobber the caller's a/x/y. */
+static void nes_vblank_default(Regs *r)
+{
+    Regs save = *r;
+    nmi_handler(r);
+    *r = save;
+}
+void (*nes_vblank_wait)(Regs *r) = nes_vblank_default;
+
+void nes_prg_map_shadow(void)
+{
+    ppu_map_prg(0x8000, NES_MEM[0x30]);   /* R6 shadow -> $8000 */
+    ppu_map_prg(0xA000, NES_MEM[0x31]);   /* R7 shadow -> $A000 */
+}
 
 /* Controller 1 shift register. Button bit order (LSB first, = NES shift order):
  * bit0 A, 1 B, 2 Select, 3 Start, 4 Up, 5 Down, 6 Left, 7 Right. */
@@ -329,6 +385,7 @@ u8 nes_reg_read(u16 addr)
 int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
 
 /* set/clear the vblank + sprite-0 status bits (frame driver uses these) */
+u8 (*nes_next_input)(void) = 0;   /* per-read input hook (lockstep); NULL = use s_buttons */
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }
 

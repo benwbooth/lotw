@@ -14,6 +14,7 @@
 
 void sub_E7F0(Regs *r); void sub_D991(Regs *r); void sub_DF90(Regs *r);
 void sub_DBDD(Regs *r); void sub_D8E3(Regs *r); void sub_D94E(Regs *r);
+extern int nes_nonlocal_xfer;   /* raised on the L_D506 PLA/PLA non-local return */
 
 void sub_D4DF(Regs *r)
 {
@@ -37,7 +38,9 @@ void sub_D4DF(Regs *r)
     }
 
 L_D506:
-    /* PLA / PLA — drop the caller's return frame (non-local return; see header) */
+    /* PLA / PLA — drop the caller's return frame (non-local return; see header).
+     * Signal game_update to skip its tail (this frame is fully driven here). */
+    nes_nonlocal_xfer = 1;
     RAM8(0x22) = 0x01;
     {
         u8 old4f = RAM8(0x4F);           /* LDA $4F */

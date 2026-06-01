@@ -16,8 +16,19 @@ void vram_blit_stack(Regs *r); void vram_copy_indirect(Regs *r); void vram_poke2
 void nmi_handler(Regs *r)
 {
     /* PHA / TXA / PHA / TYA / PHA — save regs (real NMI frame) */
-    /* LDA PPUSTATUS -> nmi_scratch (clears the vblank latch on hardware) */
+    /* LDA PPUSTATUS -> nmi_scratch (clears the vblank latch on hardware). */
+#ifdef LOTW_SHIM
+    /* At the NMI (start of vblank, scanline 241): bit7 vblank is set; bit6 sprite-0
+     * hit is set iff sprite 0 overlapped opaque BG during the frame just rendered.
+     * In LotW sprite 0 is the status-bar split marker, present (and overlapping the
+     * HUD background) on every frame that rendering is enabled (PPUMASK shadow $24
+     * shows BG or sprites). The game branches on bit6 (sub_A3E3 / sub_ABBC); the low
+     * bits are PPU open bus (unmodelled, so $26 is masked in the lockstep diff).
+     * Hardcoding 0 made every sprite-0-hit branch take the wrong path. */
+    RAM8(0x26) = (u8)(0x80 | ((RAM8(0x24) & 0x18) ? 0x40 : 0x00));
+#else
     RAM8(0x26) = 0x00;                    /* nmi_scratch (PPUSTATUS read; 0 in flat host) */
+#endif
     REG_W(0x2003, 0x00);                  /* OAMADDR = 0 */
     REG_W(0x4014, 0x02);                  /* OAMDMA from page $02 */
 

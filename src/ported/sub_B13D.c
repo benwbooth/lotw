@@ -16,6 +16,9 @@
  * Primitives: $CC8F=queue_ppu_job_and_wait, $FC08=song_init. */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+#include "ppu.h"         /* nes_vblank_wait */
+#endif
 
 void sub_B29B(Regs *r); void sub_C461(Regs *r); void sub_C38B(Regs *r);
 void sub_B2EE(Regs *r); void sub_B2CC(Regs *r); void sub_B25D(Regs *r);
@@ -67,7 +70,11 @@ void sub_B13D(Regs *r)
     while (RAM8(0xD4) == 0) { }                 /* L_B19F: wait for $D4 != 0 */
     while (RAM8(0xD4) != 0) { }                 /* L_B1A3: wait for $D4 == 0 */
     RAM8(0x36) = 0x3C;
+#ifdef LOTW_SHIM
+    while (RAM8(0x36) != 0) nes_vblank_wait(r);  /* L_B1AB: ~60-frame timer */
+#else
     while (RAM8(0x36) != 0) { }                 /* L_B1AB: 60-frame timer wait */
+#endif
 
     RAM8(0x94) = 0x00;                          /* clear reveal flags */
     RAM8(0xA4) = 0x00;

@@ -36,6 +36,7 @@
 void sub_D64F(Regs *r);    /* secret-warp check (RTS-trampoline; PLA/PLA stack effect is integration-only) */
 void sub_D596(Regs *r);    /* equipped-item per-frame tick */
 void sub_DCE2(Regs *r);    /* queued-action handler */
+extern int nes_nonlocal_xfer;  /* DCE2/D4DF raised a PLA/PLA non-local transfer (skip rest) */
 void sub_CD2C(Regs *r);    /* per-object recompute */
 void sub_D4DF(Regs *r);    /* jump/fall physics (PLA/PLA non-local return; tail-redraws) */
 void sub_D991(Regs *r);    /* per-object scan loop (returns carry) */
@@ -104,8 +105,13 @@ L_D436:
         goto L_D55A;
 
     /* L_D47E */
-    if (RAM8(0x20) & 0x08)                    /* LDA $20 / AND #$08 / BEQ L_D487 */
+    if (RAM8(0x20) & 0x08) {                  /* LDA $20 / AND #$08 / BEQ L_D487 */
         sub_DCE2(r);                          /* JSR L_DCE2 */
+        /* DCE2's $05/$04/$03 hits do PLA/PLA + JMP — a non-local transfer that
+         * discards this frame and returns to game_update's caller. Mirror that:
+         * skip the rest of game_update. */
+        if (nes_nonlocal_xfer) { nes_nonlocal_xfer = 0; return; }
+    }
 
     /* L_D487 — find first free object slot in $0087..$008B */
     y = 0x01;                                 /* LDY #$01 */
@@ -139,12 +145,14 @@ L_D436:
     if (RAM8(0x4F) != 0) {                    /* LDA $4F / BNE L_D4A4 */
         /* L_D4A4 */
         sub_D4DF(r);                          /* JSR L_D4DF (jump physics; may PLA/PLA tail-return) */
-        /* On the PLA/PLA branch D4DF redraws and returns to the grandparent; in
-         * the flat ABI it returns here and we continue. On its normal-RTS branch
-         * it returns here too. Either way: LDA #$00 / JMP L_D4B0. */
+        /* D4DF's L_D506 path does PLA/PLA — it fully drives this frame (D991/DF90 +
+         * D8AF redraw) and returns to game_update's caller. Mirror that: skip the
+         * rest of game_update. (Only its early $4F==0&&$22!=0 RTS falls through.) */
+        if (nes_nonlocal_xfer) { nes_nonlocal_xfer = 0; return; }
         RAM8(0x4F) = 0x00;                    /* LDA #$00 / (L_D4B0) STA $4F */
     } else if (RAM8(0x20) & 0x80) {           /* LDA $4F==0 -> LDA $20 / BPL L_D4AC; bit7 set -> L_D4A4 */
         sub_D4DF(r);                          /* L_D4A4: JSR L_D4DF */
+        if (nes_nonlocal_xfer) { nes_nonlocal_xfer = 0; return; }
         RAM8(0x4F) = 0x00;                    /* LDA #$00 / (L_D4B0) STA $4F */
     } else {
         /* L_D4AC */

@@ -15,9 +15,9 @@ static void farcall_0C0D(Regs *r, void (*target)(Regs *))
 {
     u8 old6 = RAM8(0x30), old7 = RAM8(0x31);
     RAM8(0x32) = old6; RAM8(0x33) = old7;
-    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
     target(r);                                  /* JMP ($000E) */
-    RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06;
+    RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06; NES_PRG_SYNC();
 }
 
 void sub_F349(Regs *r)

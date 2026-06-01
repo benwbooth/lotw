@@ -25,6 +25,12 @@ void sub_E077(Regs *r);   /* $05 handler */
 void sub_E424(Regs *r);   /* $04 handler */
 void sub_D5F3(Regs *r);   /* $03 key-door handler */
 
+/* Set when one of the $05/$04/$03 hits fires its PLA/PLA non-local transfer. On
+ * hardware that JMP discards DCE2's caller frame, so the handler returns to the
+ * GRANDPARENT (game_update's caller) — the rest of game_update is skipped. The
+ * flat ABI can't drop a frame, so DCE2 raises this and game_update returns early. */
+int nes_nonlocal_xfer = 0;
+
 void sub_DCE2(Regs *r)
 {
     u8 a;
@@ -60,11 +66,13 @@ void sub_DCE2(Regs *r)
 hit_E077:
     /* L_DD19: PLA / PLA / JMP L_E077 — drop the caller frame, tail to E077. */
     sub_E077(r);
+    nes_nonlocal_xfer = 1;
     return;
 
 hit_E424:
     /* L_DD1E: PLA / PLA / JMP L_E424 — drop the caller frame, tail to E424. */
     sub_E424(r);
+    nes_nonlocal_xfer = 1;
     return;
 
 hit_D5F3:
@@ -87,6 +95,7 @@ hit_D5F3:
 
         /* PLA / PLA / JMP L_D5F3 — drop the caller frame, tail to D5F3. */
         sub_D5F3(r);
+        nes_nonlocal_xfer = 1;
         return;
     }
 }

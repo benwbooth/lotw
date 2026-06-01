@@ -25,6 +25,13 @@ void metasprite_build(Regs *r)
     int x, y;
     u8 dst_lo, mask2;
 
+#ifdef LOTW_SHIM
+    { extern int printf(const char*,...); static int n=0;
+      if (p79 == 0xAD00 && n++ < 6) printf("[msb] p0C=$%04X p79=$%04X e0=$%02X ty=$%02X t0=$%02X t1=$%02X R6=%02X R7=%02X\n",
+          p0C, p79, RAM8(p0C), (u8)(RAM8(p0C)<<2),
+          RAM8((u16)(p79+((RAM8(p0C)<<2)&0xFF))), RAM8((u16)(p79+(((RAM8(p0C)<<2)+1)&0xFF))),
+          RAM8(0x30), RAM8(0x31)); }
+#endif
     RAM8(0x0B) = 0x00;
     for (x = 0x16; x >= 0; x -= 2) {
         u8 e = RAM8((u16)(p0C + RAM8(0x0B)));   /* ($0C)[$0B] */

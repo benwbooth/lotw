@@ -26,4 +26,9 @@ void sub_C9D2(Regs *r)
     RAM8(0x78) = (u8)(lo + 0x03);         /* CLC / ADC #$03 / STA $78 */
     RAM8(0x77) = 0x00;                    /* STA $77 */
     RAM8(0x75) = 0x00;                    /* STA $75 */
+
+    /* The final carry-affecting op is "CLC / ADC #$03"; the STA $77/$75 that follow
+     * don't touch it. text_attr_build's first "ADC #$A0" (forming the tile-table
+     * pointer $7A) consumes this carry, so model it. */
+    r->c = ((lo + 0x03) > 0xFF) ? 1 : 0;
 }

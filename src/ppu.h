@@ -10,9 +10,23 @@
 #ifndef LOTW_PPU_H
 #define LOTW_PPU_H
 #include "nes.h"
+#include "regs.h"
 
 #define PPU_W 256
 #define PPU_H 240
+
+/* Frame-sync hook (LOTW_SHIM builds). The decompiled engine blocks on the NMI at
+ * each vblank-wait ($36 spin / queue_ppu_job_and_wait / the C135 commit). This
+ * pointer is what those sites call. The default fires one NMI inline (so the
+ * headless drivers advance a frame per wait); a coroutine front-end overrides it
+ * to yield one frame to its window/audio/input loop, then resume. */
+extern void (*nes_vblank_wait)(Regs *r);
+
+/* Physically map the R6/R7 PRG banks from the $30/$31 shadow bytes into NES_MEM
+ * ($8000/$A000). The far-call helpers change the shadows but, unlike the hardware
+ * dispatcher, don't switch the mapper — call this so far-called code reads its
+ * bank's data (palettes/tiles/tables) instead of a stale bank's. */
+void nes_prg_map_shadow(void);
 
 /* CHR pattern data (tile bitmaps). The cartridge has up to 64 KiB of CHR-ROM
  * banked into the PPU's $0000-$1FFF pattern space by the MMC3. Load it once. */
@@ -22,6 +36,13 @@ void ppu_map_prg(u16 cpu_base, u8 bank8k);     /* map an 8KiB PRG bank to $8000/
 void ppu_set_vblank(int on);
 void ppu_set_buttons(u8 b);
 void ppu_set_sprite0(int on);
+
+/* Optional per-read input hook (lockstep co-sim): when non-NULL, read_controllers
+ * calls it at entry to fetch the next controller byte, so input is indexed by
+ * controller-READ count (content-aligned) rather than wall-frame — making the
+ * co-sim robust to frame-timing slips between the port and the real ROM. NULL =>
+ * use whatever ppu_set_buttons last latched (the interactive/SDL path). */
+extern u8 (*nes_next_input)(void);
 
 /* Reset PPU state (call once at startup). */
 void ppu_reset(void);

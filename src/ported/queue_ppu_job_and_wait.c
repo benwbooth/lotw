@@ -6,16 +6,19 @@
 #include "ram.h"
 #include "regs.h"
 #ifdef LOTW_SHIM
-void nmi_handler(Regs *r);
+#include "ppu.h"         /* nes_vblank_wait */
 #endif
 void queue_ppu_job_and_wait(Regs *r)
 {
 #ifdef LOTW_SHIM
-    /* Shim build: actually perform the queued job by running one NMI (which
-     * dispatches the vram_* uploader into the software PPU, then clears $28).
-     * One queue-and-wait == one frame's NMI, matching hardware. */
-    RAM8(0x28) = r->a;   /* STA nmi_vram_req = A (job type) */
-    nmi_handler(r);      /* NMI applies it and clears $28 */
+    /* Shim build, faithful to the asm: PHA / wait $28==0 / PLA / STA $28=A / wait
+     * $28==0 / RTS. The LEADING wait (for a prior job to clear) is usually 0 frames
+     * but burns one when a job is still pending — needed for frame-exact transition
+     * timing. Each wait yields a frame; the vblank hook runs the NMI that applies
+     * the job and clears $28. */
+    while (RAM8(0x28) != 0) nes_vblank_wait(r);   /* wait prior job clear */
+    RAM8(0x28) = r->a;                            /* STA nmi_vram_req = A (job type) */
+    while (RAM8(0x28) != 0) nes_vblank_wait(r);   /* wait this job clear */
 #else
     RAM8(0x28) = 0;      /* flat-memory port: job applied synchronously by the oracle */
 #endif

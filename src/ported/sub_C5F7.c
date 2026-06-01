@@ -53,9 +53,9 @@ void sub_C5F7(Regs *r)
         M(0x08) = 0x00;
         do {
             u8 idx = M((u16)(p0C + M(0x08)));
-            u16 mt = (u16)(p79 + ((u16)idx << 2));
-            REG_W(0x2007, M(mt));
-            REG_W(0x2007, M((u16)(mt + 1)));
+            u8 y = (u8)(idx << 2);              /* ASL A / ASL A / TAY (8-bit Y) */
+            REG_W(0x2007, M((u16)(p79 + y)));
+            REG_W(0x2007, M((u16)(p79 + (u8)(y + 1))));   /* INY */
             M(0x08)++;
             M(0x0B)--;
         } while (M(0x0B) != 0);
@@ -68,9 +68,9 @@ void sub_C5F7(Regs *r)
         M(0x08) = 0x00;
         do {
             u8 idx = M((u16)(p0C + M(0x08)));
-            u16 mt = (u16)(p79 + ((u16)idx << 2) + 2);
-            REG_W(0x2007, M(mt));
-            REG_W(0x2007, M((u16)(mt + 1)));
+            u8 y = (u8)((idx << 2) + 2);        /* ASL A / ASL A / TAY / INY / INY */
+            REG_W(0x2007, M((u16)(p79 + y)));
+            REG_W(0x2007, M((u16)(p79 + (u8)(y + 1))));   /* INY */
             M(0x08)++;
             M(0x0B)--;
         } while (M(0x0B) != 0);

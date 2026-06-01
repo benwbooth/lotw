@@ -38,14 +38,15 @@ static void farcall_0C0D(Regs *r, u8 lo, u8 hi, void (*target)(Regs *))
     u8 old6 = RAM8(0x30), old7 = RAM8(0x31);
     RAM8(0x32) = old6; RAM8(0x33) = old7;
     RAM8(0x0E) = lo; RAM8(0x0F) = hi;
-    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
     target(r);                                  /* JMP ($000E) */
-    RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06;
+    RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06; NES_PRG_SYNC();
 }
 
 void main_init(Regs *r)
 {
-    /* SEI / LDX #$FF / TXS — stack init (implicit in the flat host model). */
+    /* SEI / LDX #$FF / TXS — point the stack pointer at the top of the $0100 page. */
+    r->s = 0xFF;
     REG_W(0x2000, 0x00);                /* PPUCTRL = 0 */
     REG_W(0x2001, 0x00);                /* PPUMASK = 0 */
     REG_W(0x4010, 0x00);                /* DMC_FREQ = 0 */
@@ -59,7 +60,8 @@ void main_init(Regs *r)
     /* do { a = REG_R(PPUSTATUS); } while (!(a & 0x80));   x2 (integration-only) */
 
     /* L_C026 — soft-restart re-entry */
-    /* LDX #$FF / TXS */
+    /* LDX #$FF / TXS — reset the stack pointer on a soft restart too. */
+    r->s = 0xFF;
     REG_W(0xA000, 0x00);                /* MMC3_MIRROR = 0 */
     farcall_bank_0C0D_seed(r);          /* JSR farcall_bank_0C0D_seed ($CD08) */
 

@@ -18,14 +18,21 @@ void sub_C135(Regs *r);
 void sub_C430(Regs *r)
 {
     u8 y = 0x04;
+#ifndef LOTW_SHIM
     int first = 1;
+#endif
     do {
         int x;
-        /* asm does STA $36 #$05 every pass, but the oracle's NMI sync zeros $36
-         * once the first C135's frame-wait burns past the step budget; only the
-         * first dispatch sees a live $36, the rest see it already consumed (0). */
+        /* asm does STA $36 #$05 every pass. Under integration (LOTW_SHIM) reproduce
+         * that so each C135 frame-syncs (4 passes -> ~20 frames). In the isolated
+         * diff-test the oracle's NMI sync zeros $36 after pass 1, so only the first
+         * dispatch sees a live $36 there. */
+#ifdef LOTW_SHIM
+        RAM8(0x36) = 0x05;
+#else
         RAM8(0x36) = first ? 0x05 : 0x00;
         first = 0;
+#endif
         for (x = 0x1C; x >= 0; --x) {
             u8 v = RAM8((u16)(0x0184 + x));
             u8 lo = v & 0x0F;

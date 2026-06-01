@@ -8,6 +8,9 @@
  */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+#include "ppu.h"         /* nes_vblank_wait */
+#endif
 
 void sub_C7FE(Regs *r);
 void sub_CAA5(Regs *r);
@@ -24,7 +27,14 @@ void sub_C135(Regs *r)
     } else if (RAM8(0x36) != 0) {
         sub_C569(r);
     }
-    /* L_C158: LDA $36 / BNE L_C158 — spin until the NMI clears $36. The wait
-     * exits only once $36 reaches 0, so model that terminal state directly. */
+    /* L_C158: LDA $36 / BNE L_C158 — spin until the NMI clears $36. */
+#ifdef LOTW_SHIM
+    /* Shim: this is the per-frame commit. Wait one real frame — the vblank hook
+     * runs an NMI (which decrements $36) inline, or yields a frame and resumes. */
+    while (RAM8(0x36) != 0) nes_vblank_wait(r);
+#else
+    /* Flat-memory port: the wait exits only once $36 reaches 0 (the oracle's
+     * sync_clear treats the poll as satisfied), so model that terminal state. */
     RAM8(0x36) = 0;
+#endif
 }

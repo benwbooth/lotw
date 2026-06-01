@@ -14,6 +14,13 @@ void read_controllers(Regs *r)
     u8 x, a, c;
 
 #ifdef LOTW_SHIM
+    /* Lockstep co-sim: pull the next input by controller-READ count (content-aligned)
+     * before strobing, so frame-timing slips don't misalign input. */
+    {
+        extern u8 (*nes_next_input)(void);
+        extern void ppu_set_buttons(u8 b);
+        if (nes_next_input) ppu_set_buttons(nes_next_input());
+    }
     /* Shim build: hit the real controller shift register via REG_W/REG_R so each
      * read returns the next button bit (flat RAM8 returns the same value 8x). */
     REG_W(0x4016, 0x01);

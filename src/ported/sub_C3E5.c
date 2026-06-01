@@ -22,12 +22,19 @@ void sub_C3E5(Regs *r)
     RAM8(0x92) = (u8)(RAM8(0x92) + 1);
     y = 0x04;
     {
+#ifndef LOTW_SHIM
     int first = 1;
+#endif
     do {
         int x;
-        /* see sub_C430: only the first C135 dispatch sees a live $36. */
+        /* see sub_C430: asm STA $36 #$05 every pass; faithful under integration,
+         * oracle zeros $36 after pass 1 in the diff-test. */
+#ifdef LOTW_SHIM
+        RAM8(0x36) = 0x05;
+#else
         RAM8(0x36) = first ? 0x05 : 0x00;
         first = 0;
+#endif
         for (x = 0x1C; x >= 0; --x) {
             u8 v = RAM8((u16)(0x0184 + x));
             u8 lo = v & 0x0F;

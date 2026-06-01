@@ -21,20 +21,32 @@ void sub_C9FB(Regs *r);
 void sub_C540(Regs *r)
 {
     u8 x = r->x;
+#ifndef LOTW_SHIM
     int first = 1;
+#endif
     do {
         int i;
         for (i = 0x1F; i >= 0; --i)
             RAM8((u16)(0x0180 + i)) = 0x30;
         sub_C569(r);
-        /* asm STA $36 each pass; only the first C135 dispatch sees a live $36
-         * before the oracle's NMI sync zeros it (see sub_C430). */
+        /* asm: each pass does (LDA #$01 / STA $36 / JSR C135) then (LDA #$02 / STA
+         * $36 / JSR C135) -> 3 frames/pass. Faithful under integration; in the
+         * isolated diff-test the oracle's NMI sync zeros $36 (only pass 1's first
+         * dispatch sees it live). */
+#ifdef LOTW_SHIM
+        RAM8(0x36) = 0x01;
+#else
         RAM8(0x36) = first ? 0x01 : 0x00;
         first = 0;
+#endif
         sub_C135(r);
         sub_C9FB(r);
         sub_C569(r);
+#ifdef LOTW_SHIM
+        RAM8(0x36) = 0x02;
+#else
         RAM8(0x36) = 0x00;
+#endif
         sub_C135(r);
     } while (--x != 0);
     r->x = x;

@@ -64,9 +64,9 @@ void sub_F55E(Regs *r)
     {
         u8 old6 = RAM8(0x30), old7 = RAM8(0x31);
         RAM8(0x32) = old6; RAM8(0x33) = old7;
-        RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+        RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
         RAM8(0x0E) = 0x53; RAM8(0x0F) = 0xCB;
         sub_CB53(r);                                        /* JMP ($000E) */
-        RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06;
+        RAM8(0x31) = old7; RAM8(0x30) = old6; RAM8(0x25) = 0x06; NES_PRG_SYNC();
     }
 }

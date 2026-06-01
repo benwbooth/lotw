@@ -28,4 +28,15 @@ u8   nes_reg_read(u16 addr);              /* hardware-register read hook  */
 #define REG_R(a)    (*(volatile u8 *)(a))
 #endif
 
+/* Far-call PRG-bank sync. The far-call helpers change the $30/$31 bank shadows;
+ * on hardware (and cc65) the dispatcher also switches the mapper, so this is a
+ * no-op there. In the software shim, NES_MEM must be re-mapped from the shadows
+ * so far-called code reads its own bank's data — see nes_prg_map_shadow(). */
+#ifdef LOTW_SHIM
+void nes_prg_map_shadow(void);
+#define NES_PRG_SYNC() nes_prg_map_shadow()
+#else
+#define NES_PRG_SYNC() ((void)0)
+#endif
+
 #endif /* LOTW_NES_H */

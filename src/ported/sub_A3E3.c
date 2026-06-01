@@ -43,6 +43,9 @@
  * ($CC8F) never clears. Integration-verified. */
 #include "ram.h"
 #include "regs.h"
+#ifdef LOTW_SHIM
+#include "ppu.h"         /* nes_vblank_wait */
+#endif
 
 /* JSR targets in the fixed / current bank (regular calls). */
 void sub_E98F(Regs *r);  void sub_E99A(Regs *r);  void sub_CB69(Regs *r);
@@ -74,9 +77,9 @@ void sub_C135(Regs *r);
 static void farcall_cce4(Regs *r, u8 lo, u8 hi, void (*target)(Regs *))
 {
     RAM8(0x0E) = lo; RAM8(0x0F) = hi;
-    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33);
+    RAM8(0x30) = RAM8(0x32); RAM8(0x31) = RAM8(0x33); RAM8(0x25) = 0x06; NES_PRG_SYNC();
     target(r);
-    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07;
+    RAM8(0x30) = 0x0C; RAM8(0x31) = 0x0D; RAM8(0x25) = 0x07; NES_PRG_SYNC();
 }
 
 /* L_A7FF — completion cutscene (entered only via the boss_life==0 tail-jump).
@@ -99,7 +102,11 @@ static void cutscene_a7ff(Regs *r)
         RAM8(0x45)++;                           /* INC player_y */
         sub_AD7A(r);
         RAM8(0x36) = 0x01;
+#ifdef LOTW_SHIM
+        while (RAM8(0x36) != 0) nes_vblank_wait(r);  /* L_A82D: vblank wait */
+#else
         while (RAM8(0x36) != 0) { }             /* L_A82D: vblank wait */
+#endif
         /* JMP L_A81E */
     }
 

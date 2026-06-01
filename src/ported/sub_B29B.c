@@ -13,7 +13,9 @@ void sub_C135(Regs *r);
 
 void sub_B29B(Regs *r)
 {
+#ifndef LOTW_SHIM
     int first = 1;
+#endif
     RAM8(0xB4) = 0;
     RAM8(0x0D) = 0x10;
     do {
@@ -23,10 +25,15 @@ void sub_B29B(Regs *r)
         RAM8(0x0C) = 0x14;
         do {
             sub_C2B1(r);
-            /* asm STA $36 #$01 each pass; only the first C135 dispatch sees a live
-             * $36 before the oracle's NMI sync zeros it (see sub_C430). */
+            /* asm STA $36 #$01 each pass -> the sprite-field reveal spans 16*20
+             * frames. Faithful under integration; the diff-test oracle zeros $36
+             * after pass 1. */
+#ifdef LOTW_SHIM
+            RAM8(0x36) = 0x01;
+#else
             RAM8(0x36) = first ? 0x01 : 0x00;
             first = 0;
+#endif
             sub_C135(r);
             RAM8(0x0C) = (u8)(RAM8(0x0C) - 1);
         } while (RAM8(0x0C) != 0);
