@@ -25,6 +25,8 @@ u8 ppu_oam[0x100];
 u8 ppu_ctrl, ppu_mask, ppu_scroll_x, ppu_scroll_y;
 
 static u8  s_status;          /* $2002: bit7 vblank, bit6 sprite0, bit5 overflow */
+static u8  s_openbus;         /* PPU I/O open-bus latch: drives $2002's low 5 bits.
+                               * Set by any $2000-$2007 write and by $2004/$2007 reads. */
 static u8  s_oamaddr;
 static u16 s_vaddr;           /* current $2006 VRAM address */
 static u8  s_wtoggle;         /* shared $2005/$2006 high/low write latch */
@@ -94,7 +96,7 @@ void ppu_reset(void)
     memset(ppu_pal, 0, sizeof ppu_pal);
     memset(ppu_oam, 0, sizeof ppu_oam);
     ppu_ctrl = ppu_mask = ppu_scroll_x = ppu_scroll_y = 0;
-    s_status = 0; s_oamaddr = 0; s_vaddr = 0; s_wtoggle = 0; s_readbuf = 0;
+    s_status = 0; s_openbus = 0; s_oamaddr = 0; s_vaddr = 0; s_wtoggle = 0; s_readbuf = 0;
     s_mmc3_sel = 0; s_mirror = 0;
     for (int i = 0; i < 8; i++) s_mmc3_bank[i] = i;   /* identity default */
     recompute_chr();
@@ -303,6 +305,7 @@ void ppu_set_buttons(u8 b) { s_buttons = b; }
 
 void nes_reg_write(u16 addr, u8 val)
 {
+    if (addr >= 0x2000 && addr <= 0x2007) s_openbus = val;  /* any PPU-reg write drives the bus */
     switch (addr) {
     case 0x2000: ppu_ctrl = val; break;
     case 0x2001: ppu_mask = val; break;
@@ -357,18 +360,20 @@ u8 nes_reg_read(u16 addr)
 {
     switch (addr) {
     case 0x2002: {
-        u8 s = s_status;
+        /* top 3 bits = vblank/sprite0/overflow; low 5 = open-bus (last reg write) */
+        u8 s = (u8)((s_status & 0xE0) | (s_openbus & 0x1F));
         s_status &= (u8)~0x80;     /* reading clears vblank flag ... */
         s_wtoggle = 0;             /* ... and resets the $2005/$2006 write latch */
         return s;
     }
-    case 0x2004: return ppu_oam[s_oamaddr];
+    case 0x2004: { u8 ret = ppu_oam[s_oamaddr]; s_openbus = ret; return ret; }
     case 0x2007: {
         u16 a = s_vaddr & 0x3FFF;
         u8 ret;
         if (a >= 0x3F00) { ret = ppu_pal[a & 0x1F]; }
         else { ret = s_readbuf; s_readbuf = ppu_vram[a & 0x7FF]; }  /* buffered read */
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
+        s_openbus = ret;
         return ret;
     }
     case 0x4016: {                             /* controller 1 serial read */
@@ -388,6 +393,28 @@ int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
 u8 (*nes_next_input)(void) = 0;   /* per-read input hook (lockstep); NULL = use s_buttons */
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }
+
+/* Evaluate the $2002 sprite-overflow flag (bit5) for the frame that just rendered:
+ * set it iff more than 8 sprites occupy any visible scanline (0..239). Sprite
+ * height is 8 or 16 per PPUCTRL bit5; OAM Y>=$EF is off-screen. ppu_oam holds the
+ * frame's sprites (DMA'd at its start). Frame-driver helper; reflects the count the
+ * real PPU's per-scanline evaluation would have hit. */
+void ppu_eval_sprite_overflow(void)
+{
+    int h = (ppu_ctrl & 0x20) ? 16 : 8;
+    u8 perline[240];
+    int s;
+    for (s = 0; s < 240; s++) perline[s] = 0;
+    for (s = 0; s < 64; s++) {
+        int y = ppu_oam[s * 4];
+        if (y >= 0xEF) continue;               /* hidden */
+        int top = y + 1, bot = y + 1 + h;      /* sprite shows on lines [Y+1, Y+1+h) */
+        if (bot > 240) bot = 240;
+        for (int sl = top; sl < bot; sl++)
+            if (++perline[sl] > 8) { s_status |= 0x20; return; }
+    }
+    s_status &= (u8)~0x20;
+}
 
 /* ---- PPM (P6) writer ---- */
 int ppm_write(const char *path, const u8 *rgb, int w, int h)

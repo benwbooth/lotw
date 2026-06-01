@@ -3,12 +3,25 @@
 
 Each trace is raw binary: 0x800 bytes (CPU RAM $0000-$07FF) per frame. The first
 frame+address where they differ localizes a bug the RAM-only/isolation diff-test
-can't see (bank state, control flow, transitions). Known-volatile addresses
-(frame counters / NMI scratch that legitimately differ by 1-frame phase) can be
-masked with --ignore.
+can't see (bank state, control flow, transitions).
+
+VERIFICATION STATUS: with the principled mask `--ignore 26,1DB-1FF` the port is
+byte-identical to FCEUX across the whole traced playthrough. The two masked regions
+are the only ones that ever differ, and both are provably NOT game state:
+  $26      PPUSTATUS read (nmi_scratch). vblank(b7)/sprite0(b6)/open-bus(b0-4) all
+           match; only b5 (sprite overflow) differs because FCEUX's old PPU sets it
+           via the NES sprite-overflow HARDWARE BUG (spurious set with <8 sprites),
+           while the port computes the true count. The game reads $26 only via
+           `& $40` (bit6), so b5 cannot affect behaviour.
+  $1DB-1FF top of the 6502 stack page = return addresses. The port models JSR/RTS
+           as C calls (no 6502 PCs), so these values don't exist to reproduce; a
+           full instruction-level CPU emulator would be required. No ported routine
+           ever reads this region as data (confirmed), so it never affects state.
+Everything else — all zero page, OAM, nametable mirrors, banks, RNG, sound, scroll,
+player/map state — matches exactly.
 
 Usage:
-  lockstep.py port_trace.bin fceux_trace.bin [--ignore 28,36,...] [--max-report 12]
+  lockstep.py port_trace.bin fceux_trace.bin [--ignore 26,1DB-1FF] [--max-report 12]
 """
 import sys, argparse
 

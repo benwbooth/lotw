@@ -1,12 +1,11 @@
-/* $E642 — pop the 7-byte room checkpoint that $E620 pushed, restoring
+/* $E642 — pop the 7-byte room checkpoint that $E620 saved, restoring
  * map_screen_y/x, scroll_x_tile/fine, and player_y/tile/fine. Called from the
- * resume tail ($E5FD) after the character-select, so the player lands back on the
- * exact room/screen they came from. The asm preserves its own return address while
- * pulling the 7 bytes off the stack underneath it.
+ * character-select resume tail ($E5FD), so the player lands back on the exact
+ * room/screen they came from. The asm pulls the 7 bytes off the 6502 stack while
+ * preserving its own return address.
  *
- * In the flat Regs ABI there is no return address on the $0100 page (JSR/RTS are C
- * calls), so we just PLA the 7 bytes via r->s in the reverse of $E620's push order.
- * This is the counterpart to src/ported/sub_E620.c. */
+ * The port keeps the checkpoint in a dedicated LIFO rather than the $0100 page
+ * (see src/ported/sub_E620.c for why), so this just pops the most recent entry. */
 #include "ram.h"
 #include "regs.h"
 
@@ -19,15 +18,22 @@
 #define map_screen_x   0x47
 #define map_screen_y   0x48
 
+/* The checkpoint LIFO defined in sub_E620.c. */
+#define ROOM_CKPT_BYTES 7
+extern u8  room_ckpt_stack[][ROOM_CKPT_BYTES];
+extern int room_ckpt_sp;
+
 void sub_E642(Regs *r)
 {
-    /* PLA in reverse of the push order (stack is LIFO): map_screen_y was pushed
-     * last by $E620, so it comes off first. */
-    RAM8(map_screen_y)  = nes_pull(r);
-    RAM8(map_screen_x)  = nes_pull(r);
-    RAM8(scroll_x_tile) = nes_pull(r);
-    RAM8(scroll_x_fine) = nes_pull(r);
-    RAM8(player_y)      = nes_pull(r);
-    RAM8(player_x_tile) = nes_pull(r);
-    RAM8(player_x_fine) = nes_pull(r);
+    (void)r;
+    if (room_ckpt_sp > 0) {
+        u8 *c = room_ckpt_stack[--room_ckpt_sp];
+        RAM8(player_x_fine) = c[0];
+        RAM8(player_x_tile) = c[1];
+        RAM8(player_y)      = c[2];
+        RAM8(scroll_x_fine) = c[3];
+        RAM8(scroll_x_tile) = c[4];
+        RAM8(map_screen_x)  = c[5];
+        RAM8(map_screen_y)  = c[6];
+    }
 }

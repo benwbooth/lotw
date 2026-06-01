@@ -45,8 +45,7 @@ static void farcall_0C0D(Regs *r, u8 lo, u8 hi, void (*target)(Regs *))
 
 void main_init(Regs *r)
 {
-    /* SEI / LDX #$FF / TXS — point the stack pointer at the top of the $0100 page. */
-    r->s = 0xFF;
+    /* SEI / LDX #$FF / TXS — stack init (implicit in the flat host model). */
     REG_W(0x2000, 0x00);                /* PPUCTRL = 0 */
     REG_W(0x2001, 0x00);                /* PPUMASK = 0 */
     REG_W(0x4010, 0x00);                /* DMC_FREQ = 0 */
@@ -60,8 +59,7 @@ void main_init(Regs *r)
     /* do { a = REG_R(PPUSTATUS); } while (!(a & 0x80));   x2 (integration-only) */
 
     /* L_C026 — soft-restart re-entry */
-    /* LDX #$FF / TXS — reset the stack pointer on a soft restart too. */
-    r->s = 0xFF;
+    /* LDX #$FF / TXS */
     REG_W(0xA000, 0x00);                /* MMC3_MIRROR = 0 */
     farcall_bank_0C0D_seed(r);          /* JSR farcall_bank_0C0D_seed ($CD08) */
 

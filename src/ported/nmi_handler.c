@@ -18,14 +18,20 @@ void nmi_handler(Regs *r)
     /* PHA / TXA / PHA / TYA / PHA — save regs (real NMI frame) */
     /* LDA PPUSTATUS -> nmi_scratch (clears the vblank latch on hardware). */
 #ifdef LOTW_SHIM
-    /* At the NMI (start of vblank, scanline 241): bit7 vblank is set; bit6 sprite-0
-     * hit is set iff sprite 0 overlapped opaque BG during the frame just rendered.
-     * In LotW sprite 0 is the status-bar split marker, present (and overlapping the
-     * HUD background) on every frame that rendering is enabled (PPUMASK shadow $24
-     * shows BG or sprites). The game branches on bit6 (sub_A3E3 / sub_ABBC); the low
-     * bits are PPU open bus (unmodelled, so $26 is masked in the lockstep diff).
-     * Hardcoding 0 made every sprite-0-hit branch take the wrong path. */
-    RAM8(0x26) = (u8)(0x80 | ((RAM8(0x24) & 0x18) ? 0x40 : 0x00));
+    /* The NMI fires at the start of vblank (scanline 241): set the vblank flag, and
+     * sprite-0 hit if the frame just rendered with rendering on (LotW's sprite 0 is
+     * the status-bar split marker, always over opaque BG when PPUMASK $24 shows
+     * BG/sprites). Then the real $2002 read returns vblank|sprite0|overflow|open-bus
+     * into nmi_scratch and clears the vblank latch. */
+    {
+        extern void ppu_set_vblank(int);
+        extern void ppu_set_sprite0(int);
+        extern void ppu_eval_sprite_overflow(void);
+        ppu_set_vblank(1);
+        ppu_set_sprite0((RAM8(0x24) & 0x18) ? 1 : 0);
+        ppu_eval_sprite_overflow();       /* bit5 from the just-rendered OAM */
+    }
+    RAM8(0x26) = REG_R(0x2002);           /* real $2002: vblank|sprite0|overflow|open-bus */
 #else
     RAM8(0x26) = 0x00;                    /* nmi_scratch (PPUSTATUS read; 0 in flat host) */
 #endif
@@ -38,6 +44,15 @@ void nmi_handler(Regs *r)
         return;
     }
     RAM8(0x28) = 0x00;                    /* clear the request */
+    /* JMP ($0006): the real code copies the handler address from the $D244 jump
+     * table into $06/$07 before dispatching. We dispatch via the switch below, but
+     * still write $06/$07 so they match the hardware byte-for-byte. */
+    {
+        static const u8 jt_lo[7] = { 0x51, 0x52, 0x5F, 0x90, 0xE5, 0x34, 0x44 };
+        static const u8 jt_hi[7] = { 0xD3, 0xD2, 0xD2, 0xD2, 0xD2, 0xD3, 0xD3 };
+        RAM8(0x06) = jt_lo[req]; RAM8(0x07) = jt_hi[req];   /* $D244 table[req] */
+    }
+    (void)REG_R(0x2002);                  /* 2nd LDA PPUSTATUS (discarded; resets the latch) */
     REG_W(0x2006, RAM8(0x17));            /* PPUADDR hi = vram_dst_hi */
     REG_W(0x2006, RAM8(0x16));            /* PPUADDR lo = vram_dst_lo */
     REG_W(0x2000, (u8)(RAM8(0x23) & 0x04)); /* PPUCTRL = ppuctrl_shadow & $04 */
