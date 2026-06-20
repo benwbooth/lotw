@@ -16,9 +16,9 @@ void vram_upload_hud(Regs *r)
         REG_W(0x2007, RAM8((u16)(0x0158 + x)));        /* $0158,X */
     for (x = 0x0A; x >= 0; x -= 2) {                   /* attribute blend */
         REG_W(0x2006, RAM8(0x19)); REG_W(0x2006, RAM8((u16)(0x0170 + x)));
-        (void)0; /* LDA PPUDATA x2 (dummy reads) */
+        (void)REG_R(0x2007);                            /* buffered dummy read */
         {
-            u8 v = (u8)((0 & RAM8(0x18)) | RAM8((u16)(0x0171 + x)));  /* read-as-0 in flat port */
+            u8 v = (u8)((REG_R(0x2007) & RAM8(0x18)) | RAM8((u16)(0x0171 + x)));
             REG_W(0x2006, RAM8(0x19)); REG_W(0x2006, RAM8((u16)(0x0170 + x)));
             REG_W(0x2007, v);
         }

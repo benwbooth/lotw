@@ -18,11 +18,11 @@ static const u16 NOISE_PER[16] = {
 static const double DUTY[4] = {0.125, 0.25, 0.5, 0.75};
 
 typedef struct {
-    int enabled, len, period, vol, duty;
+    int enabled, len, period, vol, duty, halt;
     double phase;
 } Pulse;
-typedef struct { int enabled, len, period; double phase; } Tri;
-typedef struct { int enabled, len, period, vol, mode; unsigned lfsr; double phase; } Noise;
+typedef struct { int enabled, len, period, linear, control; double phase; } Tri;
+typedef struct { int enabled, len, period, vol, mode, halt; unsigned lfsr; double phase; } Noise;
 
 static Pulse p1, p2;
 static Tri   tr;
@@ -40,29 +40,33 @@ void apu_write(u16 addr, u8 val)
 {
     switch (addr) {
     /* pulse 1 */
-    case 0x4000: p1.duty = val >> 6; p1.vol = val & 0x0F; break;
+    case 0x4000: p1.duty = val >> 6; p1.halt = (val & 0x20) != 0; p1.vol = val & 0x0F; break;
     case 0x4001: break;                                   /* sweep (ignored) */
     case 0x4002: p1.period = (p1.period & 0x700) | val; break;
     case 0x4003: p1.period = (p1.period & 0xFF) | ((val & 7) << 8);
                  p1.len = LEN_TBL[(val >> 3) & 0x1F]; p1.phase = 0; break;
     /* pulse 2 */
-    case 0x4004: p2.duty = val >> 6; p2.vol = val & 0x0F; break;
+    case 0x4004: p2.duty = val >> 6; p2.halt = (val & 0x20) != 0; p2.vol = val & 0x0F; break;
     case 0x4005: break;
     case 0x4006: p2.period = (p2.period & 0x700) | val; break;
     case 0x4007: p2.period = (p2.period & 0xFF) | ((val & 7) << 8);
                  p2.len = LEN_TBL[(val >> 3) & 0x1F]; p2.phase = 0; break;
     /* triangle */
-    case 0x4008: break;                                   /* linear counter */
+    case 0x4008: tr.control = (val & 0x80) != 0; tr.linear = val & 0x7F; break;
     case 0x400A: tr.period = (tr.period & 0x700) | val; break;
     case 0x400B: tr.period = (tr.period & 0xFF) | ((val & 7) << 8);
                  tr.len = LEN_TBL[(val >> 3) & 0x1F]; break;
     /* noise */
-    case 0x400C: nz.vol = val & 0x0F; break;
+    case 0x400C: nz.halt = (val & 0x20) != 0; nz.vol = val & 0x0F; break;
     case 0x400E: nz.period = NOISE_PER[val & 0x0F]; nz.mode = (val >> 7) & 1; break;
     case 0x400F: nz.len = LEN_TBL[(val >> 3) & 0x1F]; break;
     /* status / enable */
     case 0x4015:
         status = val;
+        p1.enabled = (val & 1) != 0;
+        p2.enabled = (val & 2) != 0;
+        tr.enabled = (val & 4) != 0;
+        nz.enabled = (val & 8) != 0;
         if (!(val & 1)) p1.len = 0;
         if (!(val & 2)) p2.len = 0;
         if (!(val & 4)) tr.len = 0;
@@ -76,15 +80,15 @@ void apu_write(u16 addr, u8 val)
  * but the engine reloads each frame so this is enough to gate note-off). */
 void apu_frame(void)
 {
-    if (p1.len) p1.len--;
-    if (p2.len) p2.len--;
-    if (tr.len) tr.len--;
-    if (nz.len) nz.len--;
+    if (p1.len && !p1.halt) p1.len--;
+    if (p2.len && !p2.halt) p2.len--;
+    if (tr.len && !tr.control) tr.len--;
+    if (nz.len && !nz.halt) nz.len--;
 }
 
 static double pulse_out(Pulse *p)
 {
-    if (p->len == 0 || p->period < 8 || p->vol == 0) return 0;
+    if (!p->enabled || p->len == 0 || p->period < 8 || p->vol == 0) return 0;
     double f = CPU_HZ / (16.0 * (p->period + 1));
     p->phase += f / APU_SR;
     p->phase -= (int)p->phase;
@@ -94,7 +98,7 @@ static double pulse_out(Pulse *p)
 
 static double tri_out(void)
 {
-    if (tr.len == 0 || tr.period < 2) return 0;
+    if (!tr.enabled || tr.len == 0 || tr.linear == 0 || tr.period < 2) return 0;
     double f = CPU_HZ / (32.0 * (tr.period + 1));
     tr.phase += f / APU_SR;
     tr.phase -= (int)tr.phase;
@@ -105,7 +109,7 @@ static double tri_out(void)
 
 static double noise_out(void)
 {
-    if (nz.len == 0 || nz.vol == 0) return 0;
+    if (!nz.enabled || nz.len == 0 || nz.vol == 0) return 0;
     double f = CPU_HZ / nz.period;
     nz.phase += f / APU_SR;
     while (nz.phase >= 1.0) {

@@ -31,6 +31,7 @@ static u8  s_oamaddr;
 static u16 s_vaddr;           /* current $2006 VRAM address */
 static u8  s_wtoggle;         /* shared $2005/$2006 high/low write latch */
 static u8  s_readbuf;         /* $2007 read buffer */
+static unsigned s_cpu_cycles;
 
 /* CHR: up to 64 KiB, mapped to the PPU $0000-$1FFF pattern space in 8x1 KiB
  * windows per MMC3. */
@@ -97,6 +98,7 @@ void ppu_reset(void)
     memset(ppu_oam, 0, sizeof ppu_oam);
     ppu_ctrl = ppu_mask = ppu_scroll_x = ppu_scroll_y = 0;
     s_status = 0; s_openbus = 0; s_oamaddr = 0; s_vaddr = 0; s_wtoggle = 0; s_readbuf = 0;
+    s_cpu_cycles = 0;
     s_mmc3_sel = 0; s_mirror = 0;
     for (int i = 0; i < 8; i++) s_mmc3_bank[i] = i;   /* identity default */
     recompute_chr();
@@ -132,6 +134,15 @@ static u8 attr_bits(int tx, int ty)
     u8 ab = ppu_vram[base + (cy >> 2) * 8 + (cx >> 2)];
     int quad = ((cy & 2) ? 2 : 0) + ((cx & 2) ? 1 : 0);
     return (ab >> (quad * 2)) & 3;
+}
+
+static unsigned nt_addr_offset(u16 addr)
+{
+    unsigned a = (unsigned)(addr - 0x2000) & 0x0FFF;
+    unsigned nt = (a >> 10) & 3;
+    unsigned off = a & 0x03FF;
+    unsigned phys = (s_mirror == 0) ? (nt >> 1) : (nt & 1);
+    return phys * 0x400 + off;
 }
 
 static void put(u8 *out, int x, int y, u8 palidx)
@@ -175,11 +186,15 @@ void ppu_render(u8 *out)
     int splitY = split ? (ppu_oam[0] + 1) : 0;
     if (splitY < 0) splitY = 0; else if (splitY > PPU_H) splitY = PPU_H;
 
-    /* ---- play-area background: rows [splitY, 240) at the current scroll ---- */
+    /* ---- play-area background: rows [splitY, 240) at the current scroll ----
+     * The real split restores the playfield scroll a few scanlines after the
+     * sprite-0 hit wait/delay sequence. LotW's scroll constants are authored for
+     * that timing, so the software renderer samples the playfield 6 rows later
+     * while keeping the HUD/playfield boundary itself at sprite 0's Y. */
     if (ppu_mask & 0x08) {
         int bx = (ppu_ctrl & 1) ? 256 : 0, by = (ppu_ctrl & 2) ? 240 : 0;
         for (int sy = splitY; sy < PPU_H; sy++) {
-            int wy = by + ppu_scroll_y + (sy - splitY);   /* v reloads at the split */
+            int wy = by + ppu_scroll_y + (sy - splitY) + (split ? 6 : 0);
             for (int sx = 0; sx < PPU_W; sx++)
                 put(out, sx, sy, bg_pixel(bx + ppu_scroll_x + sx, wy, bg_pt));
         }
@@ -281,16 +296,30 @@ void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
 /* ---- frame-sync hook (see ppu.h) ---- */
 void nmi_handler(Regs *r);           /* ported $D1FE NMI; the default fires it */
 
-/* Default vblank-wait: run exactly one NMI inline. The hardware NMI preserves the
- * CPU registers (PHA/TXA/PHA/TYA/PHA ... PLA/RTI), so save/restore the Regs around
- * it — firing it inside a mid-routine wait must not clobber the caller's a/x/y. */
+/* Default vblank-wait: run exactly one NMI inline. */
 static void nes_vblank_default(Regs *r)
 {
-    Regs save = *r;
     nmi_handler(r);
-    *r = save;
 }
 void (*nes_vblank_wait)(Regs *r) = nes_vblank_default;
+
+void nes_frame_wait(Regs *r)
+{
+    s_cpu_cycles = 0;
+    if (nes_vblank_wait)
+        nes_vblank_wait(r);
+}
+
+void nes_cpu_advance(Regs *r, unsigned cycles)
+{
+    enum { NES_CPU_CYCLES_PER_FRAME = 29781u };
+    s_cpu_cycles += cycles;
+    while (s_cpu_cycles >= NES_CPU_CYCLES_PER_FRAME) {
+        s_cpu_cycles -= NES_CPU_CYCLES_PER_FRAME;
+        if (nes_vblank_wait)
+            nes_vblank_wait(r);
+    }
+}
 
 void nes_prg_map_shadow(void)
 {
@@ -323,10 +352,15 @@ void nes_reg_write(u16 addr, u8 val)
         u16 a = s_vaddr & 0x3FFF;
         if (a >= 0x3F00) {                     /* palette RAM (with mirroring) */
             u16 p = a & 0x1F;
-            if ((p & 3) == 0) p &= 0x0F;       /* $3F1x/0x mirror of backdrop slots */
-            ppu_pal[p] = val;
-        } else {                               /* nametables ($2000-$2FFF) -> 2KB */
-            ppu_vram[a & 0x7FF] = val;
+            if ((p & 3) == 0) {                /* $3F10/$14/$18/$1C mirror backdrop slots */
+                p &= 0x0F;
+                ppu_pal[p] = val;
+                ppu_pal[p | 0x10] = val;
+            } else {
+                ppu_pal[p] = val;
+            }
+        } else {                               /* nametables ($2000-$2FFF) -> mirrored 2KB */
+            ppu_vram[nt_addr_offset(a)] = val;
         }
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
         break;
@@ -370,8 +404,12 @@ u8 nes_reg_read(u16 addr)
     case 0x2007: {
         u16 a = s_vaddr & 0x3FFF;
         u8 ret;
-        if (a >= 0x3F00) { ret = ppu_pal[a & 0x1F]; }
-        else { ret = s_readbuf; s_readbuf = ppu_vram[a & 0x7FF]; }  /* buffered read */
+        if (a >= 0x3F00) {
+            u16 p = a & 0x1F;
+            if ((p & 3) == 0) p &= 0x0F;
+            ret = ppu_pal[p];
+        }
+        else { ret = s_readbuf; s_readbuf = ppu_vram[nt_addr_offset(a)]; }  /* buffered read */
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
         s_openbus = ret;
         return ret;
@@ -388,13 +426,11 @@ u8 nes_reg_read(u16 addr)
 }
 
 int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
+int ppu_mirror_dbg(void) { return s_mirror; }
 
 /* set/clear the vblank + sprite-0 status bits (frame driver uses these) */
 u8 (*nes_next_input)(void) = 0;   /* per-read input hook (lockstep); NULL = use s_buttons */
 
-/* Yield one frame in the live-input build so a button-poll spin-loop's $4016 latch
- * refreshes; no-op under per-read lockstep input. See the ppu.h doc comment. */
-void nes_input_poll_yield(Regs *r) { if (!nes_next_input && nes_vblank_wait) nes_vblank_wait(r); }
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }
 

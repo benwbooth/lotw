@@ -44,7 +44,7 @@
 #include "ram.h"
 #include "regs.h"
 #ifdef LOTW_SHIM
-#include "ppu.h"         /* nes_vblank_wait */
+#include "ppu.h"         /* nes_frame_wait */
 #endif
 
 /* JSR targets in the fixed / current bank (regular calls). */
@@ -103,7 +103,7 @@ static void cutscene_a7ff(Regs *r)
         sub_AD7A(r);
         RAM8(0x36) = 0x01;
 #ifdef LOTW_SHIM
-        while (RAM8(0x36) != 0) nes_vblank_wait(r);  /* L_A82D: vblank wait */
+        while (RAM8(0x36) != 0) nes_frame_wait(r);   /* L_A82D: vblank wait */
 #else
         while (RAM8(0x36) != 0) { }             /* L_A82D: vblank wait */
 #endif

@@ -49,5 +49,21 @@ Pinned in `config/rom.sha256`. ROMs are never committed.
 - **Stage 1:** `disasm/` assembles → output sha256 must equal the ROM's.
 - **Stage 2:** each C system runs against the emulator on the replay fixtures;
   RAM/PPU/APU state must match frame-for-frame.
+- **Playable-port regression:** `tools/re/replay_regression.py` runs replay
+  fixtures through the C port and compares rendered frames against FCEUX
+  captures. Use this for user-visible checks that RAM lockstep cannot prove:
+  palettes/scrolling/sprite position, APU register streams, and explicit RAM
+  outcome assertions such as item pickup/inventory changes.
+  Example:
+  `nix develop --command python3 tools/re/replay_regression.py outside_walk`
+  Use `--refresh-reference` to regenerate FCEUX captures from the ROM instead
+  of reusing local `build/reference` artifacts, and `--check-apu` to compare APU
+  register writes for music/SFX regressions.
+- **Scheduler/NMI contract:** translated gameplay code must not add ad hoc
+  frame yields to hide fast-host-CPU hangs. Explicit NMI waits call
+  `nes_frame_wait()`, and tight controller polling is interrupted through the
+  central CPU-cycle checkpoint in `read_controllers()`. `ctest` runs
+  `tools/re/check_scheduler_contract.py` to reject direct `nes_vblank_wait()`
+  calls or manual input-yield calls in `src/ported/`.
 
 See `docs/PLAN.md` for the full strategy and phase breakdown.

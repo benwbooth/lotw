@@ -34,9 +34,6 @@
  * integration. Integration-verified. */
 #include "ram.h"
 #include "regs.h"
-#ifdef LOTW_SHIM
-#include "ppu.h"          /* nes_input_poll_yield — keep the cursor-select loop fast-CPU-safe */
-#endif
 
 /* named RAM not in ram.h */
 #define map_screen_y     RAM8(0x48)   /* $0048 */
@@ -154,14 +151,10 @@ L_E0F4:
 
 L_E13F:
     sub_E5B4(r);                         /* JSR L_E5B4 */
-    /* E5B4 returns the instant the A bit ($20&$80) is read — before its own C135
-     * yield. This L_E13F loop re-enters it on an invalid selection, so with A still
-     * held and no yield, it spins forever on the stale input latch (a hang on an
-     * infinitely-fast CPU). Advance one frame in the live-input build so the latch
-     * refreshes (the player's tap ends) before re-evaluating; no-op under lockstep. */
-#ifdef LOTW_SHIM
-    nes_input_poll_yield(r);
-#endif
+    /* E5B4 returns the instant the A bit ($20&$80) is read. If selection is
+     * invalid, this loop may re-enter E5B4 while A is still held; the shim's
+     * read_controllers() checkpoint advances CPU time so NMI can interrupt that
+     * tight re-entry loop without a per-callsite yield. */
     {
         u8 hi = (u8)(RAM8(0x0A) & 0xF0); /* LDA $0A / AND #$F0 */
         if (hi != 0x50)                  /* CMP #$50 / BNE L_E186 */

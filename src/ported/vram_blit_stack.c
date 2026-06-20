@@ -7,8 +7,11 @@
 void nmi_tail(Regs *r);
 void vram_blit_stack(Regs *r)
 {
-    /* TSX/TXA/LDX #$FF/TXS ... PLA x64 -> PPUDATA ... TXS : reads the stack page
-     * as a 64-byte source. In the flat host build the SP juggling has no RAM
-     * effect; the data goes to PPUDATA (a no-op write). */
+    /* TSX/TXA/LDX #$FF/TXS ... PLA x64 -> PPUDATA ... TXS.
+     * With SP forced to $FF, the PLAs stream $0100..$013F. The C port does not
+     * model the 6502 call stack, but the game-visible stack page bytes are in
+     * NES_MEM and are the actual VRAM source for this job. */
+    for (int i = 0; i < 0x40; i++)
+        REG_W(0x2007, RAM8((u16)(0x0100 + i)));
     nmi_tail(r);
 }

@@ -17,7 +17,7 @@
 #include "ram.h"
 #include "regs.h"
 #ifdef LOTW_SHIM
-#include "ppu.h"         /* nes_vblank_wait */
+#include "ppu.h"         /* nes_frame_wait */
 #endif
 
 void sub_B29B(Regs *r); void sub_C461(Regs *r); void sub_C38B(Regs *r);
@@ -71,7 +71,7 @@ void sub_B13D(Regs *r)
     while (RAM8(0xD4) != 0) { }                 /* L_B1A3: wait for $D4 == 0 */
     RAM8(0x36) = 0x3C;
 #ifdef LOTW_SHIM
-    while (RAM8(0x36) != 0) nes_vblank_wait(r);  /* L_B1AB: ~60-frame timer */
+    while (RAM8(0x36) != 0) nes_frame_wait(r);   /* L_B1AB: ~60-frame timer */
 #else
     while (RAM8(0x36) != 0) { }                 /* L_B1AB: 60-frame timer wait */
 #endif

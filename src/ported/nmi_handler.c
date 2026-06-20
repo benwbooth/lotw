@@ -15,7 +15,10 @@ void vram_blit_stack(Regs *r); void vram_copy_indirect(Regs *r); void vram_poke2
 
 void nmi_handler(Regs *r)
 {
-    /* PHA / TXA / PHA / TYA / PHA — save regs (real NMI frame) */
+    /* PHA / TXA / PHA / TYA / PHA - save regs (real NMI frame). */
+    Regs save = *r;
+#define NMI_RETURN() do { *r = save; return; } while (0)
+
     /* LDA PPUSTATUS -> nmi_scratch (clears the vblank latch on hardware). */
 #ifdef LOTW_SHIM
     /* The NMI fires at the start of vblank (scanline 241): set the vblank flag, and
@@ -41,7 +44,7 @@ void nmi_handler(Regs *r)
     u8 req = RAM8(0x28);                  /* LDA nmi_vram_req */
     if (req == 0) {                       /* BEQ L_D21E */
         nmi_tail(r);
-        return;
+        NMI_RETURN();
     }
     RAM8(0x28) = 0x00;                    /* LDX #$00 / STX nmi_vram_req — the real code
                                            * clears the request for EVERY non-zero value,
@@ -51,7 +54,7 @@ void nmi_handler(Regs *r)
                                            * spin on $28.) */
     if (req >= 0x07) {                    /* CMP #$07 / BCC L_D221 — else fall to nmi_tail */
         nmi_tail(r);
-        return;
+        NMI_RETURN();
     }
     /* JMP ($0006): the real code copies the handler address from the $D244 jump
      * table into $06/$07 before dispatching. We dispatch via the switch below, but
@@ -74,4 +77,6 @@ void nmi_handler(Regs *r)
         case 6: vram_poke2(r); break;
     }
     /* each vram_* tail-calls nmi_tail */
+    *r = save;
+#undef NMI_RETURN
 }

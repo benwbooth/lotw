@@ -19,6 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # --- engine: ported routines + PPU/APU shims -------------------------------
 file(GLOB PORTED CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ported/*.c)
@@ -35,7 +36,12 @@ add_executable(play test/play_sdl.c)
 target_link_libraries(play PRIVATE lotw_engine PkgConfig::SDL3)
 
 # --- headless host test drivers (no SDL) -----------------------------------
-foreach(drv apu_test ppu_anim ppu_shim_test ppu_game_driver lockstep_port)
+foreach(drv apu_test ppu_anim ppu_shim_test ppu_game_driver lockstep_port replay_capture_port item_pickup_test)
   add_executable(${drv} test/${drv}.c)
   target_link_libraries(${drv} PRIVATE lotw_engine)
 endforeach()
+
+enable_testing()
+add_test(NAME item_pickup_test COMMAND item_pickup_test)
+add_test(NAME scheduler_contract
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/re/check_scheduler_contract.py)

@@ -6,9 +6,6 @@
  * terminate under flat host memory ($4016 reads 0, so $20 stays 0). Integration-verified. */
 #include "ram.h"
 #include "regs.h"
-#ifdef LOTW_SHIM
-#include "ppu.h"          /* nes_input_poll_yield — keep button polls fast-CPU-safe */
-#endif
 
 void sub_C7B5(Regs *r); void sub_C1C7(Regs *r); void sub_B4D4(Regs *r);
 void sub_D0E5(Regs *r); void read_controllers(Regs *r);
@@ -24,17 +21,10 @@ void sub_E27D(Regs *r)
     sub_B4D4(r);                       /* JSR farcall_bank_0C0D -> $B4D4 (encode) */
     sub_D0E5(r);                       /* JSR L_D0E5 */
 
-    /* Wait release then wait a press. The per-iteration nes_input_poll_yield
-     * advances a frame in the live-input build so the $4016 latch refreshes
-     * (the wait-for-press would otherwise hang on a never-pausing CPU); it is a
-     * no-op under the per-read lockstep input. */
-#ifdef LOTW_SHIM
-    do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) != 0);
-    do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) == 0);
-#else
+    /* Wait release then wait a press. In shim builds, read_controllers() advances
+     * CPU time and lets the central NMI scheduler interrupt the polling loop. */
     do { read_controllers(r); } while (RAM8(0x20) != 0);   /* L_E295 */
     do { read_controllers(r); } while (RAM8(0x20) == 0);   /* L_E29A */
-#endif
 
     RAM8(0x7C) = 0x20;                 /* LDA #$20 / STA scroll_x_tile */
     sub_C7B5(r);                       /* JSR L_C7B5 */

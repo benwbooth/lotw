@@ -16,11 +16,14 @@
 #define PPU_H 240
 
 /* Frame-sync hook (LOTW_SHIM builds). The decompiled engine blocks on the NMI at
- * each vblank-wait ($36 spin / queue_ppu_job_and_wait / the C135 commit). This
- * pointer is what those sites call. The default fires one NMI inline (so the
- * headless drivers advance a frame per wait); a coroutine front-end overrides it
- * to yield one frame to its window/audio/input loop, then resume. */
+ * each vblank-wait ($36 spin / queue_ppu_job_and_wait / the C135 commit). The
+ * default fires one NMI inline; coroutine front-ends override this hook to yield
+ * one frame to their window/audio/input loop, then resume after NMI. Ported code
+ * should call nes_frame_wait(), not this hook directly, so the CPU-cycle model
+ * stays synchronized at explicit frame boundaries. */
 extern void (*nes_vblank_wait)(Regs *r);
+void nes_frame_wait(Regs *r);
+void nes_cpu_advance(Regs *r, unsigned cycles);
 
 /* Physically map the R6/R7 PRG banks from the $30/$31 shadow bytes into NES_MEM
  * ($8000/$A000). The far-call helpers change the shadows but, unlike the hardware
@@ -44,16 +47,6 @@ void ppu_set_sprite0(int on);
  * use whatever ppu_set_buttons last latched (the interactive/SDL path). */
 extern u8 (*nes_next_input)(void);
 
-/* Frame-yield for faithful "wait for button" spin-loops (E00F/E27D/AE11/E424/...).
- * On real hardware those loops re-read the LIVE controller every iteration, so the
- * player's press/release ends them. In the interactive/SDL build the $4016 latch
- * only refreshes when the coroutine yields a frame, so a non-yielding poll spins
- * forever on stale input (a hang on this effectively-infinite-speed CPU). This
- * yields one frame so the latch refreshes — BUT only in the live-input build: in
- * the lockstep co-sim (nes_next_input set) input advances per read and the loops
- * must keep matching the real ROM's many-reads-per-frame, so it's a no-op there. */
-void nes_input_poll_yield(Regs *r);
-
 /* Reset PPU state (call once at startup). */
 void ppu_reset(void);
 
@@ -72,6 +65,7 @@ extern u8 ppu_pal[0x20];       /* palette RAM ($3F00-$3F1F) */
 extern u8 ppu_oam[0x100];      /* sprite memory (64 * 4) */
 extern u8 ppu_ctrl, ppu_mask;  /* $2000 / $2001 shadows */
 extern u8 ppu_scroll_x, ppu_scroll_y;
+int ppu_mirror_dbg(void);      /* 0 = horizontal arrangement, 1 = vertical */
 
 /* Write a P6 PPM image (RGB) to a file. Returns 0 on success. */
 int ppm_write(const char *path, const u8 *rgb, int w, int h);

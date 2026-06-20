@@ -26,7 +26,7 @@
 #include "ram.h"
 #include "regs.h"
 #ifdef LOTW_SHIM
-#include "ppu.h"         /* nes_vblank_wait — drive the title/select frames */
+#include "ppu.h"         /* nes_frame_wait - drive the title/select frames */
 #endif
 
 /* JSR / far-call targets */
@@ -92,7 +92,7 @@ restart:                                            /* L_AE64 */
     REG_W(0x2001, 0x1E);                            /* PPUMASK */
     RAM8(0x36) = 0x78;
 #ifdef LOTW_SHIM
-    while (RAM8(0x36) != 0) nes_vblank_wait(r);     /* L_AEBE: ~120-frame title hold */
+    while (RAM8(0x36) != 0) nes_frame_wait(r);      /* L_AEBE: ~120-frame title hold */
 #else
     while (RAM8(0x36) != 0) { }                     /* L_AEBE: vblank wait */
 #endif

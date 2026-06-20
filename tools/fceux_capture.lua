@@ -12,6 +12,7 @@ local out_dir = os.getenv("LOTW_REFERENCE_OUT_DIR")
 local replay_path = os.getenv("LOTW_REFERENCE_REPLAY")
 local capture_frames_env = os.getenv("LOTW_REFERENCE_FRAMES") or "1,60,120,180"
 local done_path = os.getenv("LOTW_REFERENCE_DONE")
+local apu_trace_path = os.getenv("LOTW_REFERENCE_APU_TRACE")
 
 if not out_dir or out_dir == "" then
   error("LOTW_REFERENCE_OUT_DIR is required")
@@ -96,12 +97,33 @@ local function write_file(path, data)
   assert(f:close())
 end
 
+local current_frame = 0
+local apu_writes = {}
+local function record_apu_write(addr, _, value)
+  if apu_trace_path and apu_trace_path ~= "" then
+    apu_writes[#apu_writes + 1] = string.format("%d\t%04X\t%02X\n", current_frame, addr, value)
+  end
+end
+
+if apu_trace_path and apu_trace_path ~= "" then
+  memory.registerwrite(0x4000, 0x14, record_apu_write)
+  memory.registerwrite(0x4015, 1, record_apu_write)
+  memory.registerwrite(0x4017, 1, record_apu_write)
+end
+
 local function write_ram_dump(frame)
   local chunks = {}
   for addr = 0, 0x7ff do
     chunks[#chunks + 1] = string.char(memory.readbyte(addr))
   end
   write_file(string.format("%s/ram_%06d.bin", out_dir, frame), table.concat(chunks))
+end
+
+local function write_ppu_dump(frame)
+  local chunks = {}
+  chunks[#chunks + 1] = ppu.readbyterange(0x2000, 0x1000)
+  chunks[#chunks + 1] = ppu.readbyterange(0x3f00, 0x20)
+  write_file(string.format("%s/ppu_%06d.bin", out_dir, frame), table.concat(chunks))
 end
 
 local function write_ppm_from_gd(frame)
@@ -147,6 +169,7 @@ manifest:write("max_frame=", tostring(max_frame), "\n")
 FCEU.speedmode("maximum")
 
 for frame = 1, max_frame do
+  current_frame = frame
   local buttons = replay_frames[frame] or {}
   joypad.set(1, buttons)
   FCEU.frameadvance()
@@ -154,6 +177,7 @@ for frame = 1, max_frame do
   if capture_frames[frame] then
     write_ppm_from_gd(frame)
     write_ram_dump(frame)
+    write_ppu_dump(frame)
     manifest:write(string.format("captured_frame=%d\n", frame))
     manifest:flush()
   end
@@ -161,6 +185,10 @@ end
 
 manifest:write("complete=1\n")
 manifest:close()
+
+if apu_trace_path and apu_trace_path ~= "" then
+  write_file(apu_trace_path, "frame\taddr\tvalue\n" .. table.concat(apu_writes))
+end
 
 if done_path and done_path ~= "" then
   write_file(done_path, "complete\n")

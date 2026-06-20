@@ -137,6 +137,15 @@ int main(int argc, char **argv)
     makecontext(&g_game_ctx, game_entry, 0);
     nes_vblank_wait = frame_yield;
 
+    /* Prime reset/main until the game reaches its first frame wait. Each host
+     * frame then injects NMI before resuming the game, so tight polling loops are
+     * interrupted through the same scheduler order as the replay/lockstep paths. */
+    swapcontext(&g_main_ctx, &g_game_ctx);
+    if (g_done) {
+        fprintf(stderr, "game loop returned during boot\n");
+        return 1;
+    }
+
     static u8 fb[PPU_W * PPU_H * 3];
     static short audio[SPF];
     int running = 1, frames = 0;
@@ -204,6 +213,7 @@ int main(int argc, char **argv)
         }
         ppu_set_buttons(b);
 
+        nmi_handler(&g_regs);
         swapcontext(&g_main_ctx, &g_game_ctx);
         if (g_done) { fprintf(stderr, "game loop returned at frame %d\n", frames); break; }
 
@@ -235,7 +245,6 @@ int main(int argc, char **argv)
             }
         }
 
-        nmi_handler(&g_regs);
         ppu_render(fb);
 
         SDL_UpdateTexture(tex, NULL, fb, PPU_W * 3);
@@ -244,6 +253,7 @@ int main(int argc, char **argv)
         SDL_RenderPresent(ren);
 
         if (audio_stream) {
+            apu_frame();
             apu_gen(audio, SPF);
             static int apk = 0; for (int i=0;i<SPF;i++){int v=audio[i]<0?-audio[i]:audio[i]; if(v>apk)apk=v;}
             if (max_frames && frames == max_frames-1) fprintf(stderr, "audio peak=%d (%s)\n", apk, apk>500?"AUDIBLE":"SILENT");

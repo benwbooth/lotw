@@ -21,9 +21,6 @@
  * yields $20=0, so they are not isolation-testable. Integration-verified. */
 #include "ram.h"
 #include "regs.h"
-#ifdef LOTW_SHIM
-#include "ppu.h"          /* nes_input_poll_yield — keep button polls fast-CPU-safe */
-#endif
 
 void sub_E620(Regs *r); void sub_E660(Regs *r); void sub_E6B7(Regs *r);
 void sub_CF30(Regs *r); void sub_CF82(Regs *r); void sub_C1C7(Regs *r);
@@ -50,19 +47,12 @@ void sub_E00F(Regs *r)
         sub_C492(r);                         /* JSR L_C492 */
     }
 
-    /* L_E039/E03E/E045 handshake: wait release, wait the $10 (transition) press,
-     * wait release. Each iteration yields a frame in the live-input build (via
-     * nes_input_poll_yield) so the controller latch refreshes — otherwise the
-     * wait-for-press spins forever on a CPU that never pauses for a frame. */
-#ifdef LOTW_SHIM
-    do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) != 0);
-    do { read_controllers(r); nes_input_poll_yield(r); } while ((RAM8(0x20) & 0x10) == 0);
-    do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) != 0);
-#else
+    /* L_E039/E03E/E045 handshake: wait release, wait the $10 transition press,
+     * wait release. The shim's read_controllers() advances CPU time, so NMI can
+     * interrupt this tight polling loop without a per-callsite yield. */
     do { read_controllers(r); } while (RAM8(0x20) != 0);
     do { read_controllers(r); } while ((RAM8(0x20) & 0x10) == 0);
     do { read_controllers(r); } while (RAM8(0x20) != 0);
-#endif
 
     RAM8(0x8F) = 0x04;                       /* LDA #$04 / STA $8F */
 

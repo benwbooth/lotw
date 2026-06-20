@@ -27,9 +27,6 @@
  * leaves via E514's exit -> L_E5FD non-local JMP. Integration-verified. */
 #include "ram.h"
 #include "regs.h"
-#ifdef LOTW_SHIM
-#include "ppu.h"          /* nes_input_poll_yield — keep button polls fast-CPU-safe */
-#endif
 
 void sub_E5FD(Regs *r);
 void sub_E620(Regs *r); void sub_E660(Regs *r); void sub_E6FF(Regs *r);
@@ -99,14 +96,9 @@ void sub_E424(Regs *r)
             }
         }
 
-        /* L_E49F: wait for button release. nes_input_poll_yield advances a frame
-         * per iteration in the live-input build so the pad latch refreshes (else
-         * a held button hangs on a never-pausing CPU); no-op under lockstep. */
-#ifdef LOTW_SHIM
-        do { read_controllers(r); nes_input_poll_yield(r); } while (RAM8(0x20) != 0);
-#else
+        /* L_E49F: wait for button release. In shim builds, read_controllers()
+         * advances CPU time and lets the central NMI scheduler interrupt. */
         do { read_controllers(r); } while (RAM8(0x20) != 0);
-#endif
         /* JMP L_E450 */
     }
 }

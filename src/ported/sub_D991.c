@@ -53,7 +53,10 @@ L_D997:
         goto L_D9D1;
     /* a > 9 */
     x = RAM8(0x09);                    /* LDX $09 */
-    if (RAM8((u16)(0x0401 + x)) == 0x01) {  /* LDA $0401,X / CMP #$01 / BNE L_D9C8 */
+    r->x = x;
+    v = RAM8((u16)(0x0401 + x));       /* LDA $0401,X */
+    r->a = v;
+    if (v == 0x01) {                   /* CMP #$01 / BNE L_D9C8 */
         sub_DA31(r);                   /* JSR L_DA31 */
         goto L_DA14;                   /* (carry from DA31) */
     }
@@ -64,7 +67,9 @@ L_D997:
 
 L_D9D1:                                /* a < 9 */
     x = RAM8(0x09);                    /* LDX $09 */
+    r->x = x;
     v = RAM8((u16)(0x0401 + x));       /* LDA $0401,X */
+    r->a = v;
     if (v == 0x01)                     /* CMP #$01 / BEQ L_D9E4 */
         goto L_D9E4;
     if (v >= 0x1A)                     /* CMP #$1A / BCS L_D9E7 */
