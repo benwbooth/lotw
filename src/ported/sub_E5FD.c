@@ -2,8 +2,8 @@
  * warp/transition). Pops the room checkpoint (E642), fades in (C3E5), runs E79D,
  * re-arms the level music ($FE -> D02E), reassembles the scene (C8FF/C5CB), and
  * redraws (C1D8/C2B1/C1C7/C492), ending in the D8AF tail (D8E3 + D94E).
- * INSPECTION-PORT (no diff-test spec): calls E642 (6502-stack checkpoint pop) and
- * the frame-sync C3E5/C492 chain. Integration-verified. */
+ * INSPECTION-PORT (no diff-test spec): calls E642 (room-checkpoint pop) and the
+ * frame-sync C3E5/C492 chain. Integration-verified. */
 #include "ram.h"
 #include "regs.h"
 void sub_E642(Regs *r); void sub_C3E5(Regs *r); void sub_E79D(Regs *r);

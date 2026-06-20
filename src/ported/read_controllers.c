@@ -2,15 +2,10 @@
  * JOY1 ($4016) ORed with APU_FRAME ($4017) into the button shadows $20/$21,
  * finally OR them together into $20.
  *
- * Register access uses RAM8 (flat memory): on the NES build it hits the real
- * $4016/$4017 ports; on the host diff-test it reads the flat-memory strobe
- * residue (so it matches the m6502 oracle, which has the same flat semantics).
- * Real controller input on a PC build is wired in via the $4016/$4017 reads. */
+ * Shim builds hit the software controller shift register via REG_W/REG_R.
+ * Flat host builds keep the old RAM8 behavior for non-interactive routine tests. */
 #include "ram.h"
 #include "regs.h"
-#ifdef LOTW_SHIM
-#include "ppu.h"
-#endif
 
 void read_controllers(Regs *r)
 {
@@ -36,10 +31,6 @@ void read_controllers(Regs *r)
         RAM8(0x21) = (u8)((RAM8(0x21) << 1) | c);
     }
     RAM8(0x20) = RAM8(0x20) | RAM8(0x21);
-    /* Approximate this routine's original CPU time. Tight controller polling
-     * loops are interrupted by the central frame scheduler instead of by
-     * per-callsite yield hacks. */
-    nes_cpu_advance(r, 230);
     (void)r; return;
 #endif
     RAM8(0x4016) = 0x01;          /* LDX #$01 / STX JOY1  — strobe on  */

@@ -9,23 +9,19 @@
 #include "ppu.h"
 #include "apu.h"
 #include "regs.h"
+#include "native/frame_runner_c.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <ucontext.h>
 
 u8 NES_MEM[0x10000];
 extern void (*apu_write_hook)(u16, u8);
 
 void reset(Regs*);
-void nmi_handler(Regs*);
+void vblank_commit(Regs*);
 
-static Regs        g_regs;
-static ucontext_t  g_main_ctx, g_game_ctx;
-static int         g_done;
-static char        g_stack[16 * 1024 * 1024];
 static FILE       *g_apu_trace;
 static int         g_frame;
 
@@ -34,20 +30,6 @@ static void apu_write_traced(u16 addr, u8 val)
     if (g_apu_trace)
         fprintf(g_apu_trace, "%d\t%04X\t%02X\n", g_frame, addr, val);
     apu_write(addr, val);
-}
-
-static void frame_yield(Regs *r)
-{
-    Regs save = *r;
-    swapcontext(&g_game_ctx, &g_main_ctx);
-    *r = save;
-}
-
-static void game_entry(void)
-{
-    reset(&g_regs);
-    g_done = 1;
-    swapcontext(&g_game_ctx, &g_main_ctx);
 }
 
 static void mkdir_p(const char *path)
@@ -228,29 +210,28 @@ int main(int argc, char **argv)
     mkdir_p(out_dir);
     load_rom(rom);
 
-    getcontext(&g_game_ctx);
-    g_game_ctx.uc_stack.ss_sp   = g_stack;
-    g_game_ctx.uc_stack.ss_size = sizeof g_stack;
-    g_game_ctx.uc_link          = &g_main_ctx;
-    makecontext(&g_game_ctx, game_entry, 0);
-    nes_vblank_wait = frame_yield;
-
-    /* Prime reset/main until the game reaches its first frame wait. Each captured
-     * frame then runs NMI first, resumes game code, and samples the end-of-frame
-     * state, matching lockstep_port's reference ordering. */
-    swapcontext(&g_main_ctx, &g_game_ctx);
-    if (g_done) {
-        fprintf(stderr, "game loop returned during boot\n");
+    LotwFrameRunner *runner = lotw_frame_runner_create(reset);
+    if (!runner) {
+        fprintf(stderr, "failed to create frame runner\n");
         return 1;
     }
+
+    /* Prime reset/main until the game reaches its first frame wait. Each captured
+     * frame then runs vblank commit first, resumes game code, and samples the end-of-frame
+     * state, matching lockstep_port's reference ordering. */
+    if (!lotw_frame_runner_start(runner)) {
+        fprintf(stderr, "game loop returned during boot\n");
+        lotw_frame_runner_destroy(runner);
+        return 1;
+    }
+    Regs *regs = lotw_frame_runner_regs(runner);
 
     static u8 fb[PPU_W * PPU_H * 3];
     for (int frame = 1; frame <= max_frame; frame++) {
         g_frame = frame;
         ppu_set_buttons(frame <= replay_len ? input[frame] : 0);
-        nmi_handler(&g_regs);
-        swapcontext(&g_main_ctx, &g_game_ctx);
-        if (g_done) {
+        vblank_commit(regs);
+        if (!lotw_frame_runner_resume_until_wait(runner)) {
             fprintf(stderr, "game loop returned at frame %d\n", frame);
             break;
         }
@@ -273,6 +254,7 @@ int main(int argc, char **argv)
 
     free(input);
     free(capture);
+    lotw_frame_runner_destroy(runner);
     if (g_apu_trace)
         fclose(g_apu_trace);
     return 0;

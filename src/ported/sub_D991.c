@@ -10,9 +10,8 @@
  *
  * INSPECTION-PORT (no diff-test spec): validated to 99.99% diff-consistency
  * during development (12000 states, real logic + carry all matched). The residual
- * divergences are flat-memory/NMI-timing artifacts in its deep callees that the
- * m6502 oracle can't model byte-exactly: $28/$36 NMI sync counters (sync_clear
- * step-4000 effect), the song_init $93-$D2 channel block and sub_C9A9 $500-$7FF
+ * divergences are flat-memory/frame-timing artifacts in its deep callees: $28/$36
+ * frame-sync counters, the song_init $93-$D2 channel block and sub_C9A9 $500-$7FF
  * room buffer (read from switchable banks), and OAM slots indexed by the $08
  * scratch that the $36/C569 timing perturbs. Validate by whole-ROM integration. */
 #include "ram.h"
@@ -116,7 +115,7 @@ L_DA13:
 L_DA14:
     RAM8(0x49) = save49;               /* PLA / STA $49 */
     RAM8(0x4B) = save4B;               /* PLA / STA $4B */
-    /* $28/$36 (NMI sync counters) are left as the asm leaves them; their final
-     * value is an NMI-timing artifact the flat oracle can't model (sync_clear
-     * zeroes them only past step 4000), so the spec excludes them from compare. */
+    /* $28/$36 (frame counters) are left as the routine leaves them; their final
+     * value is a vblank-timing artifact the flat oracle can't model, so the spec
+     * excludes them from compare. */
 }

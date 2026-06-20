@@ -1,7 +1,7 @@
 /* $C5F7: render a column/strip of nametable + attribute data to the PPU.
  * Reads tile indices through pointer $0C/$0D, looks up 4-byte metatiles through
- * pointer $79/$7A, and computes attribute bytes. Faithful translation of the
- * 6502 routine; all graphics go to PPUDATA/PPUADDR (hardware, ignored).
+ * pointer $79/$7A, and computes attribute bytes. All graphics go to
+ * PPUDATA/PPUADDR.
  *
  * Stack discipline (net RAM): $23 ($29) $24 pushed at top, $0C/$0D pushed too.
  * $0C/$0D popped (restored) before the second phase, then re-modified there.

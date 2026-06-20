@@ -34,8 +34,8 @@ void sub_B215(Regs *r)
 
     ptr = (u16)(RAM8(0x0C) | (RAM8(0x0D) << 8));
     y = 0x00;
-    /* Guard: the real loop is unbounded; the m6502 oracle caps at its step
-     * limit and the harness SKIPs those non-terminating states. Y is an 8-bit
+    /* Guard: the real loop is unbounded; the harness skips non-terminating
+     * states. Y is an 8-bit
      * index, so after 256 bytes with no $00/$0D terminator the source repeats
      * forever — bail out to avoid hanging (such states are not compared). */
     for (guard = 0; guard < 256; guard++) {

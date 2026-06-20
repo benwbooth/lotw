@@ -1,5 +1,5 @@
 /* $C7FE:
- *   JSR L_CC97                 ; spin-wait on nmi_vram_req ($28)
+ *   JSR L_CC97                 ; wait for vblank_vram_req ($28) to be idle
  *   LDA $7F / BMI L_C80F       ; if $7F negative, use scroll_x_tile as-is
  *     LDA scroll_x_tile ($7C) / CLC / ADC #$10 / STA $0C   ; else col = scroll+$10
  *     JMP L_C813

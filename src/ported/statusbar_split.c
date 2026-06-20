@@ -1,5 +1,5 @@
 /* $D36E statusbar_split — the mid-frame status-bar split (sprite-0-hit timed
- * PPU/CHR reprogram), called from the NMI. Faithful translation; NOT isolated-
+ * PPU/CHR reprogram), called from vblank commit. Faithful port; NOT isolated-
  * diff-tested (the sprite-0 poll needs the PPU flag to toggle across two phases,
  * which a static oracle can't model). Verified by inspection; behaviour will be
  * confirmed by whole-ROM integration testing. On a PC renderer the split itself

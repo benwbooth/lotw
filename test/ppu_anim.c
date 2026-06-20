@@ -1,7 +1,7 @@
 /* Headless gameplay animation: warp into a room, then run the real per-frame
  * game loop (read_controllers -> game_update -> sprite/scene update -> render)
  * for N frames while holding a scripted input, capturing each frame to a PPM.
- * Assembled into a GIF -> shows the decompiled game actually being played. */
+ * Assembled into a GIF -> shows the ported game actually being played. */
 #include "ppu.h"
 #include "apu.h"
 #include "regs.h"

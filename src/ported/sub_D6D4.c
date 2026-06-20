@@ -48,10 +48,10 @@ void sub_C492(Regs *r);
  * ($1D=0) and C492 ($36=5) not yet reached — i.e. the rebuild visibly spans two
  * frames. The C port executes every routine instantaneously between vblank yields,
  * so it can never materialise that split and is ~1 frame faster across each heavy
- * rebuild. Reproducing it would require cycle/scanline-accurate CPU timing (a 6502
- * core), which the readable C port deliberately avoids. The lockstep diff is
- * content-aligned by controller-read count to absorb this; the residual is a
- * transient <=1-frame walk-phase offset that re-converges when the player stops. */
+ * rebuild. That split is a real game timing issue; the readable C port should
+ * model it with explicit frame-yielding gameplay code, not with a CPU core. The
+ * lockstep diff is content-aligned by controller-read count to absorb this until
+ * the routine is migrated. */
 static void scene_rebuild_full(Regs *r)
 {
     sub_C3E5(r);
@@ -62,7 +62,7 @@ static void scene_rebuild_full(Regs *r)
     sub_C1C7(r);
     sub_C1D8(r);
     sub_C492(r);
-    RAM8(0x36) = 0;     /* oracle NMI sync_clear leaves $36=0 after frame waits */
+    RAM8(0x36) = 0;     /* frame waits leave $36=0 in the integrated port */
     r->c = 1;                                /* SEC */
 }
 
@@ -74,7 +74,7 @@ static void scene_rebuild_vert(Regs *r)
     scene_assemble(r);
     sub_C5CB(r);
     sub_C569(r);
-    RAM8(0x36) = 0;     /* oracle NMI sync_clear leaves $36=0 after frame waits */
+    RAM8(0x36) = 0;     /* frame waits leave $36=0 in the integrated port */
     r->c = 1;                                /* SEC */
 }
 
@@ -187,7 +187,7 @@ void sub_D6D4(Regs *r)
         vram_dst_hi = 0x20;
         RAM8(0x0C) = 0x2F;
         farcall_bank_09_r7(r);
-        RAM8(0x36) = 0; /* oracle NMI sync_clear leaves $36=0 after frame waits */
+        RAM8(0x36) = 0; /* frame waits leave $36=0 in the integrated port */
         r->c = 1;                            /* L_D864: SEC */
         return;
     }
@@ -223,6 +223,6 @@ void sub_D6D4(Regs *r)
     vram_dst_hi = 0x24;
     RAM8(0x0C) = 0x10;
     farcall_bank_09_r7(r);
-    RAM8(0x36) = 0;     /* oracle NMI sync_clear leaves $36=0 after frame waits */
+    RAM8(0x36) = 0;     /* frame waits leave $36=0 in the integrated port */
     r->c = 1;                                /* JMP L_D864: SEC */
 }

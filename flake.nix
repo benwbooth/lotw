@@ -1,5 +1,5 @@
 {
-  description = "Legacy of the Wizard — matching 6502 decompilation + C port";
+  description = "Legacy of the Wizard — native C/C++ playable port";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -26,8 +26,6 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            # Matching disassembly toolchain (ca65/ld65/da65 round-trip to the ROM)
-            cc65
             # Reference emulator: tracing, code/data coverage, replay capture
             fceux
             # C port build + tooling

@@ -8,15 +8,15 @@ can't see (bank state, control flow, transitions).
 VERIFICATION STATUS: with the principled mask `--ignore 26,1DB-1FF` the port is
 byte-identical to FCEUX across the whole traced playthrough. The two masked regions
 are the only ones that ever differ, and both are provably NOT game state:
-  $26      PPUSTATUS read (nmi_scratch). vblank(b7)/sprite0(b6)/open-bus(b0-4) all
+  $26      PPUSTATUS read (frame status). vblank(b7)/sprite0(b6)/open-bus(b0-4) all
            match; only b5 (sprite overflow) differs because FCEUX's old PPU sets it
            via the NES sprite-overflow HARDWARE BUG (spurious set with <8 sprites),
            while the port computes the true count. The game reads $26 only via
            `& $40` (bit6), so b5 cannot affect behaviour.
-  $1DB-1FF top of the 6502 stack page = return addresses. The port models JSR/RTS
-           as C calls (no 6502 PCs), so these values don't exist to reproduce; a
-           full instruction-level CPU emulator would be required. No ported routine
-           ever reads this region as data (confirmed), so it never affects state.
+  $1DB-1FF legacy stack-page return-address bytes. The port models old subroutine
+           calls as C calls, so these values do not exist to reproduce. No ported
+           routine ever reads this region as data (confirmed), so it never affects
+           state.
 Everything else — all zero page, OAM, nametable mirrors, banks, RNG, sound, scroll,
 player/map state — matches exactly.
 
@@ -26,9 +26,9 @@ Usage:
 import sys, argparse
 
 FRAME = 0x800
-# Named RAM (from disasm/lotw.inc + analysis) for readable divergence reports.
+# Named RAM for readable divergence reports.
 NAMES = {
-    0x28: "nmi_vram_req", 0x36: "frame_sync", 0x38: "rng_count", 0x39: "rng_s0",
+    0x28: "vblank_vram_req", 0x36: "frame_sync", 0x38: "rng_count", 0x39: "rng_s0",
     0x3A: "rng_s1", 0x3B: "rng_s2", 0x40: "cur_character", 0x47: "map_screen_x",
     0x48: "map_screen_y", 0x58: "health", 0x59: "magic", 0x7C: "scroll_x_tile",
     0x8E: "song", 0x29: "statusbar_split",

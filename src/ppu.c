@@ -1,5 +1,5 @@
 /* Headless software PPU — see ppu.h. Implements the $2000-$2007/$4014 register
- * behavior the decompiled game drives, MMC3 CHR banking + mirroring (tracked off
+ * behavior the ported game drives, MMC3 CHR banking + mirroring (tracked off
  * the $8000/$8001/$A000 writes the game also issues through REG_W), and a
  * background + sprite rasterizer to a 256x240 RGB buffer. */
 #include "ppu.h"
@@ -31,7 +31,6 @@ static u8  s_oamaddr;
 static u16 s_vaddr;           /* current $2006 VRAM address */
 static u8  s_wtoggle;         /* shared $2005/$2006 high/low write latch */
 static u8  s_readbuf;         /* $2007 read buffer */
-static unsigned s_cpu_cycles;
 
 /* CHR: up to 64 KiB, mapped to the PPU $0000-$1FFF pattern space in 8x1 KiB
  * windows per MMC3. */
@@ -98,7 +97,6 @@ void ppu_reset(void)
     memset(ppu_oam, 0, sizeof ppu_oam);
     ppu_ctrl = ppu_mask = ppu_scroll_x = ppu_scroll_y = 0;
     s_status = 0; s_openbus = 0; s_oamaddr = 0; s_vaddr = 0; s_wtoggle = 0; s_readbuf = 0;
-    s_cpu_cycles = 0;
     s_mmc3_sel = 0; s_mirror = 0;
     for (int i = 0; i < 8; i++) s_mmc3_bank[i] = i;   /* identity default */
     recompute_chr();
@@ -294,31 +292,19 @@ extern u8 NES_MEM[0x10000];
 void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
 
 /* ---- frame-sync hook (see ppu.h) ---- */
-void nmi_handler(Regs *r);           /* ported $D1FE NMI; the default fires it */
+void vblank_commit(Regs *r);
 
-/* Default vblank-wait: run exactly one NMI inline. */
+/* Default vblank-wait: run exactly one frame commit inline. */
 static void nes_vblank_default(Regs *r)
 {
-    nmi_handler(r);
+    vblank_commit(r);
 }
 void (*nes_vblank_wait)(Regs *r) = nes_vblank_default;
 
 void nes_frame_wait(Regs *r)
 {
-    s_cpu_cycles = 0;
     if (nes_vblank_wait)
         nes_vblank_wait(r);
-}
-
-void nes_cpu_advance(Regs *r, unsigned cycles)
-{
-    enum { NES_CPU_CYCLES_PER_FRAME = 29781u };
-    s_cpu_cycles += cycles;
-    while (s_cpu_cycles >= NES_CPU_CYCLES_PER_FRAME) {
-        s_cpu_cycles -= NES_CPU_CYCLES_PER_FRAME;
-        if (nes_vblank_wait)
-            nes_vblank_wait(r);
-    }
 }
 
 void nes_prg_map_shadow(void)

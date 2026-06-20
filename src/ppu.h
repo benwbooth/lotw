@@ -1,6 +1,6 @@
 /* Headless software PPU for the Legacy of the Wizard PC port.
  *
- * The decompiled game logic talks to the picture chip exactly as on hardware:
+ * The ported game logic talks to the picture chip exactly as on hardware:
  * it pokes the $2000-$2007 / $4014 registers (via REG_W) and reads $2002 (via
  * REG_R). This module IS the chip on the other end of those pokes — it keeps the
  * software graphics state (nametables, palette, OAM, scroll, control) and
@@ -12,18 +12,21 @@
 #include "nes.h"
 #include "regs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PPU_W 256
 #define PPU_H 240
 
-/* Frame-sync hook (LOTW_SHIM builds). The decompiled engine blocks on the NMI at
- * each vblank-wait ($36 spin / queue_ppu_job_and_wait / the C135 commit). The
- * default fires one NMI inline; coroutine front-ends override this hook to yield
- * one frame to their window/audio/input loop, then resume after NMI. Ported code
- * should call nes_frame_wait(), not this hook directly, so the CPU-cycle model
- * stays synchronized at explicit frame boundaries. */
+/* Frame-sync hook (LOTW_SHIM builds). The ported engine blocks at explicit
+ * vblank/frame waits while queued PPU work is committed. Coroutine front-ends
+ * override this hook to yield one frame to their window/audio/input loop, then
+ * resume after the commit. Ported code should call nes_frame_wait(), not this
+ * hook directly. */
 extern void (*nes_vblank_wait)(Regs *r);
 void nes_frame_wait(Regs *r);
-void nes_cpu_advance(Regs *r, unsigned cycles);
+void vblank_commit(Regs *r);
 
 /* Physically map the R6/R7 PRG banks from the $30/$31 shadow bytes into NES_MEM
  * ($8000/$A000). The far-call helpers change the shadows but, unlike the hardware
@@ -69,5 +72,9 @@ int ppu_mirror_dbg(void);      /* 0 = horizontal arrangement, 1 = vertical */
 
 /* Write a P6 PPM image (RGB) to a file. Returns 0 on success. */
 int ppm_write(const char *path, const u8 *rgb, int w, int h);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LOTW_PPU_H */

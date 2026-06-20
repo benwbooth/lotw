@@ -1,6 +1,6 @@
 /* $E620 — save a room checkpoint before the character-select / family-house
- * sequence. The real ROM stashes the current level id ($8E) into $FE, then pushes
- * 7 bytes of room state onto the 6502 stack *below* the caller's return address;
+ * sequence. The original routine stashes the current level id ($8E) into $FE,
+ * then pushes 7 bytes of room state below the caller's return address;
  * the matching $E642 pops them back after the player picks a character, restoring
  * the room exactly as it was (map_screen_x/y, scroll, player position). Without it
  * the player resumes on the wrong overworld screen.
@@ -39,7 +39,7 @@ void sub_E620(Regs *r)
 
     if (room_ckpt_sp < ROOM_CKPT_DEPTH) {
         u8 *c = room_ckpt_stack[room_ckpt_sp++];
-        c[0] = RAM8(player_x_fine);          /* same 7 bytes the asm PHAs */
+        c[0] = RAM8(player_x_fine);          /* same 7 bytes the original saves */
         c[1] = RAM8(player_x_tile);
         c[2] = RAM8(player_y);
         c[3] = RAM8(scroll_x_fine);

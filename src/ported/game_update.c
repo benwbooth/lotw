@@ -51,7 +51,7 @@ void sub_D94E(Regs *r);    /* redraw part 2 (L_D8AF tail) */
  * routine. They are not yet ported as standalone files, so they are declared
  * here as integration-only handoffs (stubbed until ported — see notes below). */
 void sub_D641(Regs *r);    /* L_D641: reset / game-over path (NOT YET PORTED — integration stub) */
-void sub_E00F(Regs *r);    /* L_E00F: screen-transition / scroll path (NOT YET PORTED — integration stub) */
+void sub_E00F(Regs *r);    /* L_E00F: native screen-transition / scroll path */
 
 void game_update(Regs *r)
 {

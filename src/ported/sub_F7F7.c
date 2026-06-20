@@ -47,12 +47,10 @@ void sub_E7CE(Regs *r);
 void sub_CA54(Regs *r);
 void farcall_bank_09_r7(Regs *r);
 
-/* L_E99A inlined faithfully: LDY #$0F / loop: LDA $00ED,Y / STA ($E5),Y / DEY /
- * BPL. The 6502 re-reads the zp pointer ($E5/$E6) on every STA ($E5),Y, so when
- * the copy destination overlaps $E5/$E6 (e.g. ptr in $00DD..$00EC) the pointer
- * mutates mid-copy and later writes follow the new pointer. The shared
- * sub_E99A.c caches the pointer once and so diverges on those inputs; inline the
- * exact indirect-indexed semantics here to match the 6502 oracle. */
+/* L_E99A inlined faithfully: the pointer ($E5/$E6) is re-read on every copied
+ * byte, so when the destination overlaps $E5/$E6 the pointer mutates mid-copy and
+ * later writes follow the new pointer. The shared sub_E99A.c caches the pointer
+ * once and diverges on those inputs. */
 static void e99a_copy(Regs *r)
 {
     int y;

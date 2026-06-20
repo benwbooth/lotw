@@ -1,5 +1,4 @@
-/* Named RAM variables (Data Crystal + analysis-verified). Mirrors disasm/lotw.inc
- * so the C port reads like the disassembly. Addresses are authoritative. */
+/* Named RAM variables. Addresses are authoritative for the ported game state. */
 #ifndef LOTW_RAM_H
 #define LOTW_RAM_H
 #include "nes.h"

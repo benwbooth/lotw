@@ -9,11 +9,10 @@
  * Record in/out: [id u8][a][x][y][c][z][n][v][ram 2048]   (id only meaningful in)
  *
  * WATCHDOG: a ported routine may be an unbounded loop that waits on hardware /
- * controller / NMI state (these never change in flat host memory), so it would
+ * controller / vblank state (these never change in flat host memory), so it would
  * spin a CPU core forever. A per-record setitimer(ITIMER_REAL) fires after a
  * short budget; the SIGALRM handler siglongjmp's back and the record's flag byte
- * out[0] is set to 1 (else 0) so the diff-test skips it — the same states the
- * m6502 oracle skips via its step limit. No real terminating routine takes
+ * out[0] is set to 1 (else 0) so the diff-test skips it. No real terminating routine takes
  * anywhere near the budget (native C runs them in microseconds).
  *
  * out[0] is a dedicated 0/1 watchdog flag, NOT the id echo: there are >128

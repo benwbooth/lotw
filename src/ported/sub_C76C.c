@@ -1,5 +1,5 @@
 /* $C76C:
- *   JSR L_CC97                 ; spin-wait on nmi_vram_req ($28)
+ *   JSR L_CC97                 ; wait for vblank_vram_req ($28) to be idle
  *   compute VRAM dest from scroll_x_tile ($7C):
  *     vram_dst_lo ($16) = (scroll_x_tile<<1) & $1F
  *     vram_dst_hi ($17) = (scroll_x_tile & $10) >> 2

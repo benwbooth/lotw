@@ -1,7 +1,7 @@
 /* $E642 — pop the 7-byte room checkpoint that $E620 saved, restoring
  * map_screen_y/x, scroll_x_tile/fine, and player_y/tile/fine. Called from the
  * character-select resume tail ($E5FD), so the player lands back on the exact
- * room/screen they came from. The asm pulls the 7 bytes off the 6502 stack while
+ * room/screen they came from. The original routine pulls the 7 bytes while
  * preserving its own return address.
  *
  * The port keeps the checkpoint in a dedicated LIFO rather than the $0100 page

@@ -1,7 +1,7 @@
 /* Regression for D991 -> DAAA item pickup dispatch.
  *
- * The assembly reaches DAAA with A still holding $0401,X. If the C translation
- * calls DAAA with stale A, collectible states do not increment inventory. */
+ * The source behavior reaches DAAA with A still holding $0401,X. If the ported
+ * code calls DAAA with stale A, collectible states do not increment inventory. */
 #include "ram.h"
 #include "regs.h"
 #include <stdio.h>

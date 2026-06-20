@@ -6,7 +6,7 @@
  * otherwise it returns SEC (no move). Clears the pending flag it consumed.
  *
  * INSPECTION-PORT (no diff-test spec): the committed path tail-calls D991, which
- * is itself integration-verified (NMI/bank artifacts) — see sub_D991. */
+ * is itself integration-verified (vblank/bank artifacts) — see sub_D991. */
 #include "ram.h"
 #include "regs.h"
 

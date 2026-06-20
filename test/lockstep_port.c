@@ -1,8 +1,8 @@
 /* Headless lockstep tracer for the C port — co-simulation against FCEUX.
  *
- * Runs the real boot path (reset -> main_init -> main_loop) on the same ucontext
- * coroutine the SDL front-end uses, but with NO window/audio. Each frame it fires
- * the NMI and writes the 2 KiB of CPU RAM ($0000-$07FF — which includes the MMC3
+ * Runs the real boot path (reset -> main_init -> main_loop) on the same frame
+ * runner the SDL front-end uses, but with NO window/audio. Each frame it fires
+ * vblank commit and writes the 2 KiB of CPU RAM ($0000-$07FF — which includes the MMC3
  * bank shadows $2A-$31, the RNG state, OAM page $02, and all game state) to a raw
  * binary trace. tools/re/lockstep.py diffs this against FCEUX's per-frame RAM dump
  * of the real ROM under the same input; the first divergent (frame,address) is the
@@ -17,29 +17,21 @@
 #include "ppu.h"
 #include "apu.h"
 #include "regs.h"
+#include "native/frame_runner_c.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ucontext.h>
 
 u8 NES_MEM[0x10000];
 extern void (*apu_write_hook)(u16, u8);
 void reset(Regs*);
-void nmi_handler(Regs*);
-
-static Regs        g_regs;
-static ucontext_t  g_main_ctx, g_game_ctx;
-static int         g_done;
-static char        g_stack[16 * 1024 * 1024];
+void vblank_commit(Regs*);
 
 /* Per-READ input (content-aligned): served to read_controllers via nes_next_input
  * so input advances by controller-read count, immune to frame-timing slips. */
 static u8         *g_input;
 static long        g_ninput, g_inpos;
 static u8 next_input(void) { return (g_input && g_inpos < g_ninput) ? g_input[g_inpos++] : 0x00; }
-
-static void frame_yield(Regs *r) { Regs s = *r; swapcontext(&g_game_ctx, &g_main_ctx); *r = s; }
-static void game_entry(void) { reset(&g_regs); g_done = 1; swapcontext(&g_game_ctx, &g_main_ctx); }
 
 static void load_rom(const char *path)
 {
@@ -70,35 +62,49 @@ int main(int argc, char **argv)
 
     load_rom(path);
     nes_next_input = next_input;   /* content-aligned per-read input */
-    getcontext(&g_game_ctx);
-    g_game_ctx.uc_stack.ss_sp = g_stack;
-    g_game_ctx.uc_stack.ss_size = sizeof g_stack;
-    g_game_ctx.uc_link = &g_main_ctx;
-    makecontext(&g_game_ctx, game_entry, 0);
-    nes_vblank_wait = frame_yield;
 
-    FILE *out = fopen(outp, "wb"); if (!out) { perror(outp); return 1; }
+    LotwFrameRunner *runner = lotw_frame_runner_create(reset);
+    if (!runner) {
+        fprintf(stderr, "lockstep_port: failed to create frame runner\n");
+        return 1;
+    }
 
-    /* Prime: run boot (reset -> main_init -> ...) up to the first vblank-wait so the
-     * game is parked waiting for its first NMI. */
-    swapcontext(&g_main_ctx, &g_game_ctx);
+    FILE *out = fopen(outp, "wb");
+    if (!out) {
+        perror(outp);
+        lotw_frame_runner_destroy(runner);
+        return 1;
+    }
+
+    /* Prime: run boot (reset -> main_init -> ...) up to the first vblank wait so the
+     * game is parked waiting for its first frame commit. */
+    if (!lotw_frame_runner_start(runner)) {
+        fprintf(stderr, "lockstep_port: game loop returned during boot\n");
+        lotw_frame_runner_destroy(runner);
+        fclose(out);
+        return 1;
+    }
+    Regs *regs = lotw_frame_runner_regs(runner);
 
     /* Per frame, mirror FCEUX's emu.registerafter sampling point (END of frame =
-     * after the NMI AND after the main code reacts to it): fire the NMI, hand the
-     * frame's input to the main code, let it run to the next vblank-wait, THEN dump.
-     * (Dumping right after the NMI — before main reacts — samples a sub-frame too
+     * after vblank commit AND after the main code reacts to it): commit vblank, hand the
+     * frame's input to the main code, let it run to the next vblank wait, THEN dump.
+     * (Dumping right after vblank commit — before main reacts — samples a sub-frame too
      * early and drifts one frame per wait loop vs. the real ROM.) */
     FILE *rc = fopen("/tmp/port_readcount.bin", "wb");   /* per-frame cumulative read count */
     for (int i = 0; i < frames; i++) {
-        nmi_handler(&g_regs);
-        swapcontext(&g_main_ctx, &g_game_ctx);   /* input pulled per-read via nes_next_input */
-        if (g_done) { fprintf(stderr, "lockstep_port: game loop returned at frame %d\n", i); break; }
+        vblank_commit(regs);
+        if (!lotw_frame_runner_resume_until_wait(runner)) {   /* input pulled per-read via nes_next_input */
+            fprintf(stderr, "lockstep_port: game loop returned at frame %d\n", i);
+            break;
+        }
         fwrite(&NES_MEM[0x0000], 1, 0x800, out);   /* 2 KiB CPU RAM signature (end of frame) */
         { unsigned c = (unsigned)g_inpos; fwrite(&c, 4, 1, rc); }
     }
     if (rc) fclose(rc);
     fprintf(stderr, "lockstep_port: consumed %ld/%ld per-read inputs\n", g_inpos, g_ninput);
     fclose(out);
+    lotw_frame_runner_destroy(runner);
     fprintf(stderr, "lockstep_port: wrote %d frames x 0x800 to %s\n", frames, outp);
     return 0;
 }

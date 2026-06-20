@@ -3,7 +3,7 @@
  *
  * It folds the player-pad nibble ($20) into the facing/momentum byte $FD (clearing
  * the low nibble unless V of $20 is set, then OR-ing in the new direction), and —
- * on the launch frame ($85==0) gated by the nmi_scratch ($26) V flag and the
+ * on the launch frame ($85==0) gated by the frame status ($26) V flag and the
  * 3-frame phase mask ($3E&$06) — arms a web/jump: it picks a sound id ($0A/$05)
  * from $1C + the per-slot offset $040C,X vs $B0, plays it via L_AE2F, seeds the
  * launch timer $4F=$0A, sound $8F=$21, $90=$02, sets the launched flag $85=1, and
@@ -15,21 +15,21 @@
  * src/ported/sub_AC6D.c, replicated here for the JMP L_ACA1 / JMP L_ACAF entries.
  *
  * INSPECTION-PORT (no diff-test spec): warp/launch presentation reached only via
- * the main-loop warp far-call chain; depends on NMI-driven phase counters ($3E),
- * the nmi_scratch flag, and a `JSR L_AC6D` whose PLA/PLA non-local return drops
+ * the main-loop warp far-call chain; depends on vblank-driven phase counters ($3E),
+ * the frame status flag, and a `JSR L_AC6D` whose PLA/PLA non-local return drops
  * this routine's own frame (see sub_AC6D.c) — not isolation-testable in flat
  * memory. Integration-verified.
  *
- * NEW non-local target: JMP $AE11 (early bail when $20&$10 set) is not yet ported —
- * forward-declared as sub_AE11 and reported. Direct JSR $CB7F is a fixed-bank
- * routine (always mapped) — already ported as src/ported/sub_CB7F.c. */
+ * Non-local target: JMP $AE11 (early bail when $20&$10 set) is provided by the
+ * native coroutine layer. Direct JSR $CB7F is a fixed-bank routine (always
+ * mapped) — already ported as src/ported/sub_CB7F.c. */
 #include "ram.h"
 #include "regs.h"
 
 void sub_AE2F(Regs *r); void sub_AE51(Regs *r); void sub_ADC7(Regs *r);
 void sub_AC6D(Regs *r); void sub_ADE4(Regs *r); void sub_ACE0(Regs *r);
 void sub_AD3B(Regs *r); void sub_AD7A(Regs *r); void sub_CB7F(Regs *r);
-void sub_AE11(Regs *r);         /* L_AE11: not-yet-ported non-local JMP target */
+void sub_AE11(Regs *r);         /* L_AE11: native press-start gate */
 
 /* Shared tail owned by sub_AC6D.c; replicated for the JMP L_ACA1/L_ACAF entries. */
 static void tail_acbb(Regs *r)          /* L_ACBB */
@@ -75,7 +75,7 @@ void sub_ABBC(Regs *r)
     /* L_ABDF */
     if (RAM8(0x85) == 0) {              /* BNE L_AC13 */
         /* launch-frame gate */
-        if ((RAM8(0x26) & 0x40) == 0)   /* BIT nmi_scratch / BVC L_AC2A */
+        if ((RAM8(0x26) & 0x40) == 0)   /* BIT frame status / BVC L_AC2A */
             goto L_AC2A;
         r->x = (u8)(RAM8(0x3E) + 1);    /* LDX $3E / INX */
         if (((r->x) & 0x06) != 0)       /* TXA / AND #$06 / BNE L_AC2A */

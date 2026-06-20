@@ -1,18 +1,10 @@
-# Legacy of the Wizard — Decompilation
+# Legacy of the Wizard — Native Port
 
-A from-scratch reverse-engineering effort on the NES game *Legacy of the Wizard*
-(USA), in two stages:
-
-1. **Matching disassembly** — a complete, labeled, commented **6502 assembly**
-   source (ca65/ld65) that re-assembles to a **byte-identical ROM**. This is
-   the ground truth: every byte is classified as code or data and accounted for.
-2. **Readable C port** — game systems hand-rewritten in **C**, verified by
-   *differential testing* against a reference emulator (same inputs ⇒ same
-   RAM/PPU/APU state), plus assets extracted to open formats: tiles/rooms →
-   **PNG**, music/SFX → **MIDI** and a **PLAY-like DSL**.
-
-This is *attempt 2*. The earlier proof-ledger approach is archived at git tag
-`attempt-1` (branch `archive/attempt-1`).
+A C/C++ playable port of *Legacy of the Wizard* (USA). The runtime is native
+code: ported C systems, a software PPU/APU shim, SDL playback, and a growing
+C++20 coroutine layer for frame-spanning gameplay. The source ROM is used as an
+input artifact only; ROM-derived source listings are not part of the active
+codebase.
 
 ## ROM
 
@@ -31,9 +23,8 @@ Pinned in `config/rom.sha256`. ROMs are never committed.
 ## Layout
 
 - `rom/`        — the source ROM (gitignored, sha-pinned in `config/`).
-- `disasm/`     — Stage 1 matching 6502 disassembly (ca65 `.s` + `ld65` config).
-- `src/`        — Stage 2 C port.
-- `tools/re/`   — RE tooling (disassembler, tracer, asset extractors).
+- `src/`        — native C/C++ runtime: ported systems, shims, and coroutines.
+- `tools/re/`   — analysis, tracer, replay, and asset-extraction tooling.
 - `tools/*.lua` — FCEUX scripts for replay-driven reference capture.
 - `assets/`     — extracted assets (PNG / MIDI / DSL).
 - `fixtures/`   — replay fixtures (gameplay coverage for tracing & diff tests).
@@ -41,14 +32,11 @@ Pinned in `config/rom.sha256`. ROMs are never committed.
 
 ## Toolchain
 
-`nix develop` provides: `cc65` (ca65/ld65/da65), `fceux`, `gcc`/`make`/`cmake`,
-`SDL2`, `cargo`/`rustc`, `python3`.
+`nix develop` provides: `fceux`, `gcc`/`make`/`cmake`, `SDL3`,
+`cargo`/`rustc`, `python3`.
 
 ## Verification loops
 
-- **Stage 1:** `disasm/` assembles → output sha256 must equal the ROM's.
-- **Stage 2:** each C system runs against the emulator on the replay fixtures;
-  RAM/PPU/APU state must match frame-for-frame.
 - **Playable-port regression:** `tools/re/replay_regression.py` runs replay
   fixtures through the C port and compares rendered frames against FCEUX
   captures. Use this for user-visible checks that RAM lockstep cannot prove:
@@ -59,11 +47,24 @@ Pinned in `config/rom.sha256`. ROMs are never committed.
   Use `--refresh-reference` to regenerate FCEUX captures from the ROM instead
   of reusing local `build/reference` artifacts, and `--check-apu` to compare APU
   register writes for music/SFX regressions.
-- **Scheduler/NMI contract:** translated gameplay code must not add ad hoc
-  frame yields to hide fast-host-CPU hangs. Explicit NMI waits call
-  `nes_frame_wait()`, and tight controller polling is interrupted through the
-  central CPU-cycle checkpoint in `read_controllers()`. `ctest` runs
-  `tools/re/check_scheduler_contract.py` to reject direct `nes_vblank_wait()`
-  calls or manual input-yield calls in `src/ported/`.
+- **Ported compatibility scheduler:** ported gameplay code must not add
+  ad hoc frame yields to hide fast-host-CPU hangs. Frame-spanning gameplay must
+  move to `src/native/` coroutine/native scripts instead of expanding the
+  compatibility scheduler.
+  `ctest` runs `tools/re/check_scheduler_contract.py` to reject direct
+  frame waits, `nes_vblank_wait()`, fake CPU-cycle advancement, old `nmi_*`
+  entry points, manual input-yield calls, or checked-in ROM-derived source
+  listings. The check walks the active source tree, so newly added native files
+  are covered before they are staged.
+- **Native C++ coroutine layer:** `src/native/` is the migration path away from
+  blocking frame/input loops. C++20 `FrameTask` scripts use `co_yield
+  Wait::...` for explicit frame/input waits, while ported C routines remain
+  available behind a C ABI during the transition. Raw frame waits are
+  centralized in `src/native/frame_wait_helpers.hpp`; frame/input/prompt state
+  goes through `src/native/game_state.*`.
+- **Frame runner:** the SDL, replay, and lockstep hosts use the shared native
+  frame runner to park the game thread at `nes_frame_wait()` and let the host
+  perform `vblank_commit()` before resuming it. Legacy stackful context
+  switching is forbidden by the scheduler contract.
 
 See `docs/PLAN.md` for the full strategy and phase breakdown.

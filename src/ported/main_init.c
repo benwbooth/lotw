@@ -15,7 +15,7 @@
  * INSPECTION-PORT (no diff-test spec): boot-time PPU/APU/MMC3 register programming
  * plus two PPUSTATUS vblank-wait loops that never terminate in flat memory
  * (PPUSTATUS reads 0, so bit7 is never set) and an infinite main loop at the tail.
- * Real hardware/integration supplies PPUSTATUS and the NMI. The vblank waits are
+ * Real hardware/integration supplies PPUSTATUS and vblank commits. The vblank waits are
  * transcribed faithfully but documented as integration-only so the port stays
  * non-blocking and compiling. Integration-verified.
  *

@@ -1,4 +1,4 @@
-/* Audio: run the decompiled sound engine against the software 2A03 APU and
+/* Audio: run the ported sound engine against the software 2A03 APU and
  * render a song to a WAV. song_init loads a song's channel state; sound_tick
  * (once per frame) advances it and writes the $4000-$4017 registers, which the
  * shim's apu_write captures and synthesizes.

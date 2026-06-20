@@ -1,8 +1,8 @@
-/* Game-driven PPU frame: run the decompiled C against the software PPU shim and
+/* Game-driven PPU frame: run the ported logic against the software PPU shim and
  * render what the game actually puts on screen. We warp straight into an in-game
  * state (skipping the title/character-select input loops): seed the far-call
  * banks, init engine state, place the player, assemble the scene (which queues
- * VRAM jobs that the shim's queue_ppu_job_and_wait flushes through the NMI into
+ * VRAM jobs that the shim's queue_ppu_job_and_wait flushes through vblank into
  * the software PPU), run one game_update, then rasterize to a PPM.
  *
  *   build: gcc -O2 -DLOTW_HOST -DLOTW_SHIM -Isrc src/ppu.c src/ported/*.c \
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "C57A (status-bar setup)...\n");
     sub_C57A(&r); sub_D0E5(&r);
 
-    /* run a few per-frame iterations so the NMI flushes the staged room to VRAM */
+    /* Run a few per-frame iterations so vblank commit flushes the staged room to VRAM. */
     void sub_F628(Regs*); void sub_E87C(Regs*); void sub_F782(Regs*);
     void sub_C15D(Regs*); void sub_C1D8(Regs*); void sub_C2B1(Regs*); void sub_C135(Regs*);
     for (int fr = 0; fr < 4; fr++) {

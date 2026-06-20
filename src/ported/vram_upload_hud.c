@@ -1,9 +1,9 @@
-/* $D290 vram_upload_hud — NMI VRAM job: push two 24-byte HUD rows ($0140,$0158)
+/* $D290 vram_upload_hud — vblank VRAM job: push two 24-byte HUD rows ($0140,$0158)
  * to PPUDATA at vram_dst, then a 11-cell read-modify-write attribute blend from
- * $0170/$0171, then return through nmi_tail. INSPECTION-PORT (NMI context). */
+ * $0170/$0171, then return through vblank_commit_tail. INSPECTION-PORT. */
 #include "ram.h"
 #include "regs.h"
-void nmi_tail(Regs *r);
+void vblank_commit_tail(Regs *r);
 void vram_upload_hud(Regs *r)
 {
     int x;
@@ -23,5 +23,5 @@ void vram_upload_hud(Regs *r)
             REG_W(0x2007, v);
         }
     }
-    nmi_tail(r);
+    vblank_commit_tail(r);
 }

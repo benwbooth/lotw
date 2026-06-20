@@ -19,8 +19,8 @@ void scene_assemble(Regs *r)
     sub_C9A9(r);
     /* The carry into text_attr_build's first "ADC #$A0" (which forms the tile-table
      * pointer $7A) is the one left by sub_C9D2's final "CLC / ADC #$03 / STA $78".
-     * sub_C9A9 in between only does INY/INC/LDA/STA — none touch the 6502 carry — so
-     * on hardware C9D2's carry survives to here. The ported C9A9 clobbers r->c, so
+     * sub_C9A9 in between only does INY/INC/LDA/STA and leaves carry alone, so
+     * C9D2's carry survives to here. The ported C9A9 clobbers r->c, so
      * recompute it from $76 right before text_attr_build (not before C9A9, where it
      * gets overwritten). Without this $7A was off by +1 -> wrong tile table -> the
      * whole room nametable rendered with wrong tiles. */
