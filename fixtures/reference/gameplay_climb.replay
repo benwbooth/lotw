@@ -1,7 +1,7 @@
 # LOTW replay fixture v1
 # Format:
 #   frame <count> [buttons...]
-# Buttons use FCEUX joypad names: up down left right A B start select.
+# Buttons use these names: up down left right A B start select.
 #
 # This fixture waits for the title prompt, starts the game, then holds up long
 # enough to exercise vertical movement inside the starting house. It stores

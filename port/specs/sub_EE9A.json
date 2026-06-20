@@ -1,4 +1,0 @@
-{ "name":"sub_EE9A", "addr":"EE9A", "entry":"lda_a",
-  "inputs":[], "compare":["ram"],
-  "calls":["rng_update"], "setup":{}, "shaper":null,
-  "notes":"random sound pick: rng_update(8), index $EEB3 table, store $F4" }

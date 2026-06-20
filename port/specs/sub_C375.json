@@ -1,3 +1,0 @@
-{ "name":"sub_C375", "addr":"C375", "entry":"none",
-  "inputs":[], "compare":["ram","x"], "shaper":null,
-  "notes":"Copies ROM $FF6B..$FF6E into OAM shadow $0200..$0203, fills $0204..$02FF with $F8; X exits 0." }

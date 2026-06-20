@@ -1,5 +1,0 @@
-{ "name": "sub_D0E5", "addr": "D0E5", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true},
-  "notes": "clamp+copy $0322->$0362 sprite row buffer, queue two PPU column updates; net RAM $0362.., $16-$1B, $28" }

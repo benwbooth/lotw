@@ -1,5 +1,0 @@
-{ "name": "sub_B1EA", "addr": "B1EA", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_B2FC", "sub_B24E", "sub_B278"], "setup": {"0C": "40", "0D": "02"},
-  "shaper": null, "oracle": {"vram_sync": true},
-  "notes": "sub_B2FC then pack ($0C) nibble string into $0140; SEC on 0 / via B24E+B278 then CLC on $0D" }

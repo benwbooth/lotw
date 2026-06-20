@@ -1,4 +1,0 @@
-{ "name": "sub_EDF0", "addr": "EDF0", "entry": "lda_a",
-  "inputs": [], "compare": ["c"],
-  "calls": ["sub_CA54", "sub_CA85", "sub_F2D3"], "setup": {}, "shaper": null,
-  "notes": "Low nibble $0A!=0 -> C=0; else ptr=($0F,$0A-$10), CA54, F2D3@Y=0; if $0E!=0 also F2D3@Y=$0C; C result." }

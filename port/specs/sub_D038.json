@@ -1,3 +1,0 @@
-{ "name": "sub_D038", "addr": "D038", "entry": "none",
-  "inputs": [], "compare": ["a","c"], "shaper": null,
-  "notes": "if carried_item0[equipped_item]==6 && magic!=0: A=(jump>>2)+jump,C=0; else A=jump,C=1" }

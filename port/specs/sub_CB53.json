@@ -1,4 +1,0 @@
-{ "name": "sub_CB53", "addr": "CB53", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CB94","sub_CBFA"], "setup": {}, "shaper": null,
-  "notes": "Boss-life meter setup (far-call $0C0D target): clamp $0405<=$6D, tail-call CB94." }

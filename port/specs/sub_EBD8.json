@@ -1,5 +1,0 @@
-{ "name": "sub_EBD8", "addr": "EBD8", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CA54", "sub_CD70", "sub_EE19", "sub_EEBB", "sub_EEDA", "sub_EF04", "sub_EF11", "sub_F01E", "sub_F0E1", "sub_F179"],
-  "setup": {"E7": "40", "E8": "02"}, "shaper": null,
-  "notes": "boss-state handler [3]: direction code in $F4 (via EE19), CD70 delta + placement pipeline" }

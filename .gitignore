@@ -11,8 +11,6 @@ generated/
 compile_commands.json
 .cache/
 
-# decomp build outputs
-disasm/build/
 *.o
 __pycache__/
 .venv/

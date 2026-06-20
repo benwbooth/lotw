@@ -1,7 +1,0 @@
-{ "name": "sub_DAAA", "addr": "DAAA", "entry": "lda_a",
-  "inputs": ["a","x"], "compare": ["ram"],
-  "calls": ["sub_DB26","sub_DB31","sub_DB3C","sub_DB52","sub_DB5D","sub_DB71","sub_DBB7","sub_DB85","sub_CA36","sub_D620"],
-  "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true, "sync_clear": ["28","36"]},
-  "exclude_ram": ["93-D2"],
-  "notes": "Item-action dispatcher with OAM-clear prologue (X=slot); n=A-2; n>=18 -> RTS; n<8 -> $DB06 jump table; else inventory-add (DAD2). exclude_ram/$36 hooks inherited from the D620 song_init path." }

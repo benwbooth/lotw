@@ -1,4 +1,0 @@
-{ "name": "sub_ACC5", "addr": "ACC5", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": [], "setup": {}, "shaper": null,
-  "notes": "Compute candidate move pos: $0A = player_y(+$4B), $0E = player_x_fine(+$49). Pure RAM." }

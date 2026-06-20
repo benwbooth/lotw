@@ -1,5 +1,0 @@
-{ "name": "sub_F2DA", "addr": "F2DA", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_F0E1", "sub_EFF1", "sub_CF08", "sub_CE7C", "sub_F136", "sub_F23A", "sub_CEB6", "sub_CE90", "sub_E7DB", "sub_CAB6", "sub_CB0E", "sub_CBFA", "sub_CA54", "sub_CA85", "sub_F2D3"],
-  "setup": {}, "shaper": null,
-  "notes": "$F6=0; dispatch on $F5/$F7 and $FB/$F9 ranges + $F4 bits; sets $F5/$F6/$F7 then JSR F0E1 (returns its carry), else SEC. Many paths -> C=1." }

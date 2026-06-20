@@ -1,19 +1,19 @@
-/* Regression for D991 -> DAAA item pickup dispatch.
- *
- * The source behavior reaches DAAA with A still holding $0401,X. If the ported
- * code calls DAAA with stale A, collectible states do not increment inventory. */
-#include "ram.h"
-#include "regs.h"
+
+
+
+
+#include "game_memory.h"
+#include "routine_context.h"
 #include <stdio.h>
 #include <string.h>
 
-u8 NES_MEM[0x10000];
+u8 LOTW_MEMORY[0x10000];
 
-void sub_D991(Regs *r);
+void routine_0146(RoutineContext *r);
 
 static int expect_u8(const char *name, u16 addr, u8 want)
 {
-    u8 got = RAM8(addr);
+    u8 got = GAME_MEM8(addr);
     if (got == want)
         return 0;
     fprintf(stderr, "%s $%04X: got %02X, expected %02X\n", name, addr, got, want);
@@ -22,28 +22,28 @@ static int expect_u8(const char *name, u16 addr, u8 want)
 
 int main(void)
 {
-    Regs r;
+    RoutineContext r;
     memset(&r, 0, sizeof r);
-    memset(NES_MEM, 0, sizeof NES_MEM);
+    memset(LOTW_MEMORY, 0, sizeof LOTW_MEMORY);
 
-    RAM8(0x43) = 0x00;      /* player_x_fine */
-    RAM8(0x44) = 0x10;      /* player_x_tile */
-    RAM8(0x45) = 0x50;      /* player_y */
-    RAM8(0x49) = 0x00;      /* scan X delta */
-    RAM8(0x4B) = 0x00;      /* scan Y delta */
-    RAM8(0xE3) = 0xFF;      /* do not suppress any object slot */
+    GAME_MEM8(0x43) = 0x00;
+    GAME_MEM8(0x44) = 0x10;
+    GAME_MEM8(0x45) = 0x50;
+    GAME_MEM8(0x49) = 0x00;
+    GAME_MEM8(0x4B) = 0x00;
+    GAME_MEM8(0xE3) = 0xFF;
 
-    /* Slot index 8 uses object table offset $80. $0401,X = $0A means
-     * dispatcher n=$08, inventory_counts[0]++. Coordinates overlap exactly. */
-    RAM8(0x0400 + 0x80) = 0x02;
-    RAM8(0x0401 + 0x80) = 0x0A;
-    RAM8(0x0402 + 0x80) = 0x00;
-    RAM8(0x040C + 0x80) = 0x00;
-    RAM8(0x040D + 0x80) = RAM8(0x44);
-    RAM8(0x040E + 0x80) = RAM8(0x45);
 
-    r.a = 0x00;             /* stale A must not affect pickup dispatch */
-    sub_D991(&r);
+
+    GAME_MEM8(0x0400 + 0x80) = 0x02;
+    GAME_MEM8(0x0401 + 0x80) = 0x0A;
+    GAME_MEM8(0x0402 + 0x80) = 0x00;
+    GAME_MEM8(0x040C + 0x80) = 0x00;
+    GAME_MEM8(0x040D + 0x80) = GAME_MEM8(0x44);
+    GAME_MEM8(0x040E + 0x80) = GAME_MEM8(0x45);
+
+    r.value = 0x00;
+    routine_0146(&r);
 
     int errors = 0;
     errors |= expect_u8("inventory count", 0x0060, 0x01);

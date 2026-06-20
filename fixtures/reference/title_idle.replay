@@ -1,7 +1,7 @@
 # LOTW replay fixture v1
 # Format:
 #   frame <count> [buttons...]
-# Buttons use FCEUX joypad names: up down left right A B start select.
+# Buttons use these names: up down left right A B start select.
 #
 # This boot/title fixture intentionally presses no buttons. It gives the
 # reference harness stable early-title frames without storing any ROM data.

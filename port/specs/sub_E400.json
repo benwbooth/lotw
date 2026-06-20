@@ -1,3 +1,0 @@
-{ "name": "sub_E400", "addr": "E400", "entry": "none",
-  "inputs": ["ram"], "compare": ["ram"], "shaper": null,
-  "notes": "sprite coords from $F5/$F7: ($F5<<3)+$36+carry -> $0297, -8 -> $0293; ($F7<<3)+$81+carry -> $0290/$0294" }

@@ -1,3 +1,0 @@
-{ "name": "sub_D8B6", "addr": "D8B6", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "target pos from player ($43/$44/$45) + deltas $49/$4A/$4B into $0E/$0F/$0A" }

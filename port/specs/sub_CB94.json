@@ -1,4 +1,0 @@
-{ "name": "sub_CB94", "addr": "CB94", "entry": "none",
-  "inputs": ["x","y"], "compare": ["ram"],
-  "calls": ["sub_CBFA"], "setup": {}, "shaper": null,
-  "notes": "Meter-bar draw: fill OAM tiles $0259/$026D from X/Y, split $08 via CBFA, decrement bar segments $0241,col. Pure OAM/data." }

@@ -1,3 +1,0 @@
-{ "name": "sub_B24E", "addr": "B24E", "entry": "lda_a",
-  "inputs": [], "compare": ["ram","a"], "shaper": null,
-  "notes": "vram dst = $0800 + ($0A<<2); hi=$17 lo=$16; A = low byte" }

@@ -1,4 +1,0 @@
-{ "name": "sub_F6BB", "addr": "F6BB", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_E98F", "sub_EFF1", "sub_CF08", "sub_CDB2", "sub_F773", "sub_E99A"], "setup": {"E5": "40", "E6": "02"}, "shaper": null,
-  "notes": "Projectile step: E98F restore buffer, DEC $EE life, EFF1 move, CF08 OOB kill, CDB2 collision resolve (damage $0405,X via $F8, despawn or hit reaction), store pos $F9/$FA/$FB, F773/E99A commit. RAM-only effects." }

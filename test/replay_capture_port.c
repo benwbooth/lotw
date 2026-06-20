@@ -1,14 +1,14 @@
-/* Headless replay capture for the C port.
- *
- * Runs the same real boot coroutine as the SDL front-end, feeds a frame-indexed
- * replay fixture, and captures port frames/RAM at selected frame numbers.
- *
- *   ./build/replay_capture_port rom/lotw.nes fixtures/reference/outside_walk.replay \
- *       build/port_capture/outside_walk 1044,1261,1440,1620,1830
- */
+
+
+
+
+
+
+
+
 #include "ppu.h"
 #include "apu.h"
-#include "regs.h"
+#include "routine_context.h"
 #include "native/frame_runner_c.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -16,11 +16,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
-u8 NES_MEM[0x10000];
+u8 LOTW_MEMORY[0x10000];
 extern void (*apu_write_hook)(u16, u8);
 
-void reset(Regs*);
-void vblank_commit(Regs*);
+void reset(RoutineContext*);
+void vblank_commit(RoutineContext*);
 
 static FILE       *g_apu_trace;
 static int         g_frame;
@@ -150,11 +150,11 @@ static void load_rom(const char *path)
     static u8 rom[1 << 20]; size_t n = fread(rom, 1, sizeof rom, f); fclose(f); (void)n;
     unsigned prg = rom[4] * 16384u, chr = rom[5] * 8192u;
     for (unsigned a = 0; a < 0x0800; a++)
-        NES_MEM[a] = (a & 4) ? 0xFF : 0x00;
+        LOTW_MEMORY[a] = (a & 4) ? 0xFF : 0x00;
     ppu_load_prg(rom + 16, prg);
     ppu_load_chr(rom + 16 + prg, chr);
     ppu_reset(); apu_reset(); apu_write_hook = g_apu_trace ? apu_write_traced : apu_write;
-    memcpy(&NES_MEM[0xC000], rom + 16 + (prg - 0x4000), 0x4000);
+    memcpy(&LOTW_MEMORY[0xC000], rom + 16 + (prg - 0x4000), 0x4000);
     ppu_map_prg(0x8000, 12);
     ppu_map_prg(0xA000, 13);
     ppu_set_vblank(1);
@@ -164,7 +164,7 @@ static void write_ram(const char *path)
 {
     FILE *f = fopen(path, "wb");
     if (!f) { perror(path); exit(1); }
-    fwrite(NES_MEM, 1, 0x800, f);
+    fwrite(LOTW_MEMORY, 1, 0x800, f);
     fclose(f);
 }
 
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     unsigned char *capture = parse_capture_set(frames, &max_capture);
     int max_frame = replay_len > max_capture ? replay_len : max_capture;
 
-    const char *apu_trace_path = getenv("LOTW_PORT_APU_TRACE");
+    const char *apu_trace_path = getenv("LOTW_ROUTINE_APU_TRACE");
     if (apu_trace_path && *apu_trace_path) {
         g_apu_trace = fopen(apu_trace_path, "wb");
         if (!g_apu_trace) { perror(apu_trace_path); exit(1); }
@@ -216,15 +216,15 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Prime reset/main until the game reaches its first frame wait. Each captured
-     * frame then runs vblank commit first, resumes game code, and samples the end-of-frame
-     * state, matching lockstep_port's reference ordering. */
+
+
+
     if (!lotw_frame_runner_start(runner)) {
         fprintf(stderr, "game loop returned during boot\n");
         lotw_frame_runner_destroy(runner);
         return 1;
     }
-    Regs *regs = lotw_frame_runner_regs(runner);
+    RoutineContext *regs = lotw_frame_runner_context(runner);
 
     static u8 fb[PPU_W * PPU_H * 3];
     for (int frame = 1; frame <= max_frame; frame++) {
@@ -247,8 +247,8 @@ int main(int argc, char **argv)
             write_ppu_state(p);
             fprintf(stderr,
                     "captured f%d char=%02X map=%02X,%02X px=%02X py=%02X scroll=%02X,%02X song=%02X item=%02X inv0=%02X mirror=%d\n",
-                    frame, RAM8(0x40), RAM8(0x47), RAM8(0x48), RAM8(0x44), RAM8(0x45),
-                    RAM8(0x1C), RAM8(0x1E), RAM8(0x8E), RAM8(0x55), RAM8(0x60), ppu_mirror_dbg());
+                    frame, GAME_MEM8(0x40), GAME_MEM8(0x47), GAME_MEM8(0x48), GAME_MEM8(0x44), GAME_MEM8(0x45),
+                    GAME_MEM8(0x1C), GAME_MEM8(0x1E), GAME_MEM8(0x8E), GAME_MEM8(0x55), GAME_MEM8(0x60), ppu_mirror_dbg());
         }
     }
 

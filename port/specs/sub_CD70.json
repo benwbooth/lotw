@@ -1,3 +1,0 @@
-{ "name": "sub_CD70", "addr": "CD70", "entry": "lda_y",
-  "inputs": ["a", "y"], "compare": ["ram"], "calls": [], "setup": {},
-  "shaper": null, "notes": "scale ROM delta tables $FE8B/$FE8C by Y, index 2*(A&$0F); out $F5/$F6/$F7" }

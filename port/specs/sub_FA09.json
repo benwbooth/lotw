@@ -1,5 +1,0 @@
-{ "name": "sub_FA09", "addr": "FA09", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_FB8E", "sub_FCF9", "inc16_95", "sub_FC81"],
-  "setup": {}, "shaper": null,
-  "notes": "music channel tick: $B4 bit7 gate; DEC $B3; on 0 walk ($B5) command bytes ($FF->FB8E loop), 0->FCF9, else FD6B/AND7F->$B3, BMI(cmd bit7) FA54 else FC81+APU. TRI regs are hardware." }

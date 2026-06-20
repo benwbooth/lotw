@@ -15,6 +15,6 @@ FrameTask wait_release_then_any_press();
 FrameTask wait_release_then_button_then_release(std::uint8_t mask);
 FrameTask wait_frames(unsigned count);
 
-} // namespace lotw::native
+}
 
-#endif /* LOTW_NATIVE_LOTW_SCRIPTS_HPP */
+#endif

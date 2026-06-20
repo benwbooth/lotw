@@ -1,5 +1,0 @@
-{ "name": "sub_B29B", "addr": "B29B", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C2B1", "sub_C135"], "setup": {}, "shaper": null,
-  "oracle": {"sync_clear": ["28", "36"]},
-  "notes": "16 outer passes (decrementing $A0/$B0/$D0 toward 0), 20 inner passes each JSR C2B1 then $36=1/JSR C135. Frame-syncs on $28/$36 via C135." }

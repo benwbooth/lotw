@@ -1,6 +1,0 @@
-{ "name": "sub_DF5E", "addr": "DF5E", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["farcall_bank_09_r7"], "shaper": null,
-  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03"},
-  "oracle": {"vram_sync": true},
-  "notes": "compute VRAM dest from $FA, set ptr $0C=$FA, run bank-9 far-call; MMC3 writes HW-only; pin ($0C)/($79) pointers, vram_sync for queue_ppu_job_and_wait $28" }

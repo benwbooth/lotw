@@ -3,15 +3,15 @@
 #include <cstdio>
 #include <cstring>
 
-#include "ram.h"
+#include "game_memory.h"
 
 extern "C" {
-u8 NES_MEM[0x10000];
+u8 LOTW_MEMORY[0x10000];
 }
 
 static int expect_u8(const char* name, u16 addr, u8 want)
 {
-    u8 got = RAM8(addr);
+    u8 got = GAME_MEM8(addr);
     if (got == want)
         return 0;
     std::fprintf(stderr, "%s $%04X: got %02X, expected %02X\n", name, addr, got, want);
@@ -20,7 +20,7 @@ static int expect_u8(const char* name, u16 addr, u8 want)
 
 int main()
 {
-    std::memset(NES_MEM, 0, sizeof NES_MEM);
+    std::memset(LOTW_MEMORY, 0, sizeof LOTW_MEMORY);
 
     lotw::native::GameState game;
     auto gate = lotw::native::ae11_press_start_gate(game);

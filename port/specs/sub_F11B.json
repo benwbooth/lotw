@@ -1,5 +1,0 @@
-{ "name": "sub_F11B", "addr": "F11B", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_EFF1", "sub_CE7C", "sub_F136", "sub_CF08", "sub_CEB6", "sub_CE90", "sub_E7DB", "sub_CAB6", "sub_CB0E", "sub_CBFA"],
-  "setup": {}, "shaper": null,
-  "notes": "EFF1; CE7C: if hit -> F136, SEC; else CF08: if set -> $EE=0,$F3=$F0." }

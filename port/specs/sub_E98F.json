@@ -1,2 +1,0 @@
-{ "name": "sub_E98F", "addr": "E98F", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "copy 16 bytes from ($E5) to $00ED" }

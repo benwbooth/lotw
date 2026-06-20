@@ -1,3 +1,0 @@
-{ "name": "sub_D94E", "addr": "D94E", "entry": "none",
-  "inputs": [], "compare": ["ram"], "calls": [], "setup": {},
-  "shaper": null, "notes": "per-frame facing/anim state update of $56/$57 driven by $46/$20/$4D/$4E/$4F" }

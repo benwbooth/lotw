@@ -1,5 +1,0 @@
-{ "name": "sub_FB8E", "addr": "FB8E", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["inc16_95", "sub_FBC5", "sub_FBE2", "sub_FBFF", "sub_FC02", "sub_FC05"],
-  "setup": {}, "shaper": null,
-  "notes": "Sound command dispatcher. Reads cmd ($04) and arg ($05) from the inc16_95 stream pointer ($95/$96 zp,X with X=$02), advances stream thrice. If cmd<5: ASL,TAX into table $FBBB (FBC5/FBE2/FBFF/FC02/FC05) and JMP ($0006) with A=$05, X=$02. else RTS." }

@@ -1,6 +1,0 @@
-{ "name": "sfx_overlay_voice", "addr": "FA60", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_FB8E", "sub_FC81", "sub_FCC4", "sub_FCDF", "sub_FD11", "sub_FD45", "inc16_95"],
-  "setup": {"02": "40", "8F": "00", "D5": "44", "D6": "02"},
-  "shaper": null,
-  "notes": "SFX overlay on SQ2; $8F pinned 0 (BEQ path) to keep $D5 pointer safe; APU writes (4004-4007) ignored; stream pointer $D5/$D6 pinned" }

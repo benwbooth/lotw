@@ -1,6 +1,0 @@
-{ "name": "sub_F179", "addr": "F179", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_CA54", "sub_CA85", "sub_CE7C", "sub_CEB6", "sub_CE90", "sub_F233"],
-  "setup": {},
-  "shaper": null,
-  "notes": "Placement pre-check. Builds $0C-$0F/$0A from $F9/$FA/$FB/$FC/$EE, runs CE7C/CA54, probes map tiles via F233 at Y=1 and Y=$0D. INC $F0+CLC on success; reset $F0 (maybe set $F1) + SEC on fail. CA54 builds the $0C/$0D pointer used by F233." }

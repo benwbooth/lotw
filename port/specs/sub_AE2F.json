@@ -1,4 +1,0 @@
-{ "name": "sub_AE2F", "addr": "AE2F", "entry": "none",
-  "inputs": ["a"], "compare": ["ram","c"],
-  "calls": [], "setup": {}, "shaper": null,
-  "notes": "Apply damage A to health (clamp 0). PHP/PLP returns SBC carry (clear iff damage>health). Pure RAM + carry out." }

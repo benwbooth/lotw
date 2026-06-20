@@ -1,4 +1,0 @@
-{ "name":"sub_B6D0", "addr":"B6D0", "entry":"none",
-  "inputs":["x","y"], "compare":["ram","x","y"],
-  "calls":[], "setup":{}, "shaper":null,
-  "notes":"For Y bytes at $0180+X: hi nibble -= $09 (clamp $0F on borrow), keep lo nibble. Loops while Y!=0." }

@@ -1,5 +1,0 @@
-{ "name": "sub_C8FF", "addr": "C8FF", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C9D2", "text_attr_build", "sub_C9FB"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true},
-  "notes": "sequences sub_C9D2 / text_attr_build / sub_C9FB" }

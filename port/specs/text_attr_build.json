@@ -1,6 +1,0 @@
-{ "name": "text_attr_build", "addr": "C909", "entry": "flags_input",
-  "inputs": ["c"], "compare": ["ram"],
-  "calls": ["sub_CA1E", "sub_D02E", "song_init", "sound_set_song_banks", "ppu_commit_banks"],
-  "setup": { "77": "40", "78": "02" },
-  "shaper": null,
-  "notes": "Reads record via ($77); first byte uses caller carry (ADC #$A0). Populates $7A,$79,$2D,$70,$71,$74,$2A,$2B,$04A0-2,$04AC-E,$80-83,$41. Calls CA1E (carry from final ASL recomputed) and conditionally D02E." }

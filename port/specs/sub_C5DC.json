@@ -1,6 +1,0 @@
-{ "name": "sub_C5DC", "addr": "C5DC", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CA54", "sub_C5F7", "sub_CA85"],
-  "setup": {"79":"60", "7A":"02", "7C":"40", "75":"00", "76":"02"},
-  "shaper": null,
-  "notes": "Like C5CB; after CA54 adjust $0D=($0D-5+$76); JSR C5F7 (PPU strip render). Pin metatile ptr $79/$7A to safe RAM." }

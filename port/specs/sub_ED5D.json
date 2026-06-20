@@ -1,7 +1,0 @@
-{ "name": "sub_ED5D", "addr": "ED5D", "entry": "lda_a",
-  "inputs": ["a"], "compare": ["ram", "c"],
-  "calls": ["sub_CD70", "sub_EFF1", "sub_CE7C", "sub_F136",
-            "sub_CAB6", "sub_CB0E", "sub_CBFA", "sub_CE90", "sub_CEB6",
-            "sub_E7DB"],
-  "setup": {}, "shaper": null,
-  "notes": "Step projectile (CD70 delta w/ Y=1,A selector; EFF1 move), terrain test CE7C; if hit apply F136 and SEC. Out carry = CE7C carry." }

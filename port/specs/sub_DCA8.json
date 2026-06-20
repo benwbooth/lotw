@@ -1,5 +1,0 @@
-{ "name": "sub_DCA8", "addr": "DCA8", "entry": "lda_a",
-  "inputs": ["y"], "compare": ["ram", "c"],
-  "calls": ["sub_E7CE", "sub_CAB6", "sub_CB0E", "sub_CBFA"], "setup": {"0C": "40", "0D": "02"},
-  "shaper": null,
-  "notes": "tile==$30 -> arm death seq via E7CE; carry=matched. Pointer $0C/$0D set to $0240." }

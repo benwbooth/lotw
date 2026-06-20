@@ -1,4 +1,0 @@
-{ "name":"sub_D8E3", "addr":"D8E3", "entry":"none",
-  "inputs":[], "compare":["ram"],
-  "calls":[], "setup":{}, "shaper":null,
-  "notes":"player sprite-frame state selector; writes $56/$57, scratch $08" }

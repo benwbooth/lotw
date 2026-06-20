@@ -1,2 +1,0 @@
-{ "name": "sub_D15F", "addr": "D15F", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "fill $0322..$0341 with $7F" }

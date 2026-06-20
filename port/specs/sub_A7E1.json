@@ -1,4 +1,0 @@
-{ "name": "sub_A7E1", "addr": "A7E1", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CB53","sub_CB94","sub_CBFA"], "setup": {}, "shaper": null,
-  "notes": "Boss meter sprite load (far-call $0C0D target, bank13): copy $AB3C table -> $0240, tail CB53. $AB3C is bank-13 data, mapped at $A000 in oracle+harness." }

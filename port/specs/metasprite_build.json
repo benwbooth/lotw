@@ -1,6 +1,0 @@
-{ "name": "metasprite_build", "addr": "C871", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["queue_ppu_job_and_wait"], "shaper": null,
-  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03"},
-  "oracle": {"vram_sync": true},
-  "notes": "assemble metasprite from ($0C) def + ($79) tile table into sprite buffers $0140-$0171; pin pointers to safe RAM. Net RAM sprite buffers,$0B,$18,$19,$28" }

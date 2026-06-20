@@ -1,7 +1,0 @@
-{ "name": "sub_D596", "addr": "D596", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_E7F0", "sub_C234", "sub_D199", "sub_C3E5", "sub_D08A", "scene_assemble", "sub_C5CB", "sub_D07C", "sub_C1C7", "sub_C1D8", "sub_C492"],
-  "setup": {"55": "00", "79": "60", "7A": "02", "77": "40", "78": "02"},
-  "shaper": null,
-  "oracle": {"sync_clear": ["28", "36"]},
-  "notes": "equipped-item use dispatch on carried_item0[equipped_item]. x<2 magic-gun arm; x==$0B refill magic (C234,D199); x==$0D warp (clear slot, C234, JMP D866->D895 screen rebuild). D199/C3E5/C492 frame-sync $28 / spin $36; scene_assemble/C5CB/C569 vram_sync." }

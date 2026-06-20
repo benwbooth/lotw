@@ -1,13 +1,13 @@
-/* Headless software PPU — see ppu.h. Implements the $2000-$2007/$4014 register
- * behavior the ported game drives, MMC3 CHR banking + mirroring (tracked off
- * the $8000/$8001/$A000 writes the game also issues through REG_W), and a
- * background + sprite rasterizer to a 256x240 RGB buffer. */
+
+
+
+
 #include "ppu.h"
 #include <stdio.h>
 #include <string.h>
 
-/* ---- NES master palette (2C02), 64 entries RGB ---- */
-static const u8 NES_PAL[64][3] = {
+
+static const u8 LOTW_PALETTE[64][3] = {
   { 84, 84, 84},{  0, 30,116},{  8, 16,144},{ 48,  0,136},{ 68,  0,100},{ 92,  0, 48},{ 84,  4,  0},{ 60, 24,  0},
   { 32, 42,  0},{  8, 58,  0},{  0, 64,  0},{  0, 60,  0},{  0, 50, 60},{  0,  0,  0},{  0,  0,  0},{  0,  0,  0},
   {152,150,152},{  8, 76,196},{ 48, 50,236},{ 92, 30,228},{136, 20,176},{160, 20,100},{152, 34, 32},{120, 60,  0},
@@ -18,41 +18,41 @@ static const u8 NES_PAL[64][3] = {
   {204,210,120},{180,222,120},{168,226,144},{152,226,180},{160,214,228},{160,162,160},{  0,  0,  0},{  0,  0,  0},
 };
 
-/* ---- state ---- */
+
 u8 ppu_vram[0x800];
 u8 ppu_pal[0x20];
 u8 ppu_oam[0x100];
 u8 ppu_ctrl, ppu_mask, ppu_scroll_x, ppu_scroll_y;
 
-static u8  s_status;          /* $2002: bit7 vblank, bit6 sprite0, bit5 overflow */
-static u8  s_openbus;         /* PPU I/O open-bus latch: drives $2002's low 5 bits.
-                               * Set by any $2000-$2007 write and by $2004/$2007 reads. */
-static u8  s_oamaddr;
-static u16 s_vaddr;           /* current $2006 VRAM address */
-static u8  s_wtoggle;         /* shared $2005/$2006 high/low write latch */
-static u8  s_readbuf;         /* $2007 read buffer */
+static u8  s_status;
+static u8  s_openbus;
 
-/* CHR: up to 64 KiB, mapped to the PPU $0000-$1FFF pattern space in 8x1 KiB
- * windows per MMC3. */
+static u8  s_oamaddr;
+static u16 s_vaddr;
+static u8  s_wtoggle;
+static u8  s_readbuf;
+
+
+
 static u8  s_chr[0x10000];
 static unsigned s_chr_len;
-static int s_chr_win[8];      /* 1 KiB CHR-bank index for each PPU 1 KiB slot */
-static u8  s_mmc3_sel;        /* $8000 last value (bank select + CHR-invert bit7) */
-static u8  s_mmc3_bank[8];    /* R0..R7 */
-static int s_mirror;          /* 0 = horizontal arrangement, 1 = vertical */
+static int s_chr_win[8];
+static u8  s_mmc3_sel;
+static u8  s_mmc3_bank[8];
+static int s_mirror;
 
 static void recompute_chr(void)
 {
-    /* MMC3 CHR layout; bit7 of $8000 swaps the $0000 and $1000 halves.
-     * R0,R1 are 2 KiB banks (low bit ignored); R2..R5 are 1 KiB banks. */
+
+
     int inv = (s_mmc3_sel & 0x80) ? 1 : 0;
-    int two[4]; /* the four 1KB slots of the "2KB-bank half" */
-    int one[4]; /* the four 1KB slots of the "1KB-bank half" */
+    int two[4];
+    int one[4];
     two[0] = (s_mmc3_bank[0] & 0xFE);     two[1] = (s_mmc3_bank[0] & 0xFE) | 1;
     two[2] = (s_mmc3_bank[1] & 0xFE);     two[3] = (s_mmc3_bank[1] & 0xFE) | 1;
     one[0] = s_mmc3_bank[2]; one[1] = s_mmc3_bank[3];
     one[2] = s_mmc3_bank[4]; one[3] = s_mmc3_bank[5];
-    if (!inv) { /* $0000=2KB banks, $1000=1KB banks */
+    if (!inv) {
         s_chr_win[0]=two[0]; s_chr_win[1]=two[1]; s_chr_win[2]=two[2]; s_chr_win[3]=two[3];
         s_chr_win[4]=one[0]; s_chr_win[5]=one[1]; s_chr_win[6]=one[2]; s_chr_win[7]=one[3];
     } else {
@@ -68,10 +68,10 @@ void ppu_load_chr(const u8 *chr, unsigned len)
     s_chr_len = len;
 }
 
-/* PRG-ROM + CPU-side bank mapping: MMC3 swaps 8 KiB PRG banks into $8000/$A000;
- * the shim copies the selected bank into NES_MEM so the game's bank-switched data
- * reads ($8000-$BFFF) hit real data. */
-extern u8 NES_MEM[0x10000];
+
+
+
+extern u8 LOTW_MEMORY[0x10000];
 static u8  s_prg[0x40000];
 static unsigned s_prg_len;
 
@@ -82,12 +82,12 @@ void ppu_load_prg(const u8 *prg, unsigned len)
     s_prg_len = len;
 }
 
-void ppu_map_prg(u16 cpu_base, u8 bank8k)   /* map an 8KiB PRG bank to $8000 or $A000 */
+void ppu_map_prg(u16 cpu_base, u8 bank8k)
 {
     if (!s_prg_len) return;
     unsigned nbanks = s_prg_len / 0x2000;
     unsigned off = (unsigned)(bank8k % nbanks) * 0x2000;
-    memcpy(&NES_MEM[cpu_base], &s_prg[off], 0x2000);
+    memcpy(&LOTW_MEMORY[cpu_base], &s_prg[off], 0x2000);
 }
 
 void ppu_reset(void)
@@ -98,11 +98,11 @@ void ppu_reset(void)
     ppu_ctrl = ppu_mask = ppu_scroll_x = ppu_scroll_y = 0;
     s_status = 0; s_openbus = 0; s_oamaddr = 0; s_vaddr = 0; s_wtoggle = 0; s_readbuf = 0;
     s_mmc3_sel = 0; s_mirror = 0;
-    for (int i = 0; i < 8; i++) s_mmc3_bank[i] = i;   /* identity default */
+    for (int i = 0; i < 8; i++) s_mmc3_bank[i] = i;
     recompute_chr();
 }
 
-/* CHR byte at PPU pattern address (0..$1FFF). */
+
 static u8 chr_at(unsigned a)
 {
     a &= 0x1FFF;
@@ -110,15 +110,15 @@ static u8 chr_at(unsigned a)
     return (off < sizeof s_chr) ? s_chr[off] : 0;
 }
 
-/* Map a nametable tile coord (logical, 0..63 x, 0..59 y) to a $0..$7FF vram
- * offset honoring the mirroring mode. */
+
+
 static unsigned nt_offset(int tx, int ty)
 {
-    int ntx = (tx >> 5) & 1;         /* which horizontal nametable (0/1) */
-    int nty = (ty >> 5) & 1;         /* which vertical nametable (0/1)  */
-    int phys;                         /* physical NT 0 or 1 in the 2KB vram */
-    if (s_mirror == 0) phys = nty;    /* horizontal arrangement: vert coord picks */
-    else               phys = ntx;    /* vertical arrangement: horiz coord picks */
+    int ntx = (tx >> 5) & 1;
+    int nty = (ty >> 5) & 1;
+    int phys;
+    if (s_mirror == 0) phys = nty;
+    else               phys = ntx;
     int cx = tx & 31, cy = ty & 31;
     return (unsigned)(phys ? 0x400 : 0) + (unsigned)(cy * 32 + cx);
 }
@@ -145,22 +145,22 @@ static unsigned nt_addr_offset(u16 addr)
 
 static void put(u8 *out, int x, int y, u8 palidx)
 {
-    const u8 *c = NES_PAL[palidx & 0x3F];
+    const u8 *c = LOTW_PALETTE[palidx & 0x3F];
     u8 *p = out + (y * PPU_W + x) * 3;
     p[0] = c[0]; p[1] = c[1]; p[2] = c[2];
 }
 
-/* Sample one background pixel at world coords (wx,wy) over the 2x2 nametable
- * arrangement. Each nametable is 256x240 (32x30 tiles) with its attribute table
- * at +$3C0; vertical wrap is at 240 (the 30-row layout), NOT 256. Returns the
- * resolved palette index (color 0 -> universal backdrop). */
+
+
+
+
 static u8 bg_pixel(int wx, int wy, int bg_pt)
 {
-    wx &= 0x1FF;                                  /* two NTs across (512px) */
-    wy %= 480; if (wy < 0) wy += 480;             /* two NTs down (2*240px) */
+    wx &= 0x1FF;
+    wy %= 480; if (wy < 0) wy += 480;
     int ntx = (wx >> 8) & 1, nty = (wy >= 240) ? 1 : 0;
     int lx = wx & 0xFF, ly = (wy >= 240) ? wy - 240 : wy;
-    int phys = (s_mirror == 0) ? nty : ntx;       /* mirroring picks the physical NT */
+    int phys = (s_mirror == 0) ? nty : ntx;
     unsigned nt = phys ? 0x400 : 0;
     int cx = lx >> 3, cy = ly >> 3, fx = lx & 7, fy = ly & 7;
     u8 tile = ppu_vram[nt + cy * 32 + cx];
@@ -173,22 +173,22 @@ static u8 bg_pixel(int wx, int wy, int bg_pt)
 
 void ppu_render(u8 *out)
 {
-    int bg_pt = (ppu_ctrl & 0x10) ? 0x1000 : 0x0000;   /* BG pattern table */
-    int sp_pt = (ppu_ctrl & 0x08) ? 0x1000 : 0x0000;   /* 8x8 sprite pattern table */
-    int tall  = (ppu_ctrl & 0x20) ? 1 : 0;             /* 8x16 sprite mode */
+    int bg_pt = (ppu_ctrl & 0x10) ? 0x1000 : 0x0000;
+    int sp_pt = (ppu_ctrl & 0x08) ? 0x1000 : 0x0000;
+    int tall  = (ppu_ctrl & 0x20) ? 1 : 0;
 
-    /* Status-bar sprite-0 split: the top rows are the HUD (scroll (0,$C4), NT0,
-     * HUD CHR banks); the rest is the play area at scroll ($1C,$1E) with the game
-     * banks. The split scanline is sprite 0's Y. (See statusbar_split.) */
-    int split  = NES_MEM[0x29] != 0;
+
+
+
+    int split  = LOTW_MEMORY[0x29] != 0;
     int splitY = split ? (ppu_oam[0] + 1) : 0;
     if (splitY < 0) splitY = 0; else if (splitY > PPU_H) splitY = PPU_H;
 
-    /* ---- play-area background: rows [splitY, 240) at the current scroll ----
-     * The real split restores the playfield scroll a few scanlines after the
-     * sprite-0 hit wait/delay sequence. LotW's scroll constants are authored for
-     * that timing, so the software renderer samples the playfield 6 rows later
-     * while keeping the HUD/playfield boundary itself at sprite 0's Y. */
+
+
+
+
+
     if (ppu_mask & 0x08) {
         int bx = (ppu_ctrl & 1) ? 256 : 0, by = (ppu_ctrl & 2) ? 240 : 0;
         for (int sy = splitY; sy < PPU_H; sy++) {
@@ -201,7 +201,7 @@ void ppu_render(u8 *out)
             for (int sx = 0; sx < PPU_W; sx++) put(out, sx, sy, ppu_pal[0]);
     }
 
-    /* ---- status-bar region: rows [0, splitY) from NT0 at (0,$C4), HUD banks ---- */
+
     if (split && (ppu_mask & 0x08)) {
         u8 b1 = s_mmc3_bank[1], b4 = s_mmc3_bank[4], b5 = s_mmc3_bank[5];
         s_mmc3_bank[1] = 0x16; s_mmc3_bank[4] = 0x3E; s_mmc3_bank[5] = 0x3F;
@@ -213,7 +213,7 @@ void ppu_render(u8 *out)
         recompute_chr();
     }
 
-    /* ---- sprites (8x8 or 8x16; lower index = higher priority) ---- */
+
     if (ppu_mask & 0x10) {
         for (int i = 63; i >= 0; i--) {
             u8 *o = ppu_oam + i * 4;
@@ -225,7 +225,7 @@ void ppu_render(u8 *out)
                 int py = y + row; if (py < 0 || py >= PPU_H) continue;
                 int sr = vflip ? (h - 1 - row) : row;
                 unsigned a;
-                if (tall) {                        /* tile bit0 = table; pairs of tiles */
+                if (tall) {
                     unsigned base = ((o[1] & 1) ? 0x1000u : 0x0000u) + (o[1] & 0xFE) * 16;
                     a = base + (sr < 8 ? sr : 16 + (sr - 8));
                 } else {
@@ -236,7 +236,7 @@ void ppu_render(u8 *out)
                     int px = x + col; if (px < 0 || px >= PPU_W) continue;
                     int sc = hflip ? col : 7 - col;
                     int v = ((p0 >> sc) & 1) | (((p1 >> sc) & 1) << 1);
-                    if (!v) continue;              /* transparent */
+                    if (!v) continue;
                     put(out, px, py, ppu_pal[pal + v]);
                 }
             }
@@ -244,9 +244,9 @@ void ppu_render(u8 *out)
     }
 }
 
-/* Render the top status-bar band as the sprite-0 split does: the top `rows`
- * scanlines are drawn from NT0 at scroll (0,$C4) with the HUD CHR banks
- * (R1=$16, R4=$3E, R5=$3F per statusbar_split), overwriting the play area. */
+
+
+
 void ppu_render_statusbar(u8 *out, int rows)
 {
     u8 b1 = s_mmc3_bank[1], b4 = s_mmc3_bank[4], b5 = s_mmc3_bank[5];
@@ -254,9 +254,9 @@ void ppu_render_statusbar(u8 *out, int rows)
     recompute_chr();
     int bg_pt = (ppu_ctrl & 0x10) ? 0x1000 : 0x0000;
     for (int sy = 0; sy < rows && sy < PPU_H; sy++) {
-        int wy = sy + 0xC4, ty = wy >> 3, fy = wy & 7;   /* HUD scroll Y = $C4 */
+        int wy = sy + 0xC4, ty = wy >> 3, fy = wy & 7;
         for (int sx = 0; sx < PPU_W; sx++) {
-            int tx = sx >> 3, fx = sx & 7;               /* HUD scroll X = 0 */
+            int tx = sx >> 3, fx = sx & 7;
             u8 tile = ppu_vram[nt_offset(tx, ty)];
             unsigned a = bg_pt + tile * 16 + fy;
             int bit = 7 - fx;
@@ -271,7 +271,7 @@ void ppu_render_statusbar(u8 *out, int rows)
 
 void ppu_debug_tilesheet(int which, u8 *out)
 {
-    static const u8 gray[4] = {0, 12, 0x10, 0x30};   /* master-palette indices */
+    static const u8 gray[4] = {0, 12, 0x10, 0x30};
     int base = which ? 0x1000 : 0x0000;
     for (int t = 0; t < 256; t++) {
         int ox = (t & 15) * 8, oy = (t >> 4) * 8;
@@ -279,7 +279,7 @@ void ppu_debug_tilesheet(int which, u8 *out)
             u8 p0 = chr_at(base + t * 16 + row), p1 = chr_at(base + t * 16 + 8 + row);
             for (int col = 0; col < 8; col++) {
                 int v = ((p0 >> (7 - col)) & 1) | (((p1 >> (7 - col)) & 1) << 1);
-                const u8 *c = NES_PAL[gray[v]];
+                const u8 *c = LOTW_PALETTE[gray[v]];
                 u8 *p = out + ((oy + row) * 128 + (ox + col)) * 3;
                 p[0]=c[0]; p[1]=c[1]; p[2]=c[2];
             }
@@ -287,40 +287,40 @@ void ppu_debug_tilesheet(int which, u8 *out)
     }
 }
 
-/* ---- register hooks (the REG_W/REG_R the game drives) ---- */
-extern u8 NES_MEM[0x10000];
-void (*apu_write_hook)(u16, u8);     /* set by the APU shim; NULL otherwise */
 
-/* ---- frame-sync hook (see ppu.h) ---- */
-void vblank_commit(Regs *r);
+extern u8 LOTW_MEMORY[0x10000];
+void (*apu_write_hook)(u16, u8);
 
-/* Default vblank-wait: run exactly one frame commit inline. */
-static void nes_vblank_default(Regs *r)
+
+void vblank_commit(RoutineContext *r);
+
+
+static void lotw_frame_wait_default(RoutineContext *r)
 {
     vblank_commit(r);
 }
-void (*nes_vblank_wait)(Regs *r) = nes_vblank_default;
+void (*lotw_frame_wait_hook)(RoutineContext *r) = lotw_frame_wait_default;
 
-void nes_frame_wait(Regs *r)
+void lotw_frame_wait(RoutineContext *r)
 {
-    if (nes_vblank_wait)
-        nes_vblank_wait(r);
+    if (lotw_frame_wait_hook)
+        lotw_frame_wait_hook(r);
 }
 
-void nes_prg_map_shadow(void)
+void lotw_prg_map_shadow(void)
 {
-    ppu_map_prg(0x8000, NES_MEM[0x30]);   /* R6 shadow -> $8000 */
-    ppu_map_prg(0xA000, NES_MEM[0x31]);   /* R7 shadow -> $A000 */
+    ppu_map_prg(0x8000, LOTW_MEMORY[0x30]);
+    ppu_map_prg(0xA000, LOTW_MEMORY[0x31]);
 }
 
-/* Controller 1 shift register. Button bit order (LSB first, = NES shift order):
- * bit0 A, 1 B, 2 Select, 3 Start, 4 Up, 5 Down, 6 Left, 7 Right. */
+
+
 static u8 s_buttons, s_ctrl_latch, s_strobe;
 void ppu_set_buttons(u8 b) { s_buttons = b; }
 
-void nes_reg_write(u16 addr, u8 val)
+void lotw_device_write(u16 addr, u8 val)
 {
-    if (addr >= 0x2000 && addr <= 0x2007) s_openbus = val;  /* any PPU-reg write drives the bus */
+    if (addr >= 0x2000 && addr <= 0x2007) s_openbus = val;
     switch (addr) {
     case 0x2000: ppu_ctrl = val; break;
     case 0x2001: ppu_mask = val; break;
@@ -336,54 +336,54 @@ void nes_reg_write(u16 addr, u8 val)
         break;
     case 0x2007: {
         u16 a = s_vaddr & 0x3FFF;
-        if (a >= 0x3F00) {                     /* palette RAM (with mirroring) */
+        if (a >= 0x3F00) {
             u16 p = a & 0x1F;
-            if ((p & 3) == 0) {                /* $3F10/$14/$18/$1C mirror backdrop slots */
+            if ((p & 3) == 0) {
                 p &= 0x0F;
                 ppu_pal[p] = val;
                 ppu_pal[p | 0x10] = val;
             } else {
                 ppu_pal[p] = val;
             }
-        } else {                               /* nametables ($2000-$2FFF) -> mirrored 2KB */
+        } else {
             ppu_vram[nt_addr_offset(a)] = val;
         }
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
         break;
     }
-    case 0x4014: {                             /* OAM DMA from CPU page (val<<8) */
+    case 0x4014: {
         unsigned base = (unsigned)val << 8;
-        for (int i = 0; i < 256; i++) ppu_oam[(u8)(s_oamaddr + i)] = NES_MEM[base + i];
+        for (int i = 0; i < 256; i++) ppu_oam[(u8)(s_oamaddr + i)] = LOTW_MEMORY[base + i];
         break;
     }
-    /* ---- MMC3 (CHR banking + mirroring) ---- */
+
     case 0x8000: s_mmc3_sel = val; recompute_chr(); break;
     case 0x8001:
         s_mmc3_bank[s_mmc3_sel & 7] = val;
         recompute_chr();
-        if ((s_mmc3_sel & 7) == 6) ppu_map_prg(0x8000, val);   /* R6 -> $8000 */
-        else if ((s_mmc3_sel & 7) == 7) ppu_map_prg(0xA000, val); /* R7 -> $A000 */
+        if ((s_mmc3_sel & 7) == 6) ppu_map_prg(0x8000, val);
+        else if ((s_mmc3_sel & 7) == 7) ppu_map_prg(0xA000, val);
         break;
-    case 0xA000: s_mirror = (val & 1) ? 0 : 1; break;  /* MMC3: 0=vert,1=horiz arrangement */
-    case 0x4016:                                       /* controller strobe */
+    case 0xA000: s_mirror = (val & 1) ? 0 : 1; break;
+    case 0x4016:
         s_strobe = val & 1;
         if (s_strobe) s_ctrl_latch = s_buttons;
         break;
     default:
         if (addr >= 0x4000 && addr <= 0x4017 && addr != 0x4014 && apu_write_hook)
-            apu_write_hook(addr, val);             /* route APU regs to the synth */
+            apu_write_hook(addr, val);
         break;
     }
 }
 
-u8 nes_reg_read(u16 addr)
+u8 lotw_device_read(u16 addr)
 {
     switch (addr) {
     case 0x2002: {
-        /* top 3 bits = vblank/sprite0/overflow; low 5 = open-bus (last reg write) */
+
         u8 s = (u8)((s_status & 0xE0) | (s_openbus & 0x1F));
-        s_status &= (u8)~0x80;     /* reading clears vblank flag ... */
-        s_wtoggle = 0;             /* ... and resets the $2005/$2006 write latch */
+        s_status &= (u8)~0x80;
+        s_wtoggle = 0;
         return s;
     }
     case 0x2004: { u8 ret = ppu_oam[s_oamaddr]; s_openbus = ret; return ret; }
@@ -395,18 +395,18 @@ u8 nes_reg_read(u16 addr)
             if ((p & 3) == 0) p &= 0x0F;
             ret = ppu_pal[p];
         }
-        else { ret = s_readbuf; s_readbuf = ppu_vram[nt_addr_offset(a)]; }  /* buffered read */
+        else { ret = s_readbuf; s_readbuf = ppu_vram[nt_addr_offset(a)]; }
         s_vaddr += (ppu_ctrl & 0x04) ? 32 : 1;
         s_openbus = ret;
         return ret;
     }
-    case 0x4016: {                             /* controller 1 serial read */
-        if (s_strobe) return s_buttons & 1;    /* strobing -> always button A */
+    case 0x4016: {
+        if (s_strobe) return s_buttons & 1;
         u8 bit = s_ctrl_latch & 1;
-        s_ctrl_latch >>= 1;                    /* shift out one button bit */
+        s_ctrl_latch >>= 1;
         return bit;
     }
-    case 0x4017: return 0;                      /* controller 2 / APU-frame read: none */
+    case 0x4017: return 0;
     default: return 0;
     }
 }
@@ -414,17 +414,17 @@ u8 nes_reg_read(u16 addr)
 int ppu_chr_win_dbg(int i) { return s_chr_win[i & 7]; }
 int ppu_mirror_dbg(void) { return s_mirror; }
 
-/* set/clear the vblank + sprite-0 status bits (frame driver uses these) */
-u8 (*nes_next_input)(void) = 0;   /* per-read input hook (lockstep); NULL = use s_buttons */
+
+u8 (*lotw_next_input)(void) = 0;
 
 void ppu_set_vblank(int on) { if (on) s_status |= 0x80; else s_status &= (u8)~0x80; }
 void ppu_set_sprite0(int on) { if (on) s_status |= 0x40; else s_status &= (u8)~0x40; }
 
-/* Evaluate the $2002 sprite-overflow flag (bit5) for the frame that just rendered:
- * set it iff more than 8 sprites occupy any visible scanline (0..239). Sprite
- * height is 8 or 16 per PPUCTRL bit5; OAM Y>=$EF is off-screen. ppu_oam holds the
- * frame's sprites (DMA'd at its start). Frame-driver helper; reflects the count the
- * real PPU's per-scanline evaluation would have hit. */
+
+
+
+
+
 void ppu_eval_sprite_overflow(void)
 {
     int h = (ppu_ctrl & 0x20) ? 16 : 8;
@@ -433,8 +433,8 @@ void ppu_eval_sprite_overflow(void)
     for (s = 0; s < 240; s++) perline[s] = 0;
     for (s = 0; s < 64; s++) {
         int y = ppu_oam[s * 4];
-        if (y >= 0xEF) continue;               /* hidden */
-        int top = y + 1, bot = y + 1 + h;      /* sprite shows on lines [Y+1, Y+1+h) */
+        if (y >= 0xEF) continue;
+        int top = y + 1, bot = y + 1 + h;
         if (bot > 240) bot = 240;
         for (int sl = top; sl < bot; sl++)
             if (++perline[sl] > 8) { s_status |= 0x20; return; }
@@ -442,7 +442,7 @@ void ppu_eval_sprite_overflow(void)
     s_status &= (u8)~0x20;
 }
 
-/* ---- PPM (P6) writer ---- */
+
 int ppm_write(const char *path, const u8 *rgb, int w, int h)
 {
     FILE *f = fopen(path, "wb");

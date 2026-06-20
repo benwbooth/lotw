@@ -1,5 +1,0 @@
-{ "name": "sub_C569", "addr": "C569", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CC97", "queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true},
-  "notes": "set VRAM dst $3F00 (palette), submit job type $02; frame-syncs via $28" }

@@ -1,5 +1,0 @@
-{ "name": "sub_ED6F", "addr": "ED6F", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_EE9A", "sub_CD70", "sub_F11B", "sub_EF11", "sub_EF04", "sub_F01E"],
-  "setup": {"0C": "40", "0D": "02", "0E": "40", "0F": "02", "E7": "40", "E8": "02"}, "shaper": null,
-  "notes": "like EB69 but on F11B carry: if $EA!=0 set $EE=$80 and RTS, else EF11; F01E; RTS" }

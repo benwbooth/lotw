@@ -1,5 +1,0 @@
-{ "name": "sub_C57A", "addr": "C57A", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CC97"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true},
-  "notes": "wait VRAM job then blit ROM $FECB to PPU; net RAM $28=0,$29=1, $23/$24 restored" }

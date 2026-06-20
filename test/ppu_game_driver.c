@@ -1,25 +1,25 @@
-/* Game-driven PPU frame: run the ported logic against the software PPU shim and
- * render what the game actually puts on screen. We warp straight into an in-game
- * state (skipping the title/character-select input loops): seed the far-call
- * banks, init engine state, place the player, assemble the scene (which queues
- * VRAM jobs that the shim's queue_ppu_job_and_wait flushes through vblank into
- * the software PPU), run one game_update, then rasterize to a PPM.
- *
- *   build: gcc -O2 -DLOTW_HOST -DLOTW_SHIM -Isrc src/ppu.c src/ported/*.c \
- *              test/ppu_game_driver.c -o build/game_driver
- */
+
+
+
+
+
+
+
+
+
+
 #include "ppu.h"
-#include "regs.h"
+#include "routine_context.h"
 #include <stdio.h>
 #include <string.h>
 
-u8 NES_MEM[0x10000];
+u8 LOTW_MEMORY[0x10000];
 
-/* engine entry points we drive directly */
-void ram_state_init(Regs *r);
-void farcall_bank_0C0D_seed(Regs *r);
-void scene_assemble(Regs *r);
-void game_update(Regs *r);
+
+void ram_state_init(RoutineContext *r);
+void farcall_bank_0C0D_seed(RoutineContext *r);
+void scene_assemble(RoutineContext *r);
+void game_update(RoutineContext *r);
 
 int main(int argc, char **argv)
 {
@@ -36,73 +36,73 @@ int main(int argc, char **argv)
     ppu_load_chr(CHR, chr);
     ppu_reset();
 
-    /* fixed banks 14+15 -> $C000-$FFFF; default low banks (seed will remap) */
-    memcpy(&NES_MEM[0xC000], PRG + (prg - 0x4000), 0x4000);
+
+    memcpy(&LOTW_MEMORY[0xC000], PRG + (prg - 0x4000), 0x4000);
     ppu_map_prg(0x8000, 12);
     ppu_map_prg(0xA000, 13);
-    ppu_set_vblank(1);              /* pretend we're in vblank so any wait clears */
+    ppu_set_vblank(1);
 
-    Regs r; memset(&r, 0, sizeof r);
+    RoutineContext r; memset(&r, 0, sizeof r);
 
     fprintf(stderr, "ram_state_init...\n");   ram_state_init(&r);
     fprintf(stderr, "seed banks...\n");        farcall_bank_0C0D_seed(&r);
 
-    /* default start position (from main_init L_C04F) */
-    RAM8(0x46) = 0x00;             /* $46 */
-    RAM8(0x7B) = 0x00;             /* scroll_x_fine */
-    RAM8(0x43) = 0x00;             /* player_x_fine */
-    RAM8(0x7C) = 0x30;             /* scroll_x_tile */
-    RAM8(0x44) = 0x3C;             /* player_x_tile */
-    RAM8(0x45) = 0xA0;             /* player_y */
 
-    /* Reproduce the essential character-select / world-entry state that AE64 sets
-     * up (it's rng-randomized normally; we pick a valid room + character 0). */
-    RAM8(0x8E) = 0x09;             /* level */
-    RAM8(0x41) = 0xFF;             /* character roster: all available */
-    RAM8(0x39) = 0xC5; RAM8(0x3A) = 0x17; RAM8(0x3B) = 0x42;   /* seed RNG */
-    RAM8(0x47) = 0x01; RAM8(0x48) = 0x05;   /* map_screen_x / map_screen_y (a valid room) */
-    RAM8(0x40) = 0x00;             /* cur_character = 0 */
-    for (int i = 0; i < 4; i++) RAM8(0x5C + i) = NES_MEM[0xFFA7 + i];  /* stat_jump from table */
-    RAM8(0x51) = NES_MEM[0xB0AC];  /* carried_item0 from roster table */
-    RAM8(0x55) = 0x00;             /* equipped_item */
-    RAM8(0x2C) = 0x38;             /* mmc3_r2_shadow = char($40)+$38 (character CHR) */
-    RAM8(0x2E) = 0x3E; RAM8(0x2F) = 0x20;
-    RAM8(0x56) = 0x0D; RAM8(0x57) = 0x00; RAM8(0x42) = 0x01;
-    RAM8(0x58) = 0x64;             /* health */
-    RAM8(0x59) = 0x64;             /* magic */
-    RAM8(0xEB) = 0x00;             /* reset flag clear */
-    /* spawn position */
-    RAM8(0x44) = 0x20; RAM8(0x45) = 0x80; RAM8(0x43) = 0x00;
-    RAM8(0x7C) = 0x18; RAM8(0x7B) = 0x00;
+    GAME_MEM8(0x46) = 0x00;
+    GAME_MEM8(0x7B) = 0x00;
+    GAME_MEM8(0x43) = 0x00;
+    GAME_MEM8(0x7C) = 0x30;
+    GAME_MEM8(0x44) = 0x3C;
+    GAME_MEM8(0x45) = 0xA0;
+
+
+
+    GAME_MEM8(0x8E) = 0x09;
+    GAME_MEM8(0x41) = 0xFF;
+    GAME_MEM8(0x39) = 0xC5; GAME_MEM8(0x3A) = 0x17; GAME_MEM8(0x3B) = 0x42;
+    GAME_MEM8(0x47) = 0x01; GAME_MEM8(0x48) = 0x05;
+    GAME_MEM8(0x40) = 0x00;
+    for (int i = 0; i < 4; i++) GAME_MEM8(0x5C + i) = LOTW_MEMORY[0xFFA7 + i];
+    GAME_MEM8(0x51) = LOTW_MEMORY[0xB0AC];
+    GAME_MEM8(0x55) = 0x00;
+    GAME_MEM8(0x2C) = 0x38;
+    GAME_MEM8(0x2E) = 0x3E; GAME_MEM8(0x2F) = 0x20;
+    GAME_MEM8(0x56) = 0x0D; GAME_MEM8(0x57) = 0x00; GAME_MEM8(0x42) = 0x01;
+    GAME_MEM8(0x58) = 0x64;
+    GAME_MEM8(0x59) = 0x64;
+    GAME_MEM8(0xEB) = 0x00;
+
+    GAME_MEM8(0x44) = 0x20; GAME_MEM8(0x45) = 0x80; GAME_MEM8(0x43) = 0x00;
+    GAME_MEM8(0x7C) = 0x18; GAME_MEM8(0x7B) = 0x00;
     fprintf(stderr, "scene_assemble...\n");    scene_assemble(&r);
-    /* C7B5 lays out the room: uploads the nametable columns to VRAM (the
-     * room/title-entry path our warp-in skipped). */
-    void sub_C7B5(Regs*); void sub_C1C7(Regs*);
-    fprintf(stderr, "C7B5 (screen layout)...\n");
-    RAM8(0x7C) = 0x10; sub_C7B5(&r); sub_C1C7(&r);
-    RAM8(0x7C) = 0x20; sub_C7B5(&r); sub_C1C7(&r);
-    void sub_C57A(Regs*); void sub_D0E5(Regs*);
-    fprintf(stderr, "C57A (status-bar setup)...\n");
-    sub_C57A(&r); sub_D0E5(&r);
 
-    /* Run a few per-frame iterations so vblank commit flushes the staged room to VRAM. */
-    void sub_F628(Regs*); void sub_E87C(Regs*); void sub_F782(Regs*);
-    void sub_C15D(Regs*); void sub_C1D8(Regs*); void sub_C2B1(Regs*); void sub_C135(Regs*);
+
+    void routine_0081(RoutineContext*); void routine_0060(RoutineContext*);
+    fprintf(stderr, "C7B5 (screen layout)...\n");
+    GAME_MEM8(0x7C) = 0x10; routine_0081(&r); routine_0060(&r);
+    GAME_MEM8(0x7C) = 0x20; routine_0081(&r); routine_0060(&r);
+    void routine_0076(RoutineContext*); void routine_0131(RoutineContext*);
+    fprintf(stderr, "C57A (status-bar setup)...\n");
+    routine_0076(&r); routine_0131(&r);
+
+
+    void routine_0266(RoutineContext*); void routine_0212(RoutineContext*); void routine_0271(RoutineContext*);
+    void routine_0059(RoutineContext*); void routine_0061(RoutineContext*); void routine_0063(RoutineContext*); void routine_0058(RoutineContext*);
     for (int fr = 0; fr < 4; fr++) {
         fprintf(stderr, "frame %d: game_update...", fr);
-        RAM8(0x36) = 0x01;
+        GAME_MEM8(0x36) = 0x01;
         game_update(&r);                       fprintf(stderr, " F628");
-        sub_F628(&r);                          fprintf(stderr, " E87C");
-        sub_E87C(&r);                          fprintf(stderr, " F782");
-        sub_F782(&r);  sub_C15D(&r);
-        sub_C1D8(&r);  sub_C2B1(&r);  sub_C135(&r);
+        routine_0266(&r);                          fprintf(stderr, " E87C");
+        routine_0212(&r);                          fprintf(stderr, " F782");
+        routine_0271(&r);  routine_0059(&r);
+        routine_0061(&r);  routine_0063(&r);  routine_0058(&r);
         fprintf(stderr, " done\n");
     }
 
-    /* scene_assemble has built the room background into the shim's VRAM via the
-     * queued PPU jobs. Render that frame now (game_update adds the player sprite +
-     * per-frame logic but enters the interactive loop, so skip it for frame 0). */
-    /* --- diagnostics: what did scene_assemble actually put in the PPU? --- */
+
+
+
+
     { int seen[256] = {0}, distinct = 0;
       for (int i = 0; i < 0x3C0; i++) if (!seen[ppu_vram[i]]++) distinct++;
       fprintf(stderr, "NT0 distinct tiles=%d  (sample:", distinct);
@@ -114,37 +114,37 @@ int main(int argc, char **argv)
       for (int i = 0; i < 0x20; i++) fprintf(stderr, " %02X", ppu_pal[i]);
       fprintf(stderr, "\nctrl=%02X mask=%02X scrollx=%d scrolly=%d\n",
               ppu_ctrl, ppu_mask, ppu_scroll_x, ppu_scroll_y);
-      fprintf(stderr, "NT0 attr ($3C0):");
+      fprintf(stderr, "NT0 attr 0x03C0:");
       for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[0x3C0 + i]);
       fprintf(stderr, "\nNT0 tiles row0:");
       for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[i]);
-      fprintf(stderr, "\nNT0 tiles row8 ($100):");
+      fprintf(stderr, "\nNT0 tiles row8 0x0100:");
       for (int i = 0; i < 16; i++) fprintf(stderr, " %02X", ppu_vram[0x100 + i]);
       fprintf(stderr, "\n"); }
     { int act = 0;
-      fprintf(stderr, "active OAM sprites (Y<$F0):");
+      fprintf(stderr, "active OAM sprites (Y<0xF0):");
       for (int i = 0; i < 64; i++) {
           u8 *o = ppu_oam + i*4;
           if (o[0] < 0xEF) { act++; if (act <= 10) fprintf(stderr, " [%d:y%d t%02X a%02X x%d]", i,o[0],o[1],o[2],o[3]); }
       }
       fprintf(stderr, "  total=%d\n", act);
-      fprintf(stderr, "HUD bufs $0140:"); for(int i=0;i<8;i++) fprintf(stderr," %02X",NES_MEM[0x140+i]);
+      fprintf(stderr, "HUD bufs 0x0140:"); for(int i=0;i<8;i++) fprintf(stderr," %02X",LOTW_MEMORY[0x140+i]);
       fprintf(stderr, "  CHR win:"); extern int ppu_chr_win_dbg(int); for(int i=0;i<8;i++) fprintf(stderr," %d", ppu_chr_win_dbg(i));
       fprintf(stderr, "\n"); }
-    { fprintf(stderr, "split flag $29=%02X  scroll vars $1C=%02X $1D=%02X $1E=%02X\n",
-              NES_MEM[0x29], NES_MEM[0x1C], NES_MEM[0x1D], NES_MEM[0x1E]);
-      fprintf(stderr, "NT0 row24 ($300, where HUD shows at scrollY=$C4):");
+    { fprintf(stderr, "split flag29=%02X  scroll vars1C=%02X vars1D=%02X vars1E=%02X\n",
+              LOTW_MEMORY[0x29], LOTW_MEMORY[0x1C], LOTW_MEMORY[0x1D], LOTW_MEMORY[0x1E]);
+      fprintf(stderr, "NT0 row24 0x0300, HUD scrollY=0xC4:");
       for (int i = 0; i < 24; i++) fprintf(stderr, " %02X", ppu_vram[0x300 + i]);
       fprintf(stderr, "\n"); }
 
-    if (!(ppu_mask & 0x18)) ppu_mask = 0x1E;   /* force rendering on to visualize VRAM */
-    ppu_ctrl |= 0x08;              /* sprites from $1000 (character CHR) */
+    if (!(ppu_mask & 0x18)) ppu_mask = 0x1E;
+    ppu_ctrl |= 0x08;
     static u8 frame[PPU_W * PPU_H * 3];
     ppu_render(frame);
-    if (NES_MEM[0x29]) { void ppu_render_statusbar(u8*,int); ppu_render_statusbar(frame, 40); }
+    if (LOTW_MEMORY[0x29]) { void ppu_render_statusbar(u8*,int); ppu_render_statusbar(frame, 40); }
     ppm_write("build/game_frame.ppm", frame, PPU_W, PPU_H);
 
-    /* also render at scroll 0 to inspect the raw nametable without the shift */
+
     ppu_scroll_x = 0; ppu_scroll_y = 0;
     ppu_render(frame);
     ppm_write("build/game_frame_s0.ppm", frame, PPU_W, PPU_H);

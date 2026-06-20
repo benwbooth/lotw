@@ -1,3 +1,0 @@
-{ "name": "sub_CEB6", "addr": "CEB6", "entry": "lda_a",
-  "inputs": [], "compare": ["c"], "shaper": null,
-  "notes": "diff=$0A-player_y; C=1 if diff<$10 or diff>=$F1 else C=0" }

@@ -1,5 +1,0 @@
-{ "name": "sub_F4E3", "addr": "F4E3", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_F506", "sub_EFF1", "sub_CF08", "sub_CEC7", "sub_F136", "sub_F275", "sub_E7DB", "sub_CAB6", "sub_CB0E", "sub_CBFA", "sub_CA54", "sub_CA85", "sub_F2D3"],
-  "setup": {}, "shaper": null,
-  "notes": "X=$F1?$F1:$19; DEX; $F1=X; $F7=-(X>>2); F506; if C clear RTS; else $F5=$F6=0; F506." }

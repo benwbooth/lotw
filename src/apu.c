@@ -1,6 +1,6 @@
-/* Software 2A03 APU — see apu.h. Register-driven phase-accumulator synth.
- * CPU clock 1.789773 MHz (NTSC). Channels: pulse1, pulse2 (duty square),
- * triangle (32-step), noise (15-bit LFSR). Length counters clocked per frame. */
+
+
+
 #include "apu.h"
 #include <stdio.h>
 #include <string.h>
@@ -27,7 +27,7 @@ typedef struct { int enabled, len, period, vol, mode, halt; unsigned lfsr; doubl
 static Pulse p1, p2;
 static Tri   tr;
 static Noise nz;
-static u8    status;          /* $4015 enable bits */
+static u8    status;
 
 void apu_reset(void)
 {
@@ -39,28 +39,28 @@ void apu_reset(void)
 void apu_write(u16 addr, u8 val)
 {
     switch (addr) {
-    /* pulse 1 */
+
     case 0x4000: p1.duty = val >> 6; p1.halt = (val & 0x20) != 0; p1.vol = val & 0x0F; break;
-    case 0x4001: break;                                   /* sweep (ignored) */
+    case 0x4001: break;
     case 0x4002: p1.period = (p1.period & 0x700) | val; break;
     case 0x4003: p1.period = (p1.period & 0xFF) | ((val & 7) << 8);
                  p1.len = LEN_TBL[(val >> 3) & 0x1F]; p1.phase = 0; break;
-    /* pulse 2 */
+
     case 0x4004: p2.duty = val >> 6; p2.halt = (val & 0x20) != 0; p2.vol = val & 0x0F; break;
     case 0x4005: break;
     case 0x4006: p2.period = (p2.period & 0x700) | val; break;
     case 0x4007: p2.period = (p2.period & 0xFF) | ((val & 7) << 8);
                  p2.len = LEN_TBL[(val >> 3) & 0x1F]; p2.phase = 0; break;
-    /* triangle */
+
     case 0x4008: tr.control = (val & 0x80) != 0; tr.linear = val & 0x7F; break;
     case 0x400A: tr.period = (tr.period & 0x700) | val; break;
     case 0x400B: tr.period = (tr.period & 0xFF) | ((val & 7) << 8);
                  tr.len = LEN_TBL[(val >> 3) & 0x1F]; break;
-    /* noise */
+
     case 0x400C: nz.halt = (val & 0x20) != 0; nz.vol = val & 0x0F; break;
     case 0x400E: nz.period = NOISE_PER[val & 0x0F]; nz.mode = (val >> 7) & 1; break;
     case 0x400F: nz.len = LEN_TBL[(val >> 3) & 0x1F]; break;
-    /* status / enable */
+
     case 0x4015:
         status = val;
         p1.enabled = (val & 1) != 0;
@@ -76,8 +76,8 @@ void apu_write(u16 addr, u8 val)
     }
 }
 
-/* per-frame length-counter clock (~60 Hz; the frame sequencer also runs faster,
- * but the engine reloads each frame so this is enough to gate note-off). */
+
+
 void apu_frame(void)
 {
     if (p1.len && !p1.halt) p1.len--;
@@ -102,7 +102,7 @@ static double tri_out(void)
     double f = CPU_HZ / (32.0 * (tr.period + 1));
     tr.phase += f / APU_SR;
     tr.phase -= (int)tr.phase;
-    /* 32-step triangle: 0..1..0 */
+
     double t = tr.phase < 0.5 ? tr.phase * 2 : (1 - tr.phase) * 2;
     return (t * 2 - 1);
 }
@@ -125,13 +125,13 @@ void apu_gen(short *out, int n)
 {
     for (int i = 0; i < n; i++) {
         double s = pulse_out(&p1) + pulse_out(&p2) + 0.8 * tri_out() + 0.6 * noise_out();
-        s *= 0.22;                       /* mix down to avoid clipping */
+        s *= 0.22;
         if (s > 1) s = 1; if (s < -1) s = -1;
         out[i] = (short)(s * 30000);
     }
 }
 
-/* ---- minimal WAV (PCM 16-bit mono) writer ---- */
+
 static void w32(FILE *f, unsigned v){ fputc(v,f);fputc(v>>8,f);fputc(v>>16,f);fputc(v>>24,f); }
 static void w16(FILE *f, unsigned v){ fputc(v,f);fputc(v>>8,f); }
 int wav_write(const char *path, const short *s, int n, int rate)

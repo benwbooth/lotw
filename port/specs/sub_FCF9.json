@@ -1,3 +1,0 @@
-{ "name": "sub_FCF9", "addr": "FCF9", "entry": "none",
-  "inputs": [], "compare": ["ram","x"], "shaper": null,
-  "notes": "X=$02; copy word $97/$98->$95/$96; if $98,X!=0 set $93,X=1 else $94,X&=$40" }

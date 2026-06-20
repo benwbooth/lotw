@@ -1,4 +1,0 @@
-{ "name": "sub_CE7C", "addr": "CE7C", "entry": "lda_a",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_CEB6", "sub_CE90"], "setup": {}, "shaper": null,
-  "notes": "Clears $EA; if CEB6 and CE90 both set carry -> $EA=1, C=1; else C=0." }

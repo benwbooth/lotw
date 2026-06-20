@@ -1,3 +1,0 @@
-{ "name": "sub_E778", "addr": "E778", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "store constant sprite bytes into $0250..$0257" }

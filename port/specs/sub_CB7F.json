@@ -1,4 +1,0 @@
-{ "name": "sub_CB7F", "addr": "CB7F", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CB94"], "setup": {}, "shaper": null,
-  "notes": "Set up HP meter bar (len=min(health,$6D) in $08, base $09=$80, tiles X=$65/Y=$6B) then tail-call sub_CB94." }

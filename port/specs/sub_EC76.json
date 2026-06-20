@@ -1,5 +1,0 @@
-{ "name": "sub_EC76", "addr": "EC76", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_EE53", "sub_CD70", "sub_F11B", "sub_F2DA", "sub_EF11", "sub_EF04", "sub_F01E"],
-  "setup": {"0C": "40", "0D": "02", "0E": "40", "0F": "02", "E7": "40", "E8": "02"}, "shaper": null,
-  "notes": "EE53 unless ($F5|$F7)!=0 && $F3<$20; CD70/F11B; on C: F2DA, on its C: EF11 else EF04; F01E; RTS" }

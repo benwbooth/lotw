@@ -1,5 +1,0 @@
-{ "name": "sub_ECA8", "addr": "ECA8", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CD70", "sub_CE90", "sub_EDF0", "sub_EE8D", "sub_EEBB", "sub_EEDA", "sub_EF04", "sub_EF11", "sub_F01E", "sub_F0E1", "sub_F179"],
-  "setup": {"E7": "40", "E8": "02"}, "shaper": null,
-  "notes": "boss-state handler [5]: multi-phase placement keyed on $F0/$F1, F01E dispatch tail" }

@@ -1,4 +1,0 @@
-{ "name":"sub_CA54", "addr":"CA54", "entry":"none",
-  "inputs":[], "compare":["ram"],
-  "calls":["sub_CA85"], "setup":{}, "shaper":null,
-  "notes":"runs CA85 (mul $0C/$0D), builds 16-bit results in $0C/$0D and $10/$11 from saved $0D>>4 + $75/$76" }

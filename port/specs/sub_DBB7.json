@@ -1,5 +1,0 @@
-{ "name": "sub_DBB7", "addr": "DBB7", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C540"], "setup": {"77": "40", "78": "02"}, "shaper": null,
-  "oracle": {"sync_clear": ["28", "36"]},
-  "notes": "Scan 9 slots at $0401 stride $10, any ==1 -> $80. Then $8F=$18,$90=$FF, JSR C540 with x=2. C540 frame-syncs on $28/$36, writes through ($77) pinned to $0240." }

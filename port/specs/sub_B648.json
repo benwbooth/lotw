@@ -1,4 +1,0 @@
-{ "name": "sub_B648", "addr": "B648", "entry": "none",
-  "inputs": [], "compare": ["ram"], "calls": [],
-  "setup": {}, "shaper": null,
-  "notes": "PPU nametable upload + MMC3 shadows. Net RAM: $29=0, $2A=ROM[$A2E9], $2B=ROM[$A2EA]; $23/$24 restored. Tile data to PPUDATA (HW)." }

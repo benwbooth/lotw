@@ -1,5 +1,0 @@
-{ "name": "sub_DD97", "addr": "DD97", "entry": "lda_a",
-  "inputs": ["y"], "compare": ["ram", "c"],
-  "calls": ["sub_DF37", "sub_E99A", "sub_E7F0", "sub_E86F", "sub_CA54", "sub_CD70", "sub_DF80", "sub_DF5E", "sub_F7F7"],
-  "setup": {"0C": "40", "0D": "02", "79": "80", "7A": "02"},
-  "notes": "tile-interaction dispatcher: reads tile via ($0C),Y &$3F; dispatches on ==$70/$02/$3E else carry=tile>=$30. Pointer $0C/$0D and $79/$7A pinned to safe RAM." }

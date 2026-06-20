@@ -1,0 +1,42 @@
+
+
+
+
+
+
+
+
+
+#include "game_memory.h"
+#include "routine_context.h"
+
+void sound_tick(RoutineContext *r);
+
+void statusbar_split(RoutineContext *r)
+{
+    REG_W(0x2001, GAME_MEM8(0x24));
+    GAME_MEM8(0x23) = (u8)((GAME_MEM8(0x23) & 0xFE) | GAME_MEM8(0x1D));
+    REG_W(0x2000, GAME_MEM8(0x23));
+    REG_W(0x2005, GAME_MEM8(0x1C));
+    REG_W(0x2005, GAME_MEM8(0x1E));
+    if (GAME_MEM8(0x29) != 0) {
+        (void)GAME_MEM8(0x2002);
+        REG_W(0x2000, GAME_MEM8(0x23) & 0xFE);
+        REG_W(0x2005, 0x00);
+        REG_W(0x2005, 0xC4);
+        REG_W(0x8000, 0x01); REG_W(0x8001, 0x16);
+        REG_W(0x8000, 0x04); REG_W(0x8001, 0x3E);
+        REG_W(0x8000, 0x05); REG_W(0x8001, 0x3F);
+    }
+    sound_tick(r);
+    if (GAME_MEM8(0x29) == 0)
+        return;
+
+    REG_W(0x8000, 0x01);
+    REG_W(0x2000, GAME_MEM8(0x23));
+    REG_W(0x2005, GAME_MEM8(0x1C));
+    REG_W(0x2005, GAME_MEM8(0x1E));
+    REG_W(0x8001, GAME_MEM8(0x2B));
+    REG_W(0x8000, 0x04); REG_W(0x8001, GAME_MEM8(0x2E));
+    REG_W(0x8000, 0x05); REG_W(0x8001, GAME_MEM8(0x2F));
+}

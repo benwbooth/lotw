@@ -1,3 +1,0 @@
-{ "name":"sub_DA1B", "addr":"DA1B", "entry":"none",
-  "inputs":[], "compare":["ram"], "shaper":null,
-  "notes":"If mmc3_r3_shadow<$30 && $87!=0 && magic!=0, store $80 to RAM $0401+($09)." }

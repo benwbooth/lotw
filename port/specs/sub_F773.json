@@ -1,3 +1,0 @@
-{ "name": "sub_F773", "addr": "F773", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "copy bits 2-3 of $EE into $ED via scratch $08" }

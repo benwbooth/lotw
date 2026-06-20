@@ -1,3 +1,0 @@
-{ "name": "sub_B631", "addr": "B631", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "notes": "copies ROM table $9B9F+X -> zp $00+X (X=$40..$8B), fills $0180..$019F with $0F" }

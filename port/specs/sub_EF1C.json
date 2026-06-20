@@ -1,6 +1,0 @@
-{ "name": "sub_EF1C", "addr": "EF1C", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["rng_update", "sub_CF08", "sub_EFF1", "sub_F179",
-            "sub_CA54", "sub_CE7C", "sub_F233", "sub_CA85", "sub_CEB6", "sub_CE90"],
-  "setup": {"E7": "40", "E8": "02"}, "shaper": null,
-  "notes": "enemy projectile/drop spawn step machine; reads ($E7)+6 (pinned to $0240), drop table inlined." }

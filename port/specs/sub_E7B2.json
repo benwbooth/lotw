@@ -1,3 +1,0 @@
-{ "name": "sub_E7B2", "addr": "E7B2", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "copies 56-byte ROM table $FF6F into $0280 buffer; seeds mmc3 shadows $2C..$2F = $34..$37" }

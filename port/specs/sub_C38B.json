@@ -1,4 +1,0 @@
-{ "name": "sub_C38B", "addr": "C38B", "entry": "none",
-  "inputs": [], "compare": ["ram"], "calls": [],
-  "setup": {}, "shaper": null,
-  "notes": "PPU nametable fill; net RAM only $29=0 ($23/$24 pushed and restored). Tile data to PPUDATA (HW)." }

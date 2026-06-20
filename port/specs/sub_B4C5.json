@@ -1,6 +1,0 @@
-{ "name": "sub_B4C5", "addr": "B4C5", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C1D8", "sub_C135"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
-  "exclude_ram": ["28", "36"],
-  "notes": "X->$56, Y->$57, $36=8, C1D8 rebuild OAM, frame-sync C135. C135 frame-syncs $28/$36." }

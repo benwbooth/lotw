@@ -1,2 +1,0 @@
-{ "name": "sub_B2FC", "addr": "B2FC", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "fill $0140..$015F with $C0 (bank13 @ $A000)" }

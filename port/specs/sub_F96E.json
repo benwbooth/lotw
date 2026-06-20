@@ -1,6 +1,0 @@
-{ "name": "sub_F96E", "addr": "F96E", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_FB8E", "sub_FC81", "sub_FCC4", "sub_FCDF", "sub_FCF9", "sub_FD11", "sub_FD45", "inc16_95"],
-  "setup": {"02": "10", "A5": "44", "A6": "02"},
-  "shaper": null,
-  "notes": "Square-2 channel update; APU writes (4004-4007) ignored; bit6/bit7 of $A4 gate via BIT; stream pointers pinned to safe RAM" }

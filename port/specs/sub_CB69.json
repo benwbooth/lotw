@@ -1,4 +1,0 @@
-{ "name": "sub_CB69", "addr": "CB69", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CBFA"], "setup": {},
-  "notes": "Renders clamped $0405 (max $6D) into OAM shadow $0259../$026D.. and tweaks $0241+ bytes per tens($08/10 count) and ones(remainder). Reads $0405, writes $08/$09 and $0200+ regions." }

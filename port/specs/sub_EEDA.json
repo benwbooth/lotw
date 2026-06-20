@@ -1,5 +1,0 @@
-{ "name": "sub_EEDA", "addr": "EEDA", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_F0E1", "sub_F2DA"],
-  "setup": {},
-  "notes": "DEX wrap of $F1 (init 0F), $F7=-(X>>1), call F0E1; if C set clear F5/F6 and call F0E1 again; if still C inc F1 and tail-call F2DA. Returns final carry." }

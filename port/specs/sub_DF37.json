@@ -1,3 +1,0 @@
-{ "name": "sub_DF37", "addr": "DF37", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "position->VRAM bytes; $0B mod 12 with $0F carry, $0A nibble, writes $F9-$FC,$FA" }

@@ -1,5 +1,0 @@
-{ "name": "sub_DD42", "addr": "DD42", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_CA54", "sub_DD97"],
-  "setup": {"79": "80", "7A": "02"},
-  "notes": "probes up to four tiles via DD97 around a tile pointer built by CA54 from $0F/$0A; saves/restores $0E/$0F/$0A; carry = last DD97 result or CLC. $79/$7A pinned safe (DD97 callees deref them)." }

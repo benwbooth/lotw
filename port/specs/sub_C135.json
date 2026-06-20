@@ -1,6 +1,0 @@
-{ "name": "sub_C135", "addr": "C135", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C7FE", "sub_CAA5", "sub_C569"],
-  "setup": {},
-  "oracle": {"sync_clear": ["28", "36"]},
-  "notes": "deferred-refresh dispatcher: branches on $3D/$3C/$36, clearing $3D/$3C then calling C7FE/CAA5/C569. Callees frame-sync on nmi_vram_req $28; C135 then spin-waits on $36 — both NMI vars left 0 by the C port (sync_clear)." }

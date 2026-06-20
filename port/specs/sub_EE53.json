@@ -1,4 +1,0 @@
-{ "name": "sub_EE53", "addr": "EE53", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CE90", "sub_CEB6"], "setup": {}, "shaper": null,
-  "notes": "Sets $0F,$0E,$0A from $FA,$F9,$FB; builds direction code in $F4 via CE90/CEB6 + signed compares; clears $F3." }

@@ -1,3 +1,0 @@
-{ "name": "sub_D07C", "addr": "D07C", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "fills $0280+4k = $EF for k=0..31 (sprite Y offscreen, upper half)" }

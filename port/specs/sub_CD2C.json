@@ -1,3 +1,0 @@
-{ "name": "sub_CD2C", "addr": "CD2C", "entry": "lda_y",
-  "inputs": ["y"], "compare": ["ram"], "shaper": null,
-  "notes": "Y*delta from ROM tables $FE8B/$FE8C[2*($20&$0F)] -> $49(low nibble)/$4A(hi nibble + sign fill)/$4B; $09=Y; Y==0 zeros $49/$4A/$4B" }

@@ -1,4 +1,0 @@
-{ "name": "sub_C2B1", "addr": "C2B1", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C2DB"], "setup": {}, "shaper": null,
-  "notes": "Renders 16 sprite pairs via C2DB looping over X=$3F,Y=$3E; updates $3F,$3E,$0A and OAM shadow." }

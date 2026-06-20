@@ -1,5 +1,0 @@
-{ "name":"sub_C7B5", "addr":"C7B5", "entry":"lda_a",
-  "inputs":[], "compare":["ram"],
-  "calls":["sub_CC97","sub_C85C"], "setup":{}, "shaper":null,
-  "oracle":{"vram_sync":true},
-  "notes":"compute VRAM dest from scroll_x_tile, loop 16 times building metasprite columns via sub_C85C; sub_CC97 frame-syncs on nmi_vram_req $28" }

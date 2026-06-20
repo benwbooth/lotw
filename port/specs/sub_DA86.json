@@ -1,7 +1,0 @@
-{ "name": "sub_DA86", "addr": "DA86", "entry": "lda_a",
-  "inputs": ["a"], "compare": ["ram"],
-  "calls": ["sub_D16A","sub_D199","sub_DB47","sub_DB52","sub_DB66","sub_DB7B","sub_DBB7","sub_DB9B","sub_CA36","sub_D620"],
-  "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true, "sync_clear": ["28","36"]},
-  "exclude_ram": ["93-D2"],
-  "notes": "Item-action dispatcher: n=A-2; n>=18 -> $8F=6; n<8 -> $DB16 jump table; else inventory-add (DAD2), x=$0E path -> CA36+D620. exclude_ram/$36 hooks inherited from the D620 song_init path." }

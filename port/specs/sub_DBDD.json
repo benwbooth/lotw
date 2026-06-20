@@ -1,5 +1,0 @@
-{ "name": "sub_DBDD", "addr": "DBDD", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CA54", "sub_CDB2", "sub_DCCC", "sub_DCA8", "sub_E7CE", "sub_CA85", "sub_CAB6", "sub_CB0E", "sub_CBFA"],
-  "setup": {}, "shaper": null,
-  "notes": "Player landing/vertical collision. If $86==0 && $4F==0: build map ptr via CA54, probe tiles (DCCC), object hits (CDB2), landing (DCA8); manage $4E/$4F/$50/$46/$8F. Else $50=0. Ends $4E=0." }

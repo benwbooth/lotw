@@ -1,3 +1,0 @@
-{ "name": "sub_D067", "addr": "D067", "entry": "none",
-  "inputs": [], "compare": ["a","c"], "shaper": null,
-  "notes": "if carried_item0[equipped_item]==9 && magic!=0: A=shot_range<<1,C=0 else A=shot_range,C=1" }

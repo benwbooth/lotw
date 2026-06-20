@@ -1,3 +1,0 @@
-{ "name": "sub_CF08", "addr": "CF08", "entry": "lda_a",
-  "inputs": [], "compare": ["c"], "shaper": null,
-  "notes": "C=1 if $0A>=$C0; else C=0 if $0F<$3F or $0E==0; else C=1" }

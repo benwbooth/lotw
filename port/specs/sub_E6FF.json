@@ -1,4 +1,0 @@
-{ "name":"sub_E6FF", "addr":"E6FF", "entry":"none",
-  "inputs":[], "compare":["ram"],
-  "calls":[], "setup":{}, "shaper":null,
-  "notes":"build held-item sprite groups at $0240-$024F from slots $80/$82; X*4 indexes count table; may clear slot to $EF" }

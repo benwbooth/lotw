@@ -1,4 +1,0 @@
-{ "name": "sub_F03B", "addr": "F03B", "entry": "none",
-  "inputs": [], "compare": ["ram", "a"],
-  "calls": [], "setup": {}, "shaper": null,
-  "notes": "INC $F3; every 4th frame toggles bit6 of $EF (falls into $F044). A = $F3&3, or $EF^$40 on the 4th." }

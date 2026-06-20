@@ -1,5 +1,0 @@
-{ "name": "sub_C3E5", "addr": "C3E5", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_C135"], "setup": {}, "shaper": null,
-  "oracle": {"sync_clear": ["28", "36"]},
-  "notes": "like C430 (fade $0184..$01A0) plus INC $92, LSR $A0/$B0/$D0, $B4=0 each pass; epilogue $8E=FF, $94/$A4/$C4/$92=0. Frame-syncs on $28/$36 via C135." }

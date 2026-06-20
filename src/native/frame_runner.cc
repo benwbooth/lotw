@@ -13,7 +13,7 @@ namespace {
 thread_local bool stop_requested = false;
 thread_local std::jmp_buf *stop_jump = nullptr;
 
-} // namespace
+}
 
 namespace lotw::native {
 
@@ -29,7 +29,7 @@ bool frame_runner_stop_requested() noexcept
     __builtin_unreachable();
 }
 
-} // namespace lotw::native
+}
 
 struct LotwFrameRunner {
     enum class State {
@@ -39,16 +39,16 @@ struct LotwFrameRunner {
         Done,
     };
 
-    explicit LotwFrameRunner(PortFn entry_) : entry(entry_) {}
+    explicit LotwFrameRunner(RoutineFn entry_) : entry(entry_) {}
 
-    PortFn entry = nullptr;
-    Regs regs{};
+    RoutineFn entry = nullptr;
+    RoutineContext regs{};
     std::thread game_thread;
     mutable std::mutex mutex;
     std::condition_variable cv;
     State state = State::Created;
     bool stop = false;
-    void (*previous_wait)(Regs *) = nullptr;
+    void (*previous_wait)(RoutineContext *) = nullptr;
 
     void thread_main()
     {
@@ -68,9 +68,9 @@ struct LotwFrameRunner {
         stop_jump = nullptr;
     }
 
-    void frame_wait(Regs *r)
+    void frame_wait(RoutineContext *r)
     {
-        Regs save = *r;
+        RoutineContext save = *r;
         std::unique_lock<std::mutex> lock(mutex);
         state = State::Waiting;
         cv.notify_all();
@@ -95,13 +95,13 @@ struct LotwFrameRunner {
 
 thread_local LotwFrameRunner *LotwFrameRunner::active_runner = nullptr;
 
-static void frame_wait_trampoline(Regs *r)
+static void frame_wait_trampoline(RoutineContext *r)
 {
     if (LotwFrameRunner::active_runner)
         LotwFrameRunner::active_runner->frame_wait(r);
 }
 
-extern "C" LotwFrameRunner *lotw_frame_runner_create(PortFn entry)
+extern "C" LotwFrameRunner *lotw_frame_runner_create(RoutineFn entry)
 {
     if (!entry)
         return nullptr;
@@ -124,8 +124,8 @@ extern "C" void lotw_frame_runner_destroy(LotwFrameRunner *runner)
     if (runner->game_thread.joinable())
         runner->game_thread.join();
 
-    if (nes_vblank_wait == frame_wait_trampoline)
-        nes_vblank_wait = runner->previous_wait;
+    if (lotw_frame_wait_hook == frame_wait_trampoline)
+        lotw_frame_wait_hook = runner->previous_wait;
 
     delete runner;
 }
@@ -141,8 +141,8 @@ extern "C" int lotw_frame_runner_start(LotwFrameRunner *runner)
     if (runner->state != LotwFrameRunner::State::Created)
         return 0;
 
-    runner->previous_wait = nes_vblank_wait;
-    nes_vblank_wait = frame_wait_trampoline;
+    runner->previous_wait = lotw_frame_wait_hook;
+    lotw_frame_wait_hook = frame_wait_trampoline;
     runner->state = LotwFrameRunner::State::Running;
     runner->game_thread = std::thread([runner] { runner->thread_main(); });
     return runner->wait_until_parked(lock) ? 1 : 0;
@@ -175,7 +175,7 @@ extern "C" int lotw_frame_runner_done(const LotwFrameRunner *runner)
     return runner->state == LotwFrameRunner::State::Done ? 1 : 0;
 }
 
-extern "C" Regs *lotw_frame_runner_regs(LotwFrameRunner *runner)
+extern "C" RoutineContext *lotw_frame_runner_context(LotwFrameRunner *runner)
 {
     return runner ? &runner->regs : nullptr;
 }

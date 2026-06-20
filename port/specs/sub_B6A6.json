@@ -1,5 +1,0 @@
-{ "name": "sub_B6A6", "addr": "B6A6", "entry": "none", "inputs": [], "compare": ["ram"],
-  "calls": ["sub_B6F0","sub_B6D0","sub_C135","sub_C569"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true, "sync_clear": ["28","36"]},
-  "exclude_ram": ["28","36","93-D2","500-7FF"],
-  "notes": "Palette fade loop ($09 $40->0 by $10), far-call C135 via CCE4 (bank restore $30/$31<-$32/$33)." }

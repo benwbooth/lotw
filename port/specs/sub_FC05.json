@@ -1,3 +1,0 @@
-{ "name":"sub_FC05", "addr":"FC05", "entry":"lda_a", "inputs":["a","x"],
-  "compare":["ram"], "calls":[], "setup":{}, "shaper":null,
-  "notes":"STA $9A,X / RTS: store A into ($9A+X)" }

@@ -39,6 +39,6 @@ public:
     void set_player_magic(std::uint8_t value);
 };
 
-} // namespace lotw::native
+}
 
-#endif /* LOTW_NATIVE_GAME_STATE_HPP */
+#endif

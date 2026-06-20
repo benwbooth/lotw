@@ -1,4 +1,0 @@
-{ "name":"sub_CFF9", "addr":"CFF9", "entry":"lda_a",
-  "inputs":["a"], "compare":["ram"],
-  "calls":[], "setup":{}, "shaper":null,
-  "notes":"VRAM addr split: $18=A%10+$D0(wrap to $C0), $19=$D0+A/10" }

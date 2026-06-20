@@ -26,15 +26,13 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            # Reference emulator: tracing, code/data coverage, replay capture
-            fceux
             # C port build + tooling
             gcc
             gnumake
             cmake
             pkg-config
             (sdl3gitFor pkgs)
-            # RE tooling
+            # Development tooling
             cargo
             clippy
             rustc

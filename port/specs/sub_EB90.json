@@ -1,6 +1,0 @@
-{ "name": "sub_EB90", "addr": "EB90", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_EE8D", "sub_EEBB", "sub_CD70", "sub_F0E1", "sub_F233", "sub_EF04", "sub_EF11", "sub_F179", "sub_F01E"],
-  "setup": {"0C": "40", "0D": "02", "0E": "40", "0F": "02", "E7": "40", "E8": "02"},
-  "shaper": null,
-  "notes": "per-frame entity step; JMP L_EFF0 is a bare RTS; branches on carry from EEBB/F0E1/F233" }

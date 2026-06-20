@@ -1,3 +1,0 @@
-{ "name": "sub_CAF8", "addr": "CAF8", "entry": "none",
-  "inputs": [], "compare": ["ram"], "calls": ["sub_CB0E", "sub_CBFA"], "setup": {},
-  "shaper": null, "notes": "clamp gold($5A)<=$6D, store, $08=v, X=$12, sub_CB0E, $3C=1" }

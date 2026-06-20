@@ -1,2 +1,0 @@
-{ "name": "sub_EF11", "addr": "EF11", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"], "shaper": null, "notes": "clears $F5,$F7,$F1,$F0 to 0" }

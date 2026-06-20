@@ -1,4 +1,0 @@
-{ "name": "sub_CB0E", "addr": "CB0E", "entry": "none",
-  "inputs": ["x"], "compare": ["ram"],
-  "calls": ["sub_CBFA"], "setup": {},
-  "notes": "Fills $0101+X (5x $DC) and $0121+X (5x $DF), then decrements per sub_CBFA($08/10) split. Reads X and $08. Models the PHA/PLA-saved X via stack slot $01FB so large-X fills that clobber it match the oracle (skipped states = X that truly corrupts the return addr)." }

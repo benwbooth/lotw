@@ -1,31 +1,31 @@
-/* Playable SDL3 front-end for the Legacy of the Wizard native port.
- *
- * Runs the actual power-on path (reset -> main_init -> title -> main_loop) on a
- * frame-runner thread: every frame wait parks the game, then the host commits
- * vblank work, rasterizes the software PPU, queues APU audio, and samples input.
- * SDL3 gives native Steam Controller / HIDAPI gamepad support.
- *
- *   build:  cmake --build build/cmake   (target: play, links sdl3)
- *   run:    ./play rom/lotw.nes
- *   keys:   arrows = D-pad, Z = A, X = B, Enter = Start, RShift = Select, Esc = quit
- *   any SDL gamepad (incl. Steam Controller in Gamepad mode) is used if present.
- *
- *   headless self-test:  ./play rom/lotw.nes <max_frames> [auto]
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <SDL3/SDL.h>
 #include "ppu.h"
 #include "apu.h"
-#include "regs.h"
+#include "routine_context.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "native/frame_runner_c.h"
 
 extern "C" {
-u8 NES_MEM[0x10000];
+u8 LOTW_MEMORY[0x10000];
 extern void (*apu_write_hook)(u16, u8);
-void reset(Regs*);
-void vblank_commit(Regs*);
+void reset(RoutineContext*);
+void vblank_commit(RoutineContext*);
 }
 
 #define SPF (APU_SR / 60)
@@ -38,7 +38,7 @@ static void load_rom(const char *path)
     ppu_load_prg(rom + 16, prg);
     ppu_load_chr(rom + 16 + prg, chr);
     ppu_reset(); apu_reset(); apu_write_hook = apu_write;
-    memcpy(&NES_MEM[0xC000], rom + 16 + (prg - 0x4000), 0x4000);
+    memcpy(&LOTW_MEMORY[0xC000], rom + 16 + (prg - 0x4000), 0x4000);
     ppu_map_prg(0x8000, 12);
     ppu_map_prg(0xA000, 13);
     ppu_set_vblank(1);
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
     int  max_frames  = argc > 2 ? atoi(argv[2]) : 0;
     int  autostart   = argc > 3 && !strcmp(argv[3], "auto");
 
-    /* SDL3's HIDAPI Steam driver reads the controller directly — but if Steam is
-     * running it owns the device, so set LOTW_HIDAPI_STEAM=0 to instead use the
-     * virtual/evdev gamepad (works when launched via Steam, or with hid-steam). */
+
+
+
     { const char *h = SDL_getenv("LOTW_HIDAPI_STEAM");
       SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, h ? h : "1"); }
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     }
 
     SDL_Gamepad *pad = NULL;
-    {   /* open the first connected gamepad */
+    {
         int count = 0;
         SDL_JoystickID *ids = SDL_GetGamepads(&count);
         fprintf(stderr, "%d gamepad(s) detected\n", count);
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
             SDL_free(ids);
         }
     }
-    /* also open the raw joystick so we can see input even if the gamepad layer is mute */
+
     SDL_Joystick *joy = NULL;
     { int jc = 0; SDL_JoystickID *jids = SDL_GetJoysticks(&jc);
       if (jids && jc > 0) { joy = SDL_OpenJoystick(jids[0]);
@@ -116,14 +116,14 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Prime reset/main until the game reaches its first frame wait. Each host
-     * frame then commits vblank work before resuming the game. */
+
+
     if (!lotw_frame_runner_start(runner)) {
         fprintf(stderr, "game loop returned during boot\n");
         lotw_frame_runner_destroy(runner);
         return 1;
     }
-    Regs *regs = lotw_frame_runner_regs(runner);
+    RoutineContext *regs = lotw_frame_runner_context(runner);
 
     static u8 fb[PPU_W * PPU_H * 3];
     static short audio[SPF];
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
                 pad = SDL_OpenGamepad(e.gdevice.which);
                 if (pad) fprintf(stderr, "gamepad connected: %s\n", SDL_GetGamepadName(pad));
             }
-            /* --- input diagnostics: show whatever the device actually sends --- */
+
             else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
                 fprintf(stderr, "[gp] button %d down\n", e.gbutton.button);
             else if (e.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && SDL_abs(e.gaxis.value) > 12000)
@@ -158,10 +158,10 @@ int main(int argc, char **argv)
         if (k[SDL_SCANCODE_LEFT])  b |= 0x40;
         if (k[SDL_SCANCODE_DOWN])  b |= 0x20;
         if (k[SDL_SCANCODE_UP])    b |= 0x10;
-        if (k[SDL_SCANCODE_RETURN])b |= 0x08;   /* Start */
-        if (k[SDL_SCANCODE_RSHIFT])b |= 0x04;   /* Select */
-        if (k[SDL_SCANCODE_X])     b |= 0x02;   /* B */
-        if (k[SDL_SCANCODE_Z])     b |= 0x01;   /* A */
+        if (k[SDL_SCANCODE_RETURN])b |= 0x08;
+        if (k[SDL_SCANCODE_RSHIFT])b |= 0x04;
+        if (k[SDL_SCANCODE_X])     b |= 0x02;
+        if (k[SDL_SCANCODE_Z])     b |= 0x01;
         if (pad) {
             if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT)) b |= 0x80;
             if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT))  b |= 0x40;
@@ -169,24 +169,24 @@ int main(int argc, char **argv)
             if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP))    b |= 0x10;
             if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START))      b |= 0x08;
             if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK))       b |= 0x04;
-            if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST))       b |= 0x02;  /* B */
-            if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH))      b |= 0x01;  /* A */
+            if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST))       b |= 0x02;
+            if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH))      b |= 0x01;
             int lx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
             int ly = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY);
             if (lx >  8000) b |= 0x80; if (lx < -8000) b |= 0x40;
             if (ly >  8000) b |= 0x20; if (ly < -8000) b |= 0x10;
         }
         if (autostart) {
-            if (frames >= 150 && frames < 168) b |= 0x08;        /* Start -> house */
-            else if (frames >= 200) {                            /* sweep to find+select a member, then exit */
+            if (frames >= 150 && frames < 168) b |= 0x08;
+            else if (frames >= 200) {
                 int seg = (frames - 200) / 45;
                 switch (seg % 6) {
-                    case 0: b |= 0x40; break;   /* left  */
-                    case 1: b |= 0x80; break;   /* right */
-                    case 2: b |= 0x10; break;   /* up    */
-                    case 3: b |= 0x20; break;   /* down  */
-                    case 4: if (((frames-200)%45) < 6) b |= 0x01; break;  /* A tap */
-                    case 5: if (((frames-200)%45) < 6) b |= 0x08; break;  /* Start tap */
+                    case 0: b |= 0x40; break;
+                    case 1: b |= 0x80; break;
+                    case 2: b |= 0x10; break;
+                    case 3: b |= 0x20; break;
+                    case 4: if (((frames-200)%45) < 6) b |= 0x01; break;
+                    case 5: if (((frames-200)%45) < 6) b |= 0x08; break;
                 }
             }
         }
@@ -198,28 +198,28 @@ int main(int argc, char **argv)
             break;
         }
 
-        if (SDL_getenv("LOTW_TRACE")) {   /* opt-in: log transitions + dump frames */
+        if (SDL_getenv("LOTW_TRACE")) {
             static u8 pc=0xFF, px=0xFF, py2=0xFF, ps=0xFF; static int dn=0;
-            u8 c=NES_MEM[0x40], mx=NES_MEM[0x47], my=NES_MEM[0x48], so=NES_MEM[0x8E];
+            u8 c=LOTW_MEMORY[0x40], mx=LOTW_MEMORY[0x47], my=LOTW_MEMORY[0x48], so=LOTW_MEMORY[0x8E];
             if (c!=pc || mx!=px || my!=py2 || so!=ps) {
-                fprintf(stderr, "f%-5d char$40=%02X map $47=%02X $48=%02X song$8E=%02X health$58=%02X "
-                        "banks$30=%02X$31=%02X tiletbl$79=%02X%02X\n",
-                        frames, c, mx, my, so, NES_MEM[0x58], NES_MEM[0x30], NES_MEM[0x31],
-                        NES_MEM[0x7A], NES_MEM[0x79]);
+                fprintf(stderr, "f%-5d char40=%02X map47=%02X map48=%02X song8E=%02X health58=%02X "
+                        "banks30=%02X banks31=%02X tiletbl79=%02X%02X\n",
+                        frames, c, mx, my, so, LOTW_MEMORY[0x58], LOTW_MEMORY[0x30], LOTW_MEMORY[0x31],
+                        LOTW_MEMORY[0x7A], LOTW_MEMORY[0x79]);
                 pc=c; px=mx; py2=my; ps=so;
             }
-            /* snapshot once a real character is active (post-selection) — catches the
-             * overworld after it builds, skipping the attract loop (char 6). */
-            if (NES_MEM[0x40] < 6 && frames % 20 == 0 && dn < 40) {
+
+
+            if (LOTW_MEMORY[0x40] < 6 && frames % 20 == 0 && dn < 40) {
                 char nm[80]; snprintf(nm, sizeof nm, "build/live_%02d_f%05d_m%02X%02X_s%02X.ppm",
-                                      dn++, frames, NES_MEM[0x47], NES_MEM[0x48], NES_MEM[0x8E]);
+                                      dn++, frames, LOTW_MEMORY[0x47], LOTW_MEMORY[0x48], LOTW_MEMORY[0x8E]);
                 ppm_write(nm, fb, PPU_W, PPU_H);
             }
-            /* one-shot palette/nametable dump at the demo overworld (0,5), settled */
+
             static int paldumped = 0;
-            if (!paldumped && NES_MEM[0x40] < 6 && NES_MEM[0x47]==0 && NES_MEM[0x48]==5 && frames > 1380) {
+            if (!paldumped && LOTW_MEMORY[0x40] < 6 && LOTW_MEMORY[0x47]==0 && LOTW_MEMORY[0x48]==5 && frames > 1380) {
                 paldumped = 1;
-                fprintf(stderr, "MINE palbuf $0180:"); for (int i=0;i<32;i++) fprintf(stderr," %02X",NES_MEM[0x180+i]);
+                fprintf(stderr, "MINE palbuf 0x0180:"); for (int i=0;i<32;i++) fprintf(stderr," %02X",LOTW_MEMORY[0x180+i]);
                 fprintf(stderr, "\nMINE ppu_pal:     "); for (int i=0;i<32;i++) fprintf(stderr," %02X",ppu_pal[i]);
                 fprintf(stderr, "\nMINE NT0 row5:    "); for (int i=0;i<32;i++) fprintf(stderr," %02X",ppu_vram[5*32+i]);
                 fprintf(stderr, "\n");
@@ -243,24 +243,24 @@ int main(int argc, char **argv)
         }
 
         if (max_frames && (frames % 30 == 0))
-            fprintf(stderr, "f%-4d  titleTmr$8C=%02X health$58=%02X char$40=%02X "
-                    "px$44=%02X py$45=%02X in$20=%02X\n",
-                    frames, NES_MEM[0x8C], NES_MEM[0x58], NES_MEM[0x40],
-                    NES_MEM[0x44], NES_MEM[0x45], NES_MEM[0x20]);
+            fprintf(stderr, "f%-4d  titleTmr8C=%02X health58=%02X char40=%02X "
+                    "px44=%02X py45=%02X in20=%02X\n",
+                    frames, LOTW_MEMORY[0x8C], LOTW_MEMORY[0x58], LOTW_MEMORY[0x40],
+                    LOTW_MEMORY[0x44], LOTW_MEMORY[0x45], LOTW_MEMORY[0x20]);
 
         if (max_frames && frames == max_frames - 1) {
-            fprintf(stderr, "map $47=%02X $48=%02X  CHR $2A-$2F:",
-                    NES_MEM[0x47], NES_MEM[0x48]);
-            for (int i = 0x2A; i <= 0x2F; i++) fprintf(stderr, " %02X", NES_MEM[i]);
+            fprintf(stderr, "map47=%02X map48=%02X  CHR 2A-2F:",
+                    LOTW_MEMORY[0x47], LOTW_MEMORY[0x48]);
+            for (int i = 0x2A; i <= 0x2F; i++) fprintf(stderr, " %02X", LOTW_MEMORY[i]);
             fprintf(stderr, "\nNT0 row0:");
             for (int i = 0; i < 32; i++) fprintf(stderr, " %02X", ppu_vram[i]);
-            fprintf(stderr, "\nphysNT0 $0000 row0:");
+            fprintf(stderr, "\nphysNT0 0x0000 row0:");
             for (int i = 0; i < 32; i++) fprintf(stderr, " %02X", ppu_vram[i]);
-            fprintf(stderr, "\nphysNT0 $0000 row2:");
+            fprintf(stderr, "\nphysNT0 0x0000 row2:");
             for (int i = 0; i < 32; i++) fprintf(stderr, " %02X", ppu_vram[64 + i]);
-            fprintf(stderr, "\nphysNT1 $0400 row0:");
+            fprintf(stderr, "\nphysNT1 0x0400 row0:");
             for (int i = 0; i < 32; i++) fprintf(stderr, " %02X", ppu_vram[0x400 + i]);
-            fprintf(stderr, "\nphysNT1 $0400 row2:");
+            fprintf(stderr, "\nphysNT1 0x0400 row2:");
             for (int i = 0; i < 32; i++) fprintf(stderr, " %02X", ppu_vram[0x400 + 64 + i]);
             fprintf(stderr, "\n");
         }

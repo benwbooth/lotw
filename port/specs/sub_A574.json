@@ -1,6 +1,0 @@
-{ "name": "sub_A574", "addr": "A574", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["farcall_bank_09_r7"], "shaper": null,
-  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03"},
-  "oracle": {"vram_sync": true},
-  "notes": "column-run renderer; first call ($FA==0) inits dst from $1D/scroll_x_tile, sets $F9/$FA=9; each call sets ptr $0C=$F9 and runs bank-9 far-call; toggles $1D when run ends. MMC3 writes HW-only; pin pointers; vram_sync for $28" }

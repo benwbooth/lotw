@@ -1,4 +1,0 @@
-{ "name": "sub_EA4F", "addr": "EA4F", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["rng_update"], "setup": {"E7": "40", "E8": "02"},
-  "notes": "Boss-spawn init gated by rng_update(#$1E)==0. Reads $0402/$040C table and ($E7) record; calls rng_update twice. Pin $E7/$E8 -> $0240. compare ram only (regs left in rng-internal state)." }

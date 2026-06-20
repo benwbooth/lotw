@@ -1,4 +1,0 @@
-{ "name": "sub_EEA6", "addr": "EEA6", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["rng_update"], "setup": {}, "shaper": null,
-  "notes": "random sound id: rng_update(3)->0..2, *2 indexes ROM table $EEB3, store to $F4" }

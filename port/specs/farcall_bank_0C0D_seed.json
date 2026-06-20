@@ -1,3 +1,0 @@
-{ "name": "farcall_bank_0C0D_seed", "addr": "CD08", "entry": "none",
-  "inputs": [], "compare": ["ram", "a", "y"], "calls": [], "setup": {}, "shaper": null,
-  "notes": "saves r6/r7 shadows ($30/$31) into $32/$33, programs banks $0C/$0D; MMC3 writes are HW-only" }

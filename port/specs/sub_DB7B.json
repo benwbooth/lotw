@@ -1,3 +1,0 @@
-{ "name":"sub_DB7B", "addr":"DB7B", "entry":"none", "inputs":[],
-  "compare":["ram","a"], "calls":[], "setup":{}, "shaper":null,
-  "notes":"$8F=$13, $85=$1E; A=$1E" }

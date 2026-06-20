@@ -1,4 +1,0 @@
-{ "name": "sub_ADE4", "addr": "ADE4", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": [], "setup": {}, "shaper": null,
-  "notes": "Jump/fall update: rise ctr $4E while player_y<$A0, else convert to fall speed $4F (clamped to stat_jump), sound flag $8F. Pure RAM." }

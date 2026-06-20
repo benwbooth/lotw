@@ -138,6 +138,6 @@ private:
     bool started_ = false;
 };
 
-} // namespace lotw::native
+}
 
-#endif /* LOTW_NATIVE_FRAME_TASK_HPP */
+#endif

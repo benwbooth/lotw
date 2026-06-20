@@ -1,5 +1,0 @@
-{ "name":"sub_B215", "addr":"B215", "entry":"none",
-  "inputs":[], "compare":["ram","c"],
-  "calls":["sub_B2FC","sub_B24E","sub_B278"], "setup":{"0C":"40","0D":"02"}, "shaper":null,
-  "oracle":{"vram_sync":true},
-  "notes":"decode string ($0C),Y into line buffer $0140; terminator->SEC, newline->advance ptr + B24E/B278 then CLC. Pin ($0C)=$0240 (valid RAM string ptr, avoids stack-page aliasing). B278->queue_ppu_job_and_wait frame-syncs on $28 (vram_sync)." }

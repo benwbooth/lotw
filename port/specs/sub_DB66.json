@@ -1,4 +1,0 @@
-{ "name": "sub_DB66", "addr": "DB66", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_E859"], "setup": {},
-  "shaper": null, "notes": "set $8F=$15; keys($5B) += $14 via sub_E859" }

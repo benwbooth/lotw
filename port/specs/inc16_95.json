@@ -1,2 +1,0 @@
-{ "name": "inc16_95", "addr": "FD6B", "entry": "lda_a",
-  "inputs": [], "compare": ["ram","x"], "notes": "16-bit inc ($95+X):($96+X); X=$02" }

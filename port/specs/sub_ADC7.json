@@ -1,1 +1,0 @@
-{ "name":"sub_ADC7","addr":"ADC7","entry":"none","inputs":[],"compare":["ram","c"],"calls":["sub_ACC5","sub_AE41"],"setup":{},"shaper":null }

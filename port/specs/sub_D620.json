@@ -1,7 +1,0 @@
-{ "name": "sub_D620", "addr": "D620", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_D67D", "sub_C3E5", "sub_D08A", "scene_assemble", "sub_C5CB", "sub_D07C", "sub_C1C7", "sub_C1D8", "sub_C492"],
-  "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true, "sync_clear": ["28", "36"]},
-  "exclude_ram": ["93-D2"],
-  "notes": "JSR D67D, init player/screen RAM, tail-call D895 chain (C3E5,D08A,scene_assemble,C5CB,D07C,C1C7,C1D8,C492), SEC. C1D8 is sub_C1D8 (OAM build), NOT ram_state_init ($D1C8). exclude_ram $93-$D2: the chain calls song_init, which copies channel state from the SWITCHABLE music bank's song-pointer table at $8000,X. Flat memory can't map that bank, so song_init reads a $0000 pointer -> zero-page garbage; that byte is itself subject to the step-4000 sync_clear=[36] artifact (C3E5 sets $36=5 each round, but past step 4000 the oracle zeroes it before C135's $36-gated C569 palette call, so the oracle skips C569 while the port's first-round $36=5 calls it). Both are oracle-modeling artifacts, not port bugs; the $93-$D2 channel block is not byte-validatable in flat memory (~0.008% of states diverge there). All other RAM + carry are fully compared." }

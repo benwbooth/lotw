@@ -1,4 +1,0 @@
-{ "name": "sub_F1E4", "addr": "F1E4", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CA54", "sub_CA85", "sub_CEC7", "sub_F233"], "setup": {}, "shaper": null,
-  "notes": "Per-frame proximity/collision: builds pointer from $F9/$FA/$FB, CA54, CEC7 proximity, F233 probes; advances $F0 on clear, else rewinds $F1 and clears $F0. RAM-only effects." }

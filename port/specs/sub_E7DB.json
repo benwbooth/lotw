@@ -1,4 +1,0 @@
-{ "name": "sub_E7DB", "addr": "E7DB", "entry": "lda_a",
-  "inputs": ["a"], "compare": ["ram", "c"],
-  "calls": ["sub_CAB6", "sub_CB0E", "sub_CBFA"], "setup": {},
-  "shaper": null, "notes": "health($58) -= A clamped to 0 on borrow; output carry = SBC carry; then sub_CAB6" }

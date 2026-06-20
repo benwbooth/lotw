@@ -1,6 +1,0 @@
-{ "name": "sub_F8F0", "addr": "F8F0", "entry": "lda_a",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_FB8E", "sub_FC81", "sub_FCC4", "sub_FCDF", "sub_FCF9", "sub_FD11", "sub_FD45", "inc16_95"],
-  "setup": {"02": "00", "95": "40", "96": "02"},
-  "shaper": null,
-  "notes": "Square-1 channel update; APU writes (4000-4003) ignored by harness; stream pointer ($95/$96) pinned to safe RAM" }

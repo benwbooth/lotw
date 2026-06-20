@@ -1,4 +1,0 @@
-{ "name": "sub_DB52", "addr": "DB52", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_E7DB"], "setup": {},
-  "shaper": null, "notes": "set $8F=$1D; health($58) -= $05 via sub_E7DB; carry = SBC carry" }

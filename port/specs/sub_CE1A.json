@@ -1,3 +1,0 @@
-{ "name": "sub_CE1A", "addr": "CE1A", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"], "calls": [], "setup": {},
-  "shaper": null, "notes": "scan object slots 10..0 for overlap with player box; hit -> $08/$09 + carry set, else carry clear" }

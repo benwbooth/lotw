@@ -1,4 +1,0 @@
-{ "name": "sub_C15D", "addr": "C15D", "entry": "none",
-  "inputs": [], "compare": ["ram", "c"],
-  "calls": ["sub_C1C7"], "setup": {},
-  "notes": "Horizontal scroll-follow: compares player vs scroll x, adjusts scroll_x_tile/fine ($7C/$7B) and $7F, calls sub_C1C7. Returns C=0 (scrolled) or C=1 (no-scroll/edge)." }

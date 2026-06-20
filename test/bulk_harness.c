@@ -1,41 +1,41 @@
-/* Generic bulk diff-test harness (gcc -DLOTW_HOST -Isrc).
- *
- * Maps the ROM into the full 64 KiB space, then for each stdin record runs the
- * selected ported routine (uniform `void fn(Regs*)` ABI, dispatched via the
- * generated PORT_FNS table) on injected registers/flags/RAM, and writes the
- * results back. The set of routines is supplied by a generated dispatch.c.
- *
- * argv[1] = rom path.
- * Record in/out: [id u8][a][x][y][c][z][n][v][ram 2048]   (id only meaningful in)
- *
- * WATCHDOG: a ported routine may be an unbounded loop that waits on hardware /
- * controller / vblank state (these never change in flat host memory), so it would
- * spin a CPU core forever. A per-record setitimer(ITIMER_REAL) fires after a
- * short budget; the SIGALRM handler siglongjmp's back and the record's flag byte
- * out[0] is set to 1 (else 0) so the diff-test skips it. No real terminating routine takes
- * anywhere near the budget (native C runs them in microseconds).
- *
- * out[0] is a dedicated 0/1 watchdog flag, NOT the id echo: there are >128
- * routines, so id values overlap any high-bit flag scheme.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <sys/time.h>
-#include "regs.h"
+#include "routine_context.h"
 
-u8 NES_MEM[0x10000];
-void nes_reg_write(u16 addr, u8 val) { (void)addr; (void)val; }
+u8 LOTW_MEMORY[0x10000];
+void lotw_device_write(u16 addr, u8 val) { (void)addr; (void)val; }
 
-extern PortFn PORT_FNS[];
-extern int PORT_N;
+extern RoutineFn ROUTINE_FNS[];
+extern int ROUTINE_N;
 
 static sigjmp_buf g_jb;
 static void on_alarm(int sig) { (void)sig; siglongjmp(g_jb, 1); }
 
-#define WATCHDOG_USEC 150000   /* 150 ms per record — generous for any real port */
+#define WATCHDOG_USEC 150000
 
 static void arm_watchdog(void)
 {
@@ -54,8 +54,8 @@ static void load_rom(const char *path)
     static unsigned char rom[196624];
     if (!f || fread(rom, 1, sizeof rom, f) != sizeof rom) { perror("rom"); exit(3); }
     fclose(f);
-    memcpy(NES_MEM + 0xC000, rom + 0x10 + 14 * 0x2000, 0x4000);  /* fixed 14+15 */
-    memcpy(NES_MEM + 0xA000, rom + 0x10 + 13 * 0x2000, 0x2000);  /* bank 13 */
+    memcpy(LOTW_MEMORY + 0xC000, rom + 0x10 + 14 * 0x2000, 0x4000);
+    memcpy(LOTW_MEMORY + 0xA000, rom + 0x10 + 13 * 0x2000, 0x2000);
 }
 
 #define HDR 8
@@ -68,31 +68,31 @@ int main(int argc, char **argv)
     unsigned char in[HDR + 0x800], out[HDR + 0x800];
     while (fread(in, 1, sizeof in, stdin) == sizeof in) {
         u8 id = in[0];
-        Regs r;
-        r.a = in[1]; r.x = in[2]; r.y = in[3];
-        r.c = in[4]; r.z = in[5]; r.n = in[6]; r.v = in[7];
-        /* Reset the non-ROM space ($0000-$9FFF) per record so routines that write
-         * outside RAM (e.g. into $0800-$9FFF) match the oracle's fresh-per-state
-         * memory; ROM at $A000-$FFFF is constant. Then inject the test RAM. */
-        memset(NES_MEM, 0, 0xA000);
-        memcpy(NES_MEM, in + HDR, 0x800);
-        if (id >= PORT_N) { fprintf(stderr, "bad id %u\n", id); return 2; }
+        RoutineContext r;
+        r.value = in[1]; r.index = in[2]; r.offset = in[3];
+        r.carry = in[4]; r.zero = in[5]; r.negative = in[6]; r.overflow = in[7];
+
+
+
+        memset(LOTW_MEMORY, 0, 0xA000);
+        memcpy(LOTW_MEMORY, in + HDR, 0x800);
+        if (id >= ROUTINE_N) { fprintf(stderr, "bad id %u\n", id); return 2; }
 
         if (sigsetjmp(g_jb, 1) == 0) {
             arm_watchdog();
-            PORT_FNS[id](&r);
+            ROUTINE_FNS[id](&r);
             disarm_watchdog();
-            out[0] = 0;                  /* watchdog flag: completed */
-            out[1] = r.a; out[2] = r.x; out[3] = r.y;
-            out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
-            memcpy(out + HDR, NES_MEM, 0x800);
+            out[0] = 0;
+            out[1] = r.value; out[2] = r.index; out[3] = r.offset;
+            out[4] = r.carry; out[5] = r.zero; out[6] = r.negative; out[7] = r.overflow;
+            memcpy(out + HDR, LOTW_MEMORY, 0x800);
         } else {
-            /* Watchdog tripped: the port did not terminate on this state.
-             * Set the flag byte so the diff-test skips it. */
+
+
             disarm_watchdog();
-            out[0] = 1;                  /* watchdog flag: timed out */
-            out[1] = r.a; out[2] = r.x; out[3] = r.y;
-            out[4] = r.c; out[5] = r.z; out[6] = r.n; out[7] = r.v;
+            out[0] = 1;
+            out[1] = r.value; out[2] = r.index; out[3] = r.offset;
+            out[4] = r.carry; out[5] = r.zero; out[6] = r.negative; out[7] = r.overflow;
             memcpy(out + HDR, in + HDR, 0x800);
         }
         fwrite(out, 1, sizeof out, stdout);

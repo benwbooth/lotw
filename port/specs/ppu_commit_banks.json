@@ -1,3 +1,0 @@
-{ "name": "ppu_commit_banks", "addr": "D41D", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "pure MMC3 hardware-register writes (REG_W $8000/$8001) from shadow $2A..$31; verified by inspection" }

@@ -1,3 +1,0 @@
-{ "name": "sub_CBFA", "addr": "CBFA", "entry": "none",
-  "inputs": [], "compare": ["ram","a","y"], "shaper": null,
-  "notes": "$08 / 10: Y = quotient, $08 and A = remainder" }

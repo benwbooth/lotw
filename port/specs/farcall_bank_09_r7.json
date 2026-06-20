@@ -1,5 +1,0 @@
-{ "name": "farcall_bank_09_r7", "addr": "C833", "entry": "none",
-  "inputs": [], "compare": ["ram"], "calls": ["sub_CA54", "metasprite_build"], "shaper": null,
-  "setup": {"0C": "40", "0D": "02", "79": "00", "7A": "03"},
-  "oracle": {"vram_sync": true},
-  "notes": "select r7=bank $09, run sub_CA54+metasprite_build, restore old r7 shadow; MMC3 writes HW-only; pin ($0C)/($79) pointers, vram_sync for queue_ppu_job_and_wait $28" }

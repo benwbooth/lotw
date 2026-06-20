@@ -1,5 +1,0 @@
-{ "name": "sub_CF82", "addr": "CF82", "entry": "none",
-  "inputs": [], "compare": ["ram"],
-  "calls": ["sub_CFF9", "sub_D038", "sub_D051", "sub_D067", "queue_ppu_job_and_wait"], "setup": {}, "shaper": null,
-  "oracle": {"vram_sync": true},
-  "notes": "draw strength($21DE)/jump($221E)/shotrange($225E) stats via D051/D038/D067 + CFF9; three VRAM jobs $06" }

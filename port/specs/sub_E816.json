@@ -1,4 +1,0 @@
-{ "name": "sub_E816", "addr": "E816", "entry": "lda_a",
-  "inputs": ["a"], "compare": ["ram"],
-  "calls": ["sub_CACC", "sub_CB0E", "sub_CBFA"], "setup": {},
-  "shaper": null, "notes": "magic($59) += A clamped to $6D on overflow or >=$6E; then sub_CACC" }

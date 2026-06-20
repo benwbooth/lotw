@@ -1,3 +1,0 @@
-{ "name": "sub_B11A", "addr": "B11A", "entry": "none",
-  "inputs": [], "compare": ["ram"], "shaper": null,
-  "notes": "OAM Y fill ($0240..$025C) with $EF or $80 depending on $84 & $30" }
