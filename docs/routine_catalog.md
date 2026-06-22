@@ -98,7 +98,6 @@ would currently be weaker than the cluster name.
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
 | `native` | `0067..0072`, `0074` | inferred | room transition and item/inventory screen orchestration |
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
-| `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 
 ## Named Non-Numbered Routines
@@ -184,6 +183,8 @@ surface when touching nearby code:
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
+| `find_damageable_actor_overlap` | scan live object slots for a projected projectile/stomp overlap with a damageable actor |
+| `find_player_object_overlap` | scan live object slots for projected player contact with doors, pickups, or actors |
 | `frame_counters` | tick coarse frame timers once per second |
 | `game_update` | foreground input/player/item update |
 | `grant_long_invulnerability` | start the long invulnerability reward timer |
@@ -325,7 +326,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Object/player overlap search helpers: `routine_0109`, `routine_0110`.
+1. Native post-render and transition helpers: `routine_0058`, `routine_0067..0072`, `routine_0074`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

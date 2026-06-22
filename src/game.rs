@@ -5318,7 +5318,7 @@ mod try_move_player_with_collision {
                             continue 'dispatch;
                         }
                     }
-                    routine_0110(engine, r);
+                    find_player_object_overlap(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 8;
@@ -9333,7 +9333,7 @@ mod update_player_projectile_slot {
             finish_projectile_slot_update(engine, r);
             return;
         }
-        routine_0109(engine, r);
+        find_damageable_actor_overlap(engine, r);
         if !cbool(r.carry) {
             store_projectile_position(engine, r);
             finish_projectile_slot_update(engine, r);
@@ -9524,7 +9524,7 @@ mod update_tile_projectile_motion {
                             continue 'dispatch;
                         }
                     }
-                    routine_0109(engine, r);
+                    find_damageable_actor_overlap(engine, r);
                     if cbool(r.carry) {
                         let hit_slot: i32 = engine.mem(0x09);
                         engine.set_mem(u16v(0x0401 + hit_slot), 0x80);

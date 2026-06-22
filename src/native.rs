@@ -1377,7 +1377,10 @@ pub fn wait_for_button_press(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x20, buttons);
 }
 
-pub fn routine_0109(engine: &mut Engine, r: &mut RoutineContext) {
+/// Scans live object slots for a damageable actor overlapping the projected
+/// position in `0x0E/0x0F/0x0A`. On hit, `0x08` receives the logical slot and
+/// `0x09` receives the object-slot byte offset.
+pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x09;
     let mut x = 0x90;
     loop {
@@ -1440,7 +1443,9 @@ pub fn routine_0109(engine: &mut Engine, r: &mut RoutineContext) {
     r.carry = 0;
 }
 
-pub fn routine_0110(engine: &mut Engine, r: &mut RoutineContext) {
+/// Scans live object slots for any nonempty, non-high-bit object overlapping
+/// the projected player position in `0x0E/0x0F/0x0A`.
+pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x0a;
     let mut x = 0xa0;
     loop {
@@ -1535,7 +1540,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         return;
     }
 
-    routine_0109(engine, r);
+    find_damageable_actor_overlap(engine, r);
     if cbool(r.carry) {
         if engine.mem(0x2d) >= 0x30 {
             return resolve_player_landing_or_hazard_contact(engine, r);

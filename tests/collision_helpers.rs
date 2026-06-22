@@ -65,6 +65,48 @@ fn check_player_overlap_sets_collision_flag() {
 }
 
 #[test]
+fn damageable_actor_overlap_skips_low_non_actor_states() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x0E, 0x00);
+    engine.set_mem(0x0F, 0x10);
+    engine.set_mem(0x0A, 0x50);
+    engine.set_mem(0x0401 + 0x90, 0x02);
+    engine.set_mem(0x040C + 0x90, 0x00);
+    engine.set_mem(0x040D + 0x90, 0x10);
+    engine.set_mem(0x040E + 0x90, 0x50);
+
+    native::find_damageable_actor_overlap(&mut engine, &mut r);
+    assert_eq!(r.carry, 0);
+
+    native::find_player_object_overlap(&mut engine, &mut r);
+    assert_eq!(r.carry, 1);
+    assert_eq!(engine.mem(0x08), 0x09);
+    assert_eq!(engine.mem(0x09), 0x90);
+}
+
+#[test]
+fn damageable_actor_overlap_reports_slot_and_offset() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x0E, 0x00);
+    engine.set_mem(0x0F, 0x10);
+    engine.set_mem(0x0A, 0x50);
+    engine.set_mem(0x0401 + 0x90, 0x01);
+    engine.set_mem(0x040C + 0x90, 0x00);
+    engine.set_mem(0x040D + 0x90, 0x10);
+    engine.set_mem(0x040E + 0x90, 0x50);
+
+    native::find_damageable_actor_overlap(&mut engine, &mut r);
+
+    assert_eq!(r.carry, 1);
+    assert_eq!(engine.mem(0x08), 0x09);
+    assert_eq!(engine.mem(0x09), 0x90);
+}
+
+#[test]
 fn build_direction_velocity_clears_velocity_for_zero_speed() {
     let mut engine = Engine::new();
     let mut r = RoutineContext {
