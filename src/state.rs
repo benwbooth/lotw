@@ -1261,6 +1261,44 @@ impl GameState {
         self.set_byte(0x0352 + i, value);
     }
 
+    // ---- Sound engine channel state ---------------------------------------
+    //
+    // Per-channel playback state lives in 16-byte records starting at `$93`
+    // (one per APU channel), indexed by a channel byte offset. Known fields
+    // within a record: +2/+3 current pattern pointer lo/hi, +4/+5 loop pointer
+    // lo/hi, +6 duty/volume, +8 envelope offset.
+
+    /// Byte `field` (0-15) of the sound channel record at byte offset `ch`
+    /// (`$93 + field + ch`).
+    #[inline]
+    pub fn sound_channel_byte(&self, field: i32, ch: i32) -> i32 {
+        self.byte(0x93 + field + ch)
+    }
+    #[inline]
+    pub fn set_sound_channel_byte(&mut self, field: i32, ch: i32, value: i32) {
+        self.set_byte(0x93 + field + ch, value);
+    }
+
+    /// Sound channel byte offset currently being processed (`$02`).
+    #[inline]
+    pub fn sound_channel_offset(&self) -> i32 {
+        self.byte(0x02)
+    }
+    #[inline]
+    pub fn set_sound_channel_offset(&mut self, value: i32) {
+        self.set_byte(0x02, value);
+    }
+
+    /// Current sound command id (`$04`).
+    #[inline]
+    pub fn sound_command(&self) -> i32 {
+        self.byte(0x04)
+    }
+    #[inline]
+    pub fn set_sound_command(&mut self, value: i32) {
+        self.set_byte(0x04, value);
+    }
+
     // ---- RNG state ($38..$3B) ---------------------------------------------
     //
     // `rng_update` advances a 16-bit LFSR-style seed ($3A low, $3B high) mixed

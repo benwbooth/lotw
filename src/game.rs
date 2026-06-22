@@ -623,9 +623,18 @@ mod increment_selected_music_stream_pointer {
     /// Advances the 16-bit music stream pointer selected by the channel offset
     /// in `0x02`.
     pub fn increment_selected_music_stream_pointer(engine: &mut Engine, r: &mut RoutineContext) {
-        let channel_pointer_offset: i32 = engine.mem(0x02);
-        if cbool(engine.inc_mem((0x95 + channel_pointer_offset) & 0xFF) == 0) {
-            engine.inc_mem((0x96 + channel_pointer_offset) & 0xFF);
+        let channel_pointer_offset: i32 = engine.state.sound_channel_offset();
+        let pattern_ptr_lo =
+            (engine.state.sound_channel_byte(2, channel_pointer_offset) + 1) & 0xFF;
+        engine
+            .state
+            .set_sound_channel_byte(2, channel_pointer_offset, pattern_ptr_lo);
+        if cbool(pattern_ptr_lo == 0) {
+            engine.state.set_sound_channel_byte(
+                3,
+                channel_pointer_offset,
+                (engine.state.sound_channel_byte(3, channel_pointer_offset) + 1) & 0xFF,
+            );
         }
         r.index = channel_pointer_offset;
     }
@@ -9828,7 +9837,7 @@ mod tick_pulse1_channel {
                             load_note_period(engine, r);
                             engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x01));
                             engine.device_write(0x4001, engine.mem(0x9A));
-                            engine.device_write(0x4002, engine.mem(0x04));
+                            engine.device_write(0x4002, engine.state.sound_command());
                             engine.device_write(0x4003, (engine.mem(0x05) & 0x07) | 0x18);
                             start_note_envelope(engine, r);
                         }
@@ -9915,7 +9924,7 @@ mod tick_pulse2_channel {
                         engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x02));
                         engine.device_write(0x4004, engine.mem(0xA9));
                         engine.device_write(0x4005, engine.mem(0xAA));
-                        engine.device_write(0x4006, engine.mem(0x04));
+                        engine.device_write(0x4006, engine.state.sound_command());
                         engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0x18);
                         start_note_envelope(engine, r);
                         break;
@@ -9986,7 +9995,7 @@ mod tick_triangle_channel {
                 load_note_period(engine, r);
                 engine.set_mem(0x27, engine.mem(0x27) | 0x04);
                 engine.device_write((0x4008), engine.mem(0xBA));
-                engine.device_write((0x400A), engine.mem(0x04));
+                engine.device_write((0x400A), engine.state.sound_command());
                 r.value = u8v((engine.mem(0x05) & 0x07) | 0xF8);
                 engine.device_write((0x400B), r.value);
                 return;
@@ -10069,8 +10078,8 @@ mod dispatch_audio_stream_command {
     use super::*;
     fn deref_stream(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
         let mut channel_offset: i32 = u8v(r.index);
-        let mut lo: i32 = engine.mem((0x95 + channel_offset) & 0xFF);
-        let mut hi: i32 = engine.mem((0x96 + channel_offset) & 0xFF);
+        let mut lo: i32 = engine.state.sound_channel_byte(2, channel_offset);
+        let mut hi: i32 = engine.state.sound_channel_byte(3, channel_offset);
         return engine.mem(u16v(lo | (hi << 8)));
     }
 
@@ -10078,11 +10087,11 @@ mod dispatch_audio_stream_command {
     // updates per-channel playback state, then leaves the stream pointer at the
     // next note/rest/control byte.
     pub fn dispatch_audio_stream_command(engine: &mut Engine, r: &mut RoutineContext) {
-        r.index = engine.mem(0x02);
+        r.index = engine.state.sound_channel_offset();
         increment_selected_music_stream_pointer(engine, r);
         {
             let __v = deref_stream(engine, r);
-            engine.set_mem(0x04, __v);
+            engine.state.set_sound_command(__v);
         }
         increment_selected_music_stream_pointer(engine, r);
         {
@@ -10090,7 +10099,7 @@ mod dispatch_audio_stream_command {
             engine.set_mem(0x05, __v);
         }
         increment_selected_music_stream_pointer(engine, r);
-        let mut command_id: i32 = engine.mem(0x04);
+        let mut command_id: i32 = engine.state.sound_command();
         if cbool(command_id >= 0x05) {
             return;
         }
@@ -10099,7 +10108,7 @@ mod dispatch_audio_stream_command {
         engine.set_mem(0x06, u8v(original_handler & 0xFF));
         engine.set_mem(0x07, u8v(original_handler >> 8));
         r.value = engine.mem(0x05);
-        r.index = engine.mem(0x02);
+        r.index = engine.state.sound_channel_offset();
         match command_id {
             0 => {
                 audio_cmd_set_duty_instrument(engine, r);
@@ -10132,10 +10141,12 @@ mod audio_cmd_set_duty_instrument {
         engine.set_mem(0x00, duty_bits);
         engine.set_mem(
             (0x99 + channel_offset) & 0xFF,
-            u8v((engine.mem((0x99 + channel_offset) & 0xFF) & 0x3F) | duty_bits),
+            u8v((engine.state.sound_channel_byte(6, channel_offset) & 0x3F) | duty_bits),
         );
         let mut envelope_offset: i32 = u8v(command_value << 4);
-        engine.set_mem((0xA2 + channel_offset) & 0xFF, envelope_offset);
+        engine
+            .state
+            .set_sound_channel_byte(15, channel_offset, envelope_offset);
         engine.set_mem(
             (0x9A + channel_offset) & 0xFF,
             engine.mem(u16v(0xFDD2 + envelope_offset)),
@@ -10152,7 +10163,7 @@ mod audio_cmd_set_volume_scale {
     // 0..15 volume accumulator is updated.
     pub fn audio_cmd_set_volume_scale(engine: &mut Engine, r: &mut RoutineContext) {
         let mut channel_offset: i32 = u8v(r.index);
-        if !cbool(engine.mem(0x02) == 0x40) {
+        if !cbool(engine.state.sound_channel_offset() == 0x40) {
             let mut music_volume_override: i32 = engine.state.music_volume_override();
             if cbool(music_volume_override != 0) {
                 r.value = music_volume_override;
@@ -10169,7 +10180,9 @@ mod audio_cmd_set_volume_scale {
             };
             scale = u8v(scale << 1);
             scale = u8v(scale + 1);
-            engine.set_mem((0xA0 + channel_offset) & 0xFF, scale);
+            engine
+                .state
+                .set_sound_channel_byte(13, channel_offset, scale);
             r.value = scale;
         }
         r.index = channel_offset;
@@ -10205,7 +10218,7 @@ mod load_note_period {
     // Note bytes use the low nibble as the pitch-table index and the high
     // nibble as the octave shift. The resulting period lands in 0x04/0x05.
     pub fn load_note_period(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
         let mut stream_ptr: i32 = u16v(
             engine.mem(u8v(0x95 + channel_offset)) | (engine.mem(u8v(0x96 + channel_offset)) << 8),
         );
@@ -10215,7 +10228,7 @@ mod load_note_period {
             let mut pitch_index: i32 = u8v((note_byte & 0x0F) << 1);
             let mut lo: i32 = engine.mem(u16v(0xFDB1 + pitch_index));
             let mut hi: i32 = engine.mem(u16v(0xFDB2 + pitch_index));
-            channel_offset = engine.mem(0x02);
+            channel_offset = engine.state.sound_channel_offset();
             {
                 let mut sub: i32 = u16v(u16v(lo) - engine.mem(u8v(0xA1 + channel_offset)));
                 lo = u8v(sub);
@@ -10235,7 +10248,7 @@ mod load_note_period {
                     };
                 }
             }
-            engine.set_mem(0x04, lo);
+            engine.state.set_sound_command(lo);
             engine.set_mem(0x05, hi);
         }
     }
@@ -10266,9 +10279,11 @@ mod start_note_envelope {
     use super::*;
     // Load the first active-note envelope phase into the selected channel lane.
     pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
-        let mut envelope_offset: i32 = engine.mem((0xA2 + channel_offset) & 0xFF);
-        engine.set_mem((0x9B + channel_offset) & 0xFF, envelope_offset);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
+        let mut envelope_offset: i32 = engine.state.sound_channel_byte(15, channel_offset);
+        engine
+            .state
+            .set_sound_channel_byte(8, channel_offset, envelope_offset);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
             engine.mem(u16v(0xFDCB + envelope_offset)),
@@ -10295,9 +10310,12 @@ mod start_rest_envelope {
     // Rest bytes reuse the same envelope table with a +0x0C offset, which
     // gives the ticker a timed silent phase instead of an audible period.
     pub fn start_rest_envelope(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
-        let mut rest_envelope_offset: i32 = u8v(engine.mem((0xA2 + channel_offset) & 0xFF) + 0x0C);
-        engine.set_mem((0x9B + channel_offset) & 0xFF, rest_envelope_offset);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
+        let mut rest_envelope_offset: i32 =
+            u8v(engine.state.sound_channel_byte(15, channel_offset) + 0x0C);
+        engine
+            .state
+            .set_sound_channel_byte(8, channel_offset, rest_envelope_offset);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
             engine.mem(u16v(0xFDCB + rest_envelope_offset)),
@@ -10321,18 +10339,24 @@ mod rewind_or_stop_audio_stream {
     // A zero stream byte jumps to the saved loop pointer when one exists; a
     // missing loop pointer clears the active bit while preserving sfx overlay.
     pub fn rewind_or_stop_audio_stream(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
         let mut loop_pointer_hi: i32 = 0;
         engine.set_mem(
             (0x95 + channel_offset) & 0xFF,
-            engine.mem((0x97 + channel_offset) & 0xFF),
+            engine.state.sound_channel_byte(4, channel_offset),
         );
-        loop_pointer_hi = engine.mem((0x98 + channel_offset) & 0xFF);
-        engine.set_mem((0x96 + channel_offset) & 0xFF, loop_pointer_hi);
+        loop_pointer_hi = engine.state.sound_channel_byte(5, channel_offset);
+        engine
+            .state
+            .set_sound_channel_byte(3, channel_offset, loop_pointer_hi);
         if cbool(loop_pointer_hi != 0) {
-            engine.set_mem((0x93 + channel_offset) & 0xFF, 0x01);
+            engine.state.set_sound_channel_byte(0, channel_offset, 0x01);
         } else {
-            engine.and_mem((0x94 + channel_offset) & 0xFF, 0x40);
+            engine.state.set_sound_channel_byte(
+                1,
+                channel_offset,
+                engine.state.sound_channel_byte(1, channel_offset) & 0x40,
+            );
         }
         r.index = channel_offset;
     }
@@ -10343,7 +10367,7 @@ mod next_envelope_volume {
     // Update the current envelope accumulator and compose the APU volume
     // register value from channel flags, constant-volume bit, and scaled volume.
     pub fn next_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
         let mut envelope_phase: i32 = engine.mem(u8v(0x9B + channel_offset));
         engine.set_mem(
             u8v(0x9D + channel_offset),
@@ -10379,23 +10403,29 @@ mod advance_envelope_phase {
     // Tick the phase duration. When it expires, advance four bytes in the
     // envelope table; low nibbles >= 0x0C mark the terminal silent phase.
     pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut channel_offset: i32 = engine.state.sound_channel_offset();
         let mut phase_low_nibble: i32 = 0;
         let mut next_phase: i32 = 0;
-        if cbool(engine.dec_mem((0x9E + channel_offset) & 0xFF) != 0) {
+        let phase_timer = (engine.state.sound_channel_byte(11, channel_offset) - 1) & 0xFF;
+        engine
+            .state
+            .set_sound_channel_byte(11, channel_offset, phase_timer);
+        if cbool(phase_timer != 0) {
             r.index = channel_offset;
             r.carry = 0;
             return;
         }
-        phase_low_nibble = engine.mem((0x9B + channel_offset) & 0xFF) & 0x0F;
+        phase_low_nibble = engine.state.sound_channel_byte(8, channel_offset) & 0x0F;
         if cbool(phase_low_nibble >= 0x0C) {
             r.index = channel_offset;
             r.value = phase_low_nibble;
             r.carry = 1;
             return;
         }
-        next_phase = u8v(engine.mem((0x9B + channel_offset) & 0xFF) + 0x04);
-        engine.set_mem((0x9B + channel_offset) & 0xFF, next_phase);
+        next_phase = u8v(engine.state.sound_channel_byte(8, channel_offset) + 0x04);
+        engine
+            .state
+            .set_sound_channel_byte(8, channel_offset, next_phase);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
             engine.mem(u16v(0xFDCB + next_phase)),
@@ -10495,7 +10525,7 @@ mod sfx_overlay_voice {
                             load_note_period(engine, r);
                             engine.set_mem(0x27, u8v(0x02 | engine.mem(0x27)));
                             engine.device_write(0x4005, engine.mem(0xDA));
-                            engine.device_write(0x4006, engine.mem(0x04));
+                            engine.device_write(0x4006, engine.state.sound_command());
                             engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0xC0);
                             start_note_envelope(engine, r);
                         }
@@ -10648,7 +10678,7 @@ mod sound_tick {
     use super::*;
     pub fn sound_tick(engine: &mut Engine, r: &mut RoutineContext) {
         sound_set_default_banks(engine, r);
-        engine.set_mem(0x02, 0x40);
+        engine.state.set_sound_channel_offset(0x40);
         r.value = 0x40;
         sfx_overlay_voice(engine, r);
         if cbool(engine.mem(0x8D) != 0) {
@@ -10661,16 +10691,16 @@ mod sound_tick {
             r.value = 0x30;
         } else {
             sound_set_song_banks(engine, r);
-            engine.set_mem(0x02, 0x00);
+            engine.state.set_sound_channel_offset(0x00);
             r.value = 0x00;
             tick_pulse1_channel(engine, r);
-            engine.set_mem(0x02, 0x10);
+            engine.state.set_sound_channel_offset(0x10);
             r.value = 0x10;
             tick_pulse2_channel(engine, r);
-            engine.set_mem(0x02, 0x20);
+            engine.state.set_sound_channel_offset(0x20);
             r.value = 0x20;
             tick_triangle_channel(engine, r);
-            engine.set_mem(0x02, 0x30);
+            engine.state.set_sound_channel_offset(0x30);
             r.value = 0x30;
             tick_noise_channel(engine, r);
         }
