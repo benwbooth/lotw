@@ -100,8 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `native` | `0169` | inferred | tile action dispatch, including item use and special projectile spawn |
-| `game` | `0170..0173` | inferred | object spawn coordinate setup, room tile readback, and movement intent resolution |
 | `native` | `0174..0177` | inferred | character swap/inventory selection flow |
 | `native` | `0175` | inferred | inventory item compaction and carried-item reordering |
 | `game` | `0178..0186` | cluster | inventory/menu cursor, item list, and status draw helpers |
@@ -179,6 +177,7 @@ surface when touching nearby code:
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
 | `dispatch_overhead_tile_action` | handle Up-button interactions with the tile above the player |
 | `dispatch_projected_tile_actions` | probe the projected player footprint for room tile-action triggers |
+| `dispatch_room_tile_action` | dispatch the sampled projected room tile, including costs, object spawns, and tile projectiles |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
 | `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |
@@ -215,6 +214,8 @@ surface when touching nearby code:
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
+| `read_room_tile_action_value` | read a room-map tile sample and resolve replacement tile `0x3E` through `0x74` |
+| `redraw_room_tile_column` | rebuild the background column containing object scratch tile-x `0xFA` |
 | `reset` | top-level reset entry |
 | `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
@@ -226,6 +227,7 @@ surface when touching nearby code:
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
 | `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
+| `seed_object_position_from_tile_offset` | convert a tile sample offset and projected coordinates into object scratch position |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -273,6 +275,7 @@ surface when touching nearby code:
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
 | `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
 | `try_move_player_with_collision` | project a player move, handle room exits/tile actions/object contact, and restore deltas |
+| `try_nudge_player_to_tile_boundary` | retry a blocked player move with a small nudge toward the nearest tile boundary |
 | `trigger_damage_pickup` | apply the harmful pickup/trap reward effect |
 | `try_trigger_magic_contact_actor` | mark a contacted actor for high-bit behavior when the magic-contact timer is active |
 | `unlock_door_with_key` | spend a key and run the door-unlock prompt/music sequence |
@@ -299,7 +302,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Tile action and object-spawn helpers: `routine_0169..0173`.
+1. Inventory selection/menu helpers: `routine_0174..0186`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

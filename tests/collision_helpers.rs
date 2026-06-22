@@ -253,6 +253,68 @@ fn magic_contact_actor_marks_hit_slot_when_timer_and_magic_are_active() {
 }
 
 #[test]
+fn seed_object_position_from_tile_offset_handles_lower_tile_sample() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x0B, 0x0D);
+    engine.set_mem(0x0A, 0x34);
+    engine.set_mem(0x0F, 0x12);
+
+    game::seed_object_position_from_tile_offset(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0F), 0x13);
+    assert_eq!(engine.mem(0xFA), 0x13);
+    assert_eq!(engine.mem(0xFB), 0x40);
+    assert_eq!(engine.mem(0xF9), 0x00);
+    assert_eq!(engine.mem(0xFC), 0x00);
+    assert_eq!(r.offset, 0x01);
+    assert_eq!(r.value, 0x00);
+}
+
+#[test]
+fn read_room_tile_action_value_resolves_replacement_tile() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x10, 0x00);
+    engine.set_mem(0x11, 0x02);
+    engine.set_mem(0x0B, 0x05);
+    engine.set_mem(0x0205, 0xBE);
+    engine.set_mem(0x74, 0x2A);
+
+    game::read_room_tile_action_value(&mut engine, &mut r);
+
+    assert_eq!(r.index, 0x3E);
+    assert_eq!(r.offset, 0x05);
+    assert_eq!(r.value, 0x2A);
+
+    engine.set_mem(0x0205, 0x24);
+    game::read_room_tile_action_value(&mut engine, &mut r);
+    assert_eq!(r.index, 0x24);
+    assert_eq!(r.value, 0x24);
+}
+
+#[test]
+fn room_tile_action_default_path_reports_solid_range() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext {
+        offset: 0x01,
+        ..RoutineContext::default()
+    };
+
+    engine.set_mem(0x0C, 0x00);
+    engine.set_mem(0x0D, 0x02);
+    engine.set_mem(0x0201, 0x2F);
+    native::dispatch_room_tile_action(&mut engine, &mut r);
+    assert_eq!(r.carry, 0);
+
+    engine.set_mem(0x0201, 0x30);
+    native::dispatch_room_tile_action(&mut engine, &mut r);
+    assert_eq!(r.carry, 1);
+}
+
+#[test]
 fn try_reflect_object_velocity_reports_no_reflection_when_stationary() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();

@@ -106,6 +106,8 @@ pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
+pub use read_room_tile_action_value::read_room_tile_action_value;
+pub use redraw_room_tile_column::redraw_room_tile_column;
 pub use reset::reset;
 pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
@@ -189,10 +191,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0170::routine_0170;
-pub use routine_0171::routine_0171;
-pub use routine_0172::routine_0172;
-pub use routine_0173::routine_0173;
 pub use routine_0178::routine_0178;
 pub use routine_0179::routine_0179;
 pub use routine_0180::routine_0180;
@@ -214,6 +212,7 @@ pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
+pub use seed_object_position_from_tile_offset::seed_object_position_from_tile_offset;
 pub use sfx_overlay_voice::sfx_overlay_voice;
 pub use snapshot_inventory_state::snapshot_inventory_state;
 pub use song_init::song_init;
@@ -264,6 +263,7 @@ pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
 pub use try_move_actor_without_terrain::try_move_actor_without_terrain;
 pub use try_move_large_actor_with_terrain::try_move_large_actor_with_terrain;
 pub use try_move_player_with_collision::try_move_player_with_collision;
+pub use try_nudge_player_to_tile_boundary::try_nudge_player_to_tile_boundary;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
 pub use update_actor_animation::update_actor_animation;
@@ -496,7 +496,7 @@ mod game_update {
                             continue 'dispatch;
                         }
                     }
-                    routine_0173(engine, r);
+                    try_nudge_player_to_tile_boundary(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 2;
@@ -4623,7 +4623,7 @@ mod tick_player_jump_action {
                         }
                     }
                     engine.inc_mem(0x4F);
-                    routine_0173(engine, r);
+                    try_nudge_player_to_tile_boundary(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 2;
@@ -5968,22 +5968,23 @@ mod dispatch_projected_tile_actions {
         offset: i32,
     ) -> bool {
         r.offset = offset;
-        routine_0169(engine, r);
+        dispatch_room_tile_action(engine, r);
         cbool(r.carry)
     }
 }
 
-mod routine_0170 {
+mod seed_object_position_from_tile_offset {
     use super::*;
-    pub fn routine_0170(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x0B);
-        let mut y: i32 = 0;
-        if cbool(a >= 0x0C) {
-            a = u8v(a - 0x0C);
+
+    /// Converts tile-sample offset `0x0B` plus projected tile coordinates into
+    /// object scratch position `0xF9..0xFC`.
+    pub fn seed_object_position_from_tile_offset(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut tile_offset: i32 = engine.mem(0x0B);
+        if cbool(tile_offset >= 0x0C) {
+            tile_offset = u8v(tile_offset - 0x0C);
             engine.inc_mem(0x0F);
         }
-        y = a;
-        if cbool(y != 0) {
+        if cbool(tile_offset != 0) {
             engine.set_mem(0x0A, u8v(engine.mem(0x0A) + 0x10));
         }
         engine.set_mem(0xFB, engine.mem(0x0A) & 0xF0);
@@ -5991,16 +5992,18 @@ mod routine_0170 {
         engine.set_mem(0xFA, engine.mem(0x0F));
         engine.set_mem(0xF9, 0x00);
         r.value = 0x00;
-        r.offset = y;
+        r.offset = tile_offset;
     }
 }
 
-mod routine_0171 {
+mod redraw_room_tile_column {
     use super::*;
-    pub fn routine_0171(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut fa: i32 = engine.mem(0xFA);
-        engine.set_mem(0x0C, fa);
-        engine.set_mem(0x16, u8v((fa << 1) & 0x1F));
+
+    /// Rebuilds the background column containing object scratch tile-x `0xFA`.
+    pub fn redraw_room_tile_column(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_x: i32 = engine.mem(0xFA);
+        engine.set_mem(0x0C, tile_x);
+        engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
         engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
         engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
         engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
@@ -6008,34 +6011,40 @@ mod routine_0171 {
     }
 }
 
-mod routine_0172 {
+mod read_room_tile_action_value {
     use super::*;
-    pub fn routine_0172(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = engine.mem(0x0B);
-        let mut ptr: i32 = u16v(engine.mem(0x10) | (engine.mem(0x11) << 8));
-        let mut b: i32 = engine.mem(u16v(ptr + y));
-        let mut x: i32 = b & 0x3F;
-        r.index = x;
-        r.offset = y;
-        if cbool(x == 0x3E) {
+
+    /// Reads the current room-map tile at `0x10/0x11 + 0x0B`. Tile `0x3E`
+    /// resolves to the current room replacement value in `0x74`.
+    pub fn read_room_tile_action_value(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_offset: i32 = engine.mem(0x0B);
+        let room_ptr: i32 = u16v(engine.mem(0x10) | (engine.mem(0x11) << 8));
+        let room_tile: i32 = engine.mem(u16v(room_ptr + tile_offset));
+        let tile_id: i32 = room_tile & 0x3F;
+        r.index = tile_id;
+        r.offset = tile_offset;
+        if cbool(tile_id == 0x3E) {
             r.value = engine.mem(0x74);
         } else {
-            r.value = b;
+            r.value = room_tile;
         }
     }
 }
 
-mod routine_0173 {
+mod try_nudge_player_to_tile_boundary {
     use super::*;
-    pub fn routine_0173(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v49: i32 = engine.mem(0x49);
+
+    /// After a blocked move, attempts a one-pixel/subtile nudge toward the
+    /// nearest tile boundary unless the player is pressing away from it.
+    pub fn try_nudge_player_to_tile_boundary(engine: &mut Engine, r: &mut RoutineContext) {
+        let horizontal_delta: i32 = engine.mem(0x49);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
                     engine.set_mem(0x49, 0x00);
                     engine.set_mem(0x4A, 0x00);
-                    if cbool(v49 == 0) {
+                    if cbool(horizontal_delta == 0) {
                         {
                             state = 1;
                             continue 'dispatch;

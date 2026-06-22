@@ -1593,19 +1593,22 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
     engine.set_mem(0x4e, 0x00);
 }
 
-pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
-    let ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
-    let y = r.offset;
-    let tile = engine.mem(u16v(ptr + y)) & 0x3f;
+/// Handles the room tile sampled at the current projected player footprint.
+/// Special tiles can spend keys/magic, spawn transient objects, or launch the
+/// tile-removal projectile; ordinary tiles return carry for solid terrain.
+pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
+    let tile_ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+    let tile_offset = r.offset;
+    let tile = engine.mem(u16v(tile_ptr + tile_offset)) & 0x3f;
     if tile == engine.mem(0x70) {
         if engine.mem(0x0491) == 0 {
-            engine.set_mem(0x0b, y);
+            engine.set_mem(0x0b, tile_offset);
             engine.set_mem(0xed, 0xe1);
             engine.set_mem(0xee, 0x01);
             engine.set_mem(0xef, 0x01);
             engine.set_mem(0xf0, engine.mem(0x71));
             engine.set_mem(0xf3, 0x0a);
-            crate::game::routine_0170(engine, r);
+            crate::game::seed_object_position_from_tile_offset(engine, r);
             crate::game::store_object_slot_scratch(engine, r);
             engine.set_mem(0x8f, 0x06);
         }
@@ -1616,7 +1619,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
     }
     if tile == 0x02 {
         if engine.mem(0x0491) == 0 {
-            engine.set_mem(0x0b, y);
+            engine.set_mem(0x0b, tile_offset);
             r.index = engine.mem(0x55);
             let item = engine.mem(u16v(0x0051 + r.index));
             r.value = item;
@@ -1639,7 +1642,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0xef, 0x01);
             engine.set_mem(0xf0, engine.mem(0x74));
             engine.set_mem(0xf3, 0x0f);
-            crate::game::routine_0170(engine, r);
+            crate::game::seed_object_position_from_tile_offset(engine, r);
             crate::game::store_object_slot_scratch(engine, r);
             engine.set_mem(0x8f, 0x06);
         }
@@ -1648,7 +1651,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
     }
     if tile == 0x3e {
         if (engine.mem(0x20) & 0x80) != 0 && engine.mem(0x0491) == 0 {
-            engine.set_mem(0x0b, y);
+            engine.set_mem(0x0b, tile_offset);
             engine.set_mem(0xf4, 0x01);
             r.offset = engine.mem(0x55);
             r.index = engine.mem(u16v(0x0051 + r.offset));
@@ -1676,7 +1679,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                             engine.set_mem(0x0491, 0x01);
                             engine.set_mem(0x0492, 0x01);
                             engine.set_mem(0x0496, 0x0f);
-                            crate::game::routine_0172(engine, r);
+                            crate::game::read_room_tile_action_value(engine, r);
                             engine.set_mem(0x0493, r.value);
                             crate::game::consume_magic_point(engine, r);
                             engine.set_mem(0x8f, 0x14);
@@ -1696,13 +1699,13 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.set_mem(0xee, 0x01);
                     engine.set_mem(0xef, 0x03);
                     r.offset = engine.mem(0x0b);
-                    let b = engine.mem(u16v(ptr + r.offset));
+                    let b = engine.mem(u16v(tile_ptr + r.offset));
                     engine.set_mem(0xf0, b);
                     engine.set_mem(0xf3, 0x10);
-                    crate::game::routine_0172(engine, r);
-                    engine.set_mem(u16v(ptr + r.offset), r.value);
-                    crate::game::routine_0170(engine, r);
-                    crate::game::routine_0171(engine, r);
+                    crate::game::read_room_tile_action_value(engine, r);
+                    engine.set_mem(u16v(tile_ptr + r.offset), r.value);
+                    crate::game::seed_object_position_from_tile_offset(engine, r);
+                    crate::game::redraw_room_tile_column(engine, r);
                     crate::game::update_tile_projectile_motion(engine, r);
                     engine.set_mem(0xe3, 0xff);
                     if engine.mem(0x0491) != 0 {
@@ -1725,13 +1728,13 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.set_mem(0xee, 0x01);
                         engine.set_mem(0xef, 0x03);
                         r.offset = engine.mem(0x0b);
-                        let b = engine.mem(u16v(ptr + r.offset));
+                        let b = engine.mem(u16v(tile_ptr + r.offset));
                         engine.set_mem(0xf0, b);
                         engine.set_mem(0xf3, 0x00);
-                        crate::game::routine_0172(engine, r);
-                        engine.set_mem(u16v(ptr + r.offset), r.value);
-                        crate::game::routine_0170(engine, r);
-                        crate::game::routine_0171(engine, r);
+                        crate::game::read_room_tile_action_value(engine, r);
+                        engine.set_mem(u16v(tile_ptr + r.offset), r.value);
+                        crate::game::seed_object_position_from_tile_offset(engine, r);
+                        crate::game::redraw_room_tile_column(engine, r);
                         crate::game::update_tile_projectile_motion(engine, r);
                         engine.set_mem(0xe3, 0xff);
                         if engine.mem(0xee) != 0 {
