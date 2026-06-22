@@ -100,7 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `game` | `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `native` | `0240` | inferred | high-bit/special actor update path |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
 
@@ -157,6 +156,7 @@ surface when touching nearby code:
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
+| `clear_temporary_room_sprites` | hide the temporary room item and coin/cost sprites in OAM |
 | `close_inventory_item_menu` | close the item menu, restore the gameplay snapshot, and redraw HUD state |
 | `collect_key_bundle_reward` | add the large key bundle reward and play its pickup sound |
 | `collect_large_coin_reward` | add the large coin reward and play its pickup sound |
@@ -175,7 +175,11 @@ surface when touching nearby code:
 | `dispatch_overhead_tile_action` | handle Up-button interactions with the tile above the player |
 | `dispatch_projected_tile_actions` | probe the projected player footprint for room tile-action triggers |
 | `dispatch_room_tile_action` | dispatch the sampled projected room tile, including costs, object spawns, and tile projectiles |
+| `draw_carried_item_sprites` | draw the three carried-item slots for temporary room item selection |
+| `draw_coin_cost_sprites` | draw the two-sprite coin/cost marker shared by shop and refill rooms |
+| `draw_shop_item_sprites` | draw the two shop item slots and hide unavailable or overstocked items |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
+| `enter_temporary_room_page` | enter a temporary room page with the full fade and audio-channel reset |
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
 | `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |
 | `enter_room_link_destination` | load a destination room and player position from the active room link record |
@@ -219,10 +223,12 @@ surface when touching nearby code:
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
 | `read_room_tile_action_value` | read a room-map tile sample and resolve replacement tile `0x3E` through `0x74` |
 | `redraw_room_tile_column` | rebuild the background column containing object scratch tile-x `0xFA` |
+| `refresh_temporary_room_page` | rebuild a temporary room page with the shorter fade that preserves audio state |
 | `reset` | top-level reset entry |
 | `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `restore_room_from_checkpoint` | pop a temporary-room checkpoint and rebuild the gameplay room, saved song, sprites, and player pose |
+| `restore_status_sprite_template` | restore the fixed status/menu sprite template and its PPU bank shadows |
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
 | `run_carried_item_loadout_flow` | refill the active family member's carried-item queue from inventory |
@@ -319,7 +325,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Room transition/item/score/effect helpers: `routine_0195..0201`.
+1. Native high-bit actor and equipment helper flows: `routine_0240`, `routine_0259`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

@@ -54,6 +54,7 @@ pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_dir
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_pending_vram_job::clear_pending_vram_job;
+pub use clear_temporary_room_sprites::clear_temporary_room_sprites;
 pub use close_inventory_item_menu::close_inventory_item_menu;
 pub use collect_key_bundle_reward::collect_key_bundle_reward;
 pub use collect_large_coin_reward::collect_large_coin_reward;
@@ -72,9 +73,13 @@ pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
 pub use dispatch_projected_tile_actions::dispatch_projected_tile_actions;
+pub use draw_carried_item_sprites::draw_carried_item_sprites;
+pub use draw_coin_cost_sprites::draw_coin_cost_sprites;
+pub use draw_shop_item_sprites::draw_shop_item_sprites;
 pub use enter_fragment_pickup_room::enter_fragment_pickup_room;
 pub use enter_pending_special_exit_room::enter_pending_special_exit_room;
 pub use enter_room_link_destination::enter_room_link_destination;
+pub use enter_temporary_room_page::enter_temporary_room_page;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
@@ -113,11 +118,13 @@ pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
 pub use read_room_tile_action_value::read_room_tile_action_value;
 pub use redraw_room_tile_column::redraw_room_tile_column;
+pub use refresh_temporary_room_page::refresh_temporary_room_page;
 pub use reset::reset;
 pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use restore_inventory_state_snapshot::restore_inventory_state_snapshot;
 pub use restore_room_from_checkpoint::restore_room_from_checkpoint;
+pub use restore_status_sprite_template::restore_status_sprite_template;
 pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
@@ -197,13 +204,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0195::routine_0195;
-pub use routine_0196::routine_0196;
-pub use routine_0197::routine_0197;
-pub use routine_0198::routine_0198;
-pub use routine_0199::routine_0199;
-pub use routine_0200::routine_0200;
-pub use routine_0201::routine_0201;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -6183,7 +6183,7 @@ mod close_inventory_item_menu {
         engine.set_mem(0x7C, 0x20);
         routine_0081(engine, r);
         routine_0060(engine, r);
-        routine_0201(engine, r);
+        restore_status_sprite_template(engine, r);
     }
 }
 
@@ -6371,7 +6371,7 @@ mod restore_room_from_checkpoint {
     pub fn restore_room_from_checkpoint(engine: &mut Engine, r: &mut RoutineContext) {
         pop_room_checkpoint(engine, r);
         routine_0067(engine, r);
-        routine_0200(engine, r);
+        clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xFE);
         routine_0123(engine, r);
         routine_0084(engine, r);
@@ -6385,9 +6385,12 @@ mod restore_room_from_checkpoint {
     }
 }
 
-mod routine_0195 {
+mod enter_temporary_room_page {
     use super::*;
-    pub fn routine_0195(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Enters a temporary room page selected by `r.value`, using the full
+    /// transition fade that also resets active music channel state.
+    pub fn enter_temporary_room_page(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
         routine_0067(engine, r);
         engine.set_mem(0x08, a);
@@ -6412,9 +6415,12 @@ mod routine_0195 {
     }
 }
 
-mod routine_0196 {
+mod refresh_temporary_room_page {
     use super::*;
-    pub fn routine_0196(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Rebuilds a temporary room page selected by `r.value` while preserving the
+    /// currently playing audio state.
+    pub fn refresh_temporary_room_page(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
         routine_0068(engine, r);
         engine.set_mem(0x08, a);
@@ -6439,9 +6445,12 @@ mod routine_0196 {
     }
 }
 
-mod routine_0197 {
+mod draw_carried_item_sprites {
     use super::*;
-    pub fn routine_0197(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws the three carried-item slots from `0x51..0x53` into the temporary
+    /// room OAM area, hiding slots whose item id has the high bit set.
+    pub fn draw_carried_item_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         let mut y: i32 = 0x10;
         let mut a: i32 = 0;
@@ -6477,9 +6486,12 @@ mod routine_0197 {
     }
 }
 
-mod routine_0198 {
+mod draw_shop_item_sprites {
     use super::*;
-    pub fn routine_0198(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws the two shop item slots from `0x80/0x82`; sold-out, unavailable,
+    /// or overstocked items are hidden and marked unavailable.
+    pub fn draw_shop_item_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         let mut a: i32 = 0;
         let mut state: i32 = 0;
@@ -6558,9 +6570,11 @@ mod routine_0198 {
     }
 }
 
-mod routine_0199 {
+mod draw_coin_cost_sprites {
     use super::*;
-    pub fn routine_0199(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws the two-sprite coin/cost marker shared by shop and refill rooms.
+    pub fn draw_coin_cost_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0250, 0x98);
         engine.set_mem(0x0254, 0x98);
         engine.set_mem(0x0251, 0xF1);
@@ -6573,9 +6587,11 @@ mod routine_0199 {
     }
 }
 
-mod routine_0200 {
+mod clear_temporary_room_sprites {
     use super::*;
-    pub fn routine_0200(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Hides the temporary room item and coin/cost sprites in OAM.
+    pub fn clear_temporary_room_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0240, 0xEF);
         engine.set_mem(0x0244, 0xEF);
         engine.set_mem(0x0248, 0xEF);
@@ -6586,9 +6602,12 @@ mod routine_0200 {
     }
 }
 
-mod routine_0201 {
+mod restore_status_sprite_template {
     use super::*;
-    pub fn routine_0201(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Restores the fixed status/menu sprite template and its four PPU bank
+    /// shadow bytes after temporary inventory/status pages.
+    pub fn restore_status_sprite_template(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         {
             x = 0x37;

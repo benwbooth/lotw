@@ -1966,8 +1966,8 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
     if engine.mem(0x2d) < 0x30 {
         push_room_checkpoint(engine, r);
         r.value = 0x08;
-        crate::game::routine_0195(engine, r);
-        crate::game::routine_0197(engine, r);
+        crate::game::enter_temporary_room_page(engine, r);
+        crate::game::draw_carried_item_sprites(engine, r);
         crate::game::routine_0117(engine, r);
         crate::game::routine_0119(engine, r);
         engine.set_mem(0x7b, 0x08);
@@ -2000,7 +2000,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
     if engine.mem(0x2d) < 0x30 {
         pop_room_checkpoint(engine, r);
         routine_0067(engine, r);
-        crate::game::routine_0200(engine, r);
+        crate::game::clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xfe);
         crate::game::routine_0123(engine, r);
         crate::game::routine_0084(engine, r);
@@ -2098,7 +2098,7 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
             engine.set_mem(0x7c, 0x20);
             crate::game::routine_0081(engine, r);
             crate::game::routine_0060(engine, r);
-            crate::game::routine_0201(engine, r);
+            crate::game::restore_status_sprite_template(engine, r);
             return;
         }
 
@@ -2117,8 +2117,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     if engine.mem(0x48) != 0x10 {
         push_room_checkpoint(engine, r);
         r.value = 0x04;
-        crate::game::routine_0195(engine, r);
-        crate::game::routine_0199(engine, r);
+        crate::game::enter_temporary_room_page(engine, r);
+        crate::game::draw_coin_cost_sprites(engine, r);
         routine_0070(engine, r);
 
         loop {
@@ -2149,8 +2149,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             animate_health_refill_to_cap(engine, r);
             animate_magic_refill_to_cap(engine, r);
             r.value = 0x08;
-            crate::game::routine_0196(engine, r);
-            crate::game::routine_0197(engine, r);
+            crate::game::refresh_temporary_room_page(engine, r);
+            crate::game::draw_carried_item_sprites(engine, r);
             crate::game::routine_0117(engine, r);
             crate::game::routine_0119(engine, r);
             engine.set_mem(0x7b, 0x08);
@@ -2159,9 +2159,9 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             routine_0070(engine, r);
             run_carried_item_loadout_flow(engine, r);
             r.value = 0x04;
-            crate::game::routine_0196(engine, r);
-            crate::game::routine_0200(engine, r);
-            crate::game::routine_0199(engine, r);
+            crate::game::refresh_temporary_room_page(engine, r);
+            crate::game::clear_temporary_room_sprites(engine, r);
+            crate::game::draw_coin_cost_sprites(engine, r);
             routine_0070(engine, r);
         }
     }
@@ -2182,7 +2182,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     push_room_checkpoint(engine, r);
     engine.set_mem(0x40, 0x06);
     r.value = 0x06;
-    crate::game::routine_0195(engine, r);
+    crate::game::enter_temporary_room_page(engine, r);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_magic_hud(engine, r);
     engine.set_mem(0x55, 0x03);
@@ -2190,7 +2190,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     engine.set_mem(0x56, 0xf1);
     engine.set_mem(0x57, 0x00);
     crate::game::routine_0061(engine, r);
-    crate::game::routine_0201(engine, r);
+    crate::game::restore_status_sprite_template(engine, r);
     crate::game::reset_room_object_slots(engine, r);
     routine_0070(engine, r);
 
@@ -2293,8 +2293,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         engine.set_mem(0x55, 0x02);
         crate::game::routine_0062(engine, r);
         r.value = 0x08;
-        crate::game::routine_0195(engine, r);
-        crate::game::routine_0197(engine, r);
+        crate::game::enter_temporary_room_page(engine, r);
+        crate::game::draw_carried_item_sprites(engine, r);
         crate::game::routine_0117(engine, r);
         crate::game::routine_0119(engine, r);
         engine.set_mem(0x7b, 0x08);
@@ -2318,15 +2318,15 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     let s82 = engine.mem(0x82);
     let s83 = engine.mem(0x83);
     r.value = engine.mem(0x47);
-    crate::game::routine_0195(engine, r);
+    crate::game::enter_temporary_room_page(engine, r);
     engine.set_mem(0x83, s83);
     engine.set_mem(0x82, s82);
     engine.set_mem(0x81, s81);
     engine.set_mem(0x80, s80);
 
-    crate::game::routine_0198(engine, r);
+    crate::game::draw_shop_item_sprites(engine, r);
     crate::game::routine_0120(engine, r);
-    crate::game::routine_0199(engine, r);
+    crate::game::draw_coin_cost_sprites(engine, r);
     routine_0070(engine, r);
 
     loop {
@@ -2357,7 +2357,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
             crate::game::spend_coins(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(u16v(0x80 + x), 0xff);
-                crate::game::routine_0198(engine, r);
+                crate::game::draw_shop_item_sprites(engine, r);
                 engine.inc_mem(u16v(0x60 + item));
                 set_prompt_state(engine, 0x10);
             } else {
@@ -2614,7 +2614,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         engine.set_mem(0x52, engine.mem(0x53));
         engine.set_mem(0x53, engine.mem(0x08));
         engine.set_mem(0x8f, 0x12);
-        crate::game::routine_0197(engine, r);
+        crate::game::draw_carried_item_sprites(engine, r);
         crate::game::routine_0062(engine, r);
         crate::game::routine_0117(engine, r);
         crate::game::routine_0119(engine, r);
