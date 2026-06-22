@@ -638,4 +638,127 @@ impl GameState {
     pub fn set_tile_table_ptr_hi(&mut self, value: i32) {
         self.set_byte(0x7A, value);
     }
+
+    // ---- Player position / motion -----------------------------------------
+
+    /// Player X fine (sub-tile) position (`$43`).
+    #[inline]
+    pub fn player_x_fine(&self) -> i32 {
+        self.byte(0x43)
+    }
+    #[inline]
+    pub fn set_player_x_fine(&mut self, value: i32) {
+        self.set_byte(0x43, value);
+    }
+
+    /// Player X tile position (`$44`).
+    #[inline]
+    pub fn player_x_tile(&self) -> i32 {
+        self.byte(0x44)
+    }
+    #[inline]
+    pub fn set_player_x_tile(&mut self, value: i32) {
+        self.set_byte(0x44, value);
+    }
+
+    /// Player Y position (`$45`).
+    #[inline]
+    pub fn player_y(&self) -> i32 {
+        self.byte(0x45)
+    }
+    #[inline]
+    pub fn set_player_y(&mut self, value: i32) {
+        self.set_byte(0x45, value);
+    }
+
+    /// Post-landing recovery/stun countdown (`$46`); seeded from the fall
+    /// distance and decremented each frame while nonzero.
+    #[inline]
+    pub fn landing_timer(&self) -> i32 {
+        self.byte(0x46)
+    }
+    #[inline]
+    pub fn set_landing_timer(&mut self, value: i32) {
+        self.set_byte(0x46, value);
+    }
+
+    /// Map screen X (which room column the player occupies) (`$47`).
+    #[inline]
+    pub fn map_screen_x(&self) -> i32 {
+        self.byte(0x47)
+    }
+    #[inline]
+    pub fn set_map_screen_x(&mut self, value: i32) {
+        self.set_byte(0x47, value);
+    }
+
+    /// Map screen Y (which room row the player occupies) (`$48`).
+    #[inline]
+    pub fn map_screen_y(&self) -> i32 {
+        self.byte(0x48)
+    }
+    #[inline]
+    pub fn set_map_screen_y(&mut self, value: i32) {
+        self.set_byte(0x48, value);
+    }
+
+    /// Horizontal sub-tile movement delta for this frame (`$49`).
+    #[inline]
+    pub fn horizontal_subtile_delta(&self) -> i32 {
+        self.byte(0x49)
+    }
+    #[inline]
+    pub fn set_horizontal_subtile_delta(&mut self, value: i32) {
+        self.set_byte(0x49, value);
+    }
+
+    /// Vertical movement delta for this frame (`$4B`).
+    #[inline]
+    pub fn vertical_delta(&self) -> i32 {
+        self.byte(0x4B)
+    }
+    #[inline]
+    pub fn set_vertical_delta(&mut self, value: i32) {
+        self.set_byte(0x4B, value);
+    }
+
+    /// Frames the player has been falling (`$4E`).
+    #[inline]
+    pub fn fall_frames(&self) -> i32 {
+        self.byte(0x4E)
+    }
+    #[inline]
+    pub fn set_fall_frames(&mut self, value: i32) {
+        self.set_byte(0x4E, value);
+    }
+
+    /// Remaining jump/ascent timer (`$4F`).
+    #[inline]
+    pub fn jump_timer(&self) -> i32 {
+        self.byte(0x4F)
+    }
+    #[inline]
+    pub fn set_jump_timer(&mut self, value: i32) {
+        self.set_byte(0x4F, value);
+    }
+
+    /// Room horizontal scroll, fine (sub-tile) component (`$7B`).
+    #[inline]
+    pub fn scroll_fine_x(&self) -> i32 {
+        self.byte(0x7B)
+    }
+    #[inline]
+    pub fn set_scroll_fine_x(&mut self, value: i32) {
+        self.set_byte(0x7B, value);
+    }
+
+    /// Room horizontal scroll, tile component (`$7C`).
+    #[inline]
+    pub fn scroll_tile_x(&self) -> i32 {
+        self.byte(0x7C)
+    }
+    #[inline]
+    pub fn set_scroll_tile_x(&mut self, value: i32) {
+        self.set_byte(0x7C, value);
+    }
 }

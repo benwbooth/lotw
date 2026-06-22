@@ -10,10 +10,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut engine = common::load_rom(rom, false)?;
     let mut r = RoutineContext::default();
     common::init_game_scene(&mut engine, &mut r);
-    engine.set_mem(0x7c, 0x10);
+    engine.state.set_scroll_tile_x(0x10);
     game::upload_staged_room_columns(&mut engine, &mut r);
     game::refresh_scroll_register_shadows(&mut engine, &mut r);
-    engine.set_mem(0x7c, 0x20);
+    engine.state.set_scroll_tile_x(0x20);
     game::upload_staged_room_columns(&mut engine, &mut r);
     game::refresh_scroll_register_shadows(&mut engine, &mut r);
     game::upload_status_panel_template(&mut engine, &mut r);

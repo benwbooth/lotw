@@ -180,8 +180,8 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x39, 0xc5);
     engine.set_mem(0x3a, 0x17);
     engine.set_mem(0x3b, 0x42);
-    engine.set_mem(0x47, 0x01);
-    engine.set_mem(0x48, 0x05);
+    engine.state.set_map_screen_x(0x01);
+    engine.state.set_map_screen_y(0x05);
     engine.set_mem(0x40, 0x00);
     for i in 0..4 {
         engine.set_mem(0x5c + i, engine.mem(0xffa7 + i));
@@ -197,10 +197,10 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_player_health(0x64);
     engine.state.set_player_magic(0x64);
     engine.set_mem(0xeb, 0);
-    engine.set_mem(0x44, 0x20);
-    engine.set_mem(0x45, 0x80);
-    engine.set_mem(0x43, 0);
-    engine.set_mem(0x7c, 0x18);
-    engine.set_mem(0x7b, 0);
+    engine.state.set_player_x_tile(0x20);
+    engine.state.set_player_y(0x80);
+    engine.state.set_player_x_fine(0);
+    engine.state.set_scroll_tile_x(0x18);
+    engine.state.set_scroll_fine_x(0);
     game::scene_assemble(engine, r);
 }
