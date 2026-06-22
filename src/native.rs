@@ -985,7 +985,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_data_ptr_hi(r.value);
             crate::game::resolve_room_tile_pointer(engine, r);
             let p = u16v(engine.state.data_ptr());
-            let mut t = engine.mem(p) & 0x3f;
+            let mut t = engine.state.byte(p) & 0x3f;
             if t >= 0x30 {
                 continue;
             }
@@ -1038,7 +1038,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_character_index(chr);
         let mut y = u16v(0xffa7 + ((chr << 2) + 0x03));
         for i in (0..=3).rev() {
-            engine.set_mem(u16v(0x5c + i), engine.mem(y));
+            engine.set_mem(u16v(0x5c + i), engine.state.byte(y));
             y = u16v(y - 1);
         }
         engine
@@ -1786,7 +1786,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         r.offset = 0x00;
                         engine.state.set_scratch3(0x00);
                         let p = u16v(engine.state.data_ptr());
-                        let b = engine.mem(p) & 0x3f;
+                        let b = engine.state.byte(p) & 0x3f;
                         if b == 0x3e {
                             engine.set_mem(0x0490, 0xe1);
                             engine.set_mem(0x0491, 0x01);

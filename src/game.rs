@@ -782,7 +782,9 @@ mod ram_state_init {
     /// pages from the ROM default tables.
     pub fn ram_state_init(engine: &mut Engine, r: &mut RoutineContext) {
         for zero_page_addr in 0..=0xFF {
-            engine.set_mem(zero_page_addr, engine.mem(0x9B9F + zero_page_addr));
+            engine
+                .state
+                .set_byte(zero_page_addr, engine.mem(0x9B9F + zero_page_addr));
         }
 
         for stack_offset in (0..=0x3F).rev() {
@@ -2207,7 +2209,7 @@ mod reset_menu_state_and_palette {
     /// rewrites `0x40..0x8B`, leaving broader runtime buffers intact.
     pub fn reset_menu_state_and_palette(engine: &mut Engine, r: &mut RoutineContext) {
         for addr in 0x40..0x8C {
-            engine.set_mem(addr, engine.mem(0x9B9F + addr));
+            engine.state.set_byte(addr, engine.mem(0x9B9F + addr));
         }
         for palette_offset in (0..=0x1F).rev() {
             engine.set_mem(0x0180 + palette_offset, 0x0F);
@@ -2459,19 +2461,19 @@ mod draw_object_slot_sprites {
         let object_offset: i32 = u8v(r.offset);
         let object_base: i32 = 0x0400 + object_offset;
 
-        if cbool(engine.mem(object_base + 0x01) == 0)
-            || cbool(engine.mem(object_base + 0x0E) >= 0xBF)
+        if cbool(engine.state.byte(object_base + 0x01) == 0)
+            || cbool(engine.state.byte(object_base + 0x0E) >= 0xBF)
         {
             engine.set_mem(0x0200 + oam_offset, 0xEF);
             engine.set_mem(0x0204 + oam_offset, 0xEF);
             return;
         }
 
-        let attributes: i32 = engine.mem(object_base + 0x02);
+        let attributes: i32 = engine.state.byte(object_base + 0x02);
         engine.set_mem(0x0202 + oam_offset, attributes);
         engine.set_mem(0x0206 + oam_offset, attributes);
 
-        let left_tile: i32 = engine.mem(object_base);
+        let left_tile: i32 = engine.state.byte(object_base);
         if cbool(attributes & 0x40) {
             engine.set_mem(0x0205 + oam_offset, left_tile);
             engine.set_mem(0x0201 + oam_offset, u8v(left_tile + 0x02));
@@ -2481,10 +2483,10 @@ mod draw_object_slot_sprites {
         }
 
         let subtile_delta: i32 =
-            u16v(engine.mem(object_base + 0x0C)) + 0x100 - engine.state.scroll_fine_x();
+            u16v(engine.state.byte(object_base + 0x0C)) + 0x100 - engine.state.scroll_fine_x();
         let fine_x: i32 = u8v(subtile_delta) & 0x0F;
         let tile_borrow: i32 = u8v(subtile_delta >> 8);
-        let tile_delta: i32 = u8v(u16v(engine.mem(object_base + 0x0D)) + tile_borrow
+        let tile_delta: i32 = u8v(u16v(engine.state.byte(object_base + 0x0D)) + tile_borrow
             - engine.state.scroll_tile_x()
             - 1);
         if cbool(tile_delta >= 0x10) {
@@ -2496,15 +2498,15 @@ mod draw_object_slot_sprites {
         let mut screen_x: i32 = u8v((tile_delta << 4) | fine_x);
         engine.state.set_scratch0(screen_x);
 
-        if cbool(engine.mem(object_base + 0x01) == 0x01)
-            && cbool(engine.mem(object_base + 0x0F) != 0)
+        if cbool(engine.state.byte(object_base + 0x01) == 0x01)
+            && cbool(engine.state.byte(object_base + 0x0F) != 0)
         {
-            screen_x = u8v(screen_x + engine.mem(object_base + 0x0F));
+            screen_x = u8v(screen_x + engine.state.byte(object_base + 0x0F));
             engine.state.set_scratch0(screen_x);
-            engine.set_mem(object_base + 0x0F, 0x00);
+            engine.state.set_byte(object_base + 0x0F, 0x00);
         }
 
-        let sprite_y: i32 = u8v(engine.mem(object_base + 0x0E) + 0x2B);
+        let sprite_y: i32 = u8v(engine.state.byte(object_base + 0x0E) + 0x2B);
         engine.set_mem(0x0203 + oam_offset, screen_x);
         engine.set_mem(0x0200 + oam_offset, sprite_y);
         if cbool(screen_x >= 0xEF) {
@@ -5604,7 +5606,7 @@ mod check_top_boundary_exit_clear {
         engine.state.set_data_ptr_hi(0x00);
         resolve_room_tile_pointer(engine, r);
         let tile_ptr = u16v(engine.state.data_ptr());
-        let tile = engine.mem(tile_ptr) & 0x3F;
+        let tile = engine.state.byte(tile_ptr) & 0x3F;
         r.carry = u8v(tile == 0);
     }
 }
@@ -6923,7 +6925,7 @@ mod tick_actor_materialize_delay {
         if cbool(actor_timer == 0) {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
             engine.state.set_obj_state(0x01);
-            engine.state.set_obj_tile(engine.mem(actor_data_ptr));
+            engine.state.set_obj_tile(engine.state.byte(actor_data_ptr));
             engine
                 .state
                 .set_obj_attr(engine.mem(u16v(actor_data_ptr + 1)));
@@ -7328,7 +7330,7 @@ mod tick_chasing_jump_actor {
                         engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
                         resolve_room_tile_pointer(engine, r);
                         room_tile_ptr = u16v(engine.state.data_ptr());
-                        if cbool((engine.mem(room_tile_ptr) & 0x3F) == 0) {
+                        if cbool((engine.state.byte(room_tile_ptr) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -8404,7 +8406,7 @@ mod update_object_terrain_probe {
         resolve_room_tile_pointer(engine, r);
         if cbool(engine.state.obj_x_sub() == 0) {
             let tile_ptr: i32 = u16v(engine.state.data_ptr());
-            if cbool((engine.mem(tile_ptr) & 0x3F) == 0) {
+            if cbool((engine.state.byte(tile_ptr) & 0x3F) == 0) {
                 return;
             }
             if cbool((engine.mem(u16v(tile_ptr + 1)) & 0x3F) == 0) {
@@ -9049,9 +9051,9 @@ mod animate_large_actor_body_tiles {
 mod compose_large_actor_body_slots {
     use super::*;
     fn swap_slot_sprite_id(engine: &mut Engine, a: i32, b: i32) {
-        let slot_sprite_id: i32 = engine.mem(a);
-        engine.set_mem(a, engine.mem(b));
-        engine.set_mem(b, slot_sprite_id);
+        let slot_sprite_id: i32 = engine.state.byte(a);
+        engine.state.set_byte(a, engine.state.byte(b));
+        engine.state.set_byte(b, slot_sprite_id);
     }
 
     /// Mirrors the large actor's logical slot into the three linked body slots.
@@ -9412,7 +9414,9 @@ mod update_tile_projectile {
             engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
             resolve_room_tile_pointer(engine, r);
             let tile_ptr: i32 = u16v(engine.state.data_ptr());
-            engine.set_mem(tile_ptr, engine.state.obj_move_scratch());
+            engine
+                .state
+                .set_byte(tile_ptr, engine.state.obj_move_scratch());
             let screen_diff: i32 = u8v(engine.state.obj_x_tile() - engine.state.scroll_tile_x());
             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
                 let tile_x: i32 = engine.state.obj_x_tile();
@@ -9449,7 +9453,7 @@ mod update_tile_projectile_motion {
                         {
                             i = 0x0800;
                             while cbool(i < 0xA000) {
-                                engine.set_mem(i, 0);
+                                engine.state.set_byte(i, 0);
                                 {
                                     i += 1;
                                     i
@@ -9574,7 +9578,9 @@ mod update_tile_projectile_motion {
                             engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
                             resolve_room_tile_pointer(engine, r);
                             let tile_ptr: i32 = u16v(engine.state.data_ptr());
-                            engine.set_mem(tile_ptr, engine.state.obj_move_scratch());
+                            engine
+                                .state
+                                .set_byte(tile_ptr, engine.state.obj_move_scratch());
                             let screen_diff: i32 =
                                 u8v(engine.state.obj_x_tile() - engine.state.scroll_tile_x());
                             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
@@ -9634,7 +9640,7 @@ mod tick_pulse1_channel {
                     }
                     loop {
                         let mut stream_ptr: i32 = u16v(engine.mem(0x95) | (engine.mem(0x96) << 8));
-                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_pulse1(engine, r);
@@ -9709,7 +9715,7 @@ mod tick_pulse2_channel {
                     }
                     loop {
                         let mut stream_ptr: i32 = u16v(engine.mem(0xA5) | (engine.mem(0xA6) << 8));
-                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_pulse2(engine, r);
@@ -9791,7 +9797,7 @@ mod tick_triangle_channel {
         engine.set_mem(0xB3, u8v(engine.mem(0xB3) - 1));
         loop {
             let mut stream_ptr: i32 = u16v(engine.mem(0xB5) | (engine.mem(0xB6) << 8));
-            let mut note_byte: i32 = engine.mem(stream_ptr);
+            let mut note_byte: i32 = engine.state.byte(stream_ptr);
             if cbool(note_byte == 0) {
                 rewind_or_stop_audio_stream(engine, r);
                 silence_triangle(engine, r);
@@ -9844,7 +9850,7 @@ mod tick_noise_channel {
                     }
                     loop {
                         let mut stream_ptr: i32 = u16v(engine.mem(0xC5) | (engine.mem(0xC6) << 8));
-                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_noise(engine, r);
@@ -10033,7 +10039,7 @@ mod load_note_period {
         let mut stream_ptr: i32 = u16v(
             engine.mem(u8v(0x95 + channel_offset)) | (engine.mem(u8v(0x96 + channel_offset)) << 8),
         );
-        let mut note_byte: i32 = engine.mem(stream_ptr);
+        let mut note_byte: i32 = engine.state.byte(stream_ptr);
         increment_selected_music_stream_pointer(engine, r);
         {
             let mut pitch_index: i32 = u8v((note_byte & 0x0F) << 1);
@@ -10299,7 +10305,7 @@ mod sfx_overlay_voice {
                     }
                     loop {
                         let mut stream_ptr: i32 = u16v(engine.mem(0xD5) | (engine.mem(0xD6) << 8));
-                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             engine.set_mem(0xD4, 0x00);
                             engine.set_mem(0x91, 0x00);
@@ -10546,7 +10552,7 @@ mod text_attr_build {
         let mut p: i32 = u16v(engine.state.palette_src_ptr());
         let mut carry_in: i32 = u8v(r.carry);
         let mut b: i32 = 0;
-        b = engine.mem(p);
+        b = engine.state.byte(p);
         engine.state.set_tile_table_ptr_hi(u8v(b + 0xA0 + carry_in));
         engine.state.set_tile_table_ptr_lo(0);
         engine.state.set_chr_bank(3, engine.mem(u16v(p + 1)));
