@@ -138,11 +138,8 @@ impl Engine {
         self.next_input = None;
     }
 
-    pub fn next_input(&mut self) -> i32 {
-        match self.next_input.as_mut() {
-            Some(next) => next() & 0xff,
-            None => 0,
-        }
+    pub fn next_input(&mut self) -> Option<i32> {
+        self.next_input.as_mut().map(|next| next() & 0xff)
     }
 
     pub fn set_apu_trace<F>(&mut self, trace: F)

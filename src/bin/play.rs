@@ -202,6 +202,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     sdl3::hint::set("SDL_JOYSTICK_HIDAPI_STEAM", "1");
 
     let sdl = sdl3::init()?;
+    let input_debug = env::var_os("LOTW_INPUT_DEBUG").is_some();
+    if input_debug {
+        eprintln!("input: SDL {}", sdl3::version::version());
+    }
     let video = sdl.video()?;
     let window = video
         .window(
@@ -243,6 +247,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut running = true;
     let mut frames = 0usize;
     let mut next_frame = Instant::now();
+    let mut last_buttons = -1;
 
     while running {
         for event in event_pump.poll_iter() {
@@ -293,6 +298,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         input_devices.update();
         buttons |= input_devices.buttons();
+        if input_debug && buttons != last_buttons {
+            eprintln!("input: nes buttons {buttons:02X}");
+            last_buttons = buttons;
+        }
         if autostart {
             if (150..168).contains(&frames) {
                 buttons |= 0x08;

@@ -784,8 +784,7 @@ mod read_controllers {
         let mut x: i32 = 0;
         let mut a: i32 = 0;
         let mut c: i32 = 0;
-        {
-            let __buttons = engine.next_input();
+        if let Some(__buttons) = engine.next_input() {
             engine.ppu.set_buttons(__buttons);
         }
         engine.device_write(0x4016, 0x01);
