@@ -172,7 +172,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             engine
                 .state
                 .set_player_x_fine(engine.state.player_x_fine() & 0x0f);
-            engine.set_mem(0x0200, 0xef);
+            engine.state.set_oam_y(0x00, 0xef);
             engine.state.set_sprite_blink_timer(0x00);
             crate::game::draw_player_sprites(engine, r);
             farcall_0c0d(engine, r, 0x07, 0xb3, run_player_death_or_continue_flow);
@@ -224,7 +224,7 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     farcall_cce4(engine, r, 0xf2, 0xc8, crate::game::scene_assemble);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
 
-    engine.set_mem(0x0200, 0xef);
+    engine.state.set_oam_y(0x00, 0xef);
     engine.set_mem(0x1e, 0x22);
     engine.state.set_scroll_fine_x(0x00);
     engine.state.set_player_x_fine(0x00);
@@ -279,8 +279,8 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         (engine.state.player_x_tile() << 4) | engine.state.player_x_fine()
     ));
     crate::game::draw_scripted_player_sprites(engine, r);
-    engine.set_mem(0x0210, 0xef);
-    engine.set_mem(0x0214, 0xef);
+    engine.state.set_oam_y(0x10, 0xef);
+    engine.state.set_oam_y(0x14, 0xef);
     crate::game::load_final_exit_object_oam_template(engine, r);
     crate::game::load_final_exit_player_oam_template(engine, r);
 }
@@ -297,7 +297,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x88, 0x00);
     crate::game::draw_scripted_player_sprites(engine, r);
     crate::game::draw_final_exit_projectile_sprites(engine, r);
-    engine.set_mem(0x0200, 0xef);
+    engine.state.set_oam_y(0x00, 0xef);
 
     while engine.state.player_y() < 0xa0 {
         engine
@@ -384,7 +384,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
 
-    engine.set_mem(0x0200, 0xef);
+    engine.state.set_oam_y(0x00, 0xef);
     engine.state.set_prompt_state(0x18);
     engine.state.set_prompt_argument(0xff);
     engine.state.set_scratch0(0x01);
@@ -409,8 +409,8 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         queue_ppu_job_and_wait(engine, r);
     }
 
-    engine.set_mem(0x0210, 0xef);
-    engine.set_mem(0x0214, 0xef);
+    engine.state.set_oam_y(0x10, 0xef);
+    engine.state.set_oam_y(0x14, 0xef);
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
     crate::game::reset_room_object_slots(engine, r);
@@ -1322,8 +1322,8 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     for x in (0..=0x1f).rev() {
         engine.set_mem(u16v(0x0180 + x), 0x0f);
     }
-    engine.set_mem(0x0210, 0xef);
-    engine.set_mem(0x0214, 0xef);
+    engine.state.set_oam_y(0x10, 0xef);
+    engine.state.set_oam_y(0x14, 0xef);
     farcall_cce4(engine, r, 0xb4, 0xc4, fade_room_palette_row_in);
     r.index = 0x01;
 }
@@ -2201,14 +2201,14 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
     engine.state.set_obj_x_sub(0);
     engine.state.set_obj_x_vel_lo(0);
     engine.state.set_obj_y_vel(0);
-    engine.set_mem(0x0281, 0xf5);
-    engine.set_mem(0x0291, 0xf5);
-    engine.set_mem(0x0285, 0xf7);
-    engine.set_mem(0x0295, 0xf7);
-    engine.set_mem(0x0282, 0x00);
-    engine.set_mem(0x0286, 0x00);
-    engine.set_mem(0x0292, 0x00);
-    engine.set_mem(0x0296, 0x00);
+    engine.state.set_oam_tile(0x80, 0xf5);
+    engine.state.set_oam_tile(0x90, 0xf5);
+    engine.state.set_oam_tile(0x84, 0xf7);
+    engine.state.set_oam_tile(0x94, 0xf7);
+    engine.state.set_oam_attr(0x80, 0x00);
+    engine.state.set_oam_attr(0x84, 0x00);
+    engine.state.set_oam_attr(0x90, 0x00);
+    engine.state.set_oam_attr(0x94, 0x00);
     crate::game::update_inventory_list_cursor_sprites(engine, r);
     crate::game::update_inventory_grid_cursor_sprites(engine, r);
 

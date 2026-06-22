@@ -1043,6 +1043,49 @@ impl GameState {
         self.set_byte(0x29, value);
     }
 
+    // ---- OAM sprite buffer ($0200-$02FF) ----------------------------------
+    //
+    // The 64-entry sprite shadow buffer DMA'd to the PPU each frame: 4 bytes
+    // per sprite (Y, tile, attribute, X). Accessors take the entry's byte
+    // offset (`sprite * 4`); the field name selects the byte within the entry.
+
+    /// Sprite Y position, entry at byte offset `off` (`$0200 + off`).
+    #[inline]
+    pub fn oam_y(&self, off: i32) -> i32 {
+        self.byte(0x0200 + off)
+    }
+    #[inline]
+    pub fn set_oam_y(&mut self, off: i32, value: i32) {
+        self.set_byte(0x0200 + off, value);
+    }
+    /// Sprite tile index (`$0201 + off`).
+    #[inline]
+    pub fn oam_tile(&self, off: i32) -> i32 {
+        self.byte(0x0201 + off)
+    }
+    #[inline]
+    pub fn set_oam_tile(&mut self, off: i32, value: i32) {
+        self.set_byte(0x0201 + off, value);
+    }
+    /// Sprite attribute byte (`$0202 + off`).
+    #[inline]
+    pub fn oam_attr(&self, off: i32) -> i32 {
+        self.byte(0x0202 + off)
+    }
+    #[inline]
+    pub fn set_oam_attr(&mut self, off: i32, value: i32) {
+        self.set_byte(0x0202 + off, value);
+    }
+    /// Sprite X position (`$0203 + off`).
+    #[inline]
+    pub fn oam_x(&self, off: i32) -> i32 {
+        self.byte(0x0203 + off)
+    }
+    #[inline]
+    pub fn set_oam_x(&mut self, off: i32, value: i32) {
+        self.set_byte(0x0203 + off, value);
+    }
+
     // ---- Object table ($0400-$04BF) ---------------------------------------
     //
     // Twelve 16-byte object records (actors/items/doors/projectiles) at
