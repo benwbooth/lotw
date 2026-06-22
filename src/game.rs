@@ -9186,6 +9186,7 @@ mod routine_0268 {
         routine_0213(engine, r);
         engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
         if cbool(engine.mem(0xEE) == 0) {
+            finish(engine, r);
             return;
         }
         routine_0241(engine, r);
