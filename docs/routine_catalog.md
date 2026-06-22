@@ -94,7 +94,6 @@ would currently be weaker than the cluster name.
 | `native` | `0001`, `0002`, `0004`, `0020`, `0029` | inferred | high-level start flow, intro/menu flow, and blocking input gates rewritten around frame tasks |
 | `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050` | inferred | title screen, family select, password entry, and start-game screen orchestration |
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
-| `game` | `0051`, `0052` | inferred | inventory/password buffer packing and validation transforms |
 
 ## Named Non-Numbered Routines
 
@@ -171,6 +170,7 @@ surface when touching nearby code:
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
 | `copy_room_tile_pages` | copy three room tile pages from the active room data pointer into `0x0500..0x07FF` |
 | `clear_room_persistent_flag` | clear the persistent room-progress bit for the current map coordinates |
+| `decode_inventory_item_list_snapshot` | validate and decode the item-list/password buffer back into the saved inventory snapshot |
 | `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
 | `dim_palette_range_by_step` | dim a palette-buffer range by subtracting the high-nibble step in `0x09` |
@@ -185,6 +185,7 @@ surface when touching nearby code:
 | `draw_shop_item_sprites` | draw the two shop item slots and hide unavailable or overstocked items |
 | `draw_status_item_sprites` | draw the selected-item cursor and equipped-item icons in the status area |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
+| `encode_inventory_snapshot_item_list` | pack the saved inventory/progress snapshot into the item-list/password buffer |
 | `enter_temporary_room_page` | enter a temporary room page with the full fade and audio-channel reset |
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
 | `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |

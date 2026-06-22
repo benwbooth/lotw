@@ -75,6 +75,7 @@ pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
 pub use copy_room_tile_pages::copy_room_tile_pages;
+pub use decode_inventory_item_list_snapshot::decode_inventory_item_list_snapshot;
 pub use defeat_active_room_actors::defeat_active_room_actors;
 pub use dim_palette_range_by_step::dim_palette_range_by_step;
 pub use dispatch_actor_behavior::dispatch_actor_behavior;
@@ -88,6 +89,7 @@ pub use draw_player_sprites::draw_player_sprites;
 pub use draw_room_object_sprites::draw_room_object_sprites;
 pub use draw_shop_item_sprites::draw_shop_item_sprites;
 pub use draw_status_item_sprites::draw_status_item_sprites;
+pub use encode_inventory_snapshot_item_list::encode_inventory_snapshot_item_list;
 pub use enter_fragment_pickup_room::enter_fragment_pickup_room;
 pub use enter_pending_special_exit_room::enter_pending_special_exit_room;
 pub use enter_room_link_destination::enter_room_link_destination;
@@ -185,8 +187,6 @@ pub use routine_0044::routine_0044;
 pub use routine_0046::routine_0046;
 pub use routine_0047::routine_0047;
 pub use routine_0048::routine_0048;
-pub use routine_0051::routine_0051;
-pub use routine_0052::routine_0052;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -2018,11 +2018,20 @@ mod routine_0048 {
     }
 }
 
-mod routine_0051 {
+mod encode_inventory_snapshot_item_list {
     use super::*;
-    pub fn routine_0051(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Encodes the saved progress/inventory snapshot into the 32-byte item-list
+    /// buffer used by the status/password page.
+    ///
+    /// The first half of `0x0322..0x0341` stores progress nibbles plus key bits;
+    /// the second half stores inventory nibbles plus coin bits. Sum/xor
+    /// checksums are folded into spare bits before all non-seed entries are
+    /// scrambled with `rng_update`.
+    pub fn encode_inventory_snapshot_item_list(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
+        // Split the saved progress bytes into low-nibble item-list entries.
         x = 0x0F;
         y = 0x07;
         loop {
@@ -2048,6 +2057,7 @@ mod routine_0051 {
                 break;
             }
         }
+        // Copy saved inventory counts into the second half of the item list.
         {
             x = 0x0F;
             while cbool(x >= 0) {
@@ -2059,6 +2069,7 @@ mod routine_0051 {
                 };
             }
         }
+        // Fold the saved key and coin counters into every other high-bit slot.
         {
             let mut a: i32 = engine.mem(0x0320);
             {
@@ -2085,6 +2096,7 @@ mod routine_0051 {
                 }
             }
         }
+        // Compute the checksum bytes over the packed-but-unscrambled entries.
         {
             let mut a: i32 = 0x00;
             {
@@ -2115,6 +2127,7 @@ mod routine_0051 {
             }
             engine.set_mem(0x038A, a);
         }
+        // Store the checksum bits in the remaining high-bit slots.
         {
             let mut a: i32 = engine.mem(0x0389);
             {
@@ -2141,6 +2154,8 @@ mod routine_0051 {
                 }
             }
         }
+        // Entries at offsets 0x0F and 0x1F seed the RNG and are intentionally
+        // not scrambled.
         engine.set_mem(0x3A, engine.mem(0x0331));
         engine.set_mem(0x3B, engine.mem(0x0341));
         {
@@ -2171,15 +2186,21 @@ mod routine_0051 {
     }
 }
 
-mod routine_0052 {
+mod decode_inventory_item_list_snapshot {
     use super::*;
-    pub fn routine_0052(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Validates and decodes the status/password item-list buffer back into the
+    /// saved progress/inventory snapshot. Carry is set and the error sound is
+    /// queued when either checksum fails.
+    pub fn decode_inventory_item_list_snapshot(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
+                    // Work in a copy so a bad checksum leaves the visible list
+                    // untouched.
                     {
                         x = 0x1F;
                         while cbool(x >= 0) {
@@ -2191,6 +2212,8 @@ mod routine_0052 {
                             };
                         }
                     }
+                    // Unscramble every non-seed entry with the same RNG stream
+                    // used by the encoder.
                     engine.set_mem(0x3A, engine.mem(0x0351));
                     engine.set_mem(0x3B, engine.mem(0x0361));
                     {
@@ -2212,6 +2235,8 @@ mod routine_0052 {
                             };
                         }
                     }
+                    // Pull the stored checksum bits back out of the high-bit
+                    // slots before verifying the decoded entries.
                     {
                         let mut a: i32 = 0;
                         {
@@ -2238,6 +2263,8 @@ mod routine_0052 {
                         }
                         engine.set_mem(0x0389, a);
                     }
+                    // Verify additive and xor checksums before updating the
+                    // snapshot buffers.
                     {
                         let mut a: i32 = 0;
                         {
@@ -2278,6 +2305,8 @@ mod routine_0052 {
                             }
                         }
                     }
+                    // Decode key and coin counters from every other high-bit
+                    // slot.
                     {
                         let mut a: i32 = 0;
                         {
@@ -2304,6 +2333,8 @@ mod routine_0052 {
                         }
                         engine.set_mem(0x0321, a);
                     }
+                    // Recombine progress nibbles and copy inventory counts
+                    // back to the snapshot area.
                     x = 0x0F;
                     y = 0x07;
                     loop {
@@ -6078,7 +6109,7 @@ mod close_inventory_item_menu {
     pub fn close_inventory_item_menu(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, 0x77);
         engine.set_mem(0x0F, 0xB5);
-        routine_0052(engine, r);
+        decode_inventory_item_list_snapshot(engine, r);
         if cbool(r.carry) {
             return;
         }

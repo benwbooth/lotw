@@ -2076,7 +2076,7 @@ pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineConte
 
     engine.set_mem(0x0e, 0xd4);
     engine.set_mem(0x0f, 0xb4);
-    crate::game::routine_0051(engine, r);
+    crate::game::encode_inventory_snapshot_item_list(engine, r);
     crate::game::upload_inventory_item_list(engine, r);
 
     loop {
