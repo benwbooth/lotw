@@ -267,13 +267,13 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::refresh_scroll_register_shadows,
     );
 
-    engine.set_mem(0x040c, 0x00);
-    engine.set_mem(0x040d, 0x00);
-    engine.set_mem(0x0406, 0x00);
+    engine.state.set_object_x_sub(0x00, 0x00);
+    engine.state.set_object_x_tile(0x00, 0x00);
+    engine.state.set_object_timer(0x00, 0x00);
     engine.state.set_scheduler_phase(0x00);
     engine.state.set_scroll_fine_x(0x00);
     engine.state.set_scroll_tile_x(0x00);
-    engine.set_mem(0x0405, 0x64);
+    engine.state.set_object_health(0x00, 0x64);
     engine.set_mem(0x3e, 0x08);
     engine.state.set_player_x_fine(u8v(
         (engine.state.player_x_tile() << 4) | engine.state.player_x_fine()
@@ -289,9 +289,9 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
 /// object latch at `0xF2` is set.
 fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::build_object_health_meter_standard_tiles(engine, r);
-    engine.set_mem(0x0411, 0x00);
-    engine.set_mem(0x0421, 0x00);
-    engine.set_mem(0x0431, 0x00);
+    engine.state.set_object_state(0x10, 0x00);
+    engine.state.set_object_state(0x20, 0x00);
+    engine.state.set_object_state(0x30, 0x00);
     engine.state.set_obj_health(0x00);
     engine.state.set_sprite_blink_timer(0x00);
     engine.set_mem(0x88, 0x00);
@@ -431,27 +431,27 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_chr_bank(3, 0x34);
     engine.state.set_chr_bank(4, 0x36);
     engine.state.set_chr_bank(5, 0x37);
-    engine.set_mem(0x0411, 0x01);
-    engine.set_mem(0x0421, 0x01);
-    engine.set_mem(0x0431, 0x01);
-    engine.set_mem(0x0441, 0x01);
-    engine.set_mem(0x041e, 0xa0);
-    engine.set_mem(0x042e, 0xa0);
-    engine.set_mem(0x043e, 0xa0);
-    engine.set_mem(0x044e, 0x70);
-    engine.set_mem(0x044d, 0x33);
+    engine.state.set_object_state(0x10, 0x01);
+    engine.state.set_object_state(0x20, 0x01);
+    engine.state.set_object_state(0x30, 0x01);
+    engine.state.set_object_state(0x40, 0x01);
+    engine.state.set_object_y_pixel(0x10, 0xa0);
+    engine.state.set_object_y_pixel(0x20, 0xa0);
+    engine.state.set_object_y_pixel(0x30, 0xa0);
+    engine.state.set_object_y_pixel(0x40, 0x70);
+    engine.state.set_object_x_tile(0x40, 0x33);
     crate::game::sync_final_exit_body_slots_from_player(engine, r);
     let mut v = 0x2d;
-    engine.set_mem(0x0410, v);
+    engine.state.set_object_tile(0x10, v);
     v = u8v(v + 0x20);
-    engine.set_mem(0x0420, v);
+    engine.state.set_object_tile(0x20, v);
     v = u8v(v + 0x20);
-    engine.set_mem(0x0430, v);
-    engine.set_mem(0x0440, 0x81);
-    engine.set_mem(0x0412, 0x40);
-    engine.set_mem(0x0422, 0x40);
-    engine.set_mem(0x0432, 0x40);
-    engine.set_mem(0x0442, 0x40);
+    engine.state.set_object_tile(0x30, v);
+    engine.state.set_object_tile(0x40, 0x81);
+    engine.state.set_object_attr(0x10, 0x40);
+    engine.state.set_object_attr(0x20, 0x40);
+    engine.state.set_object_attr(0x30, 0x40);
+    engine.state.set_object_attr(0x40, 0x40);
     crate::game::upload_status_panel_template(engine, r);
     farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::upload_current_room_view);
     crate::game::sync_health_hud(engine, r);
@@ -527,17 +527,25 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     engine.set_mem(0x56, 0x19);
-    engine.set_mem(0x0410, 0x39);
-    engine.set_mem(0x0420, 0x59);
-    engine.set_mem(0x0430, 0x79);
-    engine.set_mem(0x0440, 0x91);
+    engine.state.set_object_tile(0x10, 0x39);
+    engine.state.set_object_tile(0x20, 0x59);
+    engine.state.set_object_tile(0x30, 0x79);
+    engine.state.set_object_tile(0x40, 0x91);
     engine.state.set_countdown_timer(0x14);
     while engine.state.countdown_timer_active() {
         engine.xor_mem(0x56, 0x04);
-        engine.xor_mem(0x0410, 0x04);
-        engine.xor_mem(0x0420, 0x04);
-        engine.xor_mem(0x0430, 0x04);
-        engine.xor_mem(0x0440, 0x04);
+        engine
+            .state
+            .set_object_tile(0x10, engine.state.object_tile(0x10) ^ 0x04);
+        engine
+            .state
+            .set_object_tile(0x20, engine.state.object_tile(0x20) ^ 0x04);
+        engine
+            .state
+            .set_object_tile(0x30, engine.state.object_tile(0x30) ^ 0x04);
+        engine
+            .state
+            .set_object_tile(0x40, engine.state.object_tile(0x40) ^ 0x04);
         for _ in 0..8 {
             draw_scene_and_wait_one_frame(engine, r);
         }
@@ -561,9 +569,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         let t = (engine.mem(0x3e) + 2) & 0x06;
         if t != 0 {
             let x = u8v(t << 3);
-            if engine.mem(u16v(0x0401 + x)) != 0 {
-                engine.set_mem(u16v(0x0401 + x), 0x00);
-                let sum = u8v(engine.state.scroll_pixel_x() + engine.mem(u16v(0x040c + x)));
+            if engine.state.object_state(x) != 0 {
+                engine.state.set_object_state(x, 0x00);
+                let sum = u8v(engine.state.scroll_pixel_x() + engine.state.object_x_sub(x));
                 if sum >= 0xb0 && sum < 0xd0 {
                     let bl = engine.state.obj_health();
                     engine
@@ -1483,25 +1491,25 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
     let mut x = 0x90;
     loop {
         let mut skip = u8v(y) == engine.mem(0xe3);
-        if !skip && (engine.mem(u16v(0x0401 + x)) & 0x80) != 0 {
+        if !skip && (engine.state.object_state(x) & 0x80) != 0 {
             skip = true;
         }
-        if !skip && engine.mem(u16v(0x0401 + x)) != 0x01 && engine.mem(u16v(0x0401 + x)) < 0x1a {
+        if !skip && engine.state.object_state(x) != 0x01 && engine.state.object_state(x) < 0x1a {
             skip = true;
         }
-        if !skip && (engine.mem(u16v(0x0400 + x)) & 0xf9) == 0xe1 {
+        if !skip && (engine.state.object_tile(x) & 0xf9) == 0xe1 {
             skip = true;
         }
-        if !skip && (engine.mem(u16v(0x0402 + x)) & 0x20) != 0 {
+        if !skip && (engine.state.object_attr(x) & 0x20) != 0 {
             skip = true;
         }
         if !skip {
-            let mut d = u8v(engine.state.scratch2() - engine.mem(u16v(0x040e + x)));
+            let mut d = u8v(engine.state.scratch2() - engine.state.object_y_pixel(x));
             if !(d < 0x10) && d < 0xf1 {
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.state.indirect_ptr_hi() - engine.mem(u16v(0x040d + x)));
+                d = u8v(engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x));
                 if d == 0 {
                     engine.state.set_scratch0(u8v(y));
                     engine.state.set_scratch1(x);
@@ -1509,7 +1517,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
                     if (d & 0x80) != 0 {
                         engine.state.set_scratch0(u8v(y));
                         engine.state.set_scratch1(x);
@@ -1520,7 +1528,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
                     if d != 0 && (d & 0x80) == 0 {
                         engine.state.set_scratch0(u8v(y));
                         engine.state.set_scratch1(x);
@@ -1548,25 +1556,25 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let mut x = 0xa0;
     loop {
         let mut skip = u8v(y) == engine.mem(0xe3);
-        if !skip && engine.mem(u16v(0x0401 + x)) == 0 {
+        if !skip && engine.state.object_state(x) == 0 {
             skip = true;
         }
-        if !skip && (engine.mem(u16v(0x0401 + x)) & 0x80) != 0 {
+        if !skip && (engine.state.object_state(x) & 0x80) != 0 {
             skip = true;
         }
-        if !skip && (engine.mem(u16v(0x0400 + x)) & 0xf9) == 0xe1 {
+        if !skip && (engine.state.object_tile(x) & 0xf9) == 0xe1 {
             skip = true;
         }
-        if !skip && (engine.mem(u16v(0x0402 + x)) & 0x20) != 0 {
+        if !skip && (engine.state.object_attr(x) & 0x20) != 0 {
             skip = true;
         }
         if !skip {
-            let mut d = u8v(engine.state.scratch2() - engine.mem(u16v(0x040e + x)));
+            let mut d = u8v(engine.state.scratch2() - engine.state.object_y_pixel(x));
             if !(d < 0x10) && d < 0xf1 {
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.state.indirect_ptr_hi() - engine.mem(u16v(0x040d + x)));
+                d = u8v(engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x));
                 if d == 0 {
                     engine.state.set_scratch0(u8v(y));
                     engine.state.set_scratch1(x);
@@ -1574,7 +1582,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
                     if (d & 0x80) != 0 {
                         engine.state.set_scratch0(u8v(y));
                         engine.state.set_scratch1(x);
@@ -1585,7 +1593,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
                     if d != 0 && (d & 0x80) == 0 {
                         engine.state.set_scratch0(u8v(y));
                         engine.state.set_scratch1(x);
@@ -1655,7 +1663,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
         let hit_slot = engine.state.scratch1();
-        engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
+        engine.state.set_object_state(hit_slot, 0x80);
     }
 
     r.offset = 0x01;
@@ -1714,7 +1722,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     let tile_offset = r.offset;
     let tile = engine.mem(u16v(tile_ptr + tile_offset)) & 0x3f;
     if tile == engine.mem(0x70) {
-        if engine.mem(0x0491) == 0 {
+        if engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
             engine.state.set_obj_tile(0xe1);
             engine.state.set_obj_state(0x01);
@@ -1731,7 +1739,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
     if tile == 0x02 {
-        if engine.mem(0x0491) == 0 {
+        if engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
             r.index = engine.state.selected_item_slot();
             let item = engine.state.item_slot(r.index);
@@ -1763,7 +1771,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
     if tile == 0x3e {
-        if (engine.state.buttons() & 0x80) != 0 && engine.mem(0x0491) == 0 {
+        if (engine.state.buttons() & 0x80) != 0 && engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
             engine.state.set_obj_move_state(0x01);
             r.offset = engine.state.selected_item_slot();
@@ -1776,11 +1784,11 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     if t == 0 {
                         let x2 = u8v((engine.mem(0xfd) & 0x0f) << 1);
                         let lo = u8v(engine.state.player_x_tile() + engine.mem(u16v(0xfeab + x2)));
-                        engine.set_mem(0x049d, lo);
+                        engine.state.set_object_x_tile(0x90, lo);
                         engine.state.set_data_ptr_lo(lo);
-                        engine.set_mem(0x049c, 0x00);
+                        engine.state.set_object_x_sub(0x90, 0x00);
                         let hi = u8v(engine.state.player_y() + engine.mem(u16v(0xfeac + x2)));
-                        engine.set_mem(0x049e, hi);
+                        engine.state.set_object_y_pixel(0x90, hi);
                         engine.state.set_data_ptr_hi(hi);
                         crate::game::resolve_room_tile_pointer(engine, r);
                         r.offset = 0x00;
@@ -1788,12 +1796,12 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         let p = u16v(engine.state.data_ptr());
                         let b = engine.state.byte(p) & 0x3f;
                         if b == 0x3e {
-                            engine.set_mem(0x0490, 0xe1);
-                            engine.set_mem(0x0491, 0x01);
-                            engine.set_mem(0x0492, 0x01);
-                            engine.set_mem(0x0496, 0x0f);
+                            engine.state.set_object_tile(0x90, 0xe1);
+                            engine.state.set_object_state(0x90, 0x01);
+                            engine.state.set_object_attr(0x90, 0x01);
+                            engine.state.set_object_timer(0x90, 0x0f);
                             crate::game::read_room_tile_action_value(engine, r);
-                            engine.set_mem(0x0493, r.value);
+                            engine.state.set_object_move_scratch(0x90, r.value);
                             crate::game::consume_magic_point(engine, r);
                             engine.state.set_prompt_state(0x14);
                         }
@@ -1823,7 +1831,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     crate::game::redraw_room_tile_column(engine, r);
                     crate::game::update_tile_projectile_motion(engine, r);
                     engine.set_mem(0xe3, 0xff);
-                    if engine.mem(0x0491) != 0 {
+                    if engine.state.object_state(0x90) != 0 {
                         engine.state.set_prompt_state(0x06);
                     }
                 }
@@ -2057,10 +2065,12 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     let ptr = u16v(engine.state.palette_src_ptr());
     let door = engine.mem(u16v(ptr + 0x0a));
     if door < 0x08 {
-        engine.set_mem(0x04a2, 0x00);
+        engine.state.set_object_attr(0xA0, 0x00);
     }
-    engine.set_mem(0x04a1, u8v(door + 0x02));
-    engine.set_mem(0x04a0, u8v(((door << 2) & 0xff) + 0x81));
+    engine.state.set_object_state(0xA0, u8v(door + 0x02));
+    engine
+        .state
+        .set_object_tile(0xA0, u8v(((door << 2) & 0xff) + 0x81));
     engine.state.set_prompt_state(0x1f);
     crate::game::draw_room_object_sprites(engine, r);
 

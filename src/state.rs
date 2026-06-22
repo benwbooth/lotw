@@ -1043,6 +1043,104 @@ impl GameState {
         self.set_byte(0x29, value);
     }
 
+    // ---- Object table ($0400-$04BF) ---------------------------------------
+    //
+    // Twelve 16-byte object records (actors/items/doors/projectiles) at
+    // `$0400`, stride 16. Each field uses the same layout as the scratch slot
+    // ([`Self::obj_tile`] et al). Accessors take the record's byte offset
+    // (`slot * 16`); the field name selects the byte within the record.
+
+    /// Object record tile/animation byte, slot at byte offset `slot` (`$0400`).
+    #[inline]
+    pub fn object_tile(&self, slot: i32) -> i32 {
+        self.byte(0x0400 + slot)
+    }
+    #[inline]
+    pub fn set_object_tile(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0400 + slot, value);
+    }
+    /// Object active/state/lifetime byte (`$0401 + slot`).
+    #[inline]
+    pub fn object_state(&self, slot: i32) -> i32 {
+        self.byte(0x0401 + slot)
+    }
+    #[inline]
+    pub fn set_object_state(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0401 + slot, value);
+    }
+    /// Object attribute/direction byte (`$0402 + slot`).
+    #[inline]
+    pub fn object_attr(&self, slot: i32) -> i32 {
+        self.byte(0x0402 + slot)
+    }
+    #[inline]
+    pub fn set_object_attr(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0402 + slot, value);
+    }
+    /// Object tile-replacement/movement scratch (`$0403 + slot`).
+    #[inline]
+    pub fn object_move_scratch(&self, slot: i32) -> i32 {
+        self.byte(0x0403 + slot)
+    }
+    #[inline]
+    pub fn set_object_move_scratch(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0403 + slot, value);
+    }
+    /// Object health/damage threshold (`$0405 + slot`).
+    #[inline]
+    pub fn object_health(&self, slot: i32) -> i32 {
+        self.byte(0x0405 + slot)
+    }
+    #[inline]
+    pub fn set_object_health(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0405 + slot, value);
+    }
+    /// Object timer/animation phase (`$0406 + slot`).
+    #[inline]
+    pub fn object_timer(&self, slot: i32) -> i32 {
+        self.byte(0x0406 + slot)
+    }
+    #[inline]
+    pub fn set_object_timer(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x0406 + slot, value);
+    }
+    /// Object X sub-tile fraction (`$040C + slot`).
+    #[inline]
+    pub fn object_x_sub(&self, slot: i32) -> i32 {
+        self.byte(0x040C + slot)
+    }
+    #[inline]
+    pub fn set_object_x_sub(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x040C + slot, value);
+    }
+    /// Object X tile coordinate (`$040D + slot`).
+    #[inline]
+    pub fn object_x_tile(&self, slot: i32) -> i32 {
+        self.byte(0x040D + slot)
+    }
+    #[inline]
+    pub fn set_object_x_tile(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x040D + slot, value);
+    }
+    /// Object Y pixel coordinate (`$040E + slot`).
+    #[inline]
+    pub fn object_y_pixel(&self, slot: i32) -> i32 {
+        self.byte(0x040E + slot)
+    }
+    #[inline]
+    pub fn set_object_y_pixel(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x040E + slot, value);
+    }
+    /// Object extra-Y/sprite scratch (`$040F + slot`).
+    #[inline]
+    pub fn object_y_extra(&self, slot: i32) -> i32 {
+        self.byte(0x040F + slot)
+    }
+    #[inline]
+    pub fn set_object_y_extra(&mut self, slot: i32, value: i32) {
+        self.set_byte(0x040F + slot, value);
+    }
+
     // ---- Save state / password codec --------------------------------------
     //
     // The password subsystem packs the save state ($0300 region) into two
