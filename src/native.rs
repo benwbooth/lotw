@@ -297,7 +297,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
-    crate::game::routine_0099(engine, r);
+    crate::game::build_object_health_meter_standard_tiles(engine, r);
     engine.set_mem(0x0411, 0x00);
     engine.set_mem(0x0421, 0x00);
     engine.set_mem(0x0431, 0x00);
@@ -367,7 +367,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         if frame_status_bit6_set(engine) {
             r.value = 0x05;
             crate::game::routine_0030(engine, r);
-            crate::game::routine_0100(engine, r);
+            crate::game::build_player_health_meter_sprites(engine, r);
         }
 
         if engine.mem(0x3e) == 0 {
@@ -554,7 +554,7 @@ pub fn routine_0002(engine: &mut Engine, r: &mut RoutineContext) {
                 if sum >= 0xb0 && sum < 0xd0 {
                     let bl = engine.mem(0x00f2);
                     engine.set_mem(0x00f2, if bl < 0x02 { 0x00 } else { u8v(bl - 0x02) });
-                    crate::game::routine_0099(engine, r);
+                    crate::game::build_object_health_meter_standard_tiles(engine, r);
                     set_prompt_state(engine, 0x20);
                     set_prompt_argument(engine, 0x01);
                 } else {
@@ -1149,7 +1149,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
         if !use_game_over_screen {
             routine_0133(engine, r);
             engine.set_mem(0x56, 0x19);
-            crate::game::routine_0103(engine, r);
+            crate::game::read_debounced_buttons(engine, r);
             r.value = saved_song;
             crate::game::routine_0123(engine, r);
             r.index = 0x00;
@@ -1185,7 +1185,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     farcall_cce4(engine, r, 0xe0, 0xc4, routine_0072);
 
     loop {
-        crate::game::routine_0103(engine, r);
+        crate::game::read_debounced_buttons(engine, r);
         if (r.value & 0x10) != 0 {
             break;
         }
@@ -1348,7 +1348,8 @@ pub fn routine_0072(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0075(engine, r);
 }
 
-pub fn routine_0104(engine: &mut Engine, r: &mut RoutineContext) {
+/// Advances frames until all controller buttons are released.
+pub fn wait_for_buttons_released(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         let buttons = frame::redraw_scene_and_read_buttons(engine, r);
         if buttons == 0 {
@@ -1360,7 +1361,9 @@ pub fn routine_0104(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0105(engine: &mut Engine, r: &mut RoutineContext) {
+/// Advances frames until any controller button is pressed, then stores that
+/// button byte in `r.value` and `0x20`.
+pub fn wait_for_button_press(engine: &mut Engine, r: &mut RoutineContext) {
     let buttons = loop {
         let buttons = frame::redraw_scene_and_read_buttons(engine, r);
         if buttons != 0 {

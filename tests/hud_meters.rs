@@ -1,0 +1,43 @@
+use lotw::{Engine, RoutineContext, game};
+
+#[test]
+fn split_meter_value_returns_full_blocks_and_partial_block() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    for (value, expected_partial, expected_blocks) in [
+        (0x00, 0x01, 0x01),
+        (0x09, 0x0A, 0x01),
+        (0x0A, 0x01, 0x02),
+        (0x17, 0x04, 0x03),
+    ] {
+        engine.set_mem(0x08, value);
+        game::split_meter_value(&mut engine, &mut r);
+
+        assert_eq!(engine.mem(0x08), expected_partial, "value {value}");
+        assert_eq!(r.value, expected_partial, "value {value}");
+        assert_eq!(r.offset, expected_blocks, "value {value}");
+    }
+}
+
+#[test]
+fn build_health_meter_sprites_initializes_full_and_empty_tiles() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext {
+        index: 0x65,
+        offset: 0x6B,
+        ..RoutineContext::default()
+    };
+
+    engine.set_mem(0x08, 0x00);
+    engine.set_mem(0x09, 0x00);
+
+    game::build_health_meter_sprites(&mut engine, &mut r);
+
+    for addr in [0x0259, 0x025D, 0x0261, 0x0265, 0x0269] {
+        assert_eq!(engine.mem(addr), 0x65);
+    }
+    for addr in [0x026D, 0x0271, 0x0275, 0x0279, 0x027D] {
+        assert_eq!(engine.mem(addr), 0x6B);
+    }
+}

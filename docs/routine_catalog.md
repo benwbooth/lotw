@@ -95,8 +95,6 @@ would currently be weaker than the cluster name.
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
 | `native` | `0067..0072`, `0074` | inferred | room transition and item/inventory screen orchestration |
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
-| `game` | `0097..0103` | cluster | HUD bar drawing, value-to-digit conversion, and frame/input helper routines |
-| `native` | `0104`, `0105` | inferred | wait-for-release and wait-for-press input gates |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 | `game` | `0124..0128` | inferred | item effect helpers and resource display refresh |
@@ -141,7 +139,12 @@ surface when touching nearby code:
 | `add_keys` | add to the key counter and refresh its HUD digits |
 | `add_magic_points` | add to magic and refresh its HUD digits |
 | `build_direction_velocity` | convert direction bits and speed into object velocity scratch `0xF5..0xF7` |
+| `build_health_meter_sprites` | build a two-row OAM health meter from full/empty tile ids |
 | `build_input_movement_delta` | convert current input and speed into player movement scratch `0x49..0x4B` |
+| `build_object_health_meter_alt_tiles` | build object health with the alternate `0xA5/0xAB` sprite tile pair |
+| `build_object_health_meter_standard_tiles` | build object health with the standard `0x65/0x6B` sprite tile pair |
+| `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
+| `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
 | `check_player_overlap` | test projected object position against the player hitbox |
 | `check_player_overlap_wide` | wider player hitbox test used by large/falling movement probes |
@@ -165,12 +168,14 @@ surface when touching nearby code:
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
+| `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
 | `reset` | top-level reset entry |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `rng_update` | update random source bounded by `r.value` |
 | `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
+| `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
@@ -191,16 +196,17 @@ surface when touching nearby code:
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
 | `vram_*` | deferred VRAM job implementations |
+| `wait_for_button_press` | frame-advance until any button is pressed |
+| `wait_for_buttons_released` | frame-advance until all buttons are released |
 
 ## Next Renaming Targets
 
 The safest remaining concrete rename/alias batches are:
 
-1. HUD/status bar drawing helpers: `routine_0097..0103`.
-2. Terrain collision and actor movement validation: `routine_0250..0256`.
-3. Audio command engine: `routine_0273..0289`.
-4. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
-5. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. Terrain collision and actor movement validation: `routine_0250..0256`.
+2. Audio command engine: `routine_0273..0289`.
+3. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+4. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

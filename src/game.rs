@@ -16,7 +16,12 @@ pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use build_direction_velocity::build_direction_velocity;
+pub use build_health_meter_sprites::build_health_meter_sprites;
 pub use build_input_movement_delta::build_input_movement_delta;
+pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles;
+pub use build_object_health_meter_standard_tiles::build_object_health_meter_standard_tiles;
+pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
+pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
 pub use check_player_overlap::check_player_overlap;
 pub use check_player_overlap_wide::check_player_overlap_wide;
@@ -40,6 +45,7 @@ pub use ppu_commit_banks::ppu_commit_banks;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
+pub use read_debounced_buttons::read_debounced_buttons;
 pub use reset::reset;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use rng_update::rng_update;
@@ -112,13 +118,6 @@ pub use routine_0086::routine_0086;
 pub use routine_0087::routine_0087;
 pub use routine_0088::routine_0088;
 pub use routine_0089::routine_0089;
-pub use routine_0097::routine_0097;
-pub use routine_0098::routine_0098;
-pub use routine_0099::routine_0099;
-pub use routine_0100::routine_0100;
-pub use routine_0101::routine_0101;
-pub use routine_0102::routine_0102;
-pub use routine_0103::routine_0103;
 pub use routine_0117::routine_0117;
 pub use routine_0118::routine_0118;
 pub use routine_0119::routine_0119;
@@ -265,6 +264,7 @@ pub use sound_set_song_banks::sound_set_song_banks;
 pub use sound_tick::sound_tick;
 pub use spawn_player_projectile::spawn_player_projectile;
 pub use spend_coins::spend_coins;
+pub use split_meter_value::split_meter_value;
 pub use statusbar_split::statusbar_split;
 pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use subtract_health_points::subtract_health_points;
@@ -529,7 +529,7 @@ mod game_update {
                 5 => {
                     engine.set_mem(0x8F, 0x10);
                     loop {
-                        routine_0103(engine, r);
+                        read_debounced_buttons(engine, r);
                         if cbool(r.value & 0xF0) {
                             break;
                         }
@@ -1191,7 +1191,7 @@ mod routine_0016 {
                 };
             }
         }
-        routine_0099(engine, r);
+        build_object_health_meter_standard_tiles(engine, r);
     }
 }
 
@@ -1210,7 +1210,7 @@ mod routine_0017 {
                 };
             }
         }
-        routine_0098(engine, r);
+        build_object_health_meter_alt_tiles(engine, r);
     }
 }
 
@@ -1229,7 +1229,7 @@ mod routine_0018 {
                 };
             }
         }
-        routine_0100(engine, r);
+        build_player_health_meter_sprites(engine, r);
     }
 }
 
@@ -1327,7 +1327,7 @@ mod routine_0021 {
                         engine.set_mem(0x8F, 0x21);
                         engine.set_mem(0x90, 0x02);
                         engine.set_mem(0x85, 0x01);
-                        routine_0100(engine, r);
+                        build_player_health_meter_sprites(engine, r);
                     }
                     if (cbool(engine.mem(0x4F) == 0) && cbool(engine.mem(0x4E) == 0)) {
                         engine.set_mem(0x85, 0x00);
@@ -3524,7 +3524,7 @@ mod sync_health_hud {
         engine.set_mem(0x08, health);
         r.value = health;
         r.index = 0x00;
-        routine_0097(engine, r);
+        build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
         engine.set_mem(0x3C, 0x01);
     }
@@ -3543,7 +3543,7 @@ mod sync_magic_hud {
         engine.set_mem(0x08, magic);
         r.value = magic;
         r.index = 0x06;
-        routine_0097(engine, r);
+        build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
         engine.set_mem(0x3C, 0x01);
     }
@@ -3562,7 +3562,7 @@ mod sync_key_hud {
         engine.set_mem(0x08, keys);
         r.value = keys;
         r.index = 0x0C;
-        routine_0097(engine, r);
+        build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
         engine.set_mem(0x3C, 0x01);
     }
@@ -3581,309 +3581,272 @@ mod sync_coin_hud {
         engine.set_mem(0x08, coins);
         r.value = coins;
         r.index = 0x12;
-        routine_0097(engine, r);
+        build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
         engine.set_mem(0x3C, 0x01);
     }
 }
 
-mod routine_0097 {
+mod build_status_resource_meter_tiles {
     use super::*;
-    pub fn routine_0097(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        let mut a: i32 = 0;
-        let mut i: i32 = 0;
-        a = r.index;
-        engine.set_mem((0x01FB), a);
-        x = a;
-        {
-            i = 0;
-            while cbool(i < 5) {
-                engine.set_mem(
-                    u16v(
-                        0x0101 + {
-                            let __old = x;
-                            x += 1;
-                            __old
-                        },
-                    ),
-                    0xDC,
-                );
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
+
+    /// Builds the two-row status resource meter in the VRAM staging buffers.
+    /// `r.index` selects the meter column and `0x08` contains the resource value.
+    pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineContext) {
+        let base_slot: i32 = r.index;
+        engine.set_mem(0x01FB, base_slot);
+        for tile_offset in 0..5 {
+            engine.set_mem(u16v(0x0101 + base_slot + tile_offset), 0xDC);
         }
-        a = engine.mem((0x01FB));
-        engine.set_mem((0x01FB), a);
-        x = a;
-        {
-            i = 0;
-            while cbool(i < 5) {
-                engine.set_mem(
-                    u16v(
-                        0x0121 + {
-                            let __old = x;
-                            x += 1;
-                            __old
-                        },
-                    ),
-                    0xDF,
-                );
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
+
+        let base_slot: i32 = engine.mem(0x01FB);
+        engine.set_mem(0x01FB, base_slot);
+        for tile_offset in 0..5 {
+            engine.set_mem(u16v(0x0121 + base_slot + tile_offset), 0xDF);
         }
-        a = engine.mem((0x01FB));
-        x = a;
-        r.index = x;
-        routine_0102(engine, r);
-        y = r.offset;
-        a = x;
-        x = a;
+
+        let base_slot: i32 = engine.mem(0x01FB);
+        r.index = base_slot;
+        split_meter_value(engine, r);
+
+        let mut filled_blocks: i32 = r.offset;
+        let mut tile_slot: i32 = base_slot;
         loop {
-            y = u8v(y - 1);
-            if cbool(y == 0) {
+            filled_blocks = u8v(filled_blocks - 1);
+            if cbool(filled_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0101 + x));
-            y = u8v(y - 1);
-            if cbool(y == 0) {
+            engine.dec_mem(u16v(0x0101 + tile_slot));
+            filled_blocks = u8v(filled_blocks - 1);
+            if cbool(filled_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0101 + x));
-            x = u8v(x + 1);
+            engine.dec_mem(u16v(0x0101 + tile_slot));
+            tile_slot = u8v(tile_slot + 1);
         }
-        x = a;
-        y = engine.mem(0x08);
+
+        tile_slot = base_slot;
+        let mut partial_blocks: i32 = engine.mem(0x08);
         loop {
-            y = u8v(y - 1);
-            if cbool(y == 0) {
+            partial_blocks = u8v(partial_blocks - 1);
+            if cbool(partial_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0121 + x));
-            y = u8v(y - 1);
-            if cbool(y == 0) {
+            engine.dec_mem(u16v(0x0121 + tile_slot));
+            partial_blocks = u8v(partial_blocks - 1);
+            if cbool(partial_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0121 + x));
-            x = u8v(x + 1);
+            engine.dec_mem(u16v(0x0121 + tile_slot));
+            tile_slot = u8v(tile_slot + 1);
         }
-        r.offset = y;
-        r.index = x;
-        r.value = a;
+        r.offset = partial_blocks;
+        r.index = tile_slot;
+        r.value = base_slot;
     }
 }
 
-mod routine_0098 {
+mod build_object_health_meter_alt_tiles {
     use super::*;
-    pub fn routine_0098(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x0405);
-        if cbool(a >= 0x6D) {
-            a = 0x6D;
+
+    /// Builds an object health meter using the alternate `0xA5/0xAB` sprite
+    /// tile pair.
+    pub fn build_object_health_meter_alt_tiles(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut health: i32 = engine.mem(0x0405);
+        if cbool(health >= 0x6D) {
+            health = 0x6D;
         }
-        engine.set_mem(0x08, a);
+        engine.set_mem(0x08, health);
         engine.set_mem(0x09, 0x00);
         r.index = 0xA5;
         r.offset = 0xAB;
-        routine_0101(engine, r);
+        build_health_meter_sprites(engine, r);
     }
 }
 
-mod routine_0099 {
+mod build_object_health_meter_standard_tiles {
     use super::*;
-    pub fn routine_0099(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut value: i32 = 0;
-        let mut slot: i32 = 0;
-        let mut count: i32 = 0;
-        value = engine.mem(0x0405);
-        if cbool(value >= 0x6D) {
-            value = 0x6D;
+
+    /// Builds an object health meter using the standard `0x65/0x6B` sprite
+    /// tile pair.
+    pub fn build_object_health_meter_standard_tiles(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut health: i32 = engine.mem(0x0405);
+        if cbool(health >= 0x6D) {
+            health = 0x6D;
         }
-        engine.set_mem(0x08, value);
+        engine.set_mem(0x08, health);
         engine.set_mem(0x09, 0x00);
-        slot = 0x65;
-        count = 0x6B;
-        value = slot;
-        slot = engine.mem(0x09);
-        engine.set_mem(u16v(0x0259 + slot), value);
-        engine.set_mem(u16v(0x025D + slot), value);
-        engine.set_mem(u16v(0x0261 + slot), value);
-        engine.set_mem(u16v(0x0265 + slot), value);
-        engine.set_mem(u16v(0x0269 + slot), value);
-        value = count;
-        engine.set_mem(u16v(0x026D + slot), value);
-        engine.set_mem(u16v(0x0271 + slot), value);
-        engine.set_mem(u16v(0x0275 + slot), value);
-        engine.set_mem(u16v(0x0279 + slot), value);
-        engine.set_mem(u16v(0x027D + slot), value);
-        routine_0102(engine, r);
-        count = r.offset;
-        slot = u8v(engine.mem(0x09) + 0x18);
+        let full_tile: i32 = 0x65;
+        let empty_tile: i32 = 0x6B;
+        let mut sprite_slot: i32 = engine.mem(0x09);
+        engine.set_mem(u16v(0x0259 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x025D + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0261 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0265 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0269 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x026D + sprite_slot), empty_tile);
+        engine.set_mem(u16v(0x0271 + sprite_slot), empty_tile);
+        engine.set_mem(u16v(0x0275 + sprite_slot), empty_tile);
+        engine.set_mem(u16v(0x0279 + sprite_slot), empty_tile);
+        engine.set_mem(u16v(0x027D + sprite_slot), empty_tile);
+        split_meter_value(engine, r);
+        let mut filled_blocks: i32 = r.offset;
+        sprite_slot = u8v(engine.mem(0x09) + 0x18);
         loop {
-            count = u8v(count - 1);
-            if cbool(count == 0) {
+            filled_blocks = u8v(filled_blocks - 1);
+            if cbool(filled_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0241 + slot));
-            engine.dec_mem(u16v(0x0241 + slot));
-            count = u8v(count - 1);
-            if cbool(count == 0) {
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            filled_blocks = u8v(filled_blocks - 1);
+            if cbool(filled_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0241 + slot));
-            engine.dec_mem(u16v(0x0241 + slot));
-            slot = u8v(slot + 4);
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            sprite_slot = u8v(sprite_slot + 4);
         }
-        slot = u8v(engine.mem(0x09) + 0x2C);
-        count = engine.mem(0x08);
+
+        sprite_slot = u8v(engine.mem(0x09) + 0x2C);
+        let mut partial_blocks: i32 = engine.mem(0x08);
         loop {
-            count = u8v(count - 1);
-            if cbool(count == 0) {
+            partial_blocks = u8v(partial_blocks - 1);
+            if cbool(partial_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0241 + slot));
-            engine.dec_mem(u16v(0x0241 + slot));
-            count = u8v(count - 1);
-            if cbool(count == 0) {
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            partial_blocks = u8v(partial_blocks - 1);
+            if cbool(partial_blocks == 0) {
                 break;
             }
-            engine.dec_mem(u16v(0x0241 + slot));
-            engine.dec_mem(u16v(0x0241 + slot));
-            slot = u8v(slot + 4);
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            engine.dec_mem(u16v(0x0241 + sprite_slot));
+            sprite_slot = u8v(sprite_slot + 4);
         }
-        r.value = value;
-        r.index = slot;
-        r.offset = count;
+        r.value = full_tile;
+        r.index = sprite_slot;
+        r.offset = partial_blocks;
     }
 }
 
-mod routine_0100 {
+mod build_player_health_meter_sprites {
     use super::*;
-    pub fn routine_0100(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x58);
-        if cbool(a >= 0x6D) {
-            a = 0x6D;
+
+    /// Builds the player health meter sprite strip at the second OAM meter
+    /// slot.
+    pub fn build_player_health_meter_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut health: i32 = engine.mem(0x58);
+        if cbool(health >= 0x6D) {
+            health = 0x6D;
         }
-        engine.set_mem(0x08, a);
+        engine.set_mem(0x08, health);
         engine.set_mem(0x09, 0x80);
         r.index = 0x65;
         r.offset = 0x6B;
-        routine_0101(engine, r);
+        build_health_meter_sprites(engine, r);
     }
 }
 
-mod routine_0101 {
+mod build_health_meter_sprites {
     use super::*;
-    pub fn routine_0101(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x09);
-        let mut full: i32 = u8v(r.index);
-        engine.set_mem(u16v(0x0259 + x), full);
-        engine.set_mem(u16v(0x025D + x), full);
-        engine.set_mem(u16v(0x0261 + x), full);
-        engine.set_mem(u16v(0x0265 + x), full);
-        engine.set_mem(u16v(0x0269 + x), full);
+
+    /// Builds a ten-sprite two-row health meter. `0x09` selects the OAM slot,
+    /// `r.index` is the full tile, `r.offset` is the empty tile, and `0x08`
+    /// contains the value.
+    pub fn build_health_meter_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let sprite_slot: i32 = engine.mem(0x09);
+        let full_tile: i32 = u8v(r.index);
+        engine.set_mem(u16v(0x0259 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x025D + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0261 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0265 + sprite_slot), full_tile);
+        engine.set_mem(u16v(0x0269 + sprite_slot), full_tile);
         {
-            let mut empty: i32 = u8v(r.offset);
-            engine.set_mem(u16v(0x026D + x), empty);
-            engine.set_mem(u16v(0x0271 + x), empty);
-            engine.set_mem(u16v(0x0275 + x), empty);
-            engine.set_mem(u16v(0x0279 + x), empty);
-            engine.set_mem(u16v(0x027D + x), empty);
+            let empty_tile: i32 = u8v(r.offset);
+            engine.set_mem(u16v(0x026D + sprite_slot), empty_tile);
+            engine.set_mem(u16v(0x0271 + sprite_slot), empty_tile);
+            engine.set_mem(u16v(0x0275 + sprite_slot), empty_tile);
+            engine.set_mem(u16v(0x0279 + sprite_slot), empty_tile);
+            engine.set_mem(u16v(0x027D + sprite_slot), empty_tile);
         }
-        routine_0102(engine, r);
+        split_meter_value(engine, r);
         {
-            let mut y: i32 = u8v(r.offset);
-            let mut xx: i32 = u8v(engine.mem(0x09) + 0x18);
+            let mut filled_blocks: i32 = u8v(r.offset);
+            let mut sprite_slot: i32 = u8v(engine.mem(0x09) + 0x18);
             loop {
-                if cbool(
-                    {
-                        y -= 1;
-                        y
-                    } == 0,
-                ) {
+                filled_blocks = u8v(filled_blocks - 1);
+                if cbool(filled_blocks == 0) {
                     break;
                 }
-                engine.sub_mem(u16v(0x0241 + xx), 2);
-                if cbool(
-                    {
-                        y -= 1;
-                        y
-                    } == 0,
-                ) {
+                engine.sub_mem(u16v(0x0241 + sprite_slot), 2);
+                filled_blocks = u8v(filled_blocks - 1);
+                if cbool(filled_blocks == 0) {
                     break;
                 }
-                engine.sub_mem(u16v(0x0241 + xx), 2);
-                xx = u8v(xx + 4);
+                engine.sub_mem(u16v(0x0241 + sprite_slot), 2);
+                sprite_slot = u8v(sprite_slot + 4);
             }
         }
         {
-            let mut xx: i32 = u8v(engine.mem(0x09) + 0x2C);
-            let mut y: i32 = engine.mem(0x08);
+            let mut partial_blocks: i32 = engine.mem(0x08);
+            let mut sprite_slot: i32 = u8v(engine.mem(0x09) + 0x2C);
             loop {
-                if cbool(
-                    {
-                        y -= 1;
-                        y
-                    } == 0,
-                ) {
+                partial_blocks = u8v(partial_blocks - 1);
+                if cbool(partial_blocks == 0) {
                     break;
                 }
-                engine.sub_mem(u16v(0x0241 + xx), 2);
-                if cbool(
-                    {
-                        y -= 1;
-                        y
-                    } == 0,
-                ) {
+                engine.sub_mem(u16v(0x0241 + sprite_slot), 2);
+                partial_blocks = u8v(partial_blocks - 1);
+                if cbool(partial_blocks == 0) {
                     break;
                 }
-                engine.sub_mem(u16v(0x0241 + xx), 2);
-                xx = u8v(xx + 4);
+                engine.sub_mem(u16v(0x0241 + sprite_slot), 2);
+                sprite_slot = u8v(sprite_slot + 4);
             }
         }
     }
 }
 
-mod routine_0102 {
+mod split_meter_value {
     use super::*;
-    pub fn routine_0102(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x08);
-        let mut y: i32 = 0;
+
+    /// Splits the value in `0x08` into full 10-point meter blocks (`r.offset`)
+    /// and a one-based partial block (`0x08`/`r.value`).
+    pub fn split_meter_value(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut remainder: i32 = engine.mem(0x08);
+        let mut full_blocks: i32 = 0;
         let mut carry: i32 = 1;
         loop {
-            let mut t: i32 = 0;
-            y = u8v(y + 1);
-            t = (a) - 0x0A - (1 - carry);
-            a = u8v(t);
-            carry = u8v((if cbool(t >= 0) { 1 } else { 0 }));
+            full_blocks = u8v(full_blocks + 1);
+            let trial: i32 = (remainder) - 0x0A - (1 - carry);
+            remainder = u8v(trial);
+            carry = u8v((if cbool(trial >= 0) { 1 } else { 0 }));
             if !cbool(carry) {
                 break;
             }
         }
-        a = u8v(a + 0x0B + carry);
-        engine.set_mem(0x08, a);
-        r.value = a;
-        r.offset = y;
+        remainder = u8v(remainder + 0x0B + carry);
+        engine.set_mem(0x08, remainder);
+        r.value = remainder;
+        r.offset = full_blocks;
     }
 }
 
-mod routine_0103 {
+mod read_debounced_buttons {
     use super::*;
-    pub fn routine_0103(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0104(engine, r);
-        routine_0105(engine, r);
+
+    /// Waits for release, then press, then release again, returning the pressed
+    /// button byte in `r.value` and `0x20`.
+    pub fn read_debounced_buttons(engine: &mut Engine, r: &mut RoutineContext) {
+        wait_for_buttons_released(engine, r);
+        wait_for_button_press(engine, r);
         {
-            let mut btn: i32 = u8v(r.value);
-            routine_0104(engine, r);
-            r.value = btn;
-            engine.set_mem(0x20, btn);
+            let pressed_buttons: i32 = u8v(r.value);
+            wait_for_buttons_released(engine, r);
+            r.value = pressed_buttons;
+            engine.set_mem(0x20, pressed_buttons);
         }
     }
 }
@@ -8797,7 +8760,7 @@ mod routine_0257 {
         farcall_0C0D(engine, r, routine_0017);
         engine.set_mem(0x0E, 0x53);
         engine.set_mem(0x0F, 0xCB);
-        farcall_0C0D(engine, r, routine_0098);
+        farcall_0C0D(engine, r, build_object_health_meter_alt_tiles);
     }
 }
 
@@ -9134,7 +9097,7 @@ mod routine_0265 {
             engine.prg_map_shadow();
             engine.set_mem(0x0E, 0x53);
             engine.set_mem(0x0F, 0xCB);
-            routine_0098(engine, r);
+            build_object_health_meter_alt_tiles(engine, r);
             engine.set_mem(0x31, old7);
             engine.set_mem(0x30, old6);
             engine.set_mem(0x25, 0x06);
