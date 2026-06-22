@@ -12,10 +12,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     common::init_game_scene(&mut engine, &mut r);
     engine.set_mem(0x7c, 0x10);
     game::upload_staged_room_columns(&mut engine, &mut r);
-    game::routine_0060(&mut engine, &mut r);
+    game::refresh_scroll_register_shadows(&mut engine, &mut r);
     engine.set_mem(0x7c, 0x20);
     game::upload_staged_room_columns(&mut engine, &mut r);
-    game::routine_0060(&mut engine, &mut r);
+    game::refresh_scroll_register_shadows(&mut engine, &mut r);
     game::upload_status_panel_template(&mut engine, &mut r);
     game::upload_inventory_item_list(&mut engine, &mut r);
     for fr in 0..4 {
@@ -25,9 +25,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         game::update_player_projectiles(&mut engine, &mut r);
         game::update_room_actors(&mut engine, &mut r);
         game::update_tile_projectile(&mut engine, &mut r);
-        game::routine_0059(&mut engine, &mut r);
-        game::routine_0061(&mut engine, &mut r);
-        game::routine_0063(&mut engine, &mut r);
+        game::update_camera_scroll_from_player(&mut engine, &mut r);
+        game::draw_player_sprites(&mut engine, &mut r);
+        game::draw_room_object_sprites(&mut engine, &mut r);
         lotw::native::commit_foreground_frame_and_wait(&mut engine, &mut r);
     }
     if (engine.ppu.mask & 0x18) == 0 {

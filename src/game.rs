@@ -56,6 +56,8 @@ pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
+pub use clear_name_tables_to_blank_tiles::clear_name_tables_to_blank_tiles;
+pub use clear_oam_with_sprite_zero_template::clear_oam_with_sprite_zero_template;
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use clear_room_persistent_flag::clear_room_persistent_flag;
 pub use clear_temporary_room_sprites::clear_temporary_room_sprites;
@@ -81,7 +83,11 @@ pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
 pub use dispatch_projected_tile_actions::dispatch_projected_tile_actions;
 pub use draw_carried_item_sprites::draw_carried_item_sprites;
 pub use draw_coin_cost_sprites::draw_coin_cost_sprites;
+pub use draw_object_slot_sprites::draw_object_slot_sprites;
+pub use draw_player_sprites::draw_player_sprites;
+pub use draw_room_object_sprites::draw_room_object_sprites;
 pub use draw_shop_item_sprites::draw_shop_item_sprites;
+pub use draw_status_item_sprites::draw_status_item_sprites;
 pub use enter_fragment_pickup_room::enter_fragment_pickup_room;
 pub use enter_pending_special_exit_room::enter_pending_special_exit_room;
 pub use enter_room_link_destination::enter_room_link_destination;
@@ -127,6 +133,7 @@ pub use read_debounced_buttons::read_debounced_buttons;
 pub use read_room_persistent_flag::read_room_persistent_flag;
 pub use read_room_tile_action_value::read_room_tile_action_value;
 pub use redraw_room_tile_column::redraw_room_tile_column;
+pub use refresh_scroll_register_shadows::refresh_scroll_register_shadows;
 pub use refresh_temporary_room_page::refresh_temporary_room_page;
 pub use reset::reset;
 pub use reset_room_object_slots::reset_room_object_slots;
@@ -182,14 +189,6 @@ pub use routine_0053::routine_0053;
 pub use routine_0054::routine_0054;
 pub use routine_0056::routine_0056;
 pub use routine_0057::routine_0057;
-pub use routine_0059::routine_0059;
-pub use routine_0060::routine_0060;
-pub use routine_0061::routine_0061;
-pub use routine_0062::routine_0062;
-pub use routine_0063::routine_0063;
-pub use routine_0064::routine_0064;
-pub use routine_0065::routine_0065;
-pub use routine_0066::routine_0066;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -253,6 +252,7 @@ pub use try_nudge_player_to_tile_boundary::try_nudge_player_to_tile_boundary;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
 pub use update_actor_animation::update_actor_animation;
+pub use update_camera_scroll_from_player::update_camera_scroll_from_player;
 pub use update_inventory_grid_cursor_sprites::update_inventory_grid_cursor_sprites;
 pub use update_inventory_list_cursor_sprites::update_inventory_list_cursor_sprites;
 pub use update_large_actor_facing_from_velocity::update_large_actor_facing_from_velocity;
@@ -2507,162 +2507,157 @@ mod routine_0057 {
     }
 }
 
-mod routine_0059 {
+mod update_camera_scroll_from_player {
     use super::*;
-    pub fn routine_0059(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut scrollpos: i32 = u8v((engine.mem(0x7C) << 4) | engine.mem(0x7B));
-        let mut playerpos: i32 = u8v((engine.mem(0x44) << 4) | engine.mem(0x43));
-        let mut delta: i32 = u8v(playerpos - scrollpos);
-        let mut out_carry: i32 = 0;
-        engine.set_mem(0x08, scrollpos);
-        if cbool(delta < 0x60) {
+
+    /// Keeps the horizontal camera inside the playfield while the player moves.
+    ///
+    /// `0x7B/0x7C` store the scroll position as sub-tile low bits plus tile X.
+    /// `0x7F` records which edge column must be uploaded when scrolling exposes
+    /// a new strip. Carry is set when no new scroll strip is needed.
+    pub fn update_camera_scroll_from_player(engine: &mut Engine, r: &mut RoutineContext) {
+        let scroll_world_x: i32 = u8v((engine.mem(0x7C) << 4) | engine.mem(0x7B));
+        let player_world_x: i32 = u8v((engine.mem(0x44) << 4) | engine.mem(0x43));
+        let camera_delta: i32 = u8v(player_world_x - scroll_world_x);
+        let mut no_scroll_column_needed: i32 = 0;
+        engine.set_mem(0x08, scroll_world_x);
+        if cbool(camera_delta < 0x60) {
             if cbool((engine.mem(0x7C) | engine.mem(0x7B)) == 0) {
-                out_carry = 1;
+                no_scroll_column_needed = 1;
             } else {
-                let mut t: i32 = u8v(engine.mem(0x44) - 0x06);
+                let left_scroll_tile: i32 = u8v(engine.mem(0x44) - 0x06);
                 if cbool(engine.mem(0x44) < 0x06) {
                     engine.set_mem(0x7B, 0x00);
                     engine.set_mem(0x7C, 0x00);
-                    out_carry = 0;
+                    no_scroll_column_needed = 0;
                 } else {
-                    engine.set_mem(0x7C, t);
+                    engine.set_mem(0x7C, left_scroll_tile);
                     engine.set_mem(0x7B, engine.mem(0x43));
                     engine.set_mem(0x7F, 0xFF);
-                    out_carry = 0;
+                    no_scroll_column_needed = 0;
                 }
             }
-        } else if cbool(delta < 0x91) {
-            out_carry = 1;
+        } else if cbool(camera_delta < 0x91) {
+            no_scroll_column_needed = 1;
+        } else if cbool(engine.mem(0x7C) >= 0x30) {
+            engine.set_mem(0x7C, 0x30);
+            engine.set_mem(0x7B, 0x00);
+            no_scroll_column_needed = 1;
         } else {
-            if cbool(engine.mem(0x7C) >= 0x30) {
-                engine.set_mem(0x7C, 0x30);
-                engine.set_mem(0x7B, 0x00);
-                out_carry = 1;
-            } else {
-                engine.set_mem(0x7C, u8v(engine.mem(0x44) - 0x09));
-                engine.set_mem(0x7B, engine.mem(0x43));
-                engine.set_mem(0x7F, 0x01);
-                out_carry = 0;
-            }
+            engine.set_mem(0x7C, u8v(engine.mem(0x44) - 0x09));
+            engine.set_mem(0x7B, engine.mem(0x43));
+            engine.set_mem(0x7F, 0x01);
+            no_scroll_column_needed = 0;
         }
-        routine_0060(engine, r);
-        r.carry = u8v(out_carry);
+        refresh_scroll_register_shadows(engine, r);
+        r.carry = u8v(no_scroll_column_needed);
     }
 }
 
-mod routine_0060 {
+mod refresh_scroll_register_shadows {
     use super::*;
-    pub fn routine_0060(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x7C);
-        let mut carry: i32 = 0;
-        let mut i: i32 = 0;
-        {
-            i = 0;
-            while cbool(i < 4) {
-                carry = u8v(a >> 7);
-                a = u8v(a << 1);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        a |= engine.mem(0x7B);
-        r.index = a;
-        a = u8v(0x00 << 1) | carry;
-        engine.set_mem(0x1C, r.index);
-        engine.set_mem(0x1D, a);
-        r.value = a;
+
+    /// Converts the tile/sub-tile camera position into PPU scroll shadows.
+    ///
+    /// `0x1C` is the fine X scroll byte used by the status split. `0x1D` is the
+    /// horizontal nametable bit that is folded into the PPUCTRL shadow at vblank.
+    pub fn refresh_scroll_register_shadows(engine: &mut Engine, r: &mut RoutineContext) {
+        let scroll_tile_x: i32 = engine.mem(0x7C);
+        let scroll_fine_x: i32 = engine.mem(0x7B);
+        let scroll_pixel_x: i32 = u8v((scroll_tile_x << 4) | scroll_fine_x);
+        let nametable_x_bit: i32 = (scroll_tile_x >> 4) & 0x01;
+
+        engine.set_mem(0x1C, scroll_pixel_x);
+        engine.set_mem(0x1D, nametable_x_bit);
+        r.index = scroll_pixel_x;
+        r.value = nametable_x_bit;
     }
 }
 
-mod routine_0061 {
+mod draw_player_sprites {
     use super::*;
-    pub fn routine_0061(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0;
-        let mut x: i32 = 0;
-        let mut world_x: i32 = 0;
+
+    /// Projects the two 8x16 player sprites into OAM staging.
+    ///
+    /// Player world X is stored in `0x43/0x44`; screen X subtracts the camera at
+    /// `0x7B/0x7C`. `0x85`/`0x84` drive the invulnerability blink hide phase.
+    pub fn draw_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         if (cbool(engine.mem(0x85) != 0) && cbool((engine.mem(0x84) & 0x01) == 0)) {
             engine.set_mem(0x0210, 0xEF);
             engine.set_mem(0x0214, 0xEF);
             return;
         }
-        a = u8v(engine.mem(0x45) + 0x2B);
-        engine.set_mem(0x0210, a);
-        engine.set_mem(0x0214, a);
-        world_x = u8v((engine.mem(0x7C) << 4) | engine.mem(0x7B));
-        engine.set_mem(0x08, world_x);
-        a = u8v((engine.mem(0x44) << 4) | engine.mem(0x43));
-        a = u8v(a - world_x);
-        engine.set_mem(0x0213, a);
-        engine.set_mem(0x0217, u8v(a + 0x08));
+
+        let sprite_y: i32 = u8v(engine.mem(0x45) + 0x2B);
+        engine.set_mem(0x0210, sprite_y);
+        engine.set_mem(0x0214, sprite_y);
+
+        let camera_world_x: i32 = u8v((engine.mem(0x7C) << 4) | engine.mem(0x7B));
+        let player_world_x: i32 = u8v((engine.mem(0x44) << 4) | engine.mem(0x43));
+        let screen_x: i32 = u8v(player_world_x - camera_world_x);
+        engine.set_mem(0x08, camera_world_x);
+        engine.set_mem(0x0213, screen_x);
+        engine.set_mem(0x0217, u8v(screen_x + 0x08));
         engine.set_mem(0x0212, engine.mem(0x57));
         engine.set_mem(0x0216, engine.mem(0x57));
-        x = engine.mem(0x56);
+
+        let left_tile: i32 = engine.mem(0x56);
         if cbool(engine.mem(0x57) & 0x40) {
-            engine.set_mem(0x0215, x);
-            engine.set_mem(0x0211, u8v(x + 2));
+            engine.set_mem(0x0215, left_tile);
+            engine.set_mem(0x0211, u8v(left_tile + 2));
         } else {
-            engine.set_mem(0x0211, x);
-            engine.set_mem(0x0215, u8v(x + 2));
+            engine.set_mem(0x0211, left_tile);
+            engine.set_mem(0x0215, u8v(left_tile + 2));
         }
     }
 }
 
-mod routine_0062 {
+mod draw_status_item_sprites {
     use super::*;
-    pub fn routine_0062(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut value: i32 = 0;
-        let mut slot: i32 = 0;
-        let mut offset: i32 = 0;
-        value = engine.mem(0x0055);
-        slot = 0x13;
-        if cbool(value >= 0x03) {
-            slot = 0xEF;
-            engine.set_mem(0x0238, slot);
-            engine.set_mem(0x023C, slot);
+
+    /// Draws the selected item cursor and the three equipped item icons in the
+    /// status area. High-bit item ids hide a slot.
+    pub fn draw_status_item_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_slot: i32 = engine.mem(0x0055);
+        if cbool(selected_slot >= 0x03) {
+            engine.set_mem(0x0238, 0xEF);
+            engine.set_mem(0x023C, 0xEF);
         } else {
-            engine.set_mem(0x0238, slot);
-            engine.set_mem(0x023C, slot);
-            value = u8v(value << 4);
-            value = u8v(value + 0xC8);
-            engine.set_mem(0x023B, value);
-            value = u8v(value + 0x08);
-            engine.set_mem(0x023F, value);
+            let cursor_x: i32 = u8v((selected_slot << 4) + 0xC8);
+            engine.set_mem(0x0238, 0x13);
+            engine.set_mem(0x023C, 0x13);
+            engine.set_mem(0x023B, cursor_x);
+            engine.set_mem(0x023F, u8v(cursor_x + 0x08));
             engine.set_mem(0x0239, 0xFF);
             engine.set_mem(0x023D, 0xFF);
             engine.set_mem(0x023A, 0x01);
             engine.set_mem(0x023E, 0x41);
         }
-        slot = 0x02;
-        offset = 0x10;
+
+        let mut item_slot: i32 = 0x02;
+        let mut oam_offset: i32 = 0x10;
         loop {
-            value = engine.mem(u16v((0x0051) + slot));
-            if cbool(value & 0x80) {
-                value = 0xEF;
+            let item_id: i32 = engine.mem(u16v(0x0051 + item_slot));
+            let sprite_y: i32 = if cbool(item_id & 0x80) {
+                0xEF
             } else {
-                value = u8v(value << 2);
-                value = u8v(value + 0xA1);
-                engine.set_mem(u16v(0x0221 + offset), value);
-                value = u8v(value + 0x02);
-                engine.set_mem(u16v(0x0225 + offset), value);
-                value = u8v(offset << 1);
-                value = u8v(value + 0xC8);
-                engine.set_mem(u16v(0x0223 + offset), value);
-                value = u8v(value + 0x08);
-                engine.set_mem(u16v(0x0227 + offset), value);
-                engine.set_mem(u16v(0x0222 + offset), 0x01);
-                engine.set_mem(u16v(0x0226 + offset), 0x01);
-                value = 0x13;
-            }
-            engine.set_mem(u16v(0x0220 + offset), value);
-            engine.set_mem(u16v(0x0224 + offset), value);
-            offset = u8v(offset - 0x08);
+                let left_tile: i32 = u8v((item_id << 2) + 0xA1);
+                let left_x: i32 = u8v((oam_offset << 1) + 0xC8);
+                engine.set_mem(u16v(0x0221 + oam_offset), left_tile);
+                engine.set_mem(u16v(0x0225 + oam_offset), u8v(left_tile + 0x02));
+                engine.set_mem(u16v(0x0223 + oam_offset), left_x);
+                engine.set_mem(u16v(0x0227 + oam_offset), u8v(left_x + 0x08));
+                engine.set_mem(u16v(0x0222 + oam_offset), 0x01);
+                engine.set_mem(u16v(0x0226 + oam_offset), 0x01);
+                0x13
+            };
+            engine.set_mem(u16v(0x0220 + oam_offset), sprite_y);
+            engine.set_mem(u16v(0x0224 + oam_offset), sprite_y);
+            oam_offset = u8v(oam_offset - 0x08);
             if cbool(
                 {
-                    let __old = slot;
-                    slot -= 1;
+                    let __old = item_slot;
+                    item_slot -= 1;
                     __old
                 } == 0,
             ) {
@@ -2672,206 +2667,147 @@ mod routine_0062 {
     }
 }
 
-mod routine_0063 {
+mod draw_room_object_sprites {
     use super::*;
-    pub fn routine_0063(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
+
+    /// Projects up to 16 room object slots into two-sprite OAM entries.
+    ///
+    /// `0x3F/0x3E` carry the OAM/object cursors between calls, matching the
+    /// original scheduler's rolling object sprite pass.
+    pub fn draw_room_object_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0A, 0x10);
-        x = engine.mem(0x3F);
-        y = engine.mem(0x3E);
+        let mut oam_offset: i32 = engine.mem(0x3F);
+        let mut object_offset: i32 = engine.mem(0x3E);
         loop {
-            r.index = x;
-            r.offset = y;
-            routine_0064(engine, r);
-            x = u8v((u8v(x + 0x08)) | 0x80);
-            y = u8v(y + 0x30);
+            r.index = oam_offset;
+            r.offset = object_offset;
+            draw_object_slot_sprites(engine, r);
+            oam_offset = u8v((u8v(oam_offset + 0x08)) | 0x80);
+            object_offset = u8v(object_offset + 0x30);
             engine.set_mem(0x0A, u8v(engine.mem(0x0A) - 1));
             if !cbool(engine.mem(0x0A) != 0) {
                 break;
             }
         }
-        engine.set_mem(0x3F, u8v((u8v(x + 0x38)) | 0x80));
-        engine.set_mem(0x3E, u8v(y + 0x10));
+        engine.set_mem(0x3F, u8v((u8v(oam_offset + 0x38)) | 0x80));
+        engine.set_mem(0x3E, u8v(object_offset + 0x10));
     }
 }
 
-mod routine_0064 {
+mod draw_object_slot_sprites {
     use super::*;
-    pub fn routine_0064(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(r.index);
-        let mut y: i32 = u8v(r.offset);
-        let mut a: i32 = 0;
-        let mut t: i32 = 0;
-        let mut carry: i32 = 0;
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    if cbool(engine.mem((0x0400) + 1 + y) == 0) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem((0x0400) + 0x0E + y) >= 0xBF) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    a = engine.mem((0x0400) + 2 + y);
-                    engine.set_mem(0x0202 + x, a);
-                    engine.set_mem(0x0206 + x, a);
-                    if cbool(a & 0x40) {
-                        a = engine.mem((0x0400) + y);
-                        engine.set_mem(0x0205 + x, a);
-                        a = u8v(a + 0x02);
-                        engine.set_mem(0x0201 + x, a);
-                    } else {
-                        a = engine.mem((0x0400) + y);
-                        engine.set_mem(0x0201 + x, a);
-                        a = u8v(a + 0x02);
-                        engine.set_mem(0x0205 + x, a);
-                    }
-                    {
-                        let mut d: i32 =
-                            u16v(engine.mem((0x0400) + 0x0C + y)) + 0x100 - engine.mem(0x007B);
-                        a = u8v(d) & 0x0F;
-                        engine.set_mem(0x08, a);
-                        carry = u8v(d >> 8);
-                        d = u16v(engine.mem((0x0400) + 0x0D + y)) + carry - engine.mem(0x007C) - 1;
-                        a = u8v(d);
-                        if cbool(a >= 0x10) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        a = u8v((a << 4) | engine.mem(0x08));
-                        engine.set_mem(0x08, a);
-                    }
-                    if cbool(engine.mem((0x0400) + 1 + y) == 0x01) {
-                        if cbool(engine.mem((0x0400) + 0x0F + y) != 0) {
-                            engine.set_mem(
-                                0x08,
-                                u8v(engine.mem(0x08) + engine.mem((0x0400) + 0x0F + y)),
-                            );
-                            engine.set_mem((0x0400) + 0x0F + y, 0x00);
-                        }
-                    }
-                    a = engine.mem(0x08);
-                    if cbool(a >= 0xEF) {
-                        engine.set_mem(0x0203 + x, a);
-                        t = u8v(engine.mem((0x0400) + 0x0E + y) + 0x2B);
-                        engine.set_mem(0x0200 + x, t);
-                        engine.set_mem(0x0204 + x, 0xEF);
-                        return;
-                    }
-                    engine.set_mem(0x0203 + x, a);
-                    a = u8v(a + 0x08);
-                    engine.set_mem(0x0207 + x, a);
-                    t = u8v(engine.mem((0x0400) + 0x0E + y) + 0x2B);
-                    engine.set_mem(0x0200 + x, t);
-                    engine.set_mem(0x0204 + x, t);
-                    return;
-                    state = 1;
-                    continue 'dispatch;
-                }
-                1 => {
-                    engine.set_mem(0x0200 + x, 0xEF);
-                    engine.set_mem(0x0204 + x, 0xEF);
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
-            }
+
+    /// Draws one 16-byte room object slot into a two-sprite OAM entry.
+    ///
+    /// Inactive slots, vertically out-of-range objects, and objects scrolled out
+    /// of the visible horizontal window hide both sprites. When the left sprite
+    /// is visible but the right sprite would wrap beyond `0xEF`, only the right
+    /// half is hidden.
+    pub fn draw_object_slot_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let oam_offset: i32 = u8v(r.index);
+        let object_offset: i32 = u8v(r.offset);
+        let object_base: i32 = 0x0400 + object_offset;
+
+        if cbool(engine.mem(object_base + 0x01) == 0)
+            || cbool(engine.mem(object_base + 0x0E) >= 0xBF)
+        {
+            engine.set_mem(0x0200 + oam_offset, 0xEF);
+            engine.set_mem(0x0204 + oam_offset, 0xEF);
+            return;
         }
+
+        let attributes: i32 = engine.mem(object_base + 0x02);
+        engine.set_mem(0x0202 + oam_offset, attributes);
+        engine.set_mem(0x0206 + oam_offset, attributes);
+
+        let left_tile: i32 = engine.mem(object_base);
+        if cbool(attributes & 0x40) {
+            engine.set_mem(0x0205 + oam_offset, left_tile);
+            engine.set_mem(0x0201 + oam_offset, u8v(left_tile + 0x02));
+        } else {
+            engine.set_mem(0x0201 + oam_offset, left_tile);
+            engine.set_mem(0x0205 + oam_offset, u8v(left_tile + 0x02));
+        }
+
+        let subtile_delta: i32 = u16v(engine.mem(object_base + 0x0C)) + 0x100 - engine.mem(0x007B);
+        let fine_x: i32 = u8v(subtile_delta) & 0x0F;
+        let tile_borrow: i32 = u8v(subtile_delta >> 8);
+        let tile_delta: i32 =
+            u8v(u16v(engine.mem(object_base + 0x0D)) + tile_borrow - engine.mem(0x007C) - 1);
+        if cbool(tile_delta >= 0x10) {
+            engine.set_mem(0x0200 + oam_offset, 0xEF);
+            engine.set_mem(0x0204 + oam_offset, 0xEF);
+            return;
+        }
+
+        let mut screen_x: i32 = u8v((tile_delta << 4) | fine_x);
+        engine.set_mem(0x08, screen_x);
+
+        if cbool(engine.mem(object_base + 0x01) == 0x01)
+            && cbool(engine.mem(object_base + 0x0F) != 0)
+        {
+            screen_x = u8v(screen_x + engine.mem(object_base + 0x0F));
+            engine.set_mem(0x08, screen_x);
+            engine.set_mem(object_base + 0x0F, 0x00);
+        }
+
+        let sprite_y: i32 = u8v(engine.mem(object_base + 0x0E) + 0x2B);
+        engine.set_mem(0x0203 + oam_offset, screen_x);
+        engine.set_mem(0x0200 + oam_offset, sprite_y);
+        if cbool(screen_x >= 0xEF) {
+            engine.set_mem(0x0204 + oam_offset, 0xEF);
+            return;
+        }
+
+        engine.set_mem(0x0207 + oam_offset, u8v(screen_x + 0x08));
+        engine.set_mem(0x0204 + oam_offset, sprite_y);
     }
 }
 
-mod routine_0065 {
+mod clear_oam_with_sprite_zero_template {
     use super::*;
-    pub fn routine_0065(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 3;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x0200 + x), engine.mem(u16v(0xFF6B + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+
+    /// Clears staged OAM while preserving the sprite-zero template.
+    ///
+    /// The first sprite is copied from `0xFF6B..0xFF6E`; every remaining OAM
+    /// byte is set to `0xF8`, the offscreen clear value used by the startup and
+    /// title flows.
+    pub fn clear_oam_with_sprite_zero_template(engine: &mut Engine, r: &mut RoutineContext) {
+        for template_offset in 0..=3 {
+            engine.set_mem(
+                u16v(0x0200 + template_offset),
+                engine.mem(u16v(0xFF6B + template_offset)),
+            );
         }
-        {
-            x = 4;
-            while cbool(x <= 0xFF) {
-                engine.set_mem(u16v(0x0200 + x), 0xF8);
-                {
-                    let __old = x;
-                    x += 1;
-                    __old
-                };
-            }
+        for oam_offset in 4..=0xFF {
+            engine.set_mem(u16v(0x0200 + oam_offset), 0xF8);
         }
         r.index = 0x00;
     }
 }
 
-mod routine_0066 {
+mod clear_name_tables_to_blank_tiles {
     use super::*;
-    pub fn routine_0066(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ctrl: i32 = engine.mem(0x23);
-        let mut mask: i32 = engine.mem(0x24);
-        let mut i: i32 = 0;
+
+    /// Clears the visible nametables to blank tile `0xC0` with zero attributes.
+    ///
+    /// Rendering is disabled around the direct PPU writes and the PPUCTRL/PPUMASK
+    /// shadows are restored before returning.
+    pub fn clear_name_tables_to_blank_tiles(engine: &mut Engine, r: &mut RoutineContext) {
+        let ctrl: i32 = engine.mem(0x23);
+        let mask: i32 = engine.mem(0x24);
         engine.device_write(0x2000, ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
         engine.device_write(0x2001, mask & 0xE7);
         engine.device_write(0x2006, 0x20);
         engine.device_write(0x2006, 0x00);
-        {
-            i = 0;
-            while cbool(i < 5 * 0xC0) {
+
+        for _ in 0..2 {
+            for _ in 0..(5 * 0xC0) {
                 engine.device_write(0x2007, 0xC0);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
             }
-        }
-        {
-            i = 0;
-            while cbool(i < 0x40) {
+            for _ in 0..0x40 {
                 engine.device_write(0x2007, 0x00);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            i = 0;
-            while cbool(i < 5 * 0xC0) {
-                engine.device_write(0x2007, 0xC0);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            i = 0;
-            while cbool(i < 0x40) {
-                engine.device_write(0x2007, 0x00);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
             }
         }
         engine.set_mem(0x24, mask);
@@ -4746,7 +4682,7 @@ mod tick_selected_item_effect {
                     return;
                 }
                 engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
-                routine_0062(engine, r);
+                draw_status_item_sprites(engine, r);
                 animate_magic_refill_to_cap(engine, r);
                 return;
             }
@@ -4758,7 +4694,7 @@ mod tick_selected_item_effect {
                 return;
             }
             engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
-            routine_0062(engine, r);
+            draw_status_item_sprites(engine, r);
             engine.set_mem(0x8F, 0x12);
             engine.set_mem(0x0048, 0x10);
             engine.set_mem(0x0047, 0x03);
@@ -4772,8 +4708,8 @@ mod tick_selected_item_effect {
             scene_assemble(engine, r);
             upload_current_room_view(engine, r);
             clear_gameplay_object_sprites(engine, r);
-            routine_0060(engine, r);
-            routine_0061(engine, r);
+            refresh_scroll_register_shadows(engine, r);
+            draw_player_sprites(engine, r);
             fade_room_palette_in(engine, r);
             r.carry = 1;
             return;
@@ -4833,8 +4769,8 @@ mod enter_room_link_destination {
         scene_assemble(engine, r);
         upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
-        routine_0060(engine, r);
-        routine_0061(engine, r);
+        refresh_scroll_register_shadows(engine, r);
+        draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         r.carry = 1;
     }
@@ -4861,8 +4797,8 @@ mod enter_fragment_pickup_room {
         scene_assemble(engine, r);
         upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
-        routine_0060(engine, r);
-        routine_0061(engine, r);
+        refresh_scroll_register_shadows(engine, r);
+        draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         r.carry = 1;
     }
@@ -4890,8 +4826,8 @@ mod enter_pending_special_exit_room {
         scene_assemble(engine, r);
         upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
-        routine_0060(engine, r);
-        routine_0061(engine, r);
+        refresh_scroll_register_shadows(engine, r);
+        draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         r.carry = 1;
     }
@@ -4922,10 +4858,10 @@ mod run_warp_transition_effect {
     /// Shared scroll/audio transition used before scripted room warps.
     pub fn run_warp_transition_effect(engine: &mut Engine, r: &mut RoutineContext) {
         let mut outer: i32 = 0;
-        routine_0065(engine, r);
+        clear_oam_with_sprite_zero_template(engine, r);
         engine.set_mem(0x85, 0x00);
-        routine_0061(engine, r);
-        routine_0062(engine, r);
+        draw_player_sprites(engine, r);
+        draw_status_item_sprites(engine, r);
         if cbool(engine.mem(0x7C) >= 0x21) {
             engine.set_mem(0x7C, 0x20);
         }
@@ -4974,8 +4910,8 @@ mod handle_player_room_transition {
         scene_assemble(engine, r);
         upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
-        routine_0060(engine, r);
-        routine_0061(engine, r);
+        refresh_scroll_register_shadows(engine, r);
+        draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         engine.set_mem(0x36, 0);
         r.carry = 1;
@@ -5052,7 +4988,7 @@ mod handle_player_room_transition {
             }
             engine.set_mem(0x0047, u8v(engine.mem(0x0047) - 1));
             engine.set_mem(0x57, 0x00);
-            routine_0061(engine, r);
+            draw_player_sprites(engine, r);
             engine.set_mem(0x007C, 0x30);
             engine.set_mem(0x0044, 0x3F);
             engine.set_mem(0x0043, 0x00);
@@ -5065,7 +5001,7 @@ mod handle_player_room_transition {
             }
             engine.set_mem(0x0047, u8v(engine.mem(0x0047) + 1));
             engine.set_mem(0x57, 0x40);
-            routine_0061(engine, r);
+            draw_player_sprites(engine, r);
             engine.set_mem(0x007C, 0x00);
             engine.set_mem(0x0043, 0x00);
             engine.set_mem(0x0044, 0x00);
@@ -6240,7 +6176,7 @@ mod close_inventory_item_menu {
         sync_coin_hud(engine, r);
         engine.set_mem(0x7C, 0x20);
         upload_staged_room_columns(engine, r);
-        routine_0060(engine, r);
+        refresh_scroll_register_shadows(engine, r);
         restore_status_sprite_template(engine, r);
     }
 }
@@ -6434,9 +6370,9 @@ mod restore_room_from_checkpoint {
         switch_song_if_needed(engine, r);
         prepare_room_metadata_and_palette(engine, r);
         upload_current_room_view(engine, r);
-        routine_0061(engine, r);
-        routine_0063(engine, r);
-        routine_0060(engine, r);
+        draw_player_sprites(engine, r);
+        draw_room_object_sprites(engine, r);
+        refresh_scroll_register_shadows(engine, r);
         fade_room_palette_in(engine, r);
         update_player_pose_from_motion(engine, r);
         tick_player_walk_animation(engine, r);
@@ -6468,8 +6404,8 @@ mod enter_temporary_room_page {
         }
         upload_staged_room_view(engine, r);
         update_player_pose_from_motion(engine, r);
-        routine_0061(engine, r);
-        routine_0060(engine, r);
+        draw_player_sprites(engine, r);
+        refresh_scroll_register_shadows(engine, r);
     }
 }
 
@@ -6498,8 +6434,8 @@ mod refresh_temporary_room_page {
         }
         upload_staged_room_view(engine, r);
         update_player_pose_from_motion(engine, r);
-        routine_0061(engine, r);
-        routine_0060(engine, r);
+        draw_player_sprites(engine, r);
+        refresh_scroll_register_shadows(engine, r);
     }
 }
 

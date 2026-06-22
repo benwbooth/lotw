@@ -283,9 +283,9 @@ pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     engine.set_mem(0x36, 0x01);
-    crate::game::routine_0061(engine, r);
-    crate::game::routine_0063(engine, r);
-    crate::game::routine_0062(engine, r);
+    crate::game::draw_player_sprites(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
+    crate::game::draw_status_item_sprites(engine, r);
     commit_frame_work(engine, r);
     wait_for_frame_counter(engine, r);
     read_buttons(engine, r)

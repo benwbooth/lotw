@@ -66,6 +66,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x75..0x78` | room map pointer and saved pointer | tile addressing and scene assembly |
 | `0x79..0x7A` | current metasprite/table pointer | sprite build and room assets |
 | `0x7B..0x7C` | scroll/world position | sprite projection and room render |
+| `0x7F` | scroll-edge column direction | `update_camera_scroll_from_player`, `upload_scroll_edge_room_column` |
 | `0x84..0x8C` | frame/effect timers | `frame_counters`, invulnerability and speed-boost rewards |
 | `0x8D..0x8F` | audio/sfx mode and pending sfx id | sound tick and sfx overlay |
 | `0x90..0x92` | sfx/music scratch | sound init and overlay voice |
@@ -94,7 +95,6 @@ would currently be weaker than the cluster name.
 | `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050`, `0055` | inferred | title screen, family select, password entry, and start-game screen orchestration |
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 | `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
-| `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
 
 ## Named Non-Numbered Routines
 
@@ -151,6 +151,8 @@ surface when touching nearby code:
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
+| `clear_name_tables_to_blank_tiles` | blank both nametables to tile `0xC0` and zero attributes with rendering disabled |
+| `clear_oam_with_sprite_zero_template` | clear staged OAM while preserving the sprite-zero template |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `clear_temporary_room_sprites` | hide the temporary room item and coin/cost sprites in OAM |
 | `close_inventory_item_menu` | close the item menu, restore the gameplay snapshot, and redraw HUD state |
@@ -177,7 +179,11 @@ surface when touching nearby code:
 | `dispatch_room_tile_action` | dispatch the sampled projected room tile, including costs, object spawns, and tile projectiles |
 | `draw_carried_item_sprites` | draw the three carried-item slots for temporary room item selection |
 | `draw_coin_cost_sprites` | draw the two-sprite coin/cost marker shared by shop and refill rooms |
+| `draw_object_slot_sprites` | project one 16-byte room object slot into its two-sprite OAM entry |
+| `draw_player_sprites` | project the two player sprites into OAM using the current camera scroll |
+| `draw_room_object_sprites` | project the rolling set of room object slots into OAM |
 | `draw_shop_item_sprites` | draw the two shop item slots and hide unavailable or overstocked items |
+| `draw_status_item_sprites` | draw the selected-item cursor and equipped-item icons in the status area |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
 | `enter_temporary_room_page` | enter a temporary room page with the full fade and audio-channel reset |
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
@@ -235,6 +241,7 @@ surface when touching nearby code:
 | `read_room_persistent_flag` | read the persistent room-progress bit for the current map coordinates |
 | `read_room_tile_action_value` | read a room-map tile sample and resolve replacement tile `0x3E` through `0x74` |
 | `redraw_room_tile_column` | rebuild the background column containing object scratch tile-x `0xFA` |
+| `refresh_scroll_register_shadows` | convert camera tile/sub-tile position into PPU scroll and nametable shadows |
 | `refresh_temporary_room_page` | rebuild a temporary room page with the shorter fade that preserves audio state |
 | `reset` | top-level reset entry |
 | `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
@@ -326,6 +333,7 @@ surface when touching nearby code:
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
+| `update_camera_scroll_from_player` | keep the horizontal camera around the player and mark exposed scroll columns |
 | `upload_equipped_item_stat_tiles` | upload effective projectile damage, jump duration, and projectile lifetime values |
 | `upload_inventory_count_tiles` | upload every inventory item count to the item/status screen |
 | `upload_inventory_item_count_tiles` | upload one inventory item count with active family availability palette adjustment |
@@ -353,7 +361,8 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Game frame render and object sprite helpers: `routine_0059..0066`.
-
-Each batch should come with a narrow regression test or an existing replay smoke
-before replacing numeric call sites.
+The isolated frame render and object sprite helpers formerly numbered
+`0059..0066` have been renamed and covered by focused render-helper tests. The
+remaining numbered work is in the larger title/menu/startup clusters listed
+above; split those clusters only after tracing their caller state and adding
+narrow regression coverage.

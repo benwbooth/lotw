@@ -170,7 +170,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         }
         if player_health(engine) == 0 {
             set_sprite_blink_timer(engine, 0x00);
-            crate::game::routine_0061(engine, r);
+            crate::game::draw_player_sprites(engine, r);
             farcall_0c0d(engine, r, 0x07, 0xb3, routine_0049);
             if r.index == 0 {
                 continue;
@@ -202,7 +202,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             engine.and_mem(0x43, 0x0f);
             engine.set_mem(0x0200, 0xef);
             set_sprite_blink_timer(engine, 0x00);
-            crate::game::routine_0061(engine, r);
+            crate::game::draw_player_sprites(engine, r);
             farcall_0c0d(engine, r, 0x07, 0xb3, routine_0049);
             r.index = u8v(r.index - 1);
             crate::game::main_init(engine, r);
@@ -212,10 +212,10 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::update_player_projectiles(engine, r);
         crate::game::update_room_actors(engine, r);
         crate::game::update_tile_projectile(engine, r);
-        crate::game::routine_0059(engine, r);
+        crate::game::update_camera_scroll_from_player(engine, r);
         let saved_c = r.carry;
-        crate::game::routine_0061(engine, r);
-        crate::game::routine_0063(engine, r);
+        crate::game::draw_player_sprites(engine, r);
+        crate::game::draw_room_object_sprites(engine, r);
         r.carry = saved_c;
         if !cbool(r.carry) && engine.mem(0x7e) != engine.mem(0x7c) {
             engine.inc_mem(0x3d);
@@ -229,12 +229,12 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     set_prompt_state(engine, 0x18);
     set_sprite_blink_timer(engine, 0x00);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
 
     r.index = 0x02;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     crate::game::reset_room_object_slots(engine, r);
-    crate::game::routine_0063(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
     r.index = 0x03;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     routine_0004(engine, r);
@@ -247,7 +247,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x48, 0x13);
     engine.set_mem(0x47, 0x02);
     farcall_cce4(engine, r, 0xf2, 0xc8, crate::game::scene_assemble);
-    crate::game::routine_0066(engine, r);
+    crate::game::clear_name_tables_to_blank_tiles(engine, r);
 
     engine.set_mem(0x0200, 0xef);
     engine.set_mem(0x1e, 0x22);
@@ -284,7 +284,13 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
 
     r.index = 0x02;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
-    farcall_cce4(engine, r, 0xc7, 0xc1, crate::game::routine_0060);
+    farcall_cce4(
+        engine,
+        r,
+        0xc7,
+        0xc1,
+        crate::game::refresh_scroll_register_shadows,
+    );
 
     engine.set_mem(0x040c, 0x00);
     engine.set_mem(0x040d, 0x00);
@@ -421,8 +427,8 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::reset_room_object_slots(engine, r);
     routine_0045(engine, r);
     fade_palette_buffer_out(engine, r);
-    crate::game::routine_0066(engine, r);
-    crate::game::routine_0065(engine, r);
+    crate::game::clear_name_tables_to_blank_tiles(engine, r);
+    crate::game::clear_oam_with_sprite_zero_template(engine, r);
     engine.set_mem(0x48, 0x10);
     engine.set_mem(0x47, 0x03);
     farcall_cce4(engine, r, 0xf2, 0xc8, crate::game::scene_assemble);
@@ -463,11 +469,11 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::sync_magic_hud(engine, r);
     crate::game::sync_coin_hud(engine, r);
     crate::game::sync_key_hud(engine, r);
-    crate::game::routine_0060(engine, r);
+    crate::game::refresh_scroll_register_shadows(engine, r);
     crate::game::clear_gameplay_object_sprites(engine, r);
-    crate::game::routine_0061(engine, r);
-    crate::game::routine_0062(engine, r);
-    crate::game::routine_0063(engine, r);
+    crate::game::draw_player_sprites(engine, r);
+    crate::game::draw_status_item_sprites(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
     engine.set_mem(0x40, 0x07);
     farcall_cce4(engine, r, 0x92, 0xc4, fade_room_palette_in);
     set_countdown_timer(engine, 0x05);
@@ -487,7 +493,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
         engine.dec_mem(0x45);
         engine.xor_mem(0x57, 0x40);
-        crate::game::routine_0061(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         routine_0020(engine, r);
         routine_0020(engine, r);
         frame::commit_frame_work(engine, r);
@@ -495,7 +501,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     engine.set_mem(0x56, 0x0d);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     set_countdown_timer(engine, 0x03);
     while countdown_timer_active(engine) {
         routine_0020(engine, r);
@@ -506,10 +512,16 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x7e, engine.mem(0x7c));
         set_buttons(engine, 0x01);
         farcall_cce4(engine, r, 0x2b, 0xd4, crate::game::game_update);
-        farcall_cce4(engine, r, 0x5d, 0xc1, crate::game::routine_0059);
+        farcall_cce4(
+            engine,
+            r,
+            0x5d,
+            0xc1,
+            crate::game::update_camera_scroll_from_player,
+        );
         crate::game::routine_0019(engine, r);
-        crate::game::routine_0061(engine, r);
-        crate::game::routine_0063(engine, r);
+        crate::game::draw_player_sprites(engine, r);
+        crate::game::draw_room_object_sprites(engine, r);
         if engine.mem(0x7e) != engine.mem(0x7c) {
             engine.inc_mem(0x3d);
         }
@@ -734,8 +746,8 @@ pub fn routine_0004(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
-    crate::game::routine_0061(engine, r);
-    crate::game::routine_0063(engine, r);
+    crate::game::draw_player_sprites(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
     set_frame_counter(engine, 0x01);
     frame::commit_frame_work(engine, r);
     frame::wait_for_frame_counter(engine, r);
@@ -743,9 +755,15 @@ pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
 
 pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
     fade_palette_buffer_out(engine, r);
-    farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
+    farcall_cce4(
+        engine,
+        r,
+        0x8b,
+        0xc3,
+        crate::game::clear_name_tables_to_blank_tiles,
+    );
     crate::game::upload_status_panel_template(engine, r);
-    crate::game::routine_0065(engine, r);
+    crate::game::clear_oam_with_sprite_zero_template(engine, r);
     crate::game::routine_0053(engine, r);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_coin_hud(engine, r);
@@ -763,7 +781,7 @@ pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0x92);
     routine_0045(engine, r);
     fade_palette_buffer_out(engine, r);
-    crate::game::routine_0066(engine, r);
+    crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::routine_0047(engine, r);
     engine.set_mem(0x2a, 0x20);
     engine.set_mem(0x2b, 0x22);
@@ -856,7 +874,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         }
         farcall_cce4(engine, r, 0x69, 0xc5, crate::game::upload_palette_buffer);
         crate::game::reset_room_object_slots(engine, r);
-        crate::game::routine_0065(engine, r);
+        crate::game::clear_oam_with_sprite_zero_template(engine, r);
         crate::game::routine_0036(engine, r);
         engine.set_mem(0x2c, 0x15);
         engine.set_mem(0x8e, 0x09);
@@ -907,7 +925,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         }
 
         fade_palette_buffer_out(engine, r);
-        crate::game::routine_0065(engine, r);
+        crate::game::clear_oam_with_sprite_zero_template(engine, r);
         crate::game::reset_room_object_slots(engine, r);
         crate::game::routine_0037(engine, r);
         r.value = 0x04;
@@ -995,17 +1013,23 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x42, 0x01);
         set_player_health(engine, 0x64);
         set_player_magic(engine, 0x64);
-        farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
+        farcall_cce4(
+            engine,
+            r,
+            0x8b,
+            0xc3,
+            crate::game::clear_name_tables_to_blank_tiles,
+        );
         crate::game::upload_status_panel_template(engine, r);
         farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::upload_current_room_view);
         crate::game::sync_health_hud(engine, r);
         crate::game::sync_magic_hud(engine, r);
         crate::game::sync_coin_hud(engine, r);
         crate::game::sync_key_hud(engine, r);
-        crate::game::routine_0060(engine, r);
+        crate::game::refresh_scroll_register_shadows(engine, r);
         crate::game::clear_gameplay_object_sprites(engine, r);
-        crate::game::routine_0061(engine, r);
-        crate::game::routine_0062(engine, r);
+        crate::game::draw_player_sprites(engine, r);
+        crate::game::draw_status_item_sprites(engine, r);
         farcall_cce4(engine, r, 0x92, 0xc4, fade_room_palette_in);
         set_countdown_timer(engine, 0x0a);
 
@@ -1043,9 +1067,15 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             );
             farcall_cce4(engine, r, 0x7c, 0xe8, crate::game::update_room_actors);
             farcall_cce4(engine, r, 0x82, 0xf7, crate::game::update_tile_projectile);
-            farcall_cce4(engine, r, 0x5d, 0xc1, crate::game::routine_0059);
-            crate::game::routine_0061(engine, r);
-            crate::game::routine_0063(engine, r);
+            farcall_cce4(
+                engine,
+                r,
+                0x5d,
+                0xc1,
+                crate::game::update_camera_scroll_from_player,
+            );
+            crate::game::draw_player_sprites(engine, r);
+            crate::game::draw_room_object_sprites(engine, r);
             if engine.mem(0x7e) != engine.mem(0x7c) {
                 engine.inc_mem(0x3d);
             }
@@ -1079,7 +1109,7 @@ pub fn routine_0045(engine: &mut Engine, r: &mut RoutineContext) {
         }
         engine.set_mem(0x0c, 0x14);
         loop {
-            crate::game::routine_0063(engine, r);
+            crate::game::draw_room_object_sprites(engine, r);
             set_frame_counter(engine, 0x01);
             frame::commit_frame_work(engine, r);
             frame::wait_for_frame_counter(engine, r);
@@ -1134,7 +1164,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
 
     set_frame_counter(engine, 0x01);
     engine.set_mem(0x56, 0x31);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     frame::commit_frame_work(engine, r);
     frame::wait_for_frame_counter(engine, r);
 
@@ -1144,7 +1174,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
             let x = engine.mem(0x55);
             if engine.mem(u16v(0x51 + x)) == 0x0c {
                 engine.set_mem(u16v(0x51 + x), 0xff);
-                crate::game::routine_0062(engine, r);
+                crate::game::draw_status_item_sprites(engine, r);
             } else {
                 use_game_over_screen = true;
             }
@@ -1167,9 +1197,9 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xec, 0x00);
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
-    crate::game::routine_0066(engine, r);
+    crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::reset_room_object_slots(engine, r);
-    crate::game::routine_0063(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
     engine.set_mem(0x2b, 0x16);
     engine.set_mem(0x2c, 0x36);
     engine.set_mem(0x1c, 0x00);
@@ -1186,8 +1216,8 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x43, 0x00);
     engine.set_mem(0x45, 0x70);
     engine.set_mem(0x56, 0x39);
-    crate::game::routine_0065(engine, r);
-    crate::game::routine_0061(engine, r);
+    crate::game::clear_oam_with_sprite_zero_template(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     farcall_cce4(engine, r, 0xe0, 0xc4, fade_two_room_palette_rows_in);
 
     loop {
@@ -1221,7 +1251,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x48, 0x10);
     fade_palette_buffer_out(engine, r);
     engine.set_mem(0x8e, 0x02);
-    crate::game::routine_0066(engine, r);
+    crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::upload_status_panel_template(engine, r);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_magic_hud(engine, r);
@@ -1243,7 +1273,7 @@ pub fn routine_0050(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x56, r.index);
     engine.set_mem(0x57, r.offset);
     set_frame_counter(engine, 0x08);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     frame::commit_frame_work(engine, r);
     frame::wait_for_frame_counter(engine, r);
 }
@@ -1895,7 +1925,7 @@ pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext)
     // the original refill reward pacing.
     let saved_blink = sprite_blink_timer(engine);
     set_sprite_blink_timer(engine, 0x00);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     loop {
         engine.inc_mem(0x58);
         crate::game::sync_health_hud(engine, r);
@@ -1919,7 +1949,7 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
     // as the health refill.
     let saved_blink = sprite_blink_timer(engine);
     set_sprite_blink_timer(engine, 0x00);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     loop {
         engine.inc_mem(0x59);
         crate::game::sync_magic_hud(engine, r);
@@ -1956,11 +1986,11 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x04a1, u8v(door + 0x02));
     engine.set_mem(0x04a0, u8v(((door << 2) & 0xff) + 0x81));
     set_prompt_state(engine, 0x1f);
-    crate::game::routine_0063(engine, r);
+    crate::game::draw_room_object_sprites(engine, r);
 
     let saved_blink = sprite_blink_timer(engine);
     set_sprite_blink_timer(engine, 0);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
 
     let saved_song = engine.mem(0x8e);
     engine.set_mem(0x8e, 0x0e);
@@ -1993,8 +2023,8 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         crate::game::upload_inventory_count_tiles(engine, r);
         crate::game::upload_equipped_item_stat_tiles(engine, r);
         engine.set_mem(0x7b, 0x08);
-        crate::game::routine_0060(engine, r);
-        crate::game::routine_0061(engine, r);
+        crate::game::refresh_scroll_register_shadows(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
     }
 
@@ -2027,9 +2057,9 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         crate::game::switch_song_if_needed(engine, r);
         crate::game::prepare_room_metadata_and_palette(engine, r);
         crate::game::upload_current_room_view(engine, r);
-        crate::game::routine_0061(engine, r);
-        crate::game::routine_0063(engine, r);
-        crate::game::routine_0060(engine, r);
+        crate::game::draw_player_sprites(engine, r);
+        crate::game::draw_room_object_sprites(engine, r);
+        crate::game::refresh_scroll_register_shadows(engine, r);
         fade_room_palette_in(engine, r);
     }
 
@@ -2041,7 +2071,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
 pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x10);
     crate::game::upload_staged_room_columns(engine, r);
-    crate::game::routine_0060(engine, r);
+    crate::game::refresh_scroll_register_shadows(engine, r);
 
     engine.set_mem(0x0e, 0xd4);
     engine.set_mem(0x0f, 0xb4);
@@ -2063,7 +2093,7 @@ pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineConte
 
     engine.set_mem(0x7c, 0x20);
     crate::game::upload_staged_room_columns(engine, r);
-    crate::game::routine_0060(engine, r);
+    crate::game::refresh_scroll_register_shadows(engine, r);
 }
 
 /// Runs the interactive inventory item-grid editor from the character-selection
@@ -2073,7 +2103,7 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
     crate::game::upload_staged_room_columns(engine, r);
     crate::game::clear_inventory_item_list_buffer(engine, r);
     crate::game::upload_inventory_item_list(engine, r);
-    crate::game::routine_0060(engine, r);
+    crate::game::refresh_scroll_register_shadows(engine, r);
 
     loop {
         if frame::read_buttons(engine, r) == 0 {
@@ -2119,7 +2149,7 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
         } else if (b & 0x20) != 0 {
             engine.set_mem(0x7c, 0x20);
             crate::game::upload_staged_room_columns(engine, r);
-            crate::game::routine_0060(engine, r);
+            crate::game::refresh_scroll_register_shadows(engine, r);
             crate::game::restore_status_sprite_template(engine, r);
             return;
         }
@@ -2176,8 +2206,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             crate::game::upload_inventory_count_tiles(engine, r);
             crate::game::upload_equipped_item_stat_tiles(engine, r);
             engine.set_mem(0x7b, 0x08);
-            crate::game::routine_0060(engine, r);
-            crate::game::routine_0061(engine, r);
+            crate::game::refresh_scroll_register_shadows(engine, r);
+            crate::game::draw_player_sprites(engine, r);
             fade_room_palette_in(engine, r);
             run_carried_item_loadout_flow(engine, r);
             r.value = 0x04;
@@ -2208,10 +2238,10 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_magic_hud(engine, r);
     engine.set_mem(0x55, 0x03);
-    crate::game::routine_0062(engine, r);
+    crate::game::draw_status_item_sprites(engine, r);
     engine.set_mem(0x56, 0xf1);
     engine.set_mem(0x57, 0x00);
-    crate::game::routine_0061(engine, r);
+    crate::game::draw_player_sprites(engine, r);
     crate::game::restore_status_sprite_template(engine, r);
     crate::game::reset_room_object_slots(engine, r);
     fade_room_palette_in(engine, r);
@@ -2295,7 +2325,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         engine.and_mem(0x45, 0xf0);
         engine.set_mem(0x43, 0x04);
         crate::game::clear_gameplay_object_sprites(engine, r);
-        crate::game::routine_0061(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
 
@@ -2313,15 +2343,15 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         crate::game::sync_health_hud(engine, r);
         crate::game::sync_magic_hud(engine, r);
         engine.set_mem(0x55, 0x02);
-        crate::game::routine_0062(engine, r);
+        crate::game::draw_status_item_sprites(engine, r);
         r.value = 0x08;
         crate::game::enter_temporary_room_page(engine, r);
         crate::game::draw_carried_item_sprites(engine, r);
         crate::game::upload_inventory_count_tiles(engine, r);
         crate::game::upload_equipped_item_stat_tiles(engine, r);
         engine.set_mem(0x7b, 0x08);
-        crate::game::routine_0060(engine, r);
-        crate::game::routine_0061(engine, r);
+        crate::game::refresh_scroll_register_shadows(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         run_carried_item_loadout_flow(engine, r);
         crate::game::restore_room_from_checkpoint(engine, r);
@@ -2428,7 +2458,7 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
             }
         }
 
-        crate::game::routine_0061(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
     }
@@ -2535,7 +2565,7 @@ pub fn walk_purchase_room_until_action_or_exit(engine: &mut Engine, r: &mut Rout
 
         crate::game::update_player_pose_from_motion(engine, r);
         crate::game::tick_player_walk_animation(engine, r);
-        crate::game::routine_0061(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
     }
@@ -2584,7 +2614,7 @@ pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut Routi
 
         crate::game::update_player_pose_from_motion(engine, r);
         crate::game::tick_player_walk_animation(engine, r);
-        crate::game::routine_0061(engine, r);
+        crate::game::draw_player_sprites(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
     }
@@ -2601,7 +2631,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             let e = engine.mem(0x55);
             if engine.mem(u16v(0x51 + e)) == 0x0d {
                 engine.set_mem(0x55, 0x03);
-                crate::game::routine_0062(engine, r);
+                crate::game::draw_status_item_sprites(engine, r);
             }
             return;
         }
@@ -2640,7 +2670,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         engine.set_mem(0x53, engine.mem(0x08));
         engine.set_mem(0x8f, 0x12);
         crate::game::draw_carried_item_sprites(engine, r);
-        crate::game::routine_0062(engine, r);
+        crate::game::draw_status_item_sprites(engine, r);
         crate::game::upload_inventory_count_tiles(engine, r);
         crate::game::upload_equipped_item_stat_tiles(engine, r);
     }
