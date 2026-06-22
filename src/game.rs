@@ -2452,34 +2452,28 @@ mod dim_palette_range_by_step {
     /// Dims `r.offset` bytes in the palette buffer starting at `0x0180 +
     /// r.index` by subtracting the high-nibble step in `0x09`.
     pub fn dim_palette_range_by_step(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(r.index);
-        let mut y: i32 = u8v(r.offset);
+        let mut palette_offset: i32 = u8v(r.index);
+        let mut remaining: i32 = u8v(r.offset);
         loop {
-            let mut lo: i32 = engine.mem(u16v(0x0180 + x)) & 0x0F;
-            engine.set_mem(0x08, lo);
-            let mut hi: i32 = engine.mem(u16v(0x0180 + x)) & 0xF0;
-            let mut sub: i32 = engine.mem(0x09);
-            let mut res: i32 = 0;
-            if cbool(hi >= sub) {
-                res = u8v(u8v(hi - sub) | lo);
+            let color = engine.mem(u16v(0x0180 + palette_offset));
+            let low_nibble: i32 = color & 0x0F;
+            engine.set_mem(0x08, low_nibble);
+            let high_nibble: i32 = color & 0xF0;
+            let fade_step: i32 = engine.mem(0x09);
+            let dimmed_color: i32 = if cbool(high_nibble >= fade_step) {
+                u8v(u8v(high_nibble - fade_step) | low_nibble)
             } else {
-                res = 0x0F;
-            }
-            engine.set_mem(u16v(0x0180 + x), res);
-            {
-                x += 1;
-                x
+                0x0F
             };
-            {
-                y -= 1;
-                y
-            };
-            if !cbool(y != 0) {
+            engine.set_mem(u16v(0x0180 + palette_offset), dimmed_color);
+            palette_offset += 1;
+            remaining -= 1;
+            if !cbool(remaining != 0) {
                 break;
             }
         }
-        r.index = x;
-        r.offset = y;
+        r.index = palette_offset;
+        r.offset = remaining;
     }
 }
 
