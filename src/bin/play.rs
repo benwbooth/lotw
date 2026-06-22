@@ -8,9 +8,11 @@ use std::{
 
 use lotw::{PPU_H, PPU_W};
 use sdl3::{
+    GamepadSubsystem, JoystickSubsystem,
     audio::{AudioFormat, AudioSpec},
     event::Event,
     gamepad::{Axis, Button, Gamepad},
+    joystick::{HatState, Joystick},
     keyboard::{Keycode, Scancode},
     pixels::PixelFormat,
     render::ScaleMode,
@@ -20,16 +22,76 @@ use sdl3::{
 const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 60);
 const STICK_DEAD_ZONE: i16 = 12_000;
 
-fn open_gamepads(sdl: &sdl3::Sdl) -> Vec<Gamepad> {
-    let Ok(gamepad) = sdl.gamepad() else {
-        return Vec::new();
-    };
-    let Ok(ids) = gamepad.gamepads() else {
-        return Vec::new();
-    };
-    ids.into_iter()
-        .filter_map(|id| gamepad.open(id).ok())
-        .collect()
+struct InputDevices {
+    gamepad: Option<GamepadSubsystem>,
+    joystick: Option<JoystickSubsystem>,
+    gamepads: Vec<Gamepad>,
+    joysticks: Vec<Joystick>,
+}
+
+impl InputDevices {
+    fn new(sdl: &sdl3::Sdl) -> Self {
+        let gamepad = sdl.gamepad().ok();
+        let joystick = sdl.joystick().ok();
+        let mut devices = Self {
+            gamepad,
+            joystick,
+            gamepads: Vec::new(),
+            joysticks: Vec::new(),
+        };
+        devices.refresh();
+        devices
+    }
+
+    fn refresh(&mut self) {
+        self.gamepads = self
+            .gamepad
+            .as_ref()
+            .and_then(|gamepad| gamepad.gamepads().ok())
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.gamepad.as_ref()?.open(id).ok())
+            .collect();
+
+        self.joysticks = self
+            .joystick
+            .as_ref()
+            .and_then(|joystick| joystick.joysticks().ok())
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.joystick.as_ref()?.open(id).ok())
+            .collect();
+
+        if env::var_os("LOTW_INPUT_DEBUG").is_some() {
+            eprintln!(
+                "input: opened {} gamepad(s), {} joystick(s)",
+                self.gamepads.len(),
+                self.joysticks.len()
+            );
+            for gamepad in &self.gamepads {
+                eprintln!(
+                    "input: gamepad {}",
+                    gamepad.name().unwrap_or_else(|| "(unnamed)".to_string())
+                );
+            }
+            for joystick in &self.joysticks {
+                eprintln!("input: joystick {}", joystick.name());
+            }
+        }
+    }
+
+    fn update(&self) {
+        if let Some(gamepad) = &self.gamepad {
+            gamepad.update();
+        }
+        if let Some(joystick) = &self.joystick {
+            joystick.update();
+        }
+    }
+
+    fn buttons(&self) -> i32 {
+        gamepad_buttons(&self.gamepads) | joystick_buttons(&self.joysticks)
+    }
 }
 
 fn gamepad_buttons(gamepads: &[Gamepad]) -> i32 {
@@ -63,6 +125,69 @@ fn gamepad_buttons(gamepads: &[Gamepad]) -> i32 {
     buttons
 }
 
+fn joystick_button(joystick: &Joystick, button: u32) -> bool {
+    button < joystick.num_buttons() && joystick.button(button).unwrap_or(false)
+}
+
+fn joystick_axis(joystick: &Joystick, axis: u32) -> i16 {
+    if axis < joystick.num_axes() {
+        joystick.axis(axis).unwrap_or(0)
+    } else {
+        0
+    }
+}
+
+fn joystick_hat_pressed(joystick: &Joystick, wanted: u8) -> bool {
+    (0..joystick.num_hats()).any(|hat| {
+        joystick
+            .hat(hat)
+            .is_ok_and(|state| (state as u8 & wanted) != 0)
+    })
+}
+
+fn joystick_buttons(joysticks: &[Joystick]) -> i32 {
+    let mut buttons = 0;
+    for joystick in joysticks.iter().filter(|joystick| joystick.connected()) {
+        if joystick_hat_pressed(joystick, HatState::Right as u8)
+            || joystick_axis(joystick, 0) > STICK_DEAD_ZONE
+            || joystick_axis(joystick, 6) > STICK_DEAD_ZONE
+        {
+            buttons |= 0x80;
+        }
+        if joystick_hat_pressed(joystick, HatState::Left as u8)
+            || joystick_axis(joystick, 0) < -STICK_DEAD_ZONE
+            || joystick_axis(joystick, 6) < -STICK_DEAD_ZONE
+        {
+            buttons |= 0x40;
+        }
+        if joystick_hat_pressed(joystick, HatState::Down as u8)
+            || joystick_axis(joystick, 1) > STICK_DEAD_ZONE
+            || joystick_axis(joystick, 7) > STICK_DEAD_ZONE
+        {
+            buttons |= 0x20;
+        }
+        if joystick_hat_pressed(joystick, HatState::Up as u8)
+            || joystick_axis(joystick, 1) < -STICK_DEAD_ZONE
+            || joystick_axis(joystick, 7) < -STICK_DEAD_ZONE
+        {
+            buttons |= 0x10;
+        }
+        if joystick_button(joystick, 7) || joystick_button(joystick, 9) {
+            buttons |= 0x08;
+        }
+        if joystick_button(joystick, 6) || joystick_button(joystick, 8) {
+            buttons |= 0x04;
+        }
+        if joystick_button(joystick, 1) || joystick_button(joystick, 2) {
+            buttons |= 0x02;
+        }
+        if joystick_button(joystick, 0) {
+            buttons |= 0x01;
+        }
+    }
+    buttons
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let rom = args.get(1).map(String::as_str).unwrap_or("rom/lotw.nes");
@@ -71,6 +196,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let engine = common::load_rom(rom, true)?;
     let mut runner = common::start_runner(engine)?;
+
+    sdl3::hint::set("SDL_JOYSTICK_THREAD", "1");
+    sdl3::hint::set("SDL_JOYSTICK_HIDAPI", "1");
+    sdl3::hint::set("SDL_JOYSTICK_HIDAPI_STEAM", "1");
 
     let sdl = sdl3::init()?;
     let video = sdl.video()?;
@@ -108,7 +237,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut event_pump = sdl.event_pump()?;
-    let mut gamepads = open_gamepads(&sdl);
+    let mut input_devices = InputDevices::new(&sdl);
     let mut fb = vec![0; PPU_W * PPU_H * 3];
     let mut audio_buf = vec![0i16; common::SPF];
     let mut running = true;
@@ -119,9 +248,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => running = false,
-                Event::ControllerDeviceAdded { .. } | Event::ControllerDeviceRemoved { .. } => {
-                    gamepads = open_gamepads(&sdl);
-                }
+                Event::ControllerDeviceAdded { .. }
+                | Event::ControllerDeviceRemoved { .. }
+                | Event::JoyDeviceAdded { .. }
+                | Event::JoyDeviceRemoved { .. } => input_devices.refresh(),
                 Event::KeyDown {
                     keycode: Some(Keycode::Q),
                     keymod,
@@ -161,7 +291,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         if keyboard.is_scancode_pressed(Scancode::Z) {
             buttons |= 0x01;
         }
-        buttons |= gamepad_buttons(&gamepads);
+        input_devices.update();
+        buttons |= input_devices.buttons();
         if autostart {
             if (150..168).contains(&frames) {
                 buttons |= 0x08;
