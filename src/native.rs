@@ -1147,7 +1147,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
         }
 
         if !use_game_over_screen {
-            routine_0133(engine, r);
+            animate_health_refill_to_cap(engine, r);
             engine.set_mem(0x56, 0x19);
             crate::game::read_debounced_buttons(engine, r);
             r.value = saved_song;
@@ -1205,7 +1205,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
 
-    crate::game::routine_0130(engine, r);
+    crate::game::restore_inventory_state_snapshot(engine, r);
     engine.set_mem(0x51, 0xff);
     engine.set_mem(0x52, 0xff);
     engine.set_mem(0x53, 0xff);
@@ -1854,7 +1854,9 @@ pub fn routine_0074(engine: &mut Engine, r: &mut RoutineContext) {
     r.index = x;
 }
 
-pub fn routine_0133(engine: &mut Engine, r: &mut RoutineContext) {
+pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) {
+    // Count health up one point at a time so the HUD and prompt animation match
+    // the original refill reward pacing.
     let saved_blink = sprite_blink_timer(engine);
     set_sprite_blink_timer(engine, 0x00);
     crate::game::routine_0061(engine, r);
@@ -1876,7 +1878,9 @@ pub fn routine_0133(engine: &mut Engine, r: &mut RoutineContext) {
     set_sprite_blink_timer(engine, saved_blink);
 }
 
-pub fn routine_0134(engine: &mut Engine, r: &mut RoutineContext) {
+pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) {
+    // Count magic up one point at a time, sharing the same prompt/blink pacing
+    // as the health refill.
     let saved_blink = sprite_blink_timer(engine);
     set_sprite_blink_timer(engine, 0x00);
     crate::game::routine_0061(engine, r);
@@ -2000,7 +2004,7 @@ pub fn routine_0176(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0e, 0xd4);
     engine.set_mem(0x0f, 0xb4);
     crate::game::routine_0051(engine, r);
-    crate::game::routine_0131(engine, r);
+    crate::game::upload_inventory_item_list(engine, r);
 
     loop {
         if frame::read_buttons(engine, r) == 0 {
@@ -2023,8 +2027,8 @@ pub fn routine_0176(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x30);
     crate::game::routine_0081(engine, r);
-    crate::game::routine_0132(engine, r);
-    crate::game::routine_0131(engine, r);
+    crate::game::clear_inventory_item_list_buffer(engine, r);
+    crate::game::upload_inventory_item_list(engine, r);
     crate::game::routine_0060(engine, r);
 
     loop {
@@ -2055,7 +2059,7 @@ pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
 
         if (b & 0x80) != 0 {
             crate::game::routine_0179(engine, r);
-            crate::game::routine_0131(engine, r);
+            crate::game::upload_inventory_item_list(engine, r);
         } else if (b & 0x40) != 0 {
         } else if (b & 0x01) != 0 {
             crate::game::routine_0180(engine, r);
@@ -2065,7 +2069,7 @@ pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
             crate::game::routine_0183(engine, r);
         } else if (b & 0x08) != 0 {
             crate::game::routine_0182(engine, r);
-            crate::game::routine_0131(engine, r);
+            crate::game::upload_inventory_item_list(engine, r);
         } else if (b & 0x10) != 0 {
             crate::game::routine_0178(engine, r);
         } else if (b & 0x20) != 0 {
@@ -2118,8 +2122,8 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             routine_0068(engine, r);
-            routine_0133(engine, r);
-            routine_0134(engine, r);
+            animate_health_refill_to_cap(engine, r);
+            animate_magic_refill_to_cap(engine, r);
             r.value = 0x08;
             crate::game::routine_0196(engine, r);
             crate::game::routine_0197(engine, r);
@@ -2148,7 +2152,7 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
             }
             engine.set_mem(u16v(0x51 + y), 0xff);
         }
-        crate::game::routine_0129(engine, r);
+        crate::game::snapshot_inventory_state(engine, r);
     }
 
     routine_0193(engine, r);

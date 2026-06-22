@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::routine_0081(&mut engine, &mut r);
     game::routine_0060(&mut engine, &mut r);
     game::routine_0076(&mut engine, &mut r);
-    game::routine_0131(&mut engine, &mut r);
+    game::upload_inventory_item_list(&mut engine, &mut r);
     engine.set_mem(0x8e, 0);
     engine.set_mem(0x8d, 0);
     game::song_init(&mut engine, &mut r);

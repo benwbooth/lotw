@@ -48,6 +48,7 @@ pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_col
 pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
+pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use commit_actor_projected_position::commit_actor_projected_position;
 pub use compose_large_actor_body_slots::compose_large_actor_body_slots;
@@ -84,6 +85,7 @@ pub use read_debounced_buttons::read_debounced_buttons;
 pub use reset::reset;
 pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
+pub use restore_inventory_state_snapshot::restore_inventory_state_snapshot;
 pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
@@ -163,10 +165,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0129::routine_0129;
-pub use routine_0130::routine_0130;
-pub use routine_0131::routine_0131;
-pub use routine_0132::routine_0132;
 pub use routine_0135::routine_0135;
 pub use routine_0136::routine_0136;
 pub use routine_0137::routine_0137;
@@ -224,6 +222,7 @@ pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
 pub use sfx_overlay_voice::sfx_overlay_voice;
+pub use snapshot_inventory_state::snapshot_inventory_state;
 pub use song_init::song_init;
 pub use sound_restore_game_banks::sound_restore_game_banks;
 pub use sound_set_default_banks::sound_set_default_banks;
@@ -277,6 +276,7 @@ pub use update_room_actors::update_room_actors;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
+pub use upload_inventory_item_list::upload_inventory_item_list;
 pub use upload_resource_hud::upload_resource_hud;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
@@ -4454,31 +4454,23 @@ mod reset_room_object_slots {
     }
 }
 
-mod routine_0129 {
+mod snapshot_inventory_state {
     use super::*;
-    pub fn routine_0129(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut i: i32 = 0;
-        {
-            i = 7;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0308 + i, engine.mem(0x0300 + i));
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+
+    /// Saves mutable inventory/progress state before the status or inventory
+    /// flows temporarily repurpose the same RAM range.
+    pub fn snapshot_inventory_state(engine: &mut Engine, r: &mut RoutineContext) {
+        for progress_offset in (0..8).rev() {
+            engine.set_mem(
+                0x0308 + progress_offset,
+                engine.mem(0x0300 + progress_offset),
+            );
         }
-        {
-            i = 15;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0310 + i, engine.mem(0x0060 + i));
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+        for inventory_offset in (0..16).rev() {
+            engine.set_mem(
+                0x0310 + inventory_offset,
+                engine.mem(0x0060 + inventory_offset),
+            );
         }
         engine.set_mem(0x0321, engine.mem(0x5A));
         engine.set_mem(0x0320, engine.mem(0x5B));
@@ -4486,31 +4478,23 @@ mod routine_0129 {
     }
 }
 
-mod routine_0130 {
+mod restore_inventory_state_snapshot {
     use super::*;
-    pub fn routine_0130(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut i: i32 = 0;
-        {
-            i = 7;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0300 + i, engine.mem(0x0308 + i));
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+
+    /// Restores the progress, inventory counts, coins, and keys saved by
+    /// `snapshot_inventory_state`.
+    pub fn restore_inventory_state_snapshot(engine: &mut Engine, r: &mut RoutineContext) {
+        for progress_offset in (0..8).rev() {
+            engine.set_mem(
+                0x0300 + progress_offset,
+                engine.mem(0x0308 + progress_offset),
+            );
         }
-        {
-            i = 15;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0060 + i, engine.mem(0x0310 + i));
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+        for inventory_offset in (0..16).rev() {
+            engine.set_mem(
+                0x0060 + inventory_offset,
+                engine.mem(0x0310 + inventory_offset),
+            );
         }
         engine.set_mem(0x5A, engine.mem(0x0321));
         engine.set_mem(0x5B, engine.mem(0x0320));
@@ -4518,31 +4502,33 @@ mod routine_0130 {
     }
 }
 
-mod routine_0131 {
+mod upload_inventory_item_list {
     use super::*;
-    pub fn routine_0131(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = 0x1F;
-        let mut x: i32 = 0x26;
-        let mut i: i32 = 0;
+
+    /// Converts the 32-byte item-list buffer at `0x0322` into the VRAM staging
+    /// buffer at `0x0362`, then uploads the two visible nametable rows.
+    pub fn upload_inventory_item_list(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut source_offset: i32 = 0x1F;
+        let mut staging_offset: i32 = 0x26;
         loop {
             {
-                i = 0;
-                while cbool(i < 4) {
-                    let mut out: i32 = u8v(engine.mem(u16v(0x0322 + y)) | 0x80);
-                    if cbool(out >= 0xA0) {
-                        out = 0x7F;
+                let mut chars_in_column: i32 = 0;
+                while cbool(chars_in_column < 4) {
+                    let mut tile: i32 = u8v(engine.mem(u16v(0x0322 + source_offset)) | 0x80);
+                    if cbool(tile >= 0xA0) {
+                        tile = 0x7F;
                     }
-                    engine.set_mem(u16v(0x0362 + (x & 0xFF)), out);
-                    x = (x - 1) & 0xFF;
-                    y = (y - 1) & 0xFF;
+                    engine.set_mem(u16v(0x0362 + (staging_offset & 0xFF)), tile);
+                    staging_offset = (staging_offset - 1) & 0xFF;
+                    source_offset = (source_offset - 1) & 0xFF;
                     {
-                        i += 1;
-                        i
+                        chars_in_column += 1;
+                        chars_in_column
                     };
                 }
             }
-            x = (x - 1) & 0xFF;
-            if !cbool((x & 0x80) == 0) {
+            staging_offset = (staging_offset - 1) & 0xFF;
+            if !cbool((staging_offset & 0x80) == 0) {
                 break;
             }
         }
@@ -4563,19 +4549,13 @@ mod routine_0131 {
     }
 }
 
-mod routine_0132 {
+mod clear_inventory_item_list_buffer {
     use super::*;
-    pub fn routine_0132(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x1F;
-            while cbool(x >= 0) {
-                engine.set_mem(0x0322 + x, 0x7F);
-                {
-                    x -= 1;
-                    x
-                };
-            }
+
+    /// Fills the item-list source buffer with blank tile ids.
+    pub fn clear_inventory_item_list_buffer(engine: &mut Engine, r: &mut RoutineContext) {
+        for item_list_offset in (0..32).rev() {
+            engine.set_mem(0x0322 + item_list_offset, 0x7F);
         }
         r.value = 0x7F;
         r.index = 0xFF;
@@ -4702,7 +4682,7 @@ mod routine_0136 {
                 x = engine.mem(0x0055);
                 engine.set_mem(u16v((0x0051) + x), 0xFF);
                 routine_0062(engine, r);
-                routine_0134(engine, r);
+                animate_magic_refill_to_cap(engine, r);
                 return;
             }
             if cbool(x != 0x0D) {
@@ -5495,10 +5475,10 @@ mod routine_0149 {
             r.index = r.value;
             match n {
                 0 => {
-                    routine_0133(engine, r);
+                    animate_health_refill_to_cap(engine, r);
                 }
                 1 => {
-                    routine_0134(engine, r);
+                    animate_magic_refill_to_cap(engine, r);
                 }
                 2 => {
                     routine_0154(engine, r);
@@ -6222,7 +6202,7 @@ mod routine_0178 {
             return;
         }
         engine.set_mem(0x8F, 0x10);
-        routine_0130(engine, r);
+        restore_inventory_state_snapshot(engine, r);
         sync_key_hud(engine, r);
         sync_coin_hud(engine, r);
         engine.set_mem(0x7C, 0x20);

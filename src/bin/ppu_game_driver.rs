@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::routine_0081(&mut engine, &mut r);
     game::routine_0060(&mut engine, &mut r);
     game::routine_0076(&mut engine, &mut r);
-    game::routine_0131(&mut engine, &mut r);
+    game::upload_inventory_item_list(&mut engine, &mut r);
     for fr in 0..4 {
         eprintln!("frame {fr}: game_update...");
         engine.set_mem(0x36, 0x01);

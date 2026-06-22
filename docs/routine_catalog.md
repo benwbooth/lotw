@@ -74,7 +74,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0xED..0xFC` | current object scratch slot | copied by `load_object_slot_scratch/store_object_slot_scratch` |
 | `0xFD` | held/directional action latch | input edge/action gating |
 | `0x0200..0x02FF` | OAM staging | render and vblank commit |
-| `0x0300..0x03FF` | persistent room/event bits | map progress and room flags |
+| `0x0300..0x03FF` | persistent room/event bits plus inventory/status staging buffers | map progress, room flags, `snapshot_inventory_state`, `upload_inventory_item_list` |
 | `0x0400..0x04AF` | 16-byte object slots | actors, items, projectiles, door slot |
 | `0x04B0..` | pooled player projectile slots | `update_player_projectiles`, `update_player_projectile_slot` |
 
@@ -98,8 +98,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `game` | `0129..0132` | cluster | inventory/status UI update helpers |
-| `native` | `0133`, `0134` | inferred | inventory/status screen flow and return path |
 | `game` | `0135..0147` | inferred | item action dispatch, item pickup/collection, actor contact, and room-interaction checks |
 | `native` | `0148` | inferred | consume secondary counter/resource for an action |
 | `game` | `0149..0150` | inferred | collectible dispatch and object slot clear on pickup |
@@ -135,6 +133,8 @@ surface when touching nearby code:
 | `animate_actor_flip_toggle` | periodically toggle the actor sprite flip bit |
 | `animate_actor_walk_toggle` | update actor facing and toggle a walking sprite tile bit |
 | `animate_large_actor_body_tiles` | advance the large actor animation timer and derive linked body-slot tile ids |
+| `animate_health_refill_to_cap` | count health up to the reward cap while updating HUD and prompt animation |
+| `animate_magic_refill_to_cap` | count magic up to the reward cap while updating HUD and prompt animation |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
@@ -161,6 +161,7 @@ surface when touching nearby code:
 | `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
+| `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
 | `compose_large_actor_body_slots` | mirror the large actor logical slot into the three linked 2x2 body sprite slots and refresh its health meter |
@@ -200,6 +201,7 @@ surface when touching nearby code:
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
+| `restore_inventory_state_snapshot` | restore progress, inventory counts, coins, and keys saved before inventory/status flows |
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
 | `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
@@ -209,6 +211,7 @@ surface when touching nearby code:
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
 | `spend_coins` | subtract a coin cost and report affordability through carry |
+| `snapshot_inventory_state` | save progress, inventory counts, coins, and keys before temporary inventory/status flows |
 | `stop_actor_motion` | clear actor velocity and arc/probe motion counters |
 | `start_note_envelope` | load the selected channel's active-note envelope phase state |
 | `start_rest_envelope` | load the selected channel's timed silent envelope phase state |
@@ -254,6 +257,7 @@ surface when touching nearby code:
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
+| `upload_inventory_item_list` | stage and upload the two visible rows of the inventory item-list buffer |
 | `update_wide_object_terrain_probe` | advance the wide object terrain probe when its footprint stays clear |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
@@ -265,7 +269,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Inventory, item actions, and pickup effects: `routine_0129..0168`.
+1. Inventory, item actions, and pickup effects: `routine_0135..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
