@@ -113,7 +113,6 @@ would currently be weaker than the cluster name.
 | `game` | `0178..0186` | cluster | inventory/menu cursor, item list, and status draw helpers |
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
-| `game` | `0220..0229` | cluster | per-actor behavior handlers selected by room actor data |
 | `native` | `0240` | inferred | high-bit/special actor update path |
 | `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
@@ -151,6 +150,7 @@ surface when touching nearby code:
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
+| `check_actor_direction_contact` | project one actor direction and report whether it contacts the player |
 | `check_projected_terrain_collision` | test the projected one-tile-wide object footprint against terrain |
 | `check_projected_wide_terrain_collision` | test the projected wide object footprint against terrain |
 | `check_player_overlap` | test projected object position against the player hitbox |
@@ -214,12 +214,21 @@ surface when touching nearby code:
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
 | `tick_actor_materialize_delay` | count down a materializing actor and promote it to behavior-dispatched state when ready |
+| `tick_chasing_jump_actor` | actor behavior that re-aims toward the player and uses jump/gravity terrain movement |
+| `tick_contact_recoil_actor` | actor behavior that switches to a high-bit recoil state when player contact blocks movement |
+| `tick_contact_trigger_actor` | actor behavior that wakes into chasing movement after one-step player contact |
 | `tick_inactive_actor_slot` | initialize an inactive actor scratch slot from room actor data and spawn timing |
+| `tick_ledge_walking_actor` | actor behavior that walks along supported ledges and falls when unsupported |
 | `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
+| `tick_overhead_probe_actor` | actor behavior that alternates overhead probes, falling, and jump arcs |
 | `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
 | `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
+| `tick_random_floating_actor` | actor behavior that chooses random directions and moves without terrain collision |
+| `tick_reflecting_chase_actor` | actor behavior that aims from player overlap and reflects velocity when blocked |
 | `tick_standard_actor` | generic non-boss actor tick for motion continuation, collision response, expiry, and terrain probing |
+| `tick_timed_chase_actor` | actor behavior that chases for a finite timer and rejects abrupt multi-axis turns |
 | `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
+| `tick_wandering_jump_actor` | actor behavior that wanders, occasionally jumps, then falls through terrain-aware movement |
 | `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
 | `try_actor_gravity_motion` | try a falling actor move, dropping horizontal velocity if the first projection is blocked |
 | `try_actor_jump_arc_motion` | convert the actor jump countdown into upward velocity and try the projected move |
@@ -244,7 +253,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Actor behavior and large-actor helpers: `routine_0220..0229`, `routine_0257..0265`.
+1. Large-actor helpers: `routine_0257..0265`.
 2. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke

@@ -35,6 +35,7 @@ pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles
 pub use build_object_health_meter_standard_tiles::build_object_health_meter_standard_tiles;
 pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
+pub use check_actor_direction_contact::check_actor_direction_contact;
 pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
 pub use check_player_overlap::check_player_overlap;
 pub use check_player_overlap_wide::check_player_overlap_wide;
@@ -216,16 +217,6 @@ pub use routine_0198::routine_0198;
 pub use routine_0199::routine_0199;
 pub use routine_0200::routine_0200;
 pub use routine_0201::routine_0201;
-pub use routine_0220::routine_0220;
-pub use routine_0221::routine_0221;
-pub use routine_0222::routine_0222;
-pub use routine_0223::routine_0223;
-pub use routine_0224::routine_0224;
-pub use routine_0225::routine_0225;
-pub use routine_0226::routine_0226;
-pub use routine_0227::routine_0227;
-pub use routine_0228::routine_0228;
-pub use routine_0229::routine_0229;
 pub use routine_0257::routine_0257;
 pub use routine_0258::routine_0258;
 pub use routine_0260::routine_0260;
@@ -258,12 +249,21 @@ pub use sync_key_hud::sync_key_hud;
 pub use sync_magic_hud::sync_magic_hud;
 pub use text_attr_build::text_attr_build;
 pub use tick_actor_materialize_delay::tick_actor_materialize_delay;
+pub use tick_chasing_jump_actor::tick_chasing_jump_actor;
+pub use tick_contact_recoil_actor::tick_contact_recoil_actor;
+pub use tick_contact_trigger_actor::tick_contact_trigger_actor;
 pub use tick_inactive_actor_slot::tick_inactive_actor_slot;
+pub use tick_ledge_walking_actor::tick_ledge_walking_actor;
 pub use tick_noise_channel::tick_noise_channel;
+pub use tick_overhead_probe_actor::tick_overhead_probe_actor;
 pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
+pub use tick_random_floating_actor::tick_random_floating_actor;
+pub use tick_reflecting_chase_actor::tick_reflecting_chase_actor;
 pub use tick_standard_actor::tick_standard_actor;
+pub use tick_timed_chase_actor::tick_timed_chase_actor;
 pub use tick_triangle_channel::tick_triangle_channel;
+pub use tick_wandering_jump_actor::tick_wandering_jump_actor;
 pub use try_actor_gravity_motion::try_actor_gravity_motion;
 pub use try_actor_jump_arc_motion::try_actor_jump_arc_motion;
 pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
@@ -7145,31 +7145,31 @@ mod dispatch_actor_behavior {
         );
         match behavior_id {
             0 => {
-                routine_0220(engine, r);
+                tick_wandering_jump_actor(engine, r);
             }
             1 => {
-                routine_0221(engine, r);
+                tick_random_floating_actor(engine, r);
             }
             2 => {
-                routine_0222(engine, r);
+                tick_ledge_walking_actor(engine, r);
             }
             3 => {
-                routine_0223(engine, r);
+                tick_chasing_jump_actor(engine, r);
             }
             4 => {
-                routine_0224(engine, r);
+                tick_reflecting_chase_actor(engine, r);
             }
             5 => {
-                routine_0225(engine, r);
+                tick_overhead_probe_actor(engine, r);
             }
             6 => {
-                routine_0226(engine, r);
+                tick_contact_trigger_actor(engine, r);
             }
             7 => {
-                routine_0228(engine, r);
+                tick_contact_recoil_actor(engine, r);
             }
             8 => {
-                routine_0229(engine, r);
+                tick_timed_chase_actor(engine, r);
             }
             _ => {}
         }
@@ -7242,22 +7242,24 @@ mod tick_standard_actor {
     }
 }
 
-mod routine_0220 {
+mod tick_wandering_jump_actor {
     use super::*;
-    pub fn routine_0220(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_f6: i32 = 0;
-        let mut do_place: i32 = 0;
+    // Wanders horizontally, occasionally starts a jump arc, then falls under
+    // the shared gravity helper until terrain accepts the projected position.
+    pub fn tick_wandering_jump_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut saved_tile_dx: i32 = 0;
+        let mut keep_existing_motion: i32 = 0;
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
                     if cbool(engine.mem(0xF3) >= 0x20) {
                     } else if cbool(engine.mem(0xF1) != 0) {
-                        do_place = 1;
+                        keep_existing_motion = 1;
                     } else if cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0) {
-                        do_place = 1;
+                        keep_existing_motion = 1;
                     }
-                    if !cbool(do_place) {
+                    if !cbool(keep_existing_motion) {
                         engine.set_mem(0xF3, 0x00);
                         choose_random_cardinal_actor_direction(engine, r);
                         r.value = 0x06;
@@ -7270,7 +7272,7 @@ mod routine_0220 {
                             engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
                         }
                     }
-                    saved_f6 = engine.mem(0xF6);
+                    saved_tile_dx = engine.mem(0xF6);
                     r.offset = engine.mem(0xF6);
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
@@ -7338,7 +7340,7 @@ mod routine_0220 {
                 4 => {
                     update_object_terrain_probe(engine, r);
                     update_actor_animation(engine, r);
-                    engine.set_mem(0xF6, saved_f6);
+                    engine.set_mem(0xF6, saved_tile_dx);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7347,16 +7349,18 @@ mod routine_0220 {
     }
 }
 
-mod routine_0221 {
+mod tick_random_floating_actor {
     use super::*;
-    pub fn routine_0221(engine: &mut Engine, r: &mut RoutineContext) {
+    // Chooses a random direction when stationary, then moves without terrain
+    // collision. Bounds/player contact can stop the motion.
+    pub fn tick_random_floating_actor(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
-            let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-            let mut v: i32 = engine.mem(u16v(ptr + 0x09));
-            r.offset = v;
+            let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+            let mut speed: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
+            r.offset = speed;
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
@@ -7370,52 +7374,54 @@ mod routine_0221 {
     }
 }
 
-mod routine_0222 {
+mod tick_ledge_walking_actor {
     use super::*;
-    pub fn routine_0222(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut reached_EBC6: i32 = 0;
-        let mut reached_EBCC: i32 = 0;
-        let mut done: i32 = 0;
+    // Walks along terrain ledges: blocked movement stops motion, supported
+    // projections commit, and unsupported projections fall through gravity.
+    pub fn tick_ledge_walking_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut should_commit_position: i32 = 0;
+        let mut should_stop_motion: i32 = 0;
+        let mut skip_resolution: i32 = 0;
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
             reverse_actor_horizontal_direction(engine, r);
         }
         if cbool(engine.mem(0xF0) != 0) {
             try_actor_gravity_motion(engine, r);
             if cbool(r.carry == 0) {
-                reached_EBC6 = 1;
+                should_commit_position = 1;
             } else {
-                done = 1;
+                skip_resolution = 1;
             }
         } else {
-            let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-            r.offset = engine.mem(u16v(ptr + 9));
+            let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+            r.offset = engine.mem(u16v(actor_data_ptr + 9));
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
             try_move_actor_with_terrain(engine, r);
             if cbool(r.carry) {
-                reached_EBCC = 1;
+                should_stop_motion = 1;
             } else {
                 r.offset = 0x01;
                 probe_object_solid_tile(engine, r);
                 if cbool(r.carry == 0) {
-                    reached_EBCC = 1;
+                    should_stop_motion = 1;
                 } else if cbool(engine.mem(0x0E) == 0) {
-                    reached_EBC6 = 1;
+                    should_commit_position = 1;
                 } else {
                     r.offset = 0x0D;
                     probe_object_solid_tile(engine, r);
                     if cbool(r.carry == 0) {
-                        reached_EBCC = 1;
+                        should_stop_motion = 1;
                     } else {
-                        reached_EBC6 = 1;
+                        should_commit_position = 1;
                     }
                 }
             }
         }
-        if !cbool(done) {
-            if cbool(reached_EBCC) {
+        if !cbool(skip_resolution) {
+            if cbool(should_stop_motion) {
                 stop_actor_motion(engine, r);
-            } else if cbool(reached_EBC6) {
+            } else if cbool(should_commit_position) {
                 commit_actor_projected_position(engine, r);
             }
         }
@@ -7424,9 +7430,11 @@ mod routine_0222 {
     }
 }
 
-mod routine_0223 {
+mod tick_chasing_jump_actor {
     use super::*;
-    pub fn routine_0223(engine: &mut Engine, r: &mut RoutineContext) {
+    // Re-aims toward the player, marks the direction as jump-capable with
+    // `0x80`, then uses the same jump/gravity movement path as wanderers.
+    pub fn tick_chasing_jump_actor(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -7445,18 +7453,18 @@ mod routine_0223 {
                         }
                     }
                     if cbool(engine.mem(0xF9) == 0) {
-                        let mut ptr: i32 = 0;
+                        let mut room_tile_ptr: i32 = 0;
                         engine.set_mem(0x0C, engine.mem(0xFA));
                         engine.set_mem(0x0D, engine.mem(0xFB));
                         resolve_room_tile_pointer(engine, r);
-                        ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-                        if cbool((engine.mem(ptr) & 0x3F) == 0) {
+                        room_tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+                        if cbool((engine.mem(room_tile_ptr) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool((engine.mem(u16v(ptr + 1)) & 0x3F) == 0) {
+                        if cbool((engine.mem(u16v(room_tile_ptr + 1)) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -7467,9 +7475,9 @@ mod routine_0223 {
                         engine.set_mem(0xF4, 0x01);
                     }
                     {
-                        let mut x: i32 = u8v(engine.mem(0xF3) - 1);
+                        let mut turn_timer: i32 = u8v(engine.mem(0xF3) - 1);
                         engine.set_mem(0xF3, 0x00);
-                        if cbool(x == 0) {
+                        if cbool(turn_timer == 0) {
                             if cbool((engine.mem(0xF4) & 0x03) == 0) {
                                 {
                                     state = 1;
@@ -7500,8 +7508,9 @@ mod routine_0223 {
                 }
                 2 => {
                     {
-                        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-                        r.offset = engine.mem(u16v(ptr + 0x09));
+                        let mut actor_data_ptr: i32 =
+                            u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
                     }
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
@@ -7577,18 +7586,20 @@ mod routine_0223 {
     }
 }
 
-mod routine_0224 {
+mod tick_reflecting_chase_actor {
     use super::*;
-    pub fn routine_0224(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut skip: i32 =
+    // Aims from player overlap, moves without terrain, and asks the velocity
+    // reflection helper to bounce away when blocked.
+    pub fn tick_reflecting_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut keep_current_direction: i32 =
             u8v((cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0)
                 && cbool(engine.mem(0xF3) < 0x20)));
-        if !cbool(skip) {
+        if !cbool(keep_current_direction) {
             aim_actor_from_player_overlap(engine, r);
         }
         {
-            let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-            r.offset = engine.mem(u16v(ptr + 0x09));
+            let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+            r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
@@ -7606,9 +7617,11 @@ mod routine_0224 {
     }
 }
 
-mod routine_0225 {
+mod tick_overhead_probe_actor {
     use super::*;
-    pub fn routine_0225(engine: &mut Engine, r: &mut RoutineContext) {
+    // Alternates between overhead probing, falling, and a jump arc. This is the
+    // only normal behavior that asks `probe_actor_overhead_step` before moving.
+    pub fn tick_overhead_probe_actor(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -7656,8 +7669,9 @@ mod routine_0225 {
                         }
                     }
                     {
-                        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-                        r.offset = engine.mem(u16v(ptr + 0x09));
+                        let mut actor_data_ptr: i32 =
+                            u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
                     }
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
@@ -7699,7 +7713,7 @@ mod routine_0225 {
                     try_actor_gravity_motion(engine, r);
                     commit_actor_projected_position(engine, r);
                     {
-                        let mut saved_f0: i32 = engine.mem(0xF0);
+                        let mut saved_fall_counter: i32 = engine.mem(0xF0);
                         update_object_terrain_probe(engine, r);
                         if !cbool(r.carry) {
                             {
@@ -7707,7 +7721,7 @@ mod routine_0225 {
                                 continue 'dispatch;
                             }
                         }
-                        engine.set_mem(0xF1, u8v(saved_f0 + 0x05 + 1));
+                        engine.set_mem(0xF1, u8v(saved_fall_counter + 0x05 + 1));
                         {
                             state = 7;
                             continue 'dispatch;
@@ -7756,19 +7770,21 @@ mod routine_0225 {
     }
 }
 
-mod routine_0226 {
+mod tick_contact_trigger_actor {
     use super::*;
-    pub fn routine_0226(engine: &mut Engine, r: &mut RoutineContext) {
+    // Sits inert until the player overlaps a one-step projection in any
+    // cardinal direction, then switches into the chasing jump behavior.
+    pub fn tick_contact_trigger_actor(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
                     if cbool(engine.mem(0xF4) != 0) {
-                        routine_0223(engine, r);
+                        tick_chasing_jump_actor(engine, r);
                         return;
                     }
                     r.value = 0x01;
-                    routine_0227(engine, r);
+                    check_actor_direction_contact(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -7776,7 +7792,7 @@ mod routine_0226 {
                         }
                     }
                     r.value = 0x02;
-                    routine_0227(engine, r);
+                    check_actor_direction_contact(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -7784,7 +7800,7 @@ mod routine_0226 {
                         }
                     }
                     r.value = 0x04;
-                    routine_0227(engine, r);
+                    check_actor_direction_contact(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -7792,7 +7808,7 @@ mod routine_0226 {
                         }
                     }
                     r.value = 0x08;
-                    routine_0227(engine, r);
+                    check_actor_direction_contact(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -7800,9 +7816,10 @@ mod routine_0226 {
                         }
                     }
                     {
-                        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-                        let mut v: i32 = engine.mem(u16v(ptr + 4));
-                        engine.set_mem(0x00F2, v);
+                        let mut actor_data_ptr: i32 =
+                            u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+                        let mut actor_type: i32 = engine.mem(u16v(actor_data_ptr + 4));
+                        engine.set_mem(0x00F2, actor_type);
                         r.value = 0x00;
                         engine.set_mem(0xFC, 0x00);
                     }
@@ -7821,9 +7838,10 @@ mod routine_0226 {
     }
 }
 
-mod routine_0227 {
+mod check_actor_direction_contact {
     use super::*;
-    pub fn routine_0227(engine: &mut Engine, r: &mut RoutineContext) {
+    // Projects the one-step direction in `r.value` and reports player contact.
+    pub fn check_actor_direction_contact(engine: &mut Engine, r: &mut RoutineContext) {
         r.offset = 0x01;
         build_direction_velocity(engine, r);
         project_actor_position(engine, r);
@@ -7836,15 +7854,17 @@ mod routine_0227 {
     }
 }
 
-mod routine_0228 {
+mod tick_contact_recoil_actor {
     use super::*;
-    pub fn routine_0228(engine: &mut Engine, r: &mut RoutineContext) {
+    // Random floating behavior that turns into a high-bit/contact recoil state
+    // when movement was blocked specifically by player overlap.
+    pub fn tick_contact_recoil_actor(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
-            let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-            r.offset = engine.mem(u16v(ptr + 0x09));
+            let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+            r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
@@ -7863,16 +7883,18 @@ mod routine_0228 {
     }
 }
 
-mod routine_0229 {
+mod tick_timed_chase_actor {
     use super::*;
-    pub fn routine_0229(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut dec: i32 = u8v(engine.mem(0xF1) - 1);
+    // Chases for `0xF1` ticks. Once it has a direction, abrupt multi-axis
+    // changes are rejected unless the timer has settled for several frames.
+    pub fn tick_timed_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut chase_timer: i32 = u8v(engine.mem(0xF1) - 1);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xF1, dec);
-                    if cbool(dec == 0) {
+                    engine.set_mem(0xF1, chase_timer);
+                    if cbool(chase_timer == 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -7882,17 +7904,17 @@ mod routine_0229 {
                         aim_actor_from_player_overlap(engine, r);
                     } else {
                         if cbool(engine.mem(0xF3) >= 0x08) {
-                            let mut diff: i32 = 0;
+                            let mut direction_diff: i32 = 0;
                             let mut bit_count: i32 = 0;
                             let mut changed_bits: i32 = 0;
                             engine.set_mem(0x08, engine.mem(0xF4));
                             aim_actor_from_player_overlap(engine, r);
-                            diff = u8v(engine.mem(0xF4) ^ engine.mem(0x08));
+                            direction_diff = u8v(engine.mem(0xF4) ^ engine.mem(0x08));
                             changed_bits = 0x00;
                             bit_count = 0x04;
                             loop {
-                                let mut bit: i32 = diff & 1;
-                                diff >>= 1;
+                                let mut bit: i32 = direction_diff & 1;
+                                direction_diff >>= 1;
                                 if cbool(bit) {
                                     {
                                         let __old = changed_bits;
@@ -7920,8 +7942,9 @@ mod routine_0229 {
                         }
                     }
                     {
-                        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-                        r.offset = engine.mem(u16v(ptr + 0x09));
+                        let mut actor_data_ptr: i32 =
+                            u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
                         r.value = engine.mem(0xF4);
                         build_direction_velocity(engine, r);
                     }
