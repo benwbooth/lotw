@@ -913,4 +913,51 @@ impl GameState {
     pub fn set_indirect_ptr_hi(&mut self, value: i32) {
         self.set_byte(0x0F, value);
     }
+
+    // ---- General-purpose scratch bytes ($08..$0B) -------------------------
+    //
+    // Reusable zero-page scratch the 6502 code uses as per-routine temporaries
+    // (mask/shift math, holding a value across a few instructions). They carry
+    // no persistent meaning; a given write/read is local to its routine, so
+    // the names are intentionally generic.
+
+    /// General-purpose scratch byte 0 (`$08`).
+    #[inline]
+    pub fn scratch0(&self) -> i32 {
+        self.byte(0x08)
+    }
+    #[inline]
+    pub fn set_scratch0(&mut self, value: i32) {
+        self.set_byte(0x08, value);
+    }
+
+    /// General-purpose scratch byte 1 (`$09`).
+    #[inline]
+    pub fn scratch1(&self) -> i32 {
+        self.byte(0x09)
+    }
+    #[inline]
+    pub fn set_scratch1(&mut self, value: i32) {
+        self.set_byte(0x09, value);
+    }
+
+    /// General-purpose scratch byte 2 (`$0A`).
+    #[inline]
+    pub fn scratch2(&self) -> i32 {
+        self.byte(0x0A)
+    }
+    #[inline]
+    pub fn set_scratch2(&mut self, value: i32) {
+        self.set_byte(0x0A, value);
+    }
+
+    /// General-purpose scratch byte 3 (`$0B`).
+    #[inline]
+    pub fn scratch3(&self) -> i32 {
+        self.byte(0x0B)
+    }
+    #[inline]
+    pub fn set_scratch3(&mut self, value: i32) {
+        self.set_byte(0x0B, value);
+    }
 }
