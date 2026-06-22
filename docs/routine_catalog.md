@@ -95,7 +95,7 @@ would currently be weaker than the cluster name.
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 | `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
-| `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
+| `game` | `0076..0079`, `0084..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 
 ## Named Non-Numbered Routines
@@ -134,6 +134,7 @@ surface when touching nearby code:
 | `build_object_health_meter_alt_tiles` | build object health with the alternate `0xA5/0xAB` sprite tile pair |
 | `build_object_health_meter_standard_tiles` | build object health with the standard `0x65/0x6B` sprite tile pair |
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
+| `build_staged_room_column` | build one staged room column from the current room tile pointer and tileset metadata |
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
 | `check_actor_direction_contact` | project one actor direction and report whether it contacts the player |
@@ -168,6 +169,7 @@ surface when touching nearby code:
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
 | `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
+| `dim_palette_range_by_step` | dim a palette-buffer range by subtracting the high-nibble step in `0x09` |
 | `dispatch_overhead_tile_action` | handle Up-button interactions with the tile above the player |
 | `dispatch_projected_tile_actions` | probe the projected player footprint for room tile-action triggers |
 | `dispatch_room_tile_action` | dispatch the sampled projected room tile, including costs, object spawns, and tile projectiles |
@@ -318,6 +320,10 @@ surface when touching nearby code:
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
 | `upload_inventory_item_list` | stage and upload the two visible rows of the inventory item-list buffer |
+| `upload_palette_buffer` | queue a PPU upload of the palette buffer to `$3F00` |
+| `upload_room_columns_from_bank9` | upload the 16 visible room columns using the bank-9 room-column builder |
+| `upload_scroll_edge_room_column` | upload the room column that is about to scroll into view |
+| `upload_staged_room_columns` | upload the 16 visible room columns using the current staged room data |
 | `update_wide_object_terrain_probe` | advance the wide object terrain probe when its footprint stays clear |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
@@ -332,7 +338,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Game VRAM, room render, and palette helpers: `routine_0073..0089`.
+1. Remaining game VRAM, room render, and palette helpers: `routine_0076..0079`, `routine_0084..0089`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

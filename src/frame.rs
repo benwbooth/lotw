@@ -266,12 +266,12 @@ pub fn wait_for_countdown_timer(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.mem(0x3d) != 0 {
         engine.set_mem(0x3d, 0);
-        crate::game::routine_0082(engine, r);
+        crate::game::upload_scroll_edge_room_column(engine, r);
     } else if engine.mem(0x3c) != 0 {
         engine.set_mem(0x3c, 0);
         crate::game::upload_resource_hud(engine, r);
     } else if engine.mem(0x36) != 0 {
-        crate::game::routine_0075(engine, r);
+        crate::game::upload_palette_buffer(engine, r);
     }
 }
 

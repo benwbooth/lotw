@@ -37,6 +37,7 @@ pub use build_input_movement_delta::build_input_movement_delta;
 pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles;
 pub use build_object_health_meter_standard_tiles::build_object_health_meter_standard_tiles;
 pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
+pub use build_staged_room_column::build_staged_room_column;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_direction_contact::check_actor_direction_contact;
 pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
@@ -69,6 +70,7 @@ pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
 pub use defeat_active_room_actors::defeat_active_room_actors;
+pub use dim_palette_range_by_step::dim_palette_range_by_step;
 pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
@@ -181,16 +183,10 @@ pub use routine_0063::routine_0063;
 pub use routine_0064::routine_0064;
 pub use routine_0065::routine_0065;
 pub use routine_0066::routine_0066;
-pub use routine_0073::routine_0073;
-pub use routine_0075::routine_0075;
 pub use routine_0076::routine_0076;
 pub use routine_0077::routine_0077;
 pub use routine_0078::routine_0078;
 pub use routine_0079::routine_0079;
-pub use routine_0080::routine_0080;
-pub use routine_0081::routine_0081;
-pub use routine_0082::routine_0082;
-pub use routine_0083::routine_0083;
 pub use routine_0084::routine_0084;
 pub use routine_0085::routine_0085;
 pub use routine_0086::routine_0086;
@@ -277,7 +273,11 @@ pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
 pub use upload_inventory_item_list::upload_inventory_item_list;
+pub use upload_palette_buffer::upload_palette_buffer;
 pub use upload_resource_hud::upload_resource_hud;
+pub use upload_room_columns_from_bank9::upload_room_columns_from_bank9;
+pub use upload_scroll_edge_room_column::upload_scroll_edge_room_column;
+pub use upload_staged_room_columns::upload_staged_room_columns;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
 pub use vram_blit_stack::vram_blit_stack;
@@ -1980,7 +1980,7 @@ mod routine_0046 {
             }
         }
         r.value = 0x0F;
-        routine_0075(engine, r);
+        upload_palette_buffer(engine, r);
     }
 }
 
@@ -2883,9 +2883,12 @@ mod routine_0066 {
     }
 }
 
-mod routine_0073 {
+mod dim_palette_range_by_step {
     use super::*;
-    pub fn routine_0073(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Dims `r.offset` bytes in the palette buffer starting at `0x0180 +
+    /// r.index` by subtracting the high-nibble step in `0x09`.
+    pub fn dim_palette_range_by_step(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(r.index);
         let mut y: i32 = u8v(r.offset);
         loop {
@@ -2917,9 +2920,11 @@ mod routine_0073 {
     }
 }
 
-mod routine_0075 {
+mod upload_palette_buffer {
     use super::*;
-    pub fn routine_0075(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Queues a PPU upload of the palette buffer to `$3F00`.
+    pub fn upload_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         clear_pending_vram_job(engine, r);
         engine.set_mem(0x16, 0x00);
         engine.set_mem(0x17, 0x3F);
@@ -3185,9 +3190,11 @@ mod routine_0079 {
     }
 }
 
-mod routine_0080 {
+mod upload_room_columns_from_bank9 {
     use super::*;
-    pub fn routine_0080(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the 16 visible room columns using the bank-9 room-column builder.
+    pub fn upload_room_columns_from_bank9(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sx: i32 = 0;
         clear_pending_vram_job(engine, r);
         sx = engine.mem(0x7C);
@@ -3214,9 +3221,11 @@ mod routine_0080 {
     }
 }
 
-mod routine_0081 {
+mod upload_staged_room_columns {
     use super::*;
-    pub fn routine_0081(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the 16 visible room columns using the current staged room data.
+    pub fn upload_staged_room_columns(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sx: i32 = 0;
         clear_pending_vram_job(engine, r);
         sx = engine.mem(0x7C);
@@ -3228,7 +3237,7 @@ mod routine_0081 {
         engine.set_mem(0x09, 0x10);
         loop {
             engine.set_mem(0x0C, engine.mem(0x08));
-            routine_0083(engine, r);
+            build_staged_room_column(engine, r);
             engine.set_mem(0x16, u8v(engine.mem(0x16) + 2));
             if cbool(engine.mem(0x16) & 0x20) {
                 engine.set_mem(0x16, 0x00);
@@ -3243,9 +3252,11 @@ mod routine_0081 {
     }
 }
 
-mod routine_0082 {
+mod upload_scroll_edge_room_column {
     use super::*;
-    pub fn routine_0082(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the room column that is about to scroll into view.
+    pub fn upload_scroll_edge_room_column(engine: &mut Engine, r: &mut RoutineContext) {
         let mut col: i32 = 0;
         clear_pending_vram_job(engine, r);
         if cbool(engine.mem(0x7F) & 0x80) {
@@ -3262,9 +3273,12 @@ mod routine_0082 {
     }
 }
 
-mod routine_0083 {
+mod build_staged_room_column {
     use super::*;
-    pub fn routine_0083(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Builds one staged room column from the current room tile pointer and
+    /// tileset metadata.
+    pub fn build_staged_room_column(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0D, 0x00);
         resolve_room_tile_pointer(engine, r);
         engine.set_mem(0x0D, u8v(u8v(engine.mem(0x0D) - 0x05) + engine.mem(0x76)));
@@ -4871,9 +4885,9 @@ mod run_warp_transition_effect {
         if cbool(engine.mem(0x7C) >= 0x21) {
             engine.set_mem(0x7C, 0x20);
         }
-        routine_0080(engine, r);
+        upload_room_columns_from_bank9(engine, r);
         engine.set_mem(0x7C, u8v(engine.mem(0x7C) + 0x10));
-        routine_0080(engine, r);
+        upload_room_columns_from_bank9(engine, r);
         engine.set_mem(0x08, 0x01);
         loop {
             let mut x: i32 = 0x0C;
@@ -4928,7 +4942,7 @@ mod handle_player_room_transition {
         clear_gameplay_object_sprites(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
-        routine_0075(engine, r);
+        upload_palette_buffer(engine, r);
         engine.set_mem(0x36, 0);
         r.carry = 1;
     }
@@ -5016,8 +5030,8 @@ mod handle_player_room_transition {
         clear_gameplay_object_sprites(engine, r);
         engine.set_mem(0x007B, 0x00);
         scene_assemble(engine, r);
-        routine_0080(engine, r);
-        routine_0075(engine, r);
+        upload_room_columns_from_bank9(engine, r);
+        upload_palette_buffer(engine, r);
         if cbool(engine.mem(0x0044) != 0x00) {
             engine.set_mem(0x1D, 0x01);
             engine.set_mem(0x1C, 0x00);
@@ -6181,7 +6195,7 @@ mod close_inventory_item_menu {
         sync_key_hud(engine, r);
         sync_coin_hud(engine, r);
         engine.set_mem(0x7C, 0x20);
-        routine_0081(engine, r);
+        upload_staged_room_columns(engine, r);
         routine_0060(engine, r);
         restore_status_sprite_template(engine, r);
     }

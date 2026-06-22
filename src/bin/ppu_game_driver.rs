@@ -11,10 +11,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut r = RoutineContext::default();
     common::init_game_scene(&mut engine, &mut r);
     engine.set_mem(0x7c, 0x10);
-    game::routine_0081(&mut engine, &mut r);
+    game::upload_staged_room_columns(&mut engine, &mut r);
     game::routine_0060(&mut engine, &mut r);
     engine.set_mem(0x7c, 0x20);
-    game::routine_0081(&mut engine, &mut r);
+    game::upload_staged_room_columns(&mut engine, &mut r);
     game::routine_0060(&mut engine, &mut r);
     game::routine_0076(&mut engine, &mut r);
     game::upload_inventory_item_list(&mut engine, &mut r);

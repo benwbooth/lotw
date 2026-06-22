@@ -258,7 +258,13 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     r.index = 0x04;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     engine.set_mem(0x7c, 0x00);
-    farcall_cce4(engine, r, 0x6c, 0xc7, crate::game::routine_0080);
+    farcall_cce4(
+        engine,
+        r,
+        0x6c,
+        0xc7,
+        crate::game::upload_room_columns_from_bank9,
+    );
     engine.set_mem(0x2d, 0x3d);
 
     loop {
@@ -817,12 +823,12 @@ pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
         for x in (0..=0x1f).rev() {
             engine.set_mem(u16v(0x0180 + x), 0x30);
         }
-        crate::game::routine_0075(engine, r);
+        crate::game::upload_palette_buffer(engine, r);
         set_frame_counter(engine, 0x01);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         crate::game::routine_0046(engine, r);
-        crate::game::routine_0075(engine, r);
+        crate::game::upload_palette_buffer(engine, r);
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
@@ -848,7 +854,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         for x in (0..=0x1f).rev() {
             engine.set_mem(u16v(0x0180 + x), 0x0f);
         }
-        farcall_cce4(engine, r, 0x69, 0xc5, crate::game::routine_0075);
+        farcall_cce4(engine, r, 0x69, 0xc5, crate::game::upload_palette_buffer);
         crate::game::reset_room_object_slots(engine, r);
         crate::game::routine_0065(engine, r);
         crate::game::routine_0036(engine, r);
@@ -1261,7 +1267,7 @@ pub fn routine_0055(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
     }
-    crate::game::routine_0075(engine, r);
+    crate::game::upload_palette_buffer(engine, r);
 }
 
 /// Commits pending foreground frame work and waits for the active frame counter
@@ -1312,7 +1318,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
         }
         r.index = 0x00;
         r.offset = 0x04;
-        crate::game::routine_0073(engine, r);
+        crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         v = u8v(engine.mem(0x09) - 0x10);
@@ -1321,7 +1327,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
     }
-    crate::game::routine_0075(engine, r);
+    crate::game::upload_palette_buffer(engine, r);
 }
 
 /// Fades in the first two room palette rows from the active room data pointer.
@@ -1339,10 +1345,10 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
         }
         r.index = 0x00;
         r.offset = 0x04;
-        crate::game::routine_0073(engine, r);
+        crate::game::dim_palette_range_by_step(engine, r);
         r.index = 0x10;
         r.offset = 0x04;
-        crate::game::routine_0073(engine, r);
+        crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         v = u8v(engine.mem(0x09) - 0x10);
@@ -1351,7 +1357,7 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
             break;
         }
     }
-    crate::game::routine_0075(engine, r);
+    crate::game::upload_palette_buffer(engine, r);
 }
 
 /// Advances frames until all controller buttons are released.
@@ -1847,7 +1853,7 @@ pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::routine_0087(engine, r);
         r.index = 0x04;
         r.offset = 0x1c;
-        crate::game::routine_0073(engine, r);
+        crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         v = u8v(engine.mem(0x09) - 0x10);
@@ -1856,7 +1862,7 @@ pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
     }
-    crate::game::routine_0075(engine, r);
+    crate::game::upload_palette_buffer(engine, r);
 }
 
 /// Flashes the palette buffer `r.index` times by alternating a bright fill and
@@ -1867,12 +1873,12 @@ pub fn flash_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         for i in (0..=0x1f).rev() {
             engine.set_mem(u16v(0x0180 + i), 0x30);
         }
-        crate::game::routine_0075(engine, r);
+        crate::game::upload_palette_buffer(engine, r);
         set_frame_counter(engine, 0x01);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         crate::game::routine_0087(engine, r);
-        crate::game::routine_0075(engine, r);
+        crate::game::upload_palette_buffer(engine, r);
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
@@ -2034,7 +2040,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
 /// button, then returns to the character-selection room page.
 pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x10);
-    crate::game::routine_0081(engine, r);
+    crate::game::upload_staged_room_columns(engine, r);
     crate::game::routine_0060(engine, r);
 
     engine.set_mem(0x0e, 0xd4);
@@ -2056,7 +2062,7 @@ pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineConte
     }
 
     engine.set_mem(0x7c, 0x20);
-    crate::game::routine_0081(engine, r);
+    crate::game::upload_staged_room_columns(engine, r);
     crate::game::routine_0060(engine, r);
 }
 
@@ -2064,7 +2070,7 @@ pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineConte
 /// room.
 pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x30);
-    crate::game::routine_0081(engine, r);
+    crate::game::upload_staged_room_columns(engine, r);
     crate::game::clear_inventory_item_list_buffer(engine, r);
     crate::game::upload_inventory_item_list(engine, r);
     crate::game::routine_0060(engine, r);
@@ -2112,7 +2118,7 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
             crate::game::close_inventory_item_menu(engine, r);
         } else if (b & 0x20) != 0 {
             engine.set_mem(0x7c, 0x20);
-            crate::game::routine_0081(engine, r);
+            crate::game::upload_staged_room_columns(engine, r);
             crate::game::routine_0060(engine, r);
             crate::game::restore_status_sprite_template(engine, r);
             return;
