@@ -10,7 +10,7 @@ fn expired_player_projectile_clears_its_object_slot() {
     engine.set_mem(0x04B0, 0x21);
     engine.set_mem(0x04B1, 0x01);
 
-    game::routine_0268(&mut engine, &mut r);
+    game::update_player_projectile_slot(&mut engine, &mut r);
 
     assert_eq!(engine.mem(0x04B1), 0x00);
 }

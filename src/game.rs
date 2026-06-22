@@ -9,15 +9,18 @@ use crate::frame;
 use crate::native::*;
 use crate::{Engine, RoutineContext, cbool, not, u8v, u16v};
 
+pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
 pub use frame_counters::frame_counters;
 pub use game_update::game_update;
 pub use inc16_95::inc16_95;
+pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
 pub use metasprite_build::metasprite_build;
 pub use ppu_commit_banks::ppu_commit_banks;
+pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use reset::reset;
@@ -194,8 +197,6 @@ pub use routine_0209::routine_0209;
 pub use routine_0210::routine_0210;
 pub use routine_0211::routine_0211;
 pub use routine_0212::routine_0212;
-pub use routine_0213::routine_0213;
-pub use routine_0214::routine_0214;
 pub use routine_0215::routine_0215;
 pub use routine_0216::routine_0216;
 pub use routine_0217::routine_0217;
@@ -245,13 +246,6 @@ pub use routine_0262::routine_0262;
 pub use routine_0263::routine_0263;
 pub use routine_0264::routine_0264;
 pub use routine_0265::routine_0265;
-pub use routine_0266::routine_0266;
-pub use routine_0267::routine_0267;
-pub use routine_0268::routine_0268;
-pub use routine_0269::routine_0269;
-pub use routine_0270::routine_0270;
-pub use routine_0271::routine_0271;
-pub use routine_0272::routine_0272;
 pub use routine_0273::routine_0273;
 pub use routine_0274::routine_0274;
 pub use routine_0275::routine_0275;
@@ -276,8 +270,14 @@ pub use sound_restore_game_banks::sound_restore_game_banks;
 pub use sound_set_default_banks::sound_set_default_banks;
 pub use sound_set_song_banks::sound_set_song_banks;
 pub use sound_tick::sound_tick;
+pub use spawn_player_projectile::spawn_player_projectile;
 pub use statusbar_split::statusbar_split;
+pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use text_attr_build::text_attr_build;
+pub use update_player_projectile_slot::update_player_projectile_slot;
+pub use update_player_projectiles::update_player_projectiles;
+pub use update_tile_projectile::update_tile_projectile;
+pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
 pub use vram_blit_stack::vram_blit_stack;
@@ -941,7 +941,7 @@ mod routine_0005 {
 mod routine_0006 {
     use super::*;
     pub fn routine_0006(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0213(engine, r);
+        load_object_slot_scratch(engine, r);
         engine.set_mem(0xFD, u8v((engine.mem(0x20) & 0x40) | engine.mem(0xFD)));
         r.value = engine.mem(0xFD);
         r.offset = 0x02;
@@ -959,14 +959,14 @@ mod routine_0006 {
         if cbool(engine.mem(0xEE) != 0) {
             routine_0009(engine, r);
         }
-        routine_0214(engine, r);
+        store_object_slot_scratch(engine, r);
     }
 }
 
 mod routine_0007 {
     use super::*;
     pub fn routine_0007(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0213(engine, r);
+        load_object_slot_scratch(engine, r);
         engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
         if cbool(engine.mem(0xEE) != 0) {
             routine_0011(engine, r);
@@ -981,7 +981,7 @@ mod routine_0007 {
         if cbool(engine.mem(0xEE) != 0) {
             routine_0009(engine, r);
         }
-        routine_0214(engine, r);
+        store_object_slot_scratch(engine, r);
     }
 }
 
@@ -5435,8 +5435,8 @@ mod routine_0147 {
             && cbool(engine.mem(0x87) != 0)
             && cbool(engine.mem(0x59) != 0))
         {
-            let mut x: i32 = engine.mem(0x09);
-            engine.set_mem(u16v(0x0401 + x), 0x80);
+            let hit_slot: i32 = engine.mem(0x09);
+            engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
         }
     }
 }
@@ -6799,7 +6799,7 @@ mod routine_0212 {
                     }
                     loop {
                         let mut ee: i32 = 0;
-                        routine_0213(engine, r);
+                        load_object_slot_scratch(engine, r);
                         ee = engine.mem(0xEE);
                         if cbool(ee == 0) {
                             routine_0215(engine, r);
@@ -6812,7 +6812,7 @@ mod routine_0212 {
                         } else {
                             routine_0219(engine, r);
                         }
-                        routine_0214(engine, r);
+                        store_object_slot_scratch(engine, r);
                         engine.inc_mem(0xE3);
                         engine.set_mem(0xE5, u8v(engine.mem(0xE5) + 0x10));
                         engine.set_mem(0xE7, u8v(engine.mem(0xE7) + 0x10));
@@ -6840,7 +6840,7 @@ mod routine_0212 {
                     engine.set_mem(0xE3, 0x00);
                     engine.set_mem(0xE7, 0x20);
                     engine.set_mem(0xE8, engine.mem(0x78));
-                    routine_0213(engine, r);
+                    load_object_slot_scratch(engine, r);
                     {
                         let mut ee: i32 = engine.mem(0xEE);
                         if cbool(ee == 0) {
@@ -6852,7 +6852,7 @@ mod routine_0212 {
                             routine_0258(engine, r);
                         }
                     }
-                    routine_0214(engine, r);
+                    store_object_slot_scratch(engine, r);
                     routine_0265(engine, r);
                     {
                         state = 3;
@@ -6869,7 +6869,7 @@ mod routine_0212 {
                     engine.set_mem(0xE8, engine.mem(0x78));
                     loop {
                         let mut ee: i32 = 0;
-                        routine_0213(engine, r);
+                        load_object_slot_scratch(engine, r);
                         ee = engine.mem(0xEE);
                         if (cbool(ee == 0) || cbool(ee & 0x80)) {
                             engine.set_mem(0xEE, 0x00);
@@ -6877,7 +6877,7 @@ mod routine_0212 {
                         } else {
                             routine_0218(engine, r);
                         }
-                        routine_0214(engine, r);
+                        store_object_slot_scratch(engine, r);
                         engine.inc_mem(0xE3);
                         engine.set_mem(0xE5, u8v(engine.mem(0xE5) + 0x10));
                         engine.set_mem(0xE7, u8v(engine.mem(0xE7) + 0x10));
@@ -6898,18 +6898,24 @@ mod routine_0212 {
     }
 }
 
-mod routine_0213 {
+mod load_object_slot_scratch {
     use super::*;
-    pub fn routine_0213(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-        let mut y: i32 = 0;
+
+    /// Copies the object slot addressed by `0xE5..0xE6` into scratch RAM
+    /// `0xED..0xFC`.
+    pub fn load_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
+        let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
+        let mut slot_offset: i32 = 0;
         {
-            y = 0x0F;
-            while cbool(y >= 0) {
-                engine.set_mem(u16v(0x00ED + y), engine.mem(u16v(ptr + y)));
+            slot_offset = 0x0F;
+            while cbool(slot_offset >= 0) {
+                engine.set_mem(
+                    u16v(0x00ED + slot_offset),
+                    engine.mem(u16v(slot_ptr + slot_offset)),
+                );
                 {
-                    y -= 1;
-                    y
+                    slot_offset -= 1;
+                    slot_offset
                 };
             }
         }
@@ -6917,18 +6923,24 @@ mod routine_0213 {
     }
 }
 
-mod routine_0214 {
+mod store_object_slot_scratch {
     use super::*;
-    pub fn routine_0214(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-        let mut y: i32 = 0;
+
+    /// Writes scratch RAM `0xED..0xFC` back to the object slot addressed by
+    /// `0xE5..0xE6`.
+    pub fn store_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
+        let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
+        let mut slot_offset: i32 = 0;
         {
-            y = 0x0F;
-            while cbool(y >= 0) {
-                engine.set_mem(u16v(ptr + y), engine.mem(u16v(0x00ED + y)));
+            slot_offset = 0x0F;
+            while cbool(slot_offset >= 0) {
+                engine.set_mem(
+                    u16v(slot_ptr + slot_offset),
+                    engine.mem(u16v(0x00ED + slot_offset)),
+                );
                 {
-                    y -= 1;
-                    y
+                    slot_offset -= 1;
+                    slot_offset
                 };
             }
         }
@@ -9074,33 +9086,36 @@ mod routine_0265 {
     }
 }
 
-mod routine_0266 {
+mod update_player_projectiles {
     use super::*;
-    pub fn routine_0266(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Walks the pooled player projectile slots at `0x04B0` and either updates
+    /// an active slot or spawns a new shot on a fire-button edge.
+    pub fn update_player_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xE3, 0x0B);
         engine.set_mem(0xE5, 0xB0);
         engine.set_mem(0xE6, 0x04);
         loop {
-            let mut ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-            let mut v: i32 = engine.mem(u16v(ptr + 1));
-            if cbool(v != 0) {
-                r.value = v;
+            let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
+            let active_lifetime: i32 = engine.mem(u16v(slot_ptr + 1));
+            if cbool(active_lifetime != 0) {
+                r.value = active_lifetime;
                 r.offset = 0x01;
-                routine_0268(engine, r);
+                update_player_projectile_slot(engine, r);
             } else {
                 if cbool(engine.mem(0x20) & 0x40) {
                     if !cbool(engine.mem(0xFD) & 0x40) {
                         r.value = 0x00;
                         r.offset = 0x01;
-                        routine_0267(engine, r);
+                        spawn_player_projectile(engine, r);
                     }
                 }
             }
             engine.inc_mem(0xE3);
             {
-                let mut t: i32 = u16v(0x10 + engine.mem(0xE5));
-                engine.set_mem(0xE5, u8v(t));
-                engine.set_mem(0xE6, u8v(engine.mem(0xE6) + (t >> 8)));
+                let next_slot_lo: i32 = u16v(0x10 + engine.mem(0xE5));
+                engine.set_mem(0xE5, u8v(next_slot_lo));
+                engine.set_mem(0xE6, u8v(engine.mem(0xE6) + (next_slot_lo >> 8)));
             }
             if !cbool(u8v(engine.mem(0xE3) - 0x0B) < engine.mem(0x5E)) {
                 break;
@@ -9109,14 +9124,17 @@ mod routine_0266 {
     }
 }
 
-mod routine_0267 {
+mod spawn_player_projectile {
     use super::*;
-    pub fn routine_0267(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Initializes the current empty projectile slot from the player's facing,
+    /// current pose, and resource constraints.
+    pub fn spawn_player_projectile(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    routine_0213(engine, r);
+                    load_object_slot_scratch(engine, r);
                     engine.set_mem(0xFD, u8v((engine.mem(0x20) & 0x40) | engine.mem(0xFD)));
                     r.offset = u8v((if cbool(engine.mem(0x88) != 0) {
                         0x04
@@ -9125,7 +9143,7 @@ mod routine_0267 {
                     }));
                     r.value = engine.mem(0xFD);
                     routine_0108(engine, r);
-                    routine_0269(engine, r);
+                    project_player_projectile_position(engine, r);
                     routine_0115(engine, r);
                     if cbool(r.carry) {
                         {
@@ -9161,9 +9179,9 @@ mod routine_0267 {
                 }
                 1 => {
                     if cbool(engine.mem(0xEE) != 0) {
-                        routine_0270(engine, r);
+                        apply_projectile_direction_bits(engine, r);
                     }
-                    routine_0214(engine, r);
+                    store_object_slot_scratch(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -9172,86 +9190,95 @@ mod routine_0267 {
     }
 }
 
-mod routine_0268 {
+mod update_player_projectile_slot {
     use super::*;
-    fn store_pos(engine: &mut Engine, r: &mut RoutineContext) {
+
+    fn store_projectile_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF9, engine.mem(0x0E));
         engine.set_mem(0xFA, engine.mem(0x0F));
         engine.set_mem(0xFB, engine.mem(0x0A));
     }
 
-    fn finish(engine: &mut Engine, r: &mut RoutineContext) {
+    fn finish_projectile_slot_update(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xEE) != 0) {
-            routine_0270(engine, r);
+            apply_projectile_direction_bits(engine, r);
         }
-        routine_0214(engine, r);
+        store_object_slot_scratch(engine, r);
     }
 
-    pub fn routine_0268(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0213(engine, r);
+    /// Advances one active player projectile, applying terrain collision,
+    /// actor hits, damage, and expiry back into the object slot.
+    pub fn update_player_projectile_slot(engine: &mut Engine, r: &mut RoutineContext) {
+        load_object_slot_scratch(engine, r);
         engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
         if cbool(engine.mem(0xEE) == 0) {
-            finish(engine, r);
+            finish_projectile_slot_update(engine, r);
             return;
         }
         routine_0241(engine, r);
         routine_0115(engine, r);
         if cbool(r.carry) {
             engine.set_mem(0xEE, 0x00);
-            finish(engine, r);
+            finish_projectile_slot_update(engine, r);
             return;
         }
         routine_0109(engine, r);
         if !cbool(r.carry) {
-            store_pos(engine, r);
-            finish(engine, r);
+            store_projectile_position(engine, r);
+            finish_projectile_slot_update(engine, r);
             return;
         }
         if (cbool(engine.mem(0x2D) >= 0x30) && cbool(engine.mem(0x08) >= 0x04)) {
-            let mut x: i32 = engine.mem(0x09);
-            engine.set_mem(u16v(0x0401 + x), 0x80);
+            let hit_slot: i32 = engine.mem(0x09);
+            engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
             engine.set_mem(0xEE, 0x01);
             engine.set_mem(0x8F, 0x0C);
-            store_pos(engine, r);
-            finish(engine, r);
+            store_projectile_position(engine, r);
+            finish_projectile_slot_update(engine, r);
             return;
         }
         {
-            let mut x: i32 = engine.mem(0x09);
-            if cbool(u8v(engine.mem(u16v(0x0401 + x)) - 1) != 0) {
-                store_pos(engine, r);
-                finish(engine, r);
+            let mut hit_slot: i32 = engine.mem(0x09);
+            if cbool(u8v(engine.mem(u16v(0x0401 + hit_slot)) - 1) != 0) {
+                store_projectile_position(engine, r);
+                finish_projectile_slot_update(engine, r);
                 return;
             }
-            x = engine.mem(0x09);
+            hit_slot = engine.mem(0x09);
             {
-                let mut yv: i32 = (if cbool(engine.mem(0xEE) & 0x01) {
+                let knockback: i32 = (if cbool(engine.mem(0xEE) & 0x01) {
                     0x02
                 } else {
                     0xFE
                 });
-                engine.set_mem(u16v(0x040F + x), yv);
+                engine.set_mem(u16v(0x040F + hit_slot), knockback);
             }
             {
-                let mut cur: i32 = engine.mem(u16v(0x0405 + x));
-                let mut sub: i32 = engine.mem(0xF8);
-                engine.set_mem(u16v(0x0405 + x), u8v(cur - sub));
-                if cbool(cur >= sub) {
+                let target_health: i32 = engine.mem(u16v(0x0405 + hit_slot));
+                let projectile_damage: i32 = engine.mem(0xF8);
+                engine.set_mem(
+                    u16v(0x0405 + hit_slot),
+                    u8v(target_health - projectile_damage),
+                );
+                if cbool(target_health >= projectile_damage) {
                     engine.set_mem(0x8F, 0x06);
                 } else {
-                    engine.set_mem(u16v(0x0401 + x), 0x80);
-                    engine.set_mem(u16v(0x0405 + x), 0x00);
+                    engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
+                    engine.set_mem(u16v(0x0405 + hit_slot), 0x00);
                 }
             }
-            store_pos(engine, r);
-            finish(engine, r);
+            store_projectile_position(engine, r);
+            finish_projectile_slot_update(engine, r);
         }
     }
 }
 
-mod routine_0269 {
+mod project_player_projectile_position {
     use super::*;
-    pub fn routine_0269(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Projects player position plus projectile velocity into the shared
+    /// collision-coordinate scratch registers.
+    pub fn project_player_projectile_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0F, engine.mem(0x44));
         engine.set_mem(0x0A, engine.mem(0x45));
@@ -9261,90 +9288,82 @@ mod routine_0269 {
             engine.set_mem(0x0A, a);
         }
         if cbool(engine.mem(0xF5) != 0) {
-            let mut pulled: i32 = u8v(u8v((engine.mem(0xF5) << 2) & 0x0F) + engine.mem(0x0E));
-            engine.set_mem(0x0E, pulled & 0x0F);
+            let projected_subtile: i32 =
+                u8v(u8v((engine.mem(0xF5) << 2) & 0x0F) + engine.mem(0x0E));
+            engine.set_mem(0x0E, projected_subtile & 0x0F);
             engine.set_mem(
                 0x0F,
-                u8v(engine.mem(0x0F) + engine.mem(0xF6) + ((pulled >> 4) & 1)),
+                u8v(engine.mem(0x0F) + engine.mem(0xF6) + ((projected_subtile >> 4) & 1)),
             );
         }
     }
 }
 
-mod routine_0270 {
+mod apply_projectile_direction_bits {
     use super::*;
-    pub fn routine_0270(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut bits: i32 = engine.mem(0xEE) & 0x0C;
-        engine.set_mem(0x08, bits);
-        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | bits));
+
+    /// Copies the projectile direction bits from its lifetime/state byte into
+    /// the sprite/object descriptor used by later render and collision code.
+    pub fn apply_projectile_direction_bits(engine: &mut Engine, r: &mut RoutineContext) {
+        let direction_bits: i32 = engine.mem(0xEE) & 0x0C;
+        engine.set_mem(0x08, direction_bits);
+        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | direction_bits));
         r.value = engine.mem(0xED);
     }
 }
 
-mod routine_0271 {
+mod update_tile_projectile {
     use super::*;
-    pub fn routine_0271(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Updates the singleton tile-removal projectile stored at `0x0490` and
+    /// restores its saved background tile when it expires.
+    pub fn update_tile_projectile(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x0491) == 0) {
             return;
         }
         engine.set_mem(0xE5, 0x90);
         engine.set_mem(0xE6, 0x04);
-        routine_0213(engine, r);
+        load_object_slot_scratch(engine, r);
         engine.set_mem(0xF3, u8v(engine.mem(0xF3) - 1));
         if cbool(engine.mem(0xF3) != 0) {
-            routine_0272(engine, r);
+            update_tile_projectile_motion(engine, r);
             return;
         }
         if cbool((engine.mem(0xED) & 0x01) == 0) {
             if cbool(u8v((engine.mem(0xFB) & 0x0F) | engine.mem(0xF9)) != 0) {
                 engine.set_mem(0xF3, u8v(engine.mem(0xF3) + 1));
-                routine_0272(engine, r);
+                update_tile_projectile_motion(engine, r);
                 return;
             }
         }
         engine.set_mem(0xEE, 0x00);
         if cbool(engine.mem(0xF0) != 0) {
-            let mut ptr: i32 = 0;
-            let mut diff: i32 = 0;
             engine.set_mem(0x0C, engine.mem(0xFA));
             engine.set_mem(0x0D, engine.mem(0xFB));
             routine_0090(engine, r);
-            ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-            engine.set_mem(ptr, engine.mem(0xF0));
-            diff = u8v(engine.mem(0xFA) - engine.mem(0x7C));
-            if (cbool(diff < 0x11) || cbool(diff >= 0xFE)) {
-                let mut fa: i32 = engine.mem(0xFA);
-                engine.set_mem(0x0C, fa);
-                engine.set_mem(0x16, u8v((fa << 1) & 0x1F));
+            let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+            engine.set_mem(tile_ptr, engine.mem(0xF0));
+            let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));
+            if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
+                let tile_x: i32 = engine.mem(0xFA);
+                engine.set_mem(0x0C, tile_x);
+                engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
                 engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
                 engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
                 engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
                 farcall_bank_09_r7(engine, r);
             }
         }
-        routine_0214(engine, r);
+        store_object_slot_scratch(engine, r);
     }
 }
 
-mod routine_0272 {
+mod update_tile_projectile_motion {
     use super::*;
-    fn e99a_copy(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = 0;
-        {
-            y = 0x0F;
-            while cbool(y >= 0) {
-                let mut ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-                engine.set_mem(u16v(ptr + y), engine.mem(u16v(0x00ED + y)));
-                {
-                    y -= 1;
-                    y
-                };
-            }
-        }
-        r.offset = 0xFF;
-    }
 
-    pub fn routine_0272(engine: &mut Engine, r: &mut RoutineContext) {
+    /// Advances the tile-removal projectile, including collision checks,
+    /// bouncing, contact damage, and final tile replacement.
+    pub fn update_tile_projectile_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -9396,8 +9415,8 @@ mod routine_0272 {
                     }
                     routine_0109(engine, r);
                     if cbool(r.carry) {
-                        let mut x: i32 = engine.mem(0x09);
-                        engine.set_mem(u16v(0x0401 + x), 0x80);
+                        let hit_slot: i32 = engine.mem(0x09);
+                        engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
                     }
                     engine.set_mem(0xF9, engine.mem(0x0E));
                     engine.set_mem(0xFA, engine.mem(0x0F));
@@ -9463,18 +9482,16 @@ mod routine_0272 {
                     {
                         engine.set_mem(0xEE, 0x00);
                         if cbool(engine.mem(0xF0) != 0) {
-                            let mut ptr: i32 = 0;
-                            let mut diff: i32 = 0;
                             engine.set_mem(0x0C, engine.mem(0xFA));
                             engine.set_mem(0x0D, engine.mem(0xFB));
                             routine_0090(engine, r);
-                            ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-                            engine.set_mem(ptr, engine.mem(0xF0));
-                            diff = u8v(engine.mem(0xFA) - engine.mem(0x7C));
-                            if (cbool(diff < 0x11) || cbool(diff >= 0xFE)) {
-                                let mut fa: i32 = engine.mem(0xFA);
-                                engine.set_mem(0x0C, fa);
-                                engine.set_mem(0x16, u8v((fa << 1) & 0x1F));
+                            let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+                            engine.set_mem(tile_ptr, engine.mem(0xF0));
+                            let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));
+                            if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
+                                let tile_x: i32 = engine.mem(0xFA);
+                                engine.set_mem(0x0C, tile_x);
+                                engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
                                 engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
                                 engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
                                 engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
@@ -9486,7 +9503,7 @@ mod routine_0272 {
                     continue 'dispatch;
                 }
                 4 => {
-                    e99a_copy(engine, r);
+                    store_object_slot_scratch(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,

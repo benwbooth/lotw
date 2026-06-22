@@ -57,7 +57,7 @@ Important offsets inside a slot:
 | `+0x0E` | `0xFB` | y pixel |
 | `+0x0F` | `0xFC` | extra y/sprite scratch |
 
-The projectile bug fixed in `routine_0268` came from violating this pattern:
+The projectile bug fixed in `update_player_projectile_slot` came from violating this pattern:
 the active byte was cleared in scratch but not copied back to the object slot.
 
 ## Foreground vs Vblank

@@ -29,8 +29,9 @@ The native executable runs these major phases:
    interrupted context.
 5. `game_update` processes live input, movement, item actions, character swaps,
    room collisions, and follow-up state changes for one foreground tick.
-6. `routine_0266`, `routine_0212`, and `routine_0271` update player shots,
-   room actors, and the special tile-removal projectile before the render pass.
+6. `update_player_projectiles`, `routine_0212`, and `update_tile_projectile`
+   update player shots, room actors, and the special tile-removal projectile
+   before the render pass.
 
 ## Memory Map
 
@@ -68,12 +69,12 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x93..0xC6` | music channel state | `routine_0273..routine_0289` |
 | `0xD3..0xDD` | sfx overlay channel state | `sfx_overlay_voice` |
 | `0xE3..0xE9` | object-loop slot index and pointers | actor update loops |
-| `0xED..0xFC` | current object scratch slot | copied by `routine_0213/0214` |
+| `0xED..0xFC` | current object scratch slot | copied by `load_object_slot_scratch/store_object_slot_scratch` |
 | `0xFD` | held/directional action latch | input edge/action gating |
 | `0x0200..0x02FF` | OAM staging | render and vblank commit |
 | `0x0300..0x03FF` | persistent room/event bits | map progress and room flags |
 | `0x0400..0x04AF` | 16-byte object slots | actors, items, projectiles, door slot |
-| `0x04B0..` | pooled player projectile slots | `routine_0266..0268` |
+| `0x04B0..` | pooled player projectile slots | `update_player_projectiles`, `update_player_projectile_slot` |
 
 ## Complete Numbered Routine Coverage
 
@@ -118,7 +119,6 @@ would currently be weaker than the cluster name.
 | `game` | `0192`, `0195..0203` | cluster | room transition, damage/effect, and score/resource effect helpers |
 | `game` | `0204..0211` | inferred | resource/counter add, subtract, cap, decrement, and HUD sync |
 | `game` | `0212` | inferred | main room actor scheduler |
-| `game` | `0213`, `0214` | inferred | copy 16-byte object slot to/from scratch RAM |
 | `game` | `0215..0219` | inferred | inactive actor spawn, respawn delay, boss dispatch, and normal actor tick |
 | `game` | `0220..0229` | cluster | per-actor behavior handlers selected by room actor data |
 | `game` | `0230..0239` | inferred | actor movement helper routines, velocity reset, and collision response |
@@ -127,13 +127,6 @@ would currently be weaker than the cluster name.
 | `game` | `0250..0256` | inferred | terrain collision probes and actor movement validation |
 | `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
-| `game` | `0266` | inferred | pooled player projectile slot scheduler |
-| `game` | `0267` | inferred | allocate/spawn a player projectile from current input and facing |
-| `game` | `0268` | inferred | update one player projectile slot and clear it on expiry/collision |
-| `game` | `0269` | inferred | project projectile position from player pose and velocity |
-| `game` | `0270` | inferred | copy projectile direction bits into sprite attributes |
-| `game` | `0271` | inferred | special tile-removal projectile scheduler |
-| `game` | `0272` | inferred | update special projectile movement, collision, bounce, and tile replacement |
 | `game` | `0273..0276` | inferred | four music/audio channel tickers |
 | `game` | `0277..0282` | inferred | music bytecode/control command dispatcher |
 | `game` | `0283..0289` | inferred | note period, envelope, duration, and silence helpers |
@@ -151,32 +144,39 @@ surface when touching nearby code:
 | `frame_counters` | tick coarse frame timers once per second |
 | `game_update` | foreground input/player/item update |
 | `inc16_95` | increment the music stream pointer for the selected channel |
+| `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
+| `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `reset` | top-level reset entry |
 | `rng_update` | update random source bounded by `r.value` |
 | `scene_assemble` | rebuild room state from current map coordinates |
+| `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
+| `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
+| `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
+| `update_player_projectiles` | pooled player projectile slot scheduler |
+| `update_tile_projectile` | special tile-removal projectile scheduler |
+| `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
 | `vram_*` | deferred VRAM job implementations |
 
 ## Next Renaming Targets
 
-The safest concrete rename/alias batches are:
+The safest remaining concrete rename/alias batches are:
 
-1. Projectile system: `routine_0266..0272`.
-2. Object-slot scratch copy: `routine_0213`, `routine_0214`.
-3. Resource/HUD counters: `routine_0204..0211`.
-4. Tile address and collision probes: `routine_0090..0116`, `0250..0256`.
-5. Audio command engine: `routine_0273..0289`.
+1. Resource/HUD counters: `routine_0204..0211`.
+2. Tile address and collision probes: `routine_0090..0116`, `0250..0256`.
+3. Audio command engine: `routine_0273..0289`.
+4. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

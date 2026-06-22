@@ -209,9 +209,9 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             return;
         }
 
-        crate::game::routine_0266(engine, r);
+        crate::game::update_player_projectiles(engine, r);
         crate::game::routine_0212(engine, r);
-        crate::game::routine_0271(engine, r);
+        crate::game::update_tile_projectile(engine, r);
         crate::game::routine_0059(engine, r);
         let saved_c = r.carry;
         crate::game::routine_0061(engine, r);
@@ -538,7 +538,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn routine_0002(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xe5, 0x00);
     engine.set_mem(0xe6, 0x04);
-    crate::game::routine_0213(engine, r);
+    crate::game::load_object_slot_scratch(engine, r);
     if engine.mem(0x00f2) == 0 {
         routine_0002_cutscene(engine, r);
         return;
@@ -700,7 +700,7 @@ pub fn routine_0002(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     crate::game::routine_0003(engine, r);
-    crate::game::routine_0214(engine, r);
+    crate::game::store_object_slot_scratch(engine, r);
 }
 
 pub fn routine_0004(engine: &mut Engine, r: &mut RoutineContext) {
@@ -1028,9 +1028,15 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             }
 
             farcall_cce4(engine, r, 0x2b, 0xd4, crate::game::game_update);
-            farcall_cce4(engine, r, 0x28, 0xf6, crate::game::routine_0266);
+            farcall_cce4(
+                engine,
+                r,
+                0x28,
+                0xf6,
+                crate::game::update_player_projectiles,
+            );
             farcall_cce4(engine, r, 0x7c, 0xe8, crate::game::routine_0212);
-            farcall_cce4(engine, r, 0x82, 0xf7, crate::game::routine_0271);
+            farcall_cce4(engine, r, 0x82, 0xf7, crate::game::update_tile_projectile);
             farcall_cce4(engine, r, 0x5d, 0xc1, crate::game::routine_0059);
             crate::game::routine_0061(engine, r);
             crate::game::routine_0063(engine, r);
@@ -1586,7 +1592,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0xf0, engine.mem(0x71));
             engine.set_mem(0xf3, 0x0a);
             crate::game::routine_0170(engine, r);
-            crate::game::routine_0214(engine, r);
+            crate::game::store_object_slot_scratch(engine, r);
             engine.set_mem(0x8f, 0x06);
         }
         let v = engine.mem(0x71) & 0x3f;
@@ -1620,7 +1626,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0xf0, engine.mem(0x74));
             engine.set_mem(0xf3, 0x0f);
             crate::game::routine_0170(engine, r);
-            crate::game::routine_0214(engine, r);
+            crate::game::store_object_slot_scratch(engine, r);
             engine.set_mem(0x8f, 0x06);
         }
         r.carry = 1;
@@ -1683,7 +1689,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.set_mem(u16v(ptr + r.offset), r.value);
                     crate::game::routine_0170(engine, r);
                     crate::game::routine_0171(engine, r);
-                    crate::game::routine_0272(engine, r);
+                    crate::game::update_tile_projectile_motion(engine, r);
                     engine.set_mem(0xe3, 0xff);
                     if engine.mem(0x0491) != 0 {
                         engine.set_mem(0x8f, 0x06);
@@ -1712,7 +1718,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.set_mem(u16v(ptr + r.offset), r.value);
                         crate::game::routine_0170(engine, r);
                         crate::game::routine_0171(engine, r);
-                        crate::game::routine_0272(engine, r);
+                        crate::game::update_tile_projectile_motion(engine, r);
                         engine.set_mem(0xe3, 0xff);
                         if engine.mem(0xee) != 0 {
                             engine.set_mem(0x8f, 0x14);
