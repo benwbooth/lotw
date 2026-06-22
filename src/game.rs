@@ -134,7 +134,6 @@ pub use load_title_oam_template::load_title_oam_template;
 pub use load_title_palette_buffer::load_title_palette_buffer;
 pub use main_init::main_init;
 pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
-pub use metasprite_build::metasprite_build;
 pub use move_inventory_cursor_down::move_inventory_cursor_down;
 pub use move_inventory_cursor_left::move_inventory_cursor_left;
 pub use move_inventory_cursor_right::move_inventory_cursor_right;
@@ -152,6 +151,7 @@ pub use project_final_exit_projectile_spawn::project_final_exit_projectile_spawn
 pub use project_player_position::project_player_position;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use project_scripted_player_position::project_scripted_player_position;
+pub use queue_room_column_vram_upload::queue_room_column_vram_upload;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
@@ -316,7 +316,7 @@ mod farcall_bank_09_r7 {
         engine.set_mem(0x0D, 0x00);
         r.value = 0x00;
         resolve_room_tile_pointer(engine, r);
-        metasprite_build(engine, r);
+        queue_room_column_vram_upload(engine, r);
         engine.set_mem(0x25, 0x07);
         engine.device_write(0x8000, 0x07);
         engine.set_mem(0x31, saved_r7);
@@ -649,68 +649,74 @@ mod main_init {
     }
 }
 
-mod metasprite_build {
+mod queue_room_column_vram_upload {
     use super::*;
-    pub fn metasprite_build(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut p0C: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        let mut p79: i32 = u16v(engine.mem(0x79) | (engine.mem(0x7A) << 8));
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        let mut dst_lo: i32 = 0;
-        let mut mask2: i32 = 0;
+
+    /// Stages one room-column upload from the current room tile source pointer
+    /// and queues VRAM job `0x03`.
+    ///
+    /// The nametable bytes are written to `0x0140` and `0x0158`; the matching
+    /// attribute byte addresses and masks are written to `0x0170..0x017B`.
+    pub fn queue_room_column_vram_upload(engine: &mut Engine, r: &mut RoutineContext) {
+        let source_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tileset_quads_ptr: i32 = u16v(engine.mem(0x79) | (engine.mem(0x7A) << 8));
+
         engine.set_mem(0x0B, 0x00);
-        {
-            x = 0x16;
-            while cbool(x >= 0) {
-                let mut e: i32 = engine.mem(u16v(p0C + engine.mem(0x0B)));
-                let mut ty: i32 = u16v(u8v(e << 2));
-                engine.set_mem(u16v(0x0141 + x), engine.mem(u16v(p79 + ((ty + 0) & 0xFF))));
-                engine.set_mem(u16v(0x0140 + x), engine.mem(u16v(p79 + ((ty + 1) & 0xFF))));
-                engine.set_mem(u16v(0x0159 + x), engine.mem(u16v(p79 + ((ty + 2) & 0xFF))));
-                engine.set_mem(u16v(0x0158 + x), engine.mem(u16v(p79 + ((ty + 3) & 0xFF))));
-                engine.add_mem(0x0B, 1);
-                x -= 2;
-            }
+        for staging_offset in (0..=0x16).rev().step_by(2) {
+            let metatile_id: i32 = engine.mem(u16v(source_ptr + engine.mem(0x0B)));
+            let tile_quad_offset: i32 = u16v(u8v(metatile_id << 2));
+            engine.set_mem(
+                0x0141 + staging_offset,
+                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 0) & 0xFF))),
+            );
+            engine.set_mem(
+                0x0140 + staging_offset,
+                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 1) & 0xFF))),
+            );
+            engine.set_mem(
+                0x0159 + staging_offset,
+                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 2) & 0xFF))),
+            );
+            engine.set_mem(
+                0x0158 + staging_offset,
+                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 3) & 0xFF))),
+            );
+            engine.add_mem(0x0B, 1);
         }
+
         engine.set_mem(0x19, u8v(engine.mem(0x17) + 0x03));
-        dst_lo = engine.mem(0x16);
-        engine.set_mem(0x0B, u8v((dst_lo >> 2) + 0xC0));
-        mask2 = u8v(dst_lo & 0x02);
-        engine.set_mem(0x18, (if cbool(mask2) { 0x33 } else { 0xCC }));
-        y = 0x00;
-        {
-            x = 0x0A;
-            while cbool(x >= 0) {
-                let mut b0: i32 = 0;
-                let mut b1: i32 = 0;
-                let mut v: i32 = 0;
-                engine.set_mem(u16v(0x0170 + x), engine.mem(0x0B));
-                engine.set_mem(0x0B, u8v(engine.mem(0x0B) + 0x08));
-                b0 = engine.mem(u16v(
-                    p0C + ({
-                        let __old = y;
-                        y += 1;
-                        __old
-                    }),
-                ));
-                v = u8v((b0 & 0xC0) >> 4);
-                engine.set_mem(u16v(0x0171 + x), v);
-                b1 = engine.mem(u16v(
-                    p0C + ({
-                        let __old = y;
-                        y += 1;
-                        __old
-                    }),
-                ));
-                v = u8v((b1 & 0xC0) | engine.mem(u16v(0x0171 + x)));
-                engine.set_mem(u16v(0x0171 + x), v);
-                if cbool(mask2 == 0) {
-                    engine.set_mem(u16v(0x0171 + x), u8v(engine.mem(u16v(0x0171 + x)) >> 1));
-                    engine.set_mem(u16v(0x0171 + x), u8v(engine.mem(u16v(0x0171 + x)) >> 1));
-                }
-                x -= 2;
+        let destination_low_byte: i32 = engine.mem(0x16);
+        engine.set_mem(0x0B, u8v((destination_low_byte >> 2) + 0xC0));
+
+        let attribute_side_mask: i32 = u8v(destination_low_byte & 0x02);
+        engine.set_mem(
+            0x18,
+            if cbool(attribute_side_mask) {
+                0x33
+            } else {
+                0xCC
+            },
+        );
+
+        let mut source_attribute_offset: i32 = 0x00;
+        for attribute_offset in (0..=0x0A).rev().step_by(2) {
+            engine.set_mem(0x0170 + attribute_offset, engine.mem(0x0B));
+            engine.set_mem(0x0B, u8v(engine.mem(0x0B) + 0x08));
+
+            let top_metatile_id: i32 = engine.mem(u16v(source_ptr + source_attribute_offset));
+            source_attribute_offset += 1;
+            let mut attribute_bits: i32 = u8v((top_metatile_id & 0xC0) >> 4);
+
+            let bottom_metatile_id: i32 = engine.mem(u16v(source_ptr + source_attribute_offset));
+            source_attribute_offset += 1;
+            attribute_bits = u8v((bottom_metatile_id & 0xC0) | attribute_bits);
+
+            if cbool(attribute_side_mask == 0) {
+                attribute_bits = u8v(attribute_bits >> 2);
             }
+            engine.set_mem(0x0171 + attribute_offset, attribute_bits);
         }
+
         r.value = 0x03;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -2928,7 +2934,7 @@ mod build_staged_room_column {
         engine.set_mem(0x0D, 0x00);
         resolve_room_tile_pointer(engine, r);
         engine.set_mem(0x0D, u8v(u8v(engine.mem(0x0D) - 0x05) + engine.mem(0x76)));
-        metasprite_build(engine, r);
+        queue_room_column_vram_upload(engine, r);
     }
 }
 

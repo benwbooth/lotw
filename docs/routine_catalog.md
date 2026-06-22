@@ -233,7 +233,7 @@ surface when touching nearby code:
 | `load_title_oam_template` | copy the full title-screen OAM template into sprite staging |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `maybe_spawn_pursuer_actor` | one-in-30 secondary actor spawn path that seeds scratch position from the player slot |
-| `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
+| `queue_room_column_vram_upload` | stage a room column's nametable and attribute bytes, then queue its VRAM upload |
 | `move_inventory_cursor_down` | move the inventory grid cursor down, wrapping across five rows |
 | `move_inventory_cursor_left` | move the inventory grid cursor left, wrapping across seven columns |
 | `move_inventory_cursor_right` | move the inventory grid cursor right, wrapping across seven columns |
