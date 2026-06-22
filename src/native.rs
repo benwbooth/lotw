@@ -1964,7 +1964,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
     engine.inc_mem(0x8d);
 
     if engine.mem(0x2d) < 0x30 {
-        routine_0193(engine, r);
+        push_room_checkpoint(engine, r);
         r.value = 0x08;
         crate::game::routine_0195(engine, r);
         crate::game::routine_0197(engine, r);
@@ -1998,7 +1998,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
     set_prompt_state(engine, 0x04);
 
     if engine.mem(0x2d) < 0x30 {
-        routine_0194(engine, r);
+        pop_room_checkpoint(engine, r);
         routine_0067(engine, r);
         crate::game::routine_0200(engine, r);
         r.value = engine.mem(0xfe);
@@ -2115,16 +2115,16 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
 /// pick a family member, and optionally visit the inventory item pages.
 pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.mem(0x48) != 0x10 {
-        routine_0193(engine, r);
+        push_room_checkpoint(engine, r);
         r.value = 0x04;
         crate::game::routine_0195(engine, r);
         crate::game::routine_0199(engine, r);
         routine_0070(engine, r);
 
         loop {
-            routine_0189(engine, r);
+            walk_purchase_room_until_action_or_exit(engine, r);
             if cbool(r.carry) {
-                crate::game::routine_0192(engine, r);
+                crate::game::restore_room_from_checkpoint(engine, r);
                 return;
             }
             if engine.mem(0x5a) < 0x0a {
@@ -2157,7 +2157,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             crate::game::routine_0060(engine, r);
             crate::game::routine_0061(engine, r);
             routine_0070(engine, r);
-            routine_0188(engine, r);
+            run_carried_item_loadout_flow(engine, r);
             r.value = 0x04;
             crate::game::routine_0196(engine, r);
             crate::game::routine_0200(engine, r);
@@ -2179,7 +2179,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         crate::game::snapshot_inventory_state(engine, r);
     }
 
-    routine_0193(engine, r);
+    push_room_checkpoint(engine, r);
     engine.set_mem(0x40, 0x06);
     r.value = 0x06;
     crate::game::routine_0195(engine, r);
@@ -2195,7 +2195,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     routine_0070(engine, r);
 
     loop {
-        routine_0191(engine, r);
+        walk_character_select_room_until_action(engine, r);
         let hi = engine.mem(0x0a) & 0xf0;
         let mut chosen: Option<i32> = None;
         if hi == 0x50 {
@@ -2301,14 +2301,17 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         crate::game::routine_0060(engine, r);
         crate::game::routine_0061(engine, r);
         routine_0070(engine, r);
-        routine_0188(engine, r);
-        crate::game::routine_0192(engine, r);
+        run_carried_item_loadout_flow(engine, r);
+        crate::game::restore_room_from_checkpoint(engine, r);
         return;
     }
 }
 
-pub fn routine_0187(engine: &mut Engine, r: &mut RoutineContext) {
-    routine_0193(engine, r);
+/// Runs the overhead-tile shop room. The caller enters through room tile `0x04`;
+/// this flow preserves the current room, stages the shop room, sells the two
+/// visible shop items, and restores gameplay when the player reaches the exit.
+pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
+    push_room_checkpoint(engine, r);
 
     let s80 = engine.mem(0x80);
     let s81 = engine.mem(0x81);
@@ -2327,9 +2330,9 @@ pub fn routine_0187(engine: &mut Engine, r: &mut RoutineContext) {
     routine_0070(engine, r);
 
     loop {
-        routine_0189(engine, r);
+        walk_purchase_room_until_action_or_exit(engine, r);
         if cbool(r.carry) {
-            crate::game::routine_0192(engine, r);
+            crate::game::restore_room_from_checkpoint(engine, r);
             return;
         }
 
@@ -2374,7 +2377,9 @@ pub fn routine_0187(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0191(engine: &mut Engine, r: &mut RoutineContext) {
+/// Walks the character-select room until the action button is pressed, keeping
+/// `0x43..0x45` pointed at the last selectable tile under the player.
+pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         set_frame_counter(engine, 0x01);
         let buttons = frame::read_buttons(engine, r);
@@ -2470,7 +2475,10 @@ pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xfb, engine.mem(0x0a));
 }
 
-pub fn routine_0189(engine: &mut Engine, r: &mut RoutineContext) {
+/// Walks a purchase/refill room until the player presses action or reaches the
+/// exit tile. Carry set means exit; carry clear means action on the current
+/// selectable tile.
+pub fn walk_purchase_room_until_action_or_exit(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         set_frame_counter(engine, 0x01);
         let buttons = frame::read_buttons(engine, r);
@@ -2508,7 +2516,10 @@ pub fn routine_0189(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0190(engine: &mut Engine, r: &mut RoutineContext) {
+/// Walks the carried-item loadout room until action or exit. This variant keeps
+/// the tile cursor over a wider range than the purchase-room movement loop so
+/// empty carried-item slots can be selected too.
+pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         set_frame_counter(engine, 0x01);
         let buttons = frame::read_buttons(engine, r);
@@ -2554,9 +2565,13 @@ pub fn routine_0190(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0188(engine: &mut Engine, r: &mut RoutineContext) {
+/// Lets the player refill the active family member's carried-item queue. A
+/// selected inventory item is consumed, the previous front carried item is
+/// returned to inventory, and the queue shifts left before the new item is
+/// appended.
+pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
-        routine_0190(engine, r);
+        walk_loadout_room_until_action_or_exit(engine, r);
         if cbool(r.carry) {
             let e = engine.mem(0x55);
             if engine.mem(u16v(0x51 + e)) == 0x0d {
@@ -2606,7 +2621,10 @@ pub fn routine_0188(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0193(engine: &mut Engine, _r: &mut RoutineContext) {
+/// Saves the current gameplay room state before entering a temporary room such
+/// as a shop or character-select room. The current song is mirrored in `0xFE`
+/// so the restore path can restart it after rebuilding the room.
+pub fn push_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
     engine.set_mem(0xfe, engine.mem(0x8e));
     if engine.room_ckpt_sp < engine.room_ckpt_stack.len() {
         let c = [
@@ -2623,7 +2641,9 @@ pub fn routine_0193(engine: &mut Engine, _r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0194(engine: &mut Engine, _r: &mut RoutineContext) {
+/// Restores the most recently saved gameplay room position, scroll, and room
+/// identity fields.
+pub fn pop_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
     if engine.room_ckpt_sp > 0 {
         engine.room_ckpt_sp -= 1;
         let c = engine.room_ckpt_stack[engine.room_ckpt_sp];

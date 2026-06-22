@@ -117,6 +117,7 @@ pub use reset::reset;
 pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use restore_inventory_state_snapshot::restore_inventory_state_snapshot;
+pub use restore_room_from_checkpoint::restore_room_from_checkpoint;
 pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
@@ -196,7 +197,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0192::routine_0192;
 pub use routine_0195::routine_0195;
 pub use routine_0196::routine_0196;
 pub use routine_0197::routine_0197;
@@ -5891,7 +5891,7 @@ mod dispatch_overhead_tile_action {
                 true
             }
             0x04 => {
-                routine_0187(engine, r);
+                run_shop_room_flow(engine, r);
                 engine.lotw_nonlocal_handoff = 1;
                 true
             }
@@ -6363,10 +6363,13 @@ mod set_inventory_list_buffer_index {
     }
 }
 
-mod routine_0192 {
+mod restore_room_from_checkpoint {
     use super::*;
-    pub fn routine_0192(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0194(engine, r);
+
+    /// Pops a temporary-room checkpoint and rebuilds the gameplay room,
+    /// including the saved song, room graphics, sprites, and player pose.
+    pub fn restore_room_from_checkpoint(engine: &mut Engine, r: &mut RoutineContext) {
+        pop_room_checkpoint(engine, r);
         routine_0067(engine, r);
         routine_0200(engine, r);
         r.value = engine.mem(0xFE);

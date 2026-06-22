@@ -100,8 +100,7 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
-| `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
+| `game` | `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `native` | `0240` | inferred | high-bit/special actor update path |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
 
@@ -206,6 +205,8 @@ surface when touching nearby code:
 | `move_inventory_cursor_up` | move the inventory grid cursor up, wrapping across five rows |
 | `next_envelope_volume` | update the selected audio channel's envelope accumulator and compose the APU volume byte |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
+| `pop_room_checkpoint` | restore the most recently saved gameplay room position, scroll, and room identity fields |
+| `push_room_checkpoint` | save gameplay room position, scroll, room identity, and current song before temporary room flows |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
 | `probe_actor_overhead_step` | probe the projected tile row above an actor when it is tile-aligned |
@@ -221,12 +222,15 @@ surface when touching nearby code:
 | `reset` | top-level reset entry |
 | `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
+| `restore_room_from_checkpoint` | pop a temporary-room checkpoint and rebuild the gameplay room, saved song, sprites, and player pose |
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
-| `run_warp_transition_effect` | shared scroll/audio transition used before scripted room warps |
+| `run_carried_item_loadout_flow` | refill the active family member's carried-item queue from inventory |
 | `run_character_select_overlay` | open the in-game character-select overlay, wait for select-button release, and restore the room |
 | `run_character_select_room_flow` | run the special room flow for resource refill, carried-item return, family selection, and item pages |
 | `run_inventory_item_grid_menu` | run the interactive inventory item-grid editor from the character-selection room |
+| `run_shop_room_flow` | enter the overhead-tile shop room, handle purchases, and restore the previous gameplay room on exit |
+| `run_warp_transition_effect` | shared scroll/audio transition used before scripted room warps |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
 | `restore_inventory_state_snapshot` | restore progress, inventory counts, coins, and keys saved before inventory/status flows |
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
@@ -307,12 +311,15 @@ surface when touching nearby code:
 | `vram_*` | deferred VRAM job implementations |
 | `wait_for_button_press` | frame-advance until any button is pressed |
 | `wait_for_buttons_released` | frame-advance until all buttons are released |
+| `walk_character_select_room_until_action` | move within the character-select room and track the selected tile until action is pressed |
+| `walk_loadout_room_until_action_or_exit` | move within the carried-item loadout room until action or the exit tile |
+| `walk_purchase_room_until_action_or_exit` | move within purchase/refill rooms until action or the exit tile |
 
 ## Next Renaming Targets
 
 The safest remaining concrete rename/alias batches are:
 
-1. Room transition/death/return-home flows: `routine_0187..0194`.
+1. Room transition/item/score/effect helpers: `routine_0195..0201`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
