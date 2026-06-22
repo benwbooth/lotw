@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     engine.set_mem(0x7c, 0x20);
     game::upload_staged_room_columns(&mut engine, &mut r);
     game::routine_0060(&mut engine, &mut r);
-    game::routine_0076(&mut engine, &mut r);
+    game::upload_status_panel_template(&mut engine, &mut r);
     game::upload_inventory_item_list(&mut engine, &mut r);
     for fr in 0..4 {
         eprintln!("frame {fr}: game_update...");

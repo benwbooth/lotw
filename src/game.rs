@@ -37,6 +37,7 @@ pub use build_input_movement_delta::build_input_movement_delta;
 pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles;
 pub use build_object_health_meter_standard_tiles::build_object_health_meter_standard_tiles;
 pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
+pub use build_room_palette_buffer::build_room_palette_buffer;
 pub use build_staged_room_column::build_staged_room_column;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_direction_contact::check_actor_direction_contact;
@@ -55,6 +56,7 @@ pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_dir
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_pending_vram_job::clear_pending_vram_job;
+pub use clear_room_persistent_flag::clear_room_persistent_flag;
 pub use clear_temporary_room_sprites::clear_temporary_room_sprites;
 pub use close_inventory_item_menu::close_inventory_item_menu;
 pub use collect_key_bundle_reward::collect_key_bundle_reward;
@@ -69,6 +71,7 @@ pub use compose_large_actor_body_slots::compose_large_actor_body_slots;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
+pub use copy_room_tile_pages::copy_room_tile_pages;
 pub use defeat_active_room_actors::defeat_active_room_actors;
 pub use dim_palette_range_by_step::dim_palette_range_by_step;
 pub use dispatch_actor_behavior::dispatch_actor_behavior;
@@ -108,6 +111,7 @@ pub use move_inventory_cursor_right::move_inventory_cursor_right;
 pub use move_inventory_cursor_up::move_inventory_cursor_up;
 pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
+pub use prepare_room_metadata_and_palette::prepare_room_metadata_and_palette;
 pub use probe_actor_overhead_step::probe_actor_overhead_step;
 pub use probe_object_solid_tile::probe_object_solid_tile;
 pub use probe_player_solid_tile::probe_player_solid_tile;
@@ -118,6 +122,7 @@ pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
+pub use read_room_persistent_flag::read_room_persistent_flag;
 pub use read_room_tile_action_value::read_room_tile_action_value;
 pub use redraw_room_tile_column::redraw_room_tile_column;
 pub use refresh_temporary_room_page::refresh_temporary_room_page;
@@ -183,16 +188,6 @@ pub use routine_0063::routine_0063;
 pub use routine_0064::routine_0064;
 pub use routine_0065::routine_0065;
 pub use routine_0066::routine_0066;
-pub use routine_0076::routine_0076;
-pub use routine_0077::routine_0077;
-pub use routine_0078::routine_0078;
-pub use routine_0079::routine_0079;
-pub use routine_0084::routine_0084;
-pub use routine_0085::routine_0085;
-pub use routine_0086::routine_0086;
-pub use routine_0087::routine_0087;
-pub use routine_0088::routine_0088;
-pub use routine_0089::routine_0089;
 pub use routine_0117::routine_0117;
 pub use routine_0118::routine_0118;
 pub use routine_0119::routine_0119;
@@ -206,6 +201,7 @@ pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
 pub use seed_object_position_from_tile_offset::seed_object_position_from_tile_offset;
 pub use select_inventory_grid_entry::select_inventory_grid_entry;
+pub use select_room_data_bank_and_pointers::select_room_data_bank_and_pointers;
 pub use set_inventory_list_buffer_index::set_inventory_list_buffer_index;
 pub use sfx_overlay_voice::sfx_overlay_voice;
 pub use snapshot_inventory_state::snapshot_inventory_state;
@@ -272,12 +268,16 @@ pub use update_room_actors::update_room_actors;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
+pub use upload_current_room_view::upload_current_room_view;
 pub use upload_inventory_item_list::upload_inventory_item_list;
 pub use upload_palette_buffer::upload_palette_buffer;
 pub use upload_resource_hud::upload_resource_hud;
 pub use upload_room_columns_from_bank9::upload_room_columns_from_bank9;
+pub use upload_room_view_from_tile_pointer::upload_room_view_from_tile_pointer;
 pub use upload_scroll_edge_room_column::upload_scroll_edge_room_column;
 pub use upload_staged_room_columns::upload_staged_room_columns;
+pub use upload_staged_room_view::upload_staged_room_view;
+pub use upload_status_panel_template::upload_status_panel_template;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
 pub use vram_blit_stack::vram_blit_stack;
@@ -2933,9 +2933,12 @@ mod upload_palette_buffer {
     }
 }
 
-mod routine_0076 {
+mod upload_status_panel_template {
     use super::*;
-    pub fn routine_0076(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the fixed status-panel nametable template and clears its
+    /// attribute bytes.
+    pub fn upload_status_panel_template(engine: &mut Engine, r: &mut RoutineContext) {
         let mut saved_ctrl: i32 = 0;
         let mut saved_mask: i32 = 0;
         let mut i: i32 = 0;
@@ -2978,30 +2981,36 @@ mod routine_0076 {
     }
 }
 
-mod routine_0077 {
+mod upload_current_room_view {
     use super::*;
-    pub fn routine_0077(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Resolves the current scroll column and uploads the full room view.
+    pub fn upload_current_room_view(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x7C) & 0xFE);
         engine.set_mem(0x0D, 0x00);
         resolve_room_tile_pointer(engine, r);
-        routine_0079(engine, r);
+        upload_room_view_from_tile_pointer(engine, r);
     }
 }
 
-mod routine_0078 {
+mod upload_staged_room_view {
     use super::*;
-    pub fn routine_0078(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the full room view from the staged room tile pages.
+    pub fn upload_staged_room_view(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x7C) & 0xFE);
         engine.set_mem(0x0D, 0x00);
         resolve_room_tile_pointer(engine, r);
         engine.set_mem(0x0D, u8v((engine.mem(0x0D) - 0x05) + engine.mem(0x76)));
-        routine_0079(engine, r);
+        upload_room_view_from_tile_pointer(engine, r);
     }
 }
 
-mod routine_0079 {
+mod upload_room_view_from_tile_pointer {
     use super::*;
-    pub fn routine_0079(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads room tiles and attributes from the tile pointer in `0x0C/0x0D`.
+    pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ctrl_save: i32 = engine.mem(0x23);
         let mut v29_save: i32 = engine.mem(0x29);
         let mut v24_save: i32 = engine.mem(0x24);
@@ -3286,18 +3295,24 @@ mod build_staged_room_column {
     }
 }
 
-mod routine_0084 {
+mod prepare_room_metadata_and_palette {
     use super::*;
-    pub fn routine_0084(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0086(engine, r);
+
+    /// Selects the room data bank/pointers, derives room metadata, and builds
+    /// the palette buffer for the active room.
+    pub fn prepare_room_metadata_and_palette(engine: &mut Engine, r: &mut RoutineContext) {
+        select_room_data_bank_and_pointers(engine, r);
         text_attr_build(engine, r);
-        routine_0087(engine, r);
+        build_room_palette_buffer(engine, r);
     }
 }
 
-mod routine_0085 {
+mod copy_room_tile_pages {
     use super::*;
-    pub fn routine_0085(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Copies three room tile pages from the active room data pointer into
+    /// `0x0500..0x07FF`.
+    pub fn copy_room_tile_pages(engine: &mut Engine, r: &mut RoutineContext) {
         let mut lo: i32 = 0;
         let mut hi: i32 = 0;
         let mut ptr: i32 = 0;
@@ -3364,9 +3379,11 @@ mod routine_0085 {
     }
 }
 
-mod routine_0086 {
+mod select_room_data_bank_and_pointers {
     use super::*;
-    pub fn routine_0086(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Selects the PRG bank and base room data pointers for `0x47/0x48`.
+    pub fn select_room_data_bank_and_pointers(engine: &mut Engine, r: &mut RoutineContext) {
         let mut bank: i32 = u8v(engine.mem(0x48) >> 1);
         let mut t: i32 = 0;
         let mut lo: i32 = 0;
@@ -3386,9 +3403,12 @@ mod routine_0086 {
     }
 }
 
-mod routine_0087 {
+mod build_room_palette_buffer {
     use super::*;
-    pub fn routine_0087(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Copies room palette/attribute bytes into the palette buffer and applies
+    /// the active family-member palette when applicable.
+    pub fn build_room_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ptr: i32 = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
         let mut a: i32 = 0;
         let mut x: i32 = 0;
@@ -3435,9 +3455,11 @@ mod routine_0087 {
     }
 }
 
-mod routine_0088 {
+mod read_room_persistent_flag {
     use super::*;
-    pub fn routine_0088(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Reads the persistent room-progress bit for the current map coordinates.
+    pub fn read_room_persistent_flag(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ms_y: i32 = engine.mem(0x48);
         let mut ms_x: i32 = engine.mem(0x47);
         let mut idx: i32 = u8v(((ms_y << 2) & 0x04) | ms_x);
@@ -3458,9 +3480,11 @@ mod routine_0088 {
     }
 }
 
-mod routine_0089 {
+mod clear_room_persistent_flag {
     use super::*;
-    pub fn routine_0089(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Clears the persistent room-progress bit for the current map coordinates.
+    pub fn clear_room_persistent_flag(engine: &mut Engine, r: &mut RoutineContext) {
         let mut msy: i32 = engine.mem(0x48);
         let mut x: i32 = u8v((msy >> 1) + 1);
         let mut a: i32 = 0xFF;
@@ -4726,7 +4750,7 @@ mod tick_selected_item_effect {
             fade_room_palette_out_reset_audio(engine, r);
             reset_room_object_slots(engine, r);
             scene_assemble(engine, r);
-            routine_0077(engine, r);
+            upload_current_room_view(engine, r);
             clear_gameplay_object_sprites(engine, r);
             routine_0060(engine, r);
             routine_0061(engine, r);
@@ -4787,7 +4811,7 @@ mod enter_room_link_destination {
         fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
-        routine_0077(engine, r);
+        upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
@@ -4815,7 +4839,7 @@ mod enter_fragment_pickup_room {
         fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
-        routine_0077(engine, r);
+        upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
@@ -4844,7 +4868,7 @@ mod enter_pending_special_exit_room {
         fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
-        routine_0077(engine, r);
+        upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
@@ -4928,7 +4952,7 @@ mod handle_player_room_transition {
         fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
-        routine_0077(engine, r);
+        upload_current_room_view(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
@@ -4941,7 +4965,7 @@ mod handle_player_room_transition {
         reset_room_object_slots(engine, r);
         clear_gameplay_object_sprites(engine, r);
         scene_assemble(engine, r);
-        routine_0077(engine, r);
+        upload_current_room_view(engine, r);
         upload_palette_buffer(engine, r);
         engine.set_mem(0x36, 0);
         r.carry = 1;
@@ -5364,7 +5388,7 @@ mod try_move_player_with_collision {
                         }
                     }
                     apply_event_collectible_reward(engine, r);
-                    routine_0089(engine, r);
+                    clear_room_persistent_flag(engine, r);
                     {
                         state = 7;
                         continue 'dispatch;
@@ -5554,7 +5578,7 @@ mod apply_event_collectible_reward {
             engine.inc_mem(u16v(0x60 + inventory_item_id));
             engine.set_mem(0x8F, 0x13);
             if cbool(inventory_item_id == 0x0E) {
-                routine_0089(engine, r);
+                clear_room_persistent_flag(engine, r);
                 enter_fragment_pickup_room(engine, r);
             }
         }
@@ -5627,7 +5651,7 @@ mod collect_room_pickup_object {
             engine.inc_mem(u16v(0x60 + inventory_item_id));
             engine.set_mem(0x8F, 0x13);
             if cbool(inventory_item_id == 0x0E) {
-                routine_0089(engine, r);
+                clear_room_persistent_flag(engine, r);
                 enter_fragment_pickup_room(engine, r);
             }
         }
@@ -6388,8 +6412,8 @@ mod restore_room_from_checkpoint {
         clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xFE);
         routine_0123(engine, r);
-        routine_0084(engine, r);
-        routine_0077(engine, r);
+        prepare_room_metadata_and_palette(engine, r);
+        upload_current_room_view(engine, r);
         routine_0061(engine, r);
         routine_0063(engine, r);
         routine_0060(engine, r);
@@ -6418,11 +6442,11 @@ mod enter_temporary_room_page {
         engine.set_mem(0x4E, 0x00);
         engine.set_mem(0x7B, 0x00);
         clear_gameplay_object_sprites(engine, r);
-        routine_0084(engine, r);
+        prepare_room_metadata_and_palette(engine, r);
         if cbool(a == 0x04) {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
         }
-        routine_0078(engine, r);
+        upload_staged_room_view(engine, r);
         update_player_pose_from_motion(engine, r);
         routine_0061(engine, r);
         routine_0060(engine, r);
@@ -6448,11 +6472,11 @@ mod refresh_temporary_room_page {
         engine.set_mem(0x4E, 0x00);
         engine.set_mem(0x7B, 0x00);
         clear_gameplay_object_sprites(engine, r);
-        routine_0084(engine, r);
+        prepare_room_metadata_and_palette(engine, r);
         if cbool(a == 0x04) {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
         }
-        routine_0078(engine, r);
+        upload_staged_room_view(engine, r);
         update_player_pose_from_motion(engine, r);
         routine_0061(engine, r);
         routine_0060(engine, r);
@@ -10271,15 +10295,15 @@ mod advance_envelope_phase {
 mod scene_assemble {
     use super::*;
     pub fn scene_assemble(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0086(engine, r);
-        routine_0085(engine, r);
+        select_room_data_bank_and_pointers(engine, r);
+        copy_room_tile_pages(engine, r);
         r.carry = u8v(u8v((if cbool((engine.mem(0x76) + 0x03) > 0xFF) {
             1
         } else {
             0
         })));
         text_attr_build(engine, r);
-        routine_0087(engine, r);
+        build_room_palette_buffer(engine, r);
     }
 }
 

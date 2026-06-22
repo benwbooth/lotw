@@ -254,7 +254,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7b, 0x00);
     engine.set_mem(0x43, 0x00);
     engine.set_mem(0x7c, 0x10);
-    farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
+    farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::upload_current_room_view);
     r.index = 0x04;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     engine.set_mem(0x7c, 0x00);
@@ -457,8 +457,8 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0422, 0x40);
     engine.set_mem(0x0432, 0x40);
     engine.set_mem(0x0442, 0x40);
-    crate::game::routine_0076(engine, r);
-    farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
+    crate::game::upload_status_panel_template(engine, r);
+    farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::upload_current_room_view);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_magic_hud(engine, r);
     crate::game::sync_coin_hud(engine, r);
@@ -744,7 +744,7 @@ pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
     fade_palette_buffer_out(engine, r);
     farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
-    crate::game::routine_0076(engine, r);
+    crate::game::upload_status_panel_template(engine, r);
     crate::game::routine_0065(engine, r);
     crate::game::routine_0053(engine, r);
     crate::game::sync_health_hud(engine, r);
@@ -996,8 +996,8 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         set_player_health(engine, 0x64);
         set_player_magic(engine, 0x64);
         farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
-        crate::game::routine_0076(engine, r);
-        farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
+        crate::game::upload_status_panel_template(engine, r);
+        farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::upload_current_room_view);
         crate::game::sync_health_hud(engine, r);
         crate::game::sync_magic_hud(engine, r);
         crate::game::sync_coin_hud(engine, r);
@@ -1222,7 +1222,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     fade_palette_buffer_out(engine, r);
     engine.set_mem(0x8e, 0x02);
     crate::game::routine_0066(engine, r);
-    crate::game::routine_0076(engine, r);
+    crate::game::upload_status_panel_template(engine, r);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_magic_hud(engine, r);
     crate::game::sync_key_hud(engine, r);
@@ -1850,7 +1850,7 @@ pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x09, v);
     loop {
         set_frame_counter(engine, 0x05);
-        crate::game::routine_0087(engine, r);
+        crate::game::build_room_palette_buffer(engine, r);
         r.index = 0x04;
         r.offset = 0x1c;
         crate::game::dim_palette_range_by_step(engine, r);
@@ -1877,7 +1877,7 @@ pub fn flash_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         set_frame_counter(engine, 0x01);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        crate::game::routine_0087(engine, r);
+        crate::game::build_room_palette_buffer(engine, r);
         crate::game::upload_palette_buffer(engine, r);
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
@@ -2025,8 +2025,8 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         crate::game::clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xfe);
         crate::game::routine_0123(engine, r);
-        crate::game::routine_0084(engine, r);
-        crate::game::routine_0077(engine, r);
+        crate::game::prepare_room_metadata_and_palette(engine, r);
+        crate::game::upload_current_room_view(engine, r);
         crate::game::routine_0061(engine, r);
         crate::game::routine_0063(engine, r);
         crate::game::routine_0060(engine, r);

@@ -95,7 +95,6 @@ would currently be weaker than the cluster name.
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 | `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
-| `game` | `0076..0079`, `0084..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 
 ## Named Non-Numbered Routines
@@ -134,6 +133,7 @@ surface when touching nearby code:
 | `build_object_health_meter_alt_tiles` | build object health with the alternate `0xA5/0xAB` sprite tile pair |
 | `build_object_health_meter_standard_tiles` | build object health with the standard `0x65/0x6B` sprite tile pair |
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
+| `build_room_palette_buffer` | copy room palette/attribute bytes into the palette buffer and apply active family palette |
 | `build_staged_room_column` | build one staged room column from the current room tile pointer and tileset metadata |
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
@@ -167,6 +167,8 @@ surface when touching nearby code:
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
+| `copy_room_tile_pages` | copy three room tile pages from the active room data pointer into `0x0500..0x07FF` |
+| `clear_room_persistent_flag` | clear the persistent room-progress bit for the current map coordinates |
 | `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
 | `dim_palette_range_by_step` | dim a palette-buffer range by subtracting the high-nibble step in `0x09` |
@@ -217,6 +219,7 @@ surface when touching nearby code:
 | `next_envelope_volume` | update the selected audio channel's envelope accumulator and compose the APU volume byte |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
 | `pop_room_checkpoint` | restore the most recently saved gameplay room position, scroll, and room identity fields |
+| `prepare_room_metadata_and_palette` | select room data pointers, derive room metadata, and build the active room palette buffer |
 | `push_room_checkpoint` | save gameplay room position, scroll, room identity, and current song before temporary room flows |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
@@ -228,6 +231,7 @@ surface when touching nearby code:
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
+| `read_room_persistent_flag` | read the persistent room-progress bit for the current map coordinates |
 | `read_room_tile_action_value` | read a room-map tile sample and resolve replacement tile `0x3E` through `0x74` |
 | `redraw_room_tile_column` | rebuild the background column containing object scratch tile-x `0xFA` |
 | `refresh_temporary_room_page` | rebuild a temporary room page with the shorter fade that preserves audio state |
@@ -251,6 +255,7 @@ surface when touching nearby code:
 | `scene_assemble` | rebuild room state from current map coordinates |
 | `seed_object_position_from_tile_offset` | convert a tile sample offset and projected coordinates into object scratch position |
 | `select_inventory_grid_entry` | copy the active inventory grid entry into the scrolling item-list buffer or handle menu controls |
+| `select_room_data_bank_and_pointers` | select the PRG bank and base room data pointers for `0x47/0x48` |
 | `set_inventory_list_buffer_index` | convert the scrolling item-list cursor into a 32-byte buffer index |
 | `show_inventory_item_list_screen` | show the read-only inventory item-list page until the player presses a button |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
@@ -320,10 +325,14 @@ surface when touching nearby code:
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
 | `upload_inventory_item_list` | stage and upload the two visible rows of the inventory item-list buffer |
+| `upload_current_room_view` | resolve the current scroll column and upload the full room view |
 | `upload_palette_buffer` | queue a PPU upload of the palette buffer to `$3F00` |
+| `upload_room_view_from_tile_pointer` | upload room tiles and attributes from the tile pointer in `0x0C/0x0D` |
 | `upload_room_columns_from_bank9` | upload the 16 visible room columns using the bank-9 room-column builder |
 | `upload_scroll_edge_room_column` | upload the room column that is about to scroll into view |
+| `upload_staged_room_view` | upload the full room view from the staged room tile pages |
 | `upload_staged_room_columns` | upload the 16 visible room columns using the current staged room data |
+| `upload_status_panel_template` | upload the fixed status-panel nametable template and clear its attribute bytes |
 | `update_wide_object_terrain_probe` | advance the wide object terrain probe when its footprint stays clear |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
@@ -338,7 +347,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Remaining game VRAM, room render, and palette helpers: `routine_0076..0079`, `routine_0084..0089`.
+1. Persistent room flag and tile mutation helpers: `routine_0117..0123`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
