@@ -129,13 +129,17 @@ fn item_spawn_setup(engine: &mut Engine, r: &mut RoutineContext, x: i32) {
     crate::game::update_object_terrain_probe(engine, r);
 }
 
+/// Queues the VRAM job id in `r.value` and waits until the NMI-side upload has
+/// consumed it.
 pub fn queue_ppu_job_and_wait(engine: &mut Engine, r: &mut RoutineContext) {
     frame::wait_for_ppu_job_idle(engine, r);
     engine.set_mem(0x28, r.value);
     frame::wait_for_ppu_job_idle(engine, r);
 }
 
-pub fn routine_0029(engine: &mut Engine, r: &mut RoutineContext) {
+/// Shows the start-button prompt and waits for release, press, and release so a
+/// held Start does not leak into the next menu/gameplay state.
+pub fn wait_for_start_button_prompt(engine: &mut Engine, r: &mut RoutineContext) {
     set_prompt_state(engine, 0x03);
     engine.inc_mem(0x8d);
     loop {
@@ -171,7 +175,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         if player_health(engine) == 0 {
             set_sprite_blink_timer(engine, 0x00);
             crate::game::draw_player_sprites(engine, r);
-            farcall_0c0d(engine, r, 0x07, 0xb3, routine_0049);
+            farcall_0c0d(engine, r, 0x07, 0xb3, run_player_death_or_continue_flow);
             if r.index == 0 {
                 continue;
             }
@@ -186,13 +190,15 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::game_update(engine, r);
 
         if engine.mem(0xec) != 0 {
-            farcall_0c0d(engine, r, 0xeb, 0xa2, routine_0001);
+            // The final-exit item diverts the normal room loop into a scripted
+            // sequence that still reuses the player/object update helpers.
+            farcall_0c0d(engine, r, 0xeb, 0xa2, setup_final_exit_sequence);
             loop {
                 frame::read_buttons(engine, r);
                 farcall_0c0d(engine, r, 0xbc, 0xab, crate::game::routine_0021);
                 farcall_0c0d(engine, r, 0xe6, 0xa5, crate::game::routine_0005);
                 farcall_0c0d(engine, r, 0x5d, 0xa7, crate::game::routine_0014);
-                farcall_0c0d(engine, r, 0xe3, 0xa3, routine_0002);
+                farcall_0c0d(engine, r, 0xe3, 0xa3, tick_final_exit_sequence);
                 if player_health(engine) != 0 {
                     break;
                 }
@@ -203,7 +209,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0x0200, 0xef);
             set_sprite_blink_timer(engine, 0x00);
             crate::game::draw_player_sprites(engine, r);
-            farcall_0c0d(engine, r, 0x07, 0xb3, routine_0049);
+            farcall_0c0d(engine, r, 0x07, 0xb3, run_player_death_or_continue_flow);
             r.index = u8v(r.index - 1);
             crate::game::main_init(engine, r);
             return;
@@ -226,7 +232,10 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
+/// Sets up the final-exit sequence after the final item trigger: flash the
+/// current scene, switch to the scripted room, and seed the special object/player
+/// state used by `tick_final_exit_sequence`.
+pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     set_prompt_state(engine, 0x18);
     set_sprite_blink_timer(engine, 0x00);
     crate::game::draw_player_sprites(engine, r);
@@ -237,7 +246,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::draw_room_object_sprites(engine, r);
     r.index = 0x03;
     farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
-    routine_0004(engine, r);
+    fade_partial_palette_buffer_out(engine, r);
 
     set_prompt_state(engine, 0x20);
     set_frame_counter(engine, 0x3c);
@@ -308,7 +317,9 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0018(engine, r);
 }
 
-fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the one-shot final-exit cutscene path that is entered before the special
+/// object latch at `0xF2` is set.
+fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::build_object_health_meter_standard_tiles(engine, r);
     engine.set_mem(0x0411, 0x00);
     engine.set_mem(0x0421, 0x00);
@@ -425,7 +436,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
     crate::game::reset_room_object_slots(engine, r);
-    routine_0045(engine, r);
+    drain_audio_timers_with_object_frames(engine, r);
     fade_palette_buffer_out(engine, r);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::clear_oam_with_sprite_zero_template(engine, r);
@@ -478,7 +489,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     farcall_cce4(engine, r, 0x92, 0xc4, fade_room_palette_in);
     set_countdown_timer(engine, 0x05);
     while countdown_timer_active(engine) {
-        routine_0020(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
     }
 
     loop {
@@ -486,16 +497,16 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
         engine.dec_mem(0x45);
-        routine_0020(engine, r);
-        routine_0020(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
         if engine.mem(0x45) == 0xa0 {
             break;
         }
         engine.dec_mem(0x45);
         engine.xor_mem(0x57, 0x40);
         crate::game::draw_player_sprites(engine, r);
-        routine_0020(engine, r);
-        routine_0020(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
     }
@@ -504,7 +515,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::draw_player_sprites(engine, r);
     set_countdown_timer(engine, 0x03);
     while countdown_timer_active(engine) {
-        routine_0020(engine, r);
+        draw_scene_and_wait_one_frame(engine, r);
     }
 
     loop {
@@ -546,19 +557,21 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         engine.xor_mem(0x0430, 0x04);
         engine.xor_mem(0x0440, 0x04);
         for _ in 0..8 {
-            routine_0020(engine, r);
+            draw_scene_and_wait_one_frame(engine, r);
         }
     }
 
-    routine_0039(engine, r);
+    run_story_text_sequence(engine, r);
 }
 
-pub fn routine_0002(engine: &mut Engine, r: &mut RoutineContext) {
+/// Ticks the final-exit scripted object state machine and stores the updated
+/// scratch slot back into the active object slot.
+pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xe5, 0x00);
     engine.set_mem(0xe6, 0x04);
     crate::game::load_object_slot_scratch(engine, r);
     if engine.mem(0x00f2) == 0 {
-        routine_0002_cutscene(engine, r);
+        run_final_exit_cutscene(engine, r);
         return;
     }
 
@@ -721,7 +734,9 @@ pub fn routine_0002(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::store_object_slot_scratch(engine, r);
 }
 
-pub fn routine_0004(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades the first 13 palette-buffer entries toward black over four timed
+/// foreground frames.
+pub fn fade_partial_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x04;
     loop {
         set_frame_counter(engine, 0x05);
@@ -745,7 +760,9 @@ pub fn routine_0004(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
+/// Redraws player/object sprites, commits one foreground frame, and waits for
+/// the frame counter to expire.
+pub fn draw_scene_and_wait_one_frame(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::draw_player_sprites(engine, r);
     crate::game::draw_room_object_sprites(engine, r);
     set_frame_counter(engine, 0x01);
@@ -753,7 +770,9 @@ pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
     frame::wait_for_frame_counter(engine, r);
 }
 
-pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
+/// Clears title/demo screen state so `main_init` can seed the first playable
+/// room immediately after returning from the title loop.
+pub fn clear_title_screen_for_new_game(engine: &mut Engine, r: &mut RoutineContext) {
     fade_palette_buffer_out(engine, r);
     farcall_cce4(
         engine,
@@ -777,9 +796,11 @@ pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
     leave_return_home(engine);
 }
 
-pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the scrolling story-text sequence shared by the title-screen chord and
+/// the final-exit cutscene.
+pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0x92);
-    routine_0045(engine, r);
+    drain_audio_timers_with_object_frames(engine, r);
     fade_palette_buffer_out(engine, r);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::hide_all_sprite_y_positions(engine, r);
@@ -857,7 +878,10 @@ pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the title screen, timeout-driven attract/demo loop, and title shortcuts.
+/// Returning normally means the user pressed Start and startup should enter the
+/// first playable room.
+pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
     'restart: loop {
         crate::game::reset_menu_state_and_palette(engine, r);
         engine.set_mem(0x2c, 0x37);
@@ -895,11 +919,11 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
                 engine.set_mem(0x37, 0x1a);
             }
             if (buttons(engine) & 0x10) != 0 {
-                routine_0034(engine, r);
+                clear_title_screen_for_new_game(engine, r);
                 return;
             }
             if button_chord(engine) == 0x83 {
-                routine_0039(engine, r);
+                run_story_text_sequence(engine, r);
                 return;
             }
             if (engine.mem(0x84) & 0x07) == 0 {
@@ -1039,7 +1063,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             crate::game::blink_demo_oam_sprites(engine, r);
             frame::read_buttons(engine, r);
             if (buttons(engine) & 0x10) != 0 {
-                routine_0034(engine, r);
+                clear_title_screen_for_new_game(engine, r);
                 return;
             }
 
@@ -1094,7 +1118,9 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0045(engine: &mut Engine, r: &mut RoutineContext) {
+/// Waits through a fixed object-render loop while draining active audio/sfx
+/// timers used by the story/final-exit transitions.
+pub fn drain_audio_timers_with_object_frames(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xb4, 0);
     engine.set_mem(0x0d, 0x10);
     loop {
@@ -1125,14 +1151,17 @@ pub fn routine_0045(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the player death animation, extra-life recovery, and game-over/continue
+/// screen. `r.index` returns `0` for immediate resume; nonzero values are
+/// decremented by the caller before re-entering `main_init`.
+pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineContext) {
     let saved_song = engine.mem(0x8e);
 
     engine.inc_mem(0x8d);
     crate::game::clear_gameplay_object_sprites(engine, r);
     r.index = 0x35;
     r.offset = 0x00;
-    routine_0050(engine, r);
+    show_player_pose_for_eight_frames(engine, r);
 
     set_frame_counter(engine, 0x3c);
     frame::commit_frame_work(engine, r);
@@ -1146,16 +1175,16 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         r.index = 0x0d;
         r.offset = 0x00;
-        routine_0050(engine, r);
+        show_player_pose_for_eight_frames(engine, r);
         r.index = 0x01;
         r.offset = 0x00;
-        routine_0050(engine, r);
+        show_player_pose_for_eight_frames(engine, r);
         r.index = 0x09;
         r.offset = 0x00;
-        routine_0050(engine, r);
+        show_player_pose_for_eight_frames(engine, r);
         r.index = 0x01;
         r.offset = 0x40;
-        routine_0050(engine, r);
+        show_player_pose_for_eight_frames(engine, r);
         engine.dec_mem(0x0a);
         if engine.mem(0x0a) == 0 {
             break;
@@ -1269,7 +1298,9 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     r.index = 0x01;
 }
 
-pub fn routine_0050(engine: &mut Engine, r: &mut RoutineContext) {
+/// Shows the player sprite pose in `r.index`/`r.offset` for eight foreground
+/// frames.
+pub fn show_player_pose_for_eight_frames(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x56, r.index);
     engine.set_mem(0x57, r.offset);
     set_frame_counter(engine, 0x08);

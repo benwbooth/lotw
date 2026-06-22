@@ -634,7 +634,7 @@ mod main_init {
         engine.device_write(0xA000, 0x00);
         farcall_bank_0C0D_seed(engine, r);
         ram_state_init(engine, r);
-        farcall_0C0D(engine, r, 0x64, 0xAE, routine_0033);
+        farcall_0C0D(engine, r, 0x64, 0xAE, run_title_screen_loop);
         engine.set_mem(0x46, 0x00);
         engine.set_mem(0x7B, 0x00);
         engine.set_mem(0x43, 0x00);
@@ -1310,7 +1310,7 @@ mod routine_0021 {
                 0 => {
                     r.value = engine.mem(0x20);
                     if cbool(r.value & 0x10) {
-                        routine_0029(engine, r);
+                        wait_for_start_button_prompt(engine, r);
                         return;
                     }
                     if !cbool(engine.mem(0x20) & 0x40) {

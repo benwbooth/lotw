@@ -1,7 +1,7 @@
 # Routine Catalog
 
 This catalog is the working map for the numbered `routine_####` functions that
-remain in `src/game.rs` and `src/native.rs`.
+remain in `src/game.rs`.
 
 The numbers are stable port labels, not good semantic names. A routine should
 only be renamed or given a public semantic alias when its dataflow and call
@@ -91,8 +91,6 @@ would currently be weaker than the cluster name.
 |---|---:|---|---|
 | `game` | `0003`, `0005..0019` | cluster | opening/title scripted helpers, timed waits, cutscene sprite setup, and startup scene setup |
 | `game` | `0021..0028`, `0030..0032` | cluster | password/title/menu support and first-room transition helpers |
-| `native` | `0001`, `0002`, `0004`, `0020`, `0029` | inferred | high-level start flow, intro/menu flow, and blocking input gates rewritten around frame tasks |
-| `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050` | inferred | title screen, family select, password entry, and start-game screen orchestration |
 
 ## Named Non-Numbered Routines
 
@@ -156,6 +154,7 @@ surface when touching nearby code:
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `clear_temporary_room_sprites` | hide the temporary room item and coin/cost sprites in OAM |
 | `clear_text_staging_buffer` | clear the intro text staging buffer to blank tile `0xC0` |
+| `clear_title_screen_for_new_game` | clear title/demo state before startup seeds the first playable room |
 | `close_inventory_item_menu` | close the item menu, restore the gameplay snapshot, and redraw HUD state |
 | `collect_key_bundle_reward` | add the large key bundle reward and play its pickup sound |
 | `collect_large_coin_reward` | add the large coin reward and play its pickup sound |
@@ -184,14 +183,17 @@ surface when touching nearby code:
 | `draw_object_slot_sprites` | project one 16-byte room object slot into its two-sprite OAM entry |
 | `draw_player_sprites` | project the two player sprites into OAM using the current camera scroll |
 | `draw_room_object_sprites` | project the rolling set of room object slots into OAM |
+| `draw_scene_and_wait_one_frame` | redraw player/object sprites and wait for one foreground frame |
 | `draw_shop_item_sprites` | draw the two shop item slots and hide unavailable or overstocked items |
 | `draw_status_item_sprites` | draw the selected-item cursor and equipped-item icons in the status area |
+| `drain_audio_timers_with_object_frames` | wait through object-render frames while draining transition audio timers |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
 | `encode_inventory_snapshot_item_list` | pack the saved inventory/progress snapshot into the item-list/password buffer |
 | `enter_temporary_room_page` | enter a temporary room page with the full fade and audio-channel reset |
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
 | `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |
 | `enter_room_link_destination` | load a destination room and player position from the active room link record |
+| `fade_partial_palette_buffer_out` | fade the first 13 palette-buffer entries toward black |
 | `fade_palette_buffer_out` | fade the base palette buffer toward black over four frame-counter steps |
 | `fade_room_palette_in` | rebuild room palette attributes and fade the gameplay palette back in |
 | `fade_room_palette_out_keep_audio` | fade the room palette out while preserving active audio channel state |
@@ -262,8 +264,12 @@ surface when touching nearby code:
 | `run_carried_item_loadout_flow` | refill the active family member's carried-item queue from inventory |
 | `run_character_select_overlay` | open the in-game character-select overlay, wait for select-button release, and restore the room |
 | `run_character_select_room_flow` | run the special room flow for resource refill, carried-item return, family selection, and item pages |
+| `run_final_exit_cutscene` | run the one-shot final-exit cutscene before the scripted object latch is set |
 | `run_inventory_item_grid_menu` | run the interactive inventory item-grid editor from the character-selection room |
+| `run_player_death_or_continue_flow` | run death animation, extra-life recovery, and game-over/continue flow |
 | `run_shop_room_flow` | enter the overhead-tile shop room, handle purchases, and restore the previous gameplay room on exit |
+| `run_story_text_sequence` | run the scrolling story text used by the title chord and final-exit cutscene |
+| `run_title_screen_loop` | run the title screen, attract/demo loop, and title shortcuts |
 | `run_warp_transition_effect` | shared scroll/audio transition used before scripted room warps |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
 | `restore_inventory_state_snapshot` | restore progress, inventory counts, coins, and keys saved before inventory/status flows |
@@ -274,7 +280,9 @@ surface when touching nearby code:
 | `select_inventory_grid_entry` | copy the active inventory grid entry into the scrolling item-list buffer or handle menu controls |
 | `select_room_data_bank_and_pointers` | select the PRG bank and base room data pointers for `0x47/0x48` |
 | `set_inventory_list_buffer_index` | convert the scrolling item-list cursor into a 32-byte buffer index |
+| `setup_final_exit_sequence` | seed the scripted room, player, and object state for the final exit sequence |
 | `show_inventory_item_list_screen` | show the read-only inventory item-list page until the player presses a button |
+| `show_player_pose_for_eight_frames` | show the player sprite pose in `r.index/r.offset` for eight frames |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -302,6 +310,7 @@ surface when touching nearby code:
 | `tick_contact_recoil_actor` | actor behavior that switches to a high-bit recoil state when player contact blocks movement |
 | `tick_contact_trigger_actor` | actor behavior that wakes into chasing movement after one-step player contact |
 | `tick_defeated_actor_reward_drop` | run the high-bit defeated-actor rise/fall sequence and turn it into a pickup drop |
+| `tick_final_exit_sequence` | tick the final-exit scripted object state machine |
 | `tick_inactive_actor_slot` | initialize an inactive actor scratch slot from room actor data and spawn timing |
 | `tick_large_chasing_actor` | large actor behavior that aims toward the player and uses the wide jump/gravity movement path |
 | `tick_ledge_walking_actor` | actor behavior that walks along supported ledges and falls when unsupported |
@@ -367,6 +376,7 @@ surface when touching nearby code:
 | `vram_*` | deferred VRAM job implementations |
 | `wait_for_button_press` | frame-advance until any button is pressed |
 | `wait_for_buttons_released` | frame-advance until all buttons are released |
+| `wait_for_start_button_prompt` | show the start prompt and wait for release, Start press, and release |
 | `walk_character_select_room_until_action` | move within the character-select room and track the selected tile until action is pressed |
 | `walk_loadout_room_until_action_or_exit` | move within the carried-item loadout room until action or the exit tile |
 | `walk_purchase_room_until_action_or_exit` | move within purchase/refill rooms until action or the exit tile |
@@ -375,8 +385,8 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-The isolated frame render and object sprite helpers formerly numbered
-`0059..0066` have been renamed and covered by focused render-helper tests. The
-remaining numbered work is in the larger title/menu/startup clusters listed
-above; split those clusters only after tracing their caller state and adding
-narrow regression coverage.
+The isolated frame render/object sprite helpers, menu visual helpers, and native
+flow entry points have been renamed and covered by existing or focused tests.
+The remaining numbered work is in the two larger `game` clusters listed above;
+split those clusters only after tracing their caller state and adding narrow
+regression coverage.
