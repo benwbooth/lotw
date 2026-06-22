@@ -61,6 +61,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x5A` | coin counter | `add_coins`, `spend_coins`, shop item purchases |
 | `0x5B` | key counter | `add_key`, `add_keys`, `consume_key`, door and tile-action costs |
 | `0x5C..0x5F` | jump duration, projectile damage, projectile slot count, projectile lifetime | `load_effective_jump_duration`, `load_effective_projectile_damage`, `update_player_projectiles`, `load_effective_projectile_lifetime` |
+| `0x6E` | fragment/event progress count | `enter_fragment_pickup_room`, `dispatch_overhead_tile_action` |
 | `0x70..0x74` | current room tile/action ids | scene assembly and item actions |
 | `0x75..0x78` | room map pointer and saved pointer | tile addressing and scene assembly |
 | `0x79..0x7A` | current metasprite/table pointer | sprite build and room assets |
@@ -71,6 +72,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x93..0xC6` | music channel state | `tick_*_channel`, `dispatch_audio_stream_command`, envelope helpers |
 | `0xD3..0xDD` | sfx overlay channel state | `sfx_overlay_voice` |
 | `0xE3..0xE9` | object-loop slot index and pointers | actor update loops |
+| `0xEB..0xEC` | pending special-exit and final-exit flags | `enter_pending_special_exit_room`, `check_final_exit_trigger` |
 | `0xED..0xFC` | current object scratch slot | copied by `load_object_slot_scratch/store_object_slot_scratch` |
 | `0xFD` | held/directional action latch | input edge/action gating |
 | `0x0200..0x02FF` | OAM staging | render and vblank commit |
@@ -98,8 +100,7 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `game` | `0135..0147` | inferred | item action dispatch, item pickup/collection, actor contact, and room-interaction checks |
-| `native` | `0148` | inferred | consume secondary counter/resource for an action |
+| `game` | `0142..0147` | inferred | player movement projection, room-boundary transitions, facing/animation, and object contact checks |
 | `native` | `0169` | inferred | tile action dispatch, including item use and special projectile spawn |
 | `game` | `0170..0173` | inferred | object spawn coordinate setup, room tile readback, and movement intent resolution |
 | `native` | `0174..0177` | inferred | character swap/inventory selection flow |
@@ -149,6 +150,7 @@ surface when touching nearby code:
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
 | `check_actor_direction_contact` | project one actor direction and report whether it contacts the player |
+| `check_final_exit_trigger` | set the final-exit flag when selected item `0x0F` is used at the exact required room position |
 | `check_projected_terrain_collision` | test the projected one-tile-wide object footprint against terrain |
 | `check_projected_wide_terrain_collision` | test the projected wide object footprint against terrain |
 | `check_player_overlap` | test projected object position against the player hitbox |
@@ -179,6 +181,9 @@ surface when touching nearby code:
 | `dispatch_overhead_tile_action` | handle Up-button interactions with the tile above the player |
 | `dispatch_projected_tile_actions` | probe the projected player footprint for room tile-action triggers |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
+| `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
+| `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |
+| `enter_room_link_destination` | load a destination room and player position from the active room link record |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
@@ -214,6 +219,7 @@ surface when touching nearby code:
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
+| `run_warp_transition_effect` | shared scroll/audio transition used before scripted room warps |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
 | `restore_inventory_state_snapshot` | restore progress, inventory counts, coins, and keys saved before inventory/status flows |
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
@@ -246,10 +252,12 @@ surface when touching nearby code:
 | `tick_ledge_walking_actor` | actor behavior that walks along supported ledges and falls when unsupported |
 | `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
 | `tick_overhead_probe_actor` | actor behavior that alternates overhead probes, falling, and jump arcs |
+| `tick_player_jump_action` | start or continue the player jump/action arc and apply the selected jump-item boost |
 | `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
 | `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
 | `tick_random_floating_actor` | actor behavior that chooses random directions and moves without terrain collision |
 | `tick_reflecting_chase_actor` | actor behavior that aims from player overlap and reflects velocity when blocked |
+| `tick_selected_item_effect` | apply the currently selected passive or consumable item effect |
 | `tick_standard_actor` | generic non-boss actor tick for motion continuation, collision response, expiry, and terrain probing |
 | `tick_timed_chase_actor` | actor behavior that chases for a finite timer and rejects abrupt multi-axis turns |
 | `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
@@ -263,6 +271,7 @@ surface when touching nearby code:
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
 | `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
 | `trigger_damage_pickup` | apply the harmful pickup/trap reward effect |
+| `unlock_door_with_key` | spend a key and run the door-unlock prompt/music sequence |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
@@ -285,7 +294,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Item action helpers: `routine_0135..0148`.
+1. Player movement helpers: `routine_0142..0147`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

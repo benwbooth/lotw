@@ -40,6 +40,7 @@ pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_direction_contact::check_actor_direction_contact;
 pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
+pub use check_final_exit_trigger::check_final_exit_trigger;
 pub use check_player_overlap::check_player_overlap;
 pub use check_player_overlap_wide::check_player_overlap_wide;
 pub use check_player_x_overlap::check_player_x_overlap;
@@ -70,6 +71,9 @@ pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
 pub use dispatch_projected_tile_actions::dispatch_projected_tile_actions;
+pub use enter_fragment_pickup_room::enter_fragment_pickup_room;
+pub use enter_pending_special_exit_room::enter_pending_special_exit_room;
+pub use enter_room_link_destination::enter_room_link_destination;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
@@ -183,13 +187,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0135::routine_0135;
-pub use routine_0136::routine_0136;
-pub use routine_0137::routine_0137;
-pub use routine_0138::routine_0138;
-pub use routine_0139::routine_0139;
-pub use routine_0140::routine_0140;
-pub use routine_0141::routine_0141;
 pub use routine_0142::routine_0142;
 pub use routine_0143::routine_0143;
 pub use routine_0144::routine_0144;
@@ -217,6 +214,7 @@ pub use routine_0198::routine_0198;
 pub use routine_0199::routine_0199;
 pub use routine_0200::routine_0200;
 pub use routine_0201::routine_0201;
+pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
@@ -250,10 +248,12 @@ pub use tick_large_chasing_actor::tick_large_chasing_actor;
 pub use tick_ledge_walking_actor::tick_ledge_walking_actor;
 pub use tick_noise_channel::tick_noise_channel;
 pub use tick_overhead_probe_actor::tick_overhead_probe_actor;
+pub use tick_player_jump_action::tick_player_jump_action;
 pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
 pub use tick_random_floating_actor::tick_random_floating_actor;
 pub use tick_reflecting_chase_actor::tick_reflecting_chase_actor;
+pub use tick_selected_item_effect::tick_selected_item_effect;
 pub use tick_standard_actor::tick_standard_actor;
 pub use tick_timed_chase_actor::tick_timed_chase_actor;
 pub use tick_triangle_channel::tick_triangle_channel;
@@ -387,19 +387,19 @@ mod game_update {
                 0 => {
                     engine.set_mem(0xE3, 0xFF);
                     if cbool(engine.mem(0xEB) != 0) {
-                        routine_0139(engine, r);
+                        enter_pending_special_exit_room(engine, r);
                         return;
                     }
                     state = 1;
                     continue 'dispatch;
                 }
                 1 => {
-                    routine_0140(engine, r);
+                    check_final_exit_trigger(engine, r);
                     if cbool(engine.mem(0x20) & 0x10) {
                         routine_0174(engine, r);
                         return;
                     }
-                    routine_0136(engine, r);
+                    tick_selected_item_effect(engine, r);
                     if cbool(engine.mem(0x46) != 0) {
                         engine.dec_mem(0x46);
                         engine.set_mem(0x20, 0x00);
@@ -474,13 +474,13 @@ mod game_update {
                         }
                     }
                     if cbool(engine.mem(0x4F) != 0) {
-                        routine_0135(engine, r);
+                        tick_player_jump_action(engine, r);
                         if cbool(engine.lotw_nonlocal_handoff) {
                             return;
                         }
                         engine.set_mem(0x4F, 0x00);
                     } else if cbool(engine.mem(0x20) & 0x80) {
-                        routine_0135(engine, r);
+                        tick_player_jump_action(engine, r);
                         if cbool(engine.lotw_nonlocal_handoff) {
                             return;
                         }
@@ -4562,9 +4562,13 @@ mod clear_inventory_item_list_buffer {
     }
 }
 
-mod routine_0135 {
+mod tick_player_jump_action {
     use super::*;
-    pub fn routine_0135(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Starts or continues the player jump/action arc. `0x4F` is the active
+    /// jump timer, `0x22` prevents a held button from restarting the jump, and
+    /// selected item `0x06` extends the timer by spending magic.
+    pub fn tick_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -4581,12 +4585,12 @@ mod routine_0135 {
                     engine.set_mem(0x8F, 0x1B);
                     engine.set_mem(0x4F, engine.mem(0x5C));
                     {
-                        let mut x: i32 = engine.mem(0x55);
-                        if cbool(engine.mem(u16v(0x51 + x)) == 0x06) {
+                        let selected_slot: i32 = engine.mem(0x55);
+                        if cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x06) {
                             consume_magic_point(engine, r);
                             if !cbool(r.carry) {
-                                let mut f: i32 = engine.mem(0x4F);
-                                engine.set_mem(0x4F, u8v((f >> 2) + f));
+                                let jump_timer: i32 = engine.mem(0x4F);
+                                engine.set_mem(0x4F, u8v((jump_timer >> 2) + jump_timer));
                             }
                         }
                     }
@@ -4597,10 +4601,10 @@ mod routine_0135 {
                     engine.lotw_nonlocal_handoff = 1;
                     engine.set_mem(0x22, 0x01);
                     {
-                        let mut old4f: i32 = engine.mem(0x4F);
-                        engine.set_mem(0x4F, u8v(old4f - 1));
-                        let mut t: i32 = u8v(old4f >> 2);
-                        engine.set_mem(0x4B, u8v((t ^ 0xFF) + 1));
+                        let jump_timer: i32 = engine.mem(0x4F);
+                        engine.set_mem(0x4F, u8v(jump_timer - 1));
+                        let upward_speed: i32 = u8v(jump_timer >> 2);
+                        engine.set_mem(0x4B, u8v((upward_speed ^ 0xFF) + 1));
                     }
                     routine_0146(engine, r);
                     if !cbool(r.carry) {
@@ -4669,31 +4673,33 @@ mod routine_0135 {
     }
 }
 
-mod routine_0136 {
+mod tick_selected_item_effect {
     use super::*;
-    pub fn routine_0136(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = engine.mem(0x0055);
-        let mut x: i32 = engine.mem(u16v((0x0051) + y));
-        if cbool(x >= 0x02) {
-            if cbool(x == 0x0B) {
+
+    /// Applies the currently selected passive/consumable item effect. Item ids
+    /// below `0x02` are magic-draining effect timers, `0x0B` refills magic when
+    /// empty, and `0x0D` returns the player to the fixed safe room.
+    pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_slot: i32 = engine.mem(0x0055);
+        let selected_item: i32 = engine.mem(u16v((0x0051) + selected_slot));
+        if cbool(selected_item >= 0x02) {
+            if cbool(selected_item == 0x0B) {
                 if cbool(engine.mem(0x59) != 0) {
                     return;
                 }
-                x = engine.mem(0x0055);
-                engine.set_mem(u16v((0x0051) + x), 0xFF);
+                engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
                 routine_0062(engine, r);
                 animate_magic_refill_to_cap(engine, r);
                 return;
             }
-            if cbool(x != 0x0D) {
+            if cbool(selected_item != 0x0D) {
                 return;
             }
             if cbool(engine.mem(0x0048) >= 0x11) {
                 engine.set_mem(0x0055, 0x03);
                 return;
             }
-            x = engine.mem(0x0055);
-            engine.set_mem(u16v((0x0051) + x), 0xFF);
+            engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
             routine_0062(engine, r);
             engine.set_mem(0x8F, 0x12);
             engine.set_mem(0x0048, 0x10);
@@ -4714,18 +4720,18 @@ mod routine_0136 {
             r.carry = 1;
             return;
         }
-        if cbool(engine.mem(u16v(0x86 + x)) != 0) {
+        if cbool(engine.mem(u16v(0x86 + selected_item)) != 0) {
             return;
         }
-        r.index = x;
+        r.index = selected_item;
         consume_magic_point(engine, r);
         if cbool(r.carry == 0) {
-            engine.set_mem(u16v(0x86 + x), 0x02);
+            engine.set_mem(u16v(0x86 + selected_item), 0x02);
             return;
         }
         {
-            let mut t: i32 = engine.mem(0x37);
-            if (cbool(t == 0) || cbool(t & 0x80)) {
+            let continue_timer: i32 = engine.mem(0x37);
+            if (cbool(continue_timer == 0) || cbool(continue_timer & 0x80)) {
                 return;
             }
             engine.set_mem(0x37, 0xFD);
@@ -4734,43 +4740,35 @@ mod routine_0136 {
     }
 }
 
-mod routine_0137 {
+mod enter_room_link_destination {
     use super::*;
-    pub fn routine_0137(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
-        let mut a: i32 = 0;
-        r.offset = 0x0C;
-        engine.set_mem(0x47, engine.mem(u16v(ptr + r.offset)));
-        {
-            let __old = r.offset;
-            r.offset += 1;
-            __old
-        };
-        engine.set_mem(0x48, engine.mem(u16v(ptr + r.offset)));
-        {
-            let __old = r.offset;
-            r.offset += 1;
-            __old
-        };
-        a = engine.mem(u16v(ptr + r.offset));
-        engine.set_mem(0x44, a);
-        if cbool(a >= 0x08) {
-            a = u8v(a - 0x08);
+
+    /// Enters the destination encoded in the active room link record at
+    /// `0x77/0x78 + 0x0C..0x0F`.
+    pub fn enter_room_link_destination(engine: &mut Engine, r: &mut RoutineContext) {
+        let link_ptr: i32 = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
+        engine.set_mem(0x47, engine.mem(u16v(link_ptr + 0x0C)));
+        engine.set_mem(0x48, engine.mem(u16v(link_ptr + 0x0D)));
+
+        let player_tile_x: i32 = engine.mem(u16v(link_ptr + 0x0E));
+        engine.set_mem(0x44, player_tile_x);
+        let scroll_x: i32 = if cbool(player_tile_x >= 0x08) {
+            u8v(player_tile_x - 0x08)
         } else {
-            a = 0x00;
-        }
-        if cbool(a >= 0x31) {
-            a = 0x30;
-        }
-        engine.set_mem(0x7C, a);
+            0x00
+        };
+        engine.set_mem(
+            0x7C,
+            if cbool(scroll_x >= 0x31) {
+                0x30
+            } else {
+                scroll_x
+            },
+        );
         engine.set_mem(0x43, 0x00);
         engine.set_mem(0x7B, 0x00);
-        {
-            let __old = r.offset;
-            r.offset += 1;
-            __old
-        };
-        r.value = engine.mem(u16v(ptr + r.offset));
+
+        r.value = engine.mem(u16v(link_ptr + 0x0F));
         engine.set_mem(0x45, r.value);
         routine_0067(engine, r);
         reset_room_object_slots(engine, r);
@@ -4784,10 +4782,13 @@ mod routine_0137 {
     }
 }
 
-mod routine_0138 {
+mod enter_fragment_pickup_room {
     use super::*;
-    pub fn routine_0138(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0141(engine, r);
+
+    /// After collecting a `0x0E` fragment item, runs the warp transition and
+    /// moves to the fragment-specific room selected by `0x6E`.
+    pub fn enter_fragment_pickup_room(engine: &mut Engine, r: &mut RoutineContext) {
+        run_warp_transition_effect(engine, r);
         engine.set_mem(0x48, 0x11);
         r.index = u8v(engine.mem(0x6E) - 1);
         engine.set_mem(0x47, r.index);
@@ -4809,11 +4810,14 @@ mod routine_0138 {
     }
 }
 
-mod routine_0139 {
+mod enter_pending_special_exit_room {
     use super::*;
-    pub fn routine_0139(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Consumes the pending special-exit flag set by the high-bit actor path
+    /// and moves to its fixed destination room.
+    pub fn enter_pending_special_exit_room(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xEB, 0x00);
-        routine_0141(engine, r);
+        run_warp_transition_effect(engine, r);
         engine.set_mem(0x2E, 0x3E);
         engine.set_mem(0x48, 0x10);
         engine.set_mem(0x47, 0x03);
@@ -4835,11 +4839,14 @@ mod routine_0139 {
     }
 }
 
-mod routine_0140 {
+mod check_final_exit_trigger {
     use super::*;
-    pub fn routine_0140(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x55);
-        if (cbool(engine.mem(u16v(0x51 + x)) == 0x0F)
+
+    /// Raises the final-exit flag when item `0x0F` is selected at the exact
+    /// room/scroll/player position expected by the original game.
+    pub fn check_final_exit_trigger(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_slot: i32 = engine.mem(0x55);
+        if (cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x0F)
             && cbool(engine.mem(0x47) == 0x01)
             && cbool(engine.mem(0x48) == 0x05)
             && cbool(engine.mem(0x7C) == 0x10)
@@ -4851,9 +4858,11 @@ mod routine_0140 {
     }
 }
 
-mod routine_0141 {
+mod run_warp_transition_effect {
     use super::*;
-    pub fn routine_0141(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Shared scroll/audio transition used before scripted room warps.
+    pub fn run_warp_transition_effect(engine: &mut Engine, r: &mut RoutineContext) {
         let mut outer: i32 = 0;
         routine_0065(engine, r);
         engine.set_mem(0x85, 0x00);
@@ -5320,7 +5329,7 @@ mod routine_0146 {
                     v = engine.mem(u16v(0x0401 + x));
                     r.value = v;
                     if cbool(v == 0x01) {
-                        routine_0148(engine, r);
+                        unlock_door_with_key(engine, r);
                         {
                             state = 8;
                             continue 'dispatch;
@@ -5515,7 +5524,7 @@ mod apply_event_collectible_reward {
             engine.set_mem(0x8F, 0x13);
             if cbool(inventory_item_id == 0x0E) {
                 routine_0089(engine, r);
-                routine_0138(engine, r);
+                enter_fragment_pickup_room(engine, r);
             }
         }
     }
@@ -5588,7 +5597,7 @@ mod collect_room_pickup_object {
             engine.set_mem(0x8F, 0x13);
             if cbool(inventory_item_id == 0x0E) {
                 routine_0089(engine, r);
-                routine_0138(engine, r);
+                enter_fragment_pickup_room(engine, r);
             }
         }
     }
@@ -5893,7 +5902,7 @@ mod dispatch_overhead_tile_action {
             return false;
         }
 
-        routine_0137(engine, r);
+        enter_room_link_destination(engine, r);
         engine.lotw_nonlocal_handoff = 1;
         true
     }

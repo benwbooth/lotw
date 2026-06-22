@@ -1913,7 +1913,9 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
     set_sprite_blink_timer(engine, saved_blink);
 }
 
-pub fn routine_0148(engine: &mut Engine, r: &mut RoutineContext) {
+/// Spends a key and runs the door-unlock prompt/music sequence. Carry is set
+/// only when a key was available and the door event completed.
+pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::consume_key(engine, r);
     if cbool(r.carry) {
         set_prompt_state(engine, 0x06);
