@@ -15,6 +15,7 @@ pub use add_key::add_key;
 pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
 pub use advance_envelope_phase::advance_envelope_phase;
+pub use advance_intro_text_scroll::advance_intro_text_scroll;
 pub use aim_actor_from_player_overlap::aim_actor_from_player_overlap;
 pub use aim_actor_toward_player::aim_actor_toward_player;
 pub use animate_actor_cycle_tiles::animate_actor_cycle_tiles;
@@ -31,6 +32,7 @@ pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
 pub use audio_cmd_set_pitch_offset::audio_cmd_set_pitch_offset;
 pub use audio_cmd_set_sweep_value::audio_cmd_set_sweep_value;
 pub use audio_cmd_set_volume_scale::audio_cmd_set_volume_scale;
+pub use blink_demo_oam_sprites::blink_demo_oam_sprites;
 pub use build_decimal_digit_tiles::build_decimal_digit_tiles;
 pub use build_direction_velocity::build_direction_velocity;
 pub use build_health_meter_sprites::build_health_meter_sprites;
@@ -54,6 +56,7 @@ pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_col
 pub use check_top_boundary_exit_clear::check_top_boundary_exit_clear;
 pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
+pub use choose_random_demo_input::choose_random_demo_input;
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_name_tables_to_blank_tiles::clear_name_tables_to_blank_tiles;
@@ -61,6 +64,7 @@ pub use clear_oam_with_sprite_zero_template::clear_oam_with_sprite_zero_template
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use clear_room_persistent_flag::clear_room_persistent_flag;
 pub use clear_temporary_room_sprites::clear_temporary_room_sprites;
+pub use clear_text_staging_buffer::clear_text_staging_buffer;
 pub use close_inventory_item_menu::close_inventory_item_menu;
 pub use collect_key_bundle_reward::collect_key_bundle_reward;
 pub use collect_large_coin_reward::collect_large_coin_reward;
@@ -104,14 +108,18 @@ pub use grant_long_speed_boost::grant_long_speed_boost;
 pub use grant_short_invulnerability::grant_short_invulnerability;
 pub use grant_short_speed_boost::grant_short_speed_boost;
 pub use handle_player_room_transition::handle_player_room_transition;
+pub use hide_all_sprite_y_positions::hide_all_sprite_y_positions;
 pub use inc16_95::inc16_95;
 pub use initialize_large_actor_slot::initialize_large_actor_slot;
+pub use load_demo_oam_template::load_demo_oam_template;
 pub use load_effective_jump_duration::load_effective_jump_duration;
 pub use load_effective_projectile_damage::load_effective_projectile_damage;
 pub use load_effective_projectile_lifetime::load_effective_projectile_lifetime;
 pub use load_family_item_permission_bits::load_family_item_permission_bits;
+pub use load_intro_text_palette::load_intro_text_palette;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
+pub use load_title_oam_template::load_title_oam_template;
 pub use load_title_palette_buffer::load_title_palette_buffer;
 pub use main_init::main_init;
 pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
@@ -175,18 +183,6 @@ pub use routine_0028::routine_0028;
 pub use routine_0030::routine_0030;
 pub use routine_0031::routine_0031;
 pub use routine_0032::routine_0032;
-pub use routine_0035::routine_0035;
-pub use routine_0036::routine_0036;
-pub use routine_0037::routine_0037;
-pub use routine_0038::routine_0038;
-pub use routine_0040::routine_0040;
-pub use routine_0041::routine_0041;
-pub use routine_0042::routine_0042;
-pub use routine_0043::routine_0043;
-pub use routine_0044::routine_0044;
-pub use routine_0046::routine_0046;
-pub use routine_0047::routine_0047;
-pub use routine_0048::routine_0048;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -194,6 +190,7 @@ pub use scene_assemble::scene_assemble;
 pub use seed_object_position_from_tile_offset::seed_object_position_from_tile_offset;
 pub use select_inventory_grid_entry::select_inventory_grid_entry;
 pub use select_room_data_bank_and_pointers::select_room_data_bank_and_pointers;
+pub use set_intro_text_vram_address::set_intro_text_vram_address;
 pub use set_inventory_list_buffer_index::set_inventory_list_buffer_index;
 pub use sfx_overlay_voice::sfx_overlay_voice;
 pub use snapshot_inventory_state::snapshot_inventory_state;
@@ -205,6 +202,8 @@ pub use sound_tick::sound_tick;
 pub use spawn_player_projectile::spawn_player_projectile;
 pub use spend_coins::spend_coins;
 pub use split_meter_value::split_meter_value;
+pub use stage_intro_text_line::stage_intro_text_line;
+pub use stage_scrolling_intro_text_line::stage_scrolling_intro_text_line;
 pub use start_note_envelope::start_note_envelope;
 pub use start_rest_envelope::start_rest_envelope;
 pub use statusbar_split::statusbar_split;
@@ -264,6 +263,7 @@ pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
 pub use upload_current_room_view::upload_current_room_view;
 pub use upload_equipped_item_stat_tiles::upload_equipped_item_stat_tiles;
+pub use upload_intro_text_scroll_slice::upload_intro_text_scroll_slice;
 pub use upload_inventory_count_tiles::upload_inventory_count_tiles;
 pub use upload_inventory_item_count_tiles::upload_inventory_item_count_tiles;
 pub use upload_inventory_item_list::upload_inventory_item_list;
@@ -1727,9 +1727,11 @@ mod routine_0032 {
     }
 }
 
-mod routine_0035 {
+mod choose_random_demo_input {
     use super::*;
-    pub fn routine_0035(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Chooses a pseudo-random controller byte for the title-screen demo loop.
+    pub fn choose_random_demo_input(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x04;
         rng_update(engine, r);
         r.index = r.value;
@@ -1743,69 +1745,54 @@ mod routine_0035 {
     }
 }
 
-mod routine_0036 {
+mod load_title_oam_template {
     use super::*;
-    pub fn routine_0036(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x7F;
-            while cbool(x >= 0) {
-                engine.set_mem(0x0240 + x, engine.mem(0xB71C + x));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+
+    /// Loads the full title-screen OAM template into the sprite staging area.
+    pub fn load_title_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
+        for offset in (0..=0x7F).rev() {
+            engine.set_mem(0x0240 + offset, engine.mem(0xB71C + offset));
         }
         r.index = 0xFF;
     }
 }
 
-mod routine_0037 {
+mod load_demo_oam_template {
     use super::*;
-    pub fn routine_0037(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x1F;
-            while cbool(x >= 0) {
-                engine.set_mem(0x0240 + x, engine.mem(0xB6FC + x));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+
+    /// Loads the smaller demo-mode OAM template used after the title timeout.
+    pub fn load_demo_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
+        for offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0240 + offset, engine.mem(0xB6FC + offset));
         }
         r.index = 0xFF;
     }
 }
 
-mod routine_0038 {
+mod blink_demo_oam_sprites {
     use super::*;
-    pub fn routine_0038(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0xEF;
+
+    /// Toggles the first eight demo sprites on and off from the frame timer.
+    pub fn blink_demo_oam_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut sprite_y: i32 = 0xEF;
         if cbool(engine.mem(0x84) & 0x30) {
-            x = 0x80;
+            sprite_y = 0x80;
         }
-        engine.set_mem(0x0240, x);
-        engine.set_mem(0x0244, x);
-        engine.set_mem(0x0248, x);
-        engine.set_mem(0x024C, x);
-        engine.set_mem(0x0250, x);
-        engine.set_mem(0x0254, x);
-        engine.set_mem(0x0258, x);
-        engine.set_mem(0x025C, x);
-        r.index = x;
+        for oam_offset in (0..=0x1C).step_by(4) {
+            engine.set_mem(0x0240 + oam_offset, sprite_y);
+        }
+        r.index = sprite_y;
     }
 }
 
-mod routine_0040 {
+mod stage_intro_text_line {
     use super::*;
-    pub fn routine_0040(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Stages one intro text line into `0x0140` until CR or terminator.
+    pub fn stage_intro_text_line(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ptr: i32 = 0;
         let mut y: i32 = 0;
-        routine_0048(engine, r);
+        clear_text_staging_buffer(engine, r);
         ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
         {
             let mut i: i32 = 0;
@@ -1819,9 +1806,9 @@ mod routine_0040 {
                         return;
                     }
                     if cbool(b == 0x0D) {
-                        routine_0042(engine, r);
+                        set_intro_text_vram_address(engine, r);
                         r.value = 0x05;
-                        routine_0044(engine, r);
+                        upload_intro_text_scroll_slice(engine, r);
                         r.carry = 0;
                         return;
                     }
@@ -1841,15 +1828,18 @@ mod routine_0040 {
     }
 }
 
-mod routine_0041 {
+mod stage_scrolling_intro_text_line {
     use super::*;
-    pub fn routine_0041(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Stages the next intro text line, advances the source pointer past CR,
+    /// and offsets the tile ids for the scrolling text row.
+    pub fn stage_scrolling_intro_text_line(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ptr: i32 = 0;
         let mut y: i32 = 0;
         let mut c: i32 = 0;
         let mut lo: i32 = 0;
         let mut guard: i32 = 0;
-        routine_0048(engine, r);
+        clear_text_staging_buffer(engine, r);
         ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
         y = 0x00;
         {
@@ -1874,9 +1864,9 @@ mod routine_0041 {
                         engine.set_mem(0x0D, u8v(engine.mem(0x0D) + 1));
                     }
                     r.value = 0x08;
-                    routine_0042(engine, r);
+                    set_intro_text_vram_address(engine, r);
                     r.value = 0x05;
-                    routine_0044(engine, r);
+                    upload_intro_text_scroll_slice(engine, r);
                     r.carry = 0;
                     return;
                 }
@@ -1905,34 +1895,31 @@ mod routine_0041 {
     }
 }
 
-mod routine_0042 {
+mod set_intro_text_vram_address {
     use super::*;
-    pub fn routine_0042(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut hi: i32 = 0x08;
-        let mut a: i32 = engine.mem(0x0A);
-        let mut carry: i32 = 0;
-        carry = a >> 7;
-        a = u8v(a << 1);
-        hi = u8v((hi << 1) | carry);
-        carry = a >> 7;
-        a = u8v(a << 1);
-        hi = u8v((hi << 1) | carry);
-        engine.set_mem(0x17, hi);
-        engine.set_mem(0x16, a);
-        r.value = a;
+
+    /// Converts intro text scroll offset `0x0A` into a nametable address.
+    pub fn set_intro_text_vram_address(engine: &mut Engine, r: &mut RoutineContext) {
+        let address: i32 = 0x2000 + (engine.mem(0x0A) << 2);
+        engine.set_mem(0x17, u8v(address >> 8));
+        engine.set_mem(0x16, u8v(address));
+        r.value = u8v(address);
     }
 }
 
-mod routine_0043 {
+mod advance_intro_text_scroll {
     use super::*;
-    pub fn routine_0043(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Advances intro text scroll one pixel at a time, flushing partial slices
+    /// until the offset reaches the next 8-pixel row boundary.
+    pub fn advance_intro_text_scroll(engine: &mut Engine, r: &mut RoutineContext) {
         loop {
             engine.inc_mem(0x0A);
             if cbool((engine.mem(0x0A) & 0x07) == 0) {
                 break;
             }
             r.value = 0xFF;
-            routine_0044(engine, r);
+            upload_intro_text_scroll_slice(engine, r);
         }
         if cbool(engine.mem(0x0A) == 0xF0) {
             engine.set_mem(0x0A, 0x00);
@@ -1940,9 +1927,12 @@ mod routine_0043 {
     }
 }
 
-mod routine_0044 {
+mod upload_intro_text_scroll_slice {
     use super::*;
-    pub fn routine_0044(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the staged intro text row plus three spacer rows for the current
+    /// scroll offset.
+    pub fn upload_intro_text_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
         let mut saved_a: i32 = u8v(r.value);
         let mut v: i32 = u8v(engine.mem(0x0A) + 0x06);
         if cbool(v >= 0xF0) {
@@ -1960,9 +1950,11 @@ mod routine_0044 {
     }
 }
 
-mod routine_0046 {
+mod load_intro_text_palette {
     use super::*;
-    pub fn routine_0046(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Loads the intro/text palette and queues it for upload.
+    pub fn load_intro_text_palette(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         engine.set_mem(0x0180, 0x0F);
         engine.set_mem(0x0181, 0x0C);
@@ -1983,9 +1975,12 @@ mod routine_0046 {
     }
 }
 
-mod routine_0047 {
+mod hide_all_sprite_y_positions {
     use super::*;
-    pub fn routine_0047(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Hides every staged sprite by writing the offscreen Y value to each OAM
+    /// entry while leaving tile/attribute/X bytes untouched.
+    pub fn hide_all_sprite_y_positions(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0x00;
         loop {
             engine.set_mem(u16v(0x0200 + x), 0xEF);
@@ -1999,19 +1994,13 @@ mod routine_0047 {
     }
 }
 
-mod routine_0048 {
+mod clear_text_staging_buffer {
     use super::*;
-    pub fn routine_0048(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = 0;
-        {
-            y = 0x1F;
-            while cbool(y >= 0) {
-                engine.set_mem(0x0140 + y, 0xC0);
-                {
-                    y -= 1;
-                    y
-                };
-            }
+
+    /// Clears the 32-byte text staging buffer to blank tile `0xC0`.
+    pub fn clear_text_staging_buffer(engine: &mut Engine, r: &mut RoutineContext) {
+        for offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0140 + offset, 0xC0);
         }
         r.value = 0xC0;
         r.offset = 0xFF;

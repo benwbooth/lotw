@@ -93,7 +93,6 @@ would currently be weaker than the cluster name.
 | `game` | `0021..0028`, `0030..0032` | cluster | password/title/menu support and first-room transition helpers |
 | `native` | `0001`, `0002`, `0004`, `0020`, `0029` | inferred | high-level start flow, intro/menu flow, and blocking input gates rewritten around frame tasks |
 | `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050` | inferred | title screen, family select, password entry, and start-game screen orchestration |
-| `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 
 ## Named Non-Numbered Routines
 
@@ -116,6 +115,7 @@ surface when touching nearby code:
 | `animate_large_actor_body_tiles` | advance the large actor animation timer and derive linked body-slot tile ids |
 | `animate_health_refill_to_cap` | count health up to the reward cap while updating HUD and prompt animation |
 | `animate_magic_refill_to_cap` | count magic up to the reward cap while updating HUD and prompt animation |
+| `advance_intro_text_scroll` | advance intro text scroll to the next 8-pixel boundary, flushing partial slices |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `apply_event_collectible_reward` | apply a reward from an event/shop path where no room object slot is cleared |
@@ -148,12 +148,14 @@ surface when touching nearby code:
 | `check_top_boundary_exit_clear` | report whether the top-edge room transition is clear for the player to wrap upward |
 | `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
+| `choose_random_demo_input` | choose a pseudo-random controller byte for the title-screen demo loop |
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
 | `clear_name_tables_to_blank_tiles` | blank both nametables to tile `0xC0` and zero attributes with rendering disabled |
 | `clear_oam_with_sprite_zero_template` | clear staged OAM while preserving the sprite-zero template |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `clear_temporary_room_sprites` | hide the temporary room item and coin/cost sprites in OAM |
+| `clear_text_staging_buffer` | clear the intro text staging buffer to blank tile `0xC0` |
 | `close_inventory_item_menu` | close the item menu, restore the gameplay snapshot, and redraw HUD state |
 | `collect_key_bundle_reward` | add the large key bundle reward and play its pickup sound |
 | `collect_large_coin_reward` | add the large coin reward and play its pickup sound |
@@ -216,9 +218,12 @@ surface when touching nearby code:
 | `load_effective_projectile_damage` | load projectile damage, applying the selected power-item boost when magic is available |
 | `load_effective_projectile_lifetime` | load projectile lifetime/state, applying the selected range-item boost when magic is available |
 | `load_family_item_permission_bits` | load shifted family/item permission bits and return the final shifted-out bit in carry |
+| `load_demo_oam_template` | copy the smaller demo-mode OAM template into sprite staging |
+| `load_intro_text_palette` | load the intro/text palette and queue it for upload |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `load_title_palette_buffer` | copy the title-screen ROM palette into the palette upload buffer |
+| `load_title_oam_template` | copy the full title-screen OAM template into sprite staging |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `maybe_spawn_pursuer_actor` | one-in-30 secondary actor spawn path that seeds scratch position from the player slot |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
@@ -280,6 +285,9 @@ surface when touching nearby code:
 | `stop_actor_motion` | clear actor velocity and arc/probe motion counters |
 | `start_note_envelope` | load the selected channel's active-note envelope phase state |
 | `start_rest_envelope` | load the selected channel's timed silent envelope phase state |
+| `set_intro_text_vram_address` | convert intro text scroll offset `0x0A` into a nametable address |
+| `stage_intro_text_line` | stage one intro text line into the text buffer until CR/terminator |
+| `stage_scrolling_intro_text_line` | stage the next scrolling intro text line and advance its source pointer |
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
 | `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
 | `subtract_health_points` | subtract damage from health and saturate underflow at zero |
@@ -338,6 +346,7 @@ surface when touching nearby code:
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
 | `update_camera_scroll_from_player` | keep the horizontal camera around the player and mark exposed scroll columns |
+| `upload_intro_text_scroll_slice` | upload the staged intro text row plus spacer rows for the current scroll offset |
 | `upload_equipped_item_stat_tiles` | upload effective projectile damage, jump duration, and projectile lifetime values |
 | `upload_inventory_count_tiles` | upload every inventory item count to the item/status screen |
 | `upload_inventory_item_count_tiles` | upload one inventory item count with active family availability palette adjustment |
