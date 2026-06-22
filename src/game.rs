@@ -47,6 +47,7 @@ pub use check_projected_terrain_collision::check_projected_terrain_collision;
 pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_collision;
 pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
+pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use commit_actor_projected_position::commit_actor_projected_position;
 pub use compose_large_actor_body_slots::compose_large_actor_body_slots;
@@ -62,6 +63,9 @@ pub use frame_counters::frame_counters;
 pub use game_update::game_update;
 pub use inc16_95::inc16_95;
 pub use initialize_large_actor_slot::initialize_large_actor_slot;
+pub use load_effective_jump_duration::load_effective_jump_duration;
+pub use load_effective_projectile_damage::load_effective_projectile_damage;
+pub use load_effective_projectile_lifetime::load_effective_projectile_lifetime;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
@@ -78,6 +82,7 @@ pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
 pub use reset::reset;
+pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
@@ -158,11 +163,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0124::routine_0124;
-pub use routine_0125::routine_0125;
-pub use routine_0126::routine_0126;
-pub use routine_0127::routine_0127;
-pub use routine_0128::routine_0128;
 pub use routine_0129::routine_0129;
 pub use routine_0130::routine_0130;
 pub use routine_0131::routine_0131;
@@ -4242,19 +4242,19 @@ mod routine_0119 {
     pub fn routine_0119(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x16, 0xDE);
         engine.set_mem(0x17, 0x21);
-        routine_0125(engine, r);
+        load_effective_projectile_damage(engine, r);
         routine_0121(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
         engine.set_mem(0x16, 0x1E);
         engine.set_mem(0x17, 0x22);
-        routine_0124(engine, r);
+        load_effective_jump_duration(engine, r);
         routine_0121(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
         engine.set_mem(0x16, 0x5E);
         engine.set_mem(0x17, 0x22);
-        routine_0126(engine, r);
+        load_effective_projectile_lifetime(engine, r);
         routine_0121(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
@@ -4351,15 +4351,18 @@ mod routine_0123 {
     }
 }
 
-mod routine_0124 {
+mod load_effective_jump_duration {
     use super::*;
-    pub fn routine_0124(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x55);
-        let mut item: i32 = engine.mem((0x51 + x) & 0xFF);
-        r.index = x;
-        if (cbool(item == 0x06) && cbool(engine.mem(0x59) != 0)) {
-            let mut jump: i32 = engine.mem(0x5C);
-            r.value = u8v((jump >> 2) + jump);
+
+    /// Loads the active character's jump duration. Carry is clear when the
+    /// selected jump item is present and magic can pay for the boosted value.
+    pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_item_slot: i32 = engine.mem(0x55);
+        let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
+        r.index = selected_item_slot;
+        if cbool(selected_item == 0x06) && cbool(engine.mem(0x59) != 0) {
+            let base_jump_duration: i32 = engine.mem(0x5C);
+            r.value = u8v((base_jump_duration >> 2) + base_jump_duration);
             r.carry = 0;
         } else {
             r.value = engine.mem(0x5C);
@@ -4368,12 +4371,15 @@ mod routine_0124 {
     }
 }
 
-mod routine_0125 {
+mod load_effective_projectile_damage {
     use super::*;
-    pub fn routine_0125(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x55);
-        let mut item: i32 = engine.mem((0x51 + x) & 0xFF);
-        if (cbool(item == 0x08) && cbool(engine.mem(0x59) != 0)) {
+
+    /// Loads the projectile damage stat. Carry is clear when the selected
+    /// projectile-power item is active and magic can pay for the boosted shot.
+    pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_item_slot: i32 = engine.mem(0x55);
+        let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
+        if cbool(selected_item == 0x08) && cbool(engine.mem(0x59) != 0) {
             r.value = u8v(engine.mem(0x5D) << 2);
             r.carry = 0;
         } else {
@@ -4383,12 +4389,17 @@ mod routine_0125 {
     }
 }
 
-mod routine_0126 {
+mod load_effective_projectile_lifetime {
     use super::*;
-    pub fn routine_0126(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x55);
-        r.index = x;
-        if (cbool(engine.mem((0x51 + x) & 0xFF) == 0x09) && cbool(engine.mem(0x59) != 0)) {
+
+    /// Loads the projectile lifetime/state byte. Carry is clear when the
+    /// selected projectile-range item is active and magic can pay for it.
+    pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineContext) {
+        let selected_item_slot: i32 = engine.mem(0x55);
+        r.index = selected_item_slot;
+        if cbool(engine.mem((0x51 + selected_item_slot) & 0xFF) == 0x09)
+            && cbool(engine.mem(0x59) != 0)
+        {
             r.value = u8v(engine.mem(0x5F) << 1);
             r.carry = 0;
             return;
@@ -4398,35 +4409,39 @@ mod routine_0126 {
     }
 }
 
-mod routine_0127 {
+mod clear_gameplay_object_sprites {
     use super::*;
-    pub fn routine_0127(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x80;
+
+    /// Hides the gameplay-object half of OAM, leaving HUD sprites untouched.
+    pub fn clear_gameplay_object_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut oam_offset: i32 = 0x80;
         loop {
-            engine.set_mem(u16v(0x0200 + x), 0xEF);
-            x = u8v(x + 4);
-            if !cbool(x != 0) {
+            engine.set_mem(u16v(0x0200 + oam_offset), 0xEF);
+            oam_offset = u8v(oam_offset + 4);
+            if !cbool(oam_offset != 0) {
                 break;
             }
         }
-        r.index = x;
+        r.index = oam_offset;
         r.value = 0xEF;
     }
 }
 
-mod routine_0128 {
+mod reset_room_object_slots {
     use super::*;
-    pub fn routine_0128(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x00;
-        let mut y: i32 = 0x10;
+
+    /// Clears all 16 object slots to inactive and resets the actor scheduler.
+    pub fn reset_room_object_slots(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut slot_offset: i32 = 0x00;
+        let mut slots_remaining: i32 = 0x10;
         loop {
-            engine.set_mem(u16v(0x0401 + x), 0x00);
-            engine.set_mem(u16v(0x0406 + x), 0x02);
-            x = u8v(x + 0x10);
+            engine.set_mem(u16v(0x0401 + slot_offset), 0x00);
+            engine.set_mem(u16v(0x0406 + slot_offset), 0x02);
+            slot_offset = u8v(slot_offset + 0x10);
             if !cbool(
                 {
-                    y -= 1;
-                    y
+                    slots_remaining -= 1;
+                    slots_remaining
                 } != 0,
             ) {
                 break;
@@ -4434,7 +4449,7 @@ mod routine_0128 {
         }
         engine.set_mem(0xE9, 0x00);
         r.value = 0x00;
-        r.index = x;
+        r.index = slot_offset;
         r.offset = 0x00;
     }
 }
@@ -4709,10 +4724,10 @@ mod routine_0136 {
             engine.set_mem(0x0043, 0x00);
             engine.set_mem(0x007B, 0x00);
             routine_0067(engine, r);
-            routine_0128(engine, r);
+            reset_room_object_slots(engine, r);
             scene_assemble(engine, r);
             routine_0077(engine, r);
-            routine_0127(engine, r);
+            clear_gameplay_object_sprites(engine, r);
             routine_0060(engine, r);
             routine_0061(engine, r);
             routine_0070(engine, r);
@@ -4778,10 +4793,10 @@ mod routine_0137 {
         r.value = engine.mem(u16v(ptr + r.offset));
         engine.set_mem(0x45, r.value);
         routine_0067(engine, r);
-        routine_0128(engine, r);
+        reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
         routine_0070(engine, r);
@@ -4803,10 +4818,10 @@ mod routine_0138 {
         engine.set_mem(0x7B, 0x00);
         r.value = 0x00;
         routine_0067(engine, r);
-        routine_0128(engine, r);
+        reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
         routine_0070(engine, r);
@@ -4829,10 +4844,10 @@ mod routine_0139 {
         engine.set_mem(0x7B, 0x00);
         r.value = 0x00;
         routine_0067(engine, r);
-        routine_0128(engine, r);
+        reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
         routine_0070(engine, r);
@@ -4907,10 +4922,10 @@ mod routine_0142 {
     use super::*;
     fn scene_rebuild_full(engine: &mut Engine, r: &mut RoutineContext) {
         routine_0067(engine, r);
-        routine_0128(engine, r);
+        reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
         routine_0070(engine, r);
@@ -4919,8 +4934,8 @@ mod routine_0142 {
     }
 
     fn scene_rebuild_vert(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0128(engine, r);
-        routine_0127(engine, r);
+        reset_room_object_slots(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
         routine_0075(engine, r);
@@ -5004,8 +5019,8 @@ mod routine_0142 {
             engine.set_mem(0x0043, 0x00);
             engine.set_mem(0x0044, 0x00);
         }
-        routine_0128(engine, r);
-        routine_0127(engine, r);
+        reset_room_object_slots(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         engine.set_mem(0x007B, 0x00);
         scene_assemble(engine, r);
         routine_0080(engine, r);
@@ -6426,7 +6441,7 @@ mod routine_0195 {
         engine.set_mem(0x4F, 0x00);
         engine.set_mem(0x4E, 0x00);
         engine.set_mem(0x7B, 0x00);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0084(engine, r);
         if cbool(a == 0x04) {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
@@ -6453,7 +6468,7 @@ mod routine_0196 {
         engine.set_mem(0x4F, 0x00);
         engine.set_mem(0x4E, 0x00);
         engine.set_mem(0x7B, 0x00);
-        routine_0127(engine, r);
+        clear_gameplay_object_sprites(engine, r);
         routine_0084(engine, r);
         if cbool(a == 0x04) {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
@@ -9279,12 +9294,12 @@ mod spawn_player_projectile {
                     engine.set_mem(0xF9, engine.mem(0x0E));
                     engine.set_mem(0xFA, engine.mem(0x0F));
                     engine.set_mem(0xFB, engine.mem(0x0A));
-                    routine_0126(engine, r);
+                    load_effective_projectile_lifetime(engine, r);
                     engine.set_mem(0xEE, r.value);
                     if cbool(r.carry == 0) {
                         consume_magic_point(engine, r);
                     }
-                    routine_0125(engine, r);
+                    load_effective_projectile_damage(engine, r);
                     engine.set_mem(0xF8, r.value);
                     if cbool(r.carry == 0) {
                         consume_magic_point(engine, r);

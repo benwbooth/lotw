@@ -233,7 +233,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
 
     r.index = 0x02;
     farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
-    crate::game::routine_0128(engine, r);
+    crate::game::reset_room_object_slots(engine, r);
     crate::game::routine_0063(engine, r);
     r.index = 0x03;
     farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
@@ -412,7 +412,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0214, 0xef);
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
-    crate::game::routine_0128(engine, r);
+    crate::game::reset_room_object_slots(engine, r);
     routine_0045(engine, r);
     routine_0069(engine, r);
     crate::game::routine_0066(engine, r);
@@ -458,7 +458,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::sync_coin_hud(engine, r);
     crate::game::sync_key_hud(engine, r);
     crate::game::routine_0060(engine, r);
-    crate::game::routine_0127(engine, r);
+    crate::game::clear_gameplay_object_sprites(engine, r);
     crate::game::routine_0061(engine, r);
     crate::game::routine_0062(engine, r);
     crate::game::routine_0063(engine, r);
@@ -849,7 +849,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(u16v(0x0180 + x), 0x0f);
         }
         farcall_cce4(engine, r, 0x69, 0xc5, crate::game::routine_0075);
-        crate::game::routine_0128(engine, r);
+        crate::game::reset_room_object_slots(engine, r);
         crate::game::routine_0065(engine, r);
         crate::game::routine_0036(engine, r);
         engine.set_mem(0x2c, 0x15);
@@ -902,7 +902,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
 
         routine_0069(engine, r);
         crate::game::routine_0065(engine, r);
-        crate::game::routine_0128(engine, r);
+        crate::game::reset_room_object_slots(engine, r);
         crate::game::routine_0037(engine, r);
         r.value = 0x04;
         crate::game::rng_update(engine, r);
@@ -997,7 +997,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::sync_coin_hud(engine, r);
         crate::game::sync_key_hud(engine, r);
         crate::game::routine_0060(engine, r);
-        crate::game::routine_0127(engine, r);
+        crate::game::clear_gameplay_object_sprites(engine, r);
         crate::game::routine_0061(engine, r);
         crate::game::routine_0062(engine, r);
         farcall_cce4(engine, r, 0x92, 0xc4, routine_0070);
@@ -1093,7 +1093,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     let saved_song = engine.mem(0x8e);
 
     engine.inc_mem(0x8d);
-    crate::game::routine_0127(engine, r);
+    crate::game::clear_gameplay_object_sprites(engine, r);
     r.index = 0x35;
     r.offset = 0x00;
     routine_0050(engine, r);
@@ -1162,7 +1162,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
     crate::game::routine_0066(engine, r);
-    crate::game::routine_0128(engine, r);
+    crate::game::reset_room_object_slots(engine, r);
     crate::game::routine_0063(engine, r);
     engine.set_mem(0x2b, 0x16);
     engine.set_mem(0x2c, 0x36);
@@ -2163,7 +2163,7 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x57, 0x00);
     crate::game::routine_0061(engine, r);
     crate::game::routine_0201(engine, r);
-    crate::game::routine_0128(engine, r);
+    crate::game::reset_room_object_slots(engine, r);
     routine_0070(engine, r);
 
     loop {
@@ -2244,7 +2244,7 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x57, 0x00);
         engine.and_mem(0x45, 0xf0);
         engine.set_mem(0x43, 0x04);
-        crate::game::routine_0127(engine, r);
+        crate::game::clear_gameplay_object_sprites(engine, r);
         crate::game::routine_0061(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);

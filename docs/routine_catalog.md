@@ -60,6 +60,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x59` | magic/action counter | `add_magic_points`, `consume_magic_point`, projectile/action use |
 | `0x5A` | coin counter | `add_coins`, `spend_coins`, shop item purchases |
 | `0x5B` | key counter | `add_key`, `add_keys`, `consume_key`, door and tile-action costs |
+| `0x5C..0x5F` | jump duration, projectile damage, projectile slot count, projectile lifetime | `load_effective_jump_duration`, `load_effective_projectile_damage`, `update_player_projectiles`, `load_effective_projectile_lifetime` |
 | `0x70..0x74` | current room tile/action ids | scene assembly and item actions |
 | `0x75..0x78` | room map pointer and saved pointer | tile addressing and scene assembly |
 | `0x79..0x7A` | current metasprite/table pointer | sprite build and room assets |
@@ -97,7 +98,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `game` | `0124..0128` | inferred | item effect helpers and resource display refresh |
 | `game` | `0129..0132` | cluster | inventory/status UI update helpers |
 | `native` | `0133`, `0134` | inferred | inventory/status screen flow and return path |
 | `game` | `0135..0147` | inferred | item action dispatch, item pickup/collection, actor contact, and room-interaction checks |
@@ -160,6 +160,7 @@ surface when touching nearby code:
 | `check_position_out_of_bounds` | test projected position against the general playfield bounds |
 | `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
+| `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
 | `compose_large_actor_body_slots` | mirror the large actor logical slot into the three linked 2x2 body sprite slots and refresh its health meter |
@@ -175,6 +176,9 @@ surface when touching nearby code:
 | `game_update` | foreground input/player/item update |
 | `inc16_95` | increment the music stream pointer for the selected channel |
 | `initialize_large_actor_slot` | spawn the special large actor slot from room actor data after checking its wide footprint |
+| `load_effective_jump_duration` | load jump duration, applying the selected jump-item boost when magic is available |
+| `load_effective_projectile_damage` | load projectile damage, applying the selected power-item boost when magic is available |
+| `load_effective_projectile_lifetime` | load projectile lifetime/state, applying the selected range-item boost when magic is available |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
@@ -191,6 +195,7 @@ surface when touching nearby code:
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
 | `reset` | top-level reset entry |
+| `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
@@ -260,7 +265,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. Inventory, item actions, and pickup effects: `routine_0129..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
