@@ -100,8 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `native` | `0240` | inferred | high-bit/special actor update path |
-| `native` | `0259` | inferred | inventory/equipment screen helper path |
 
 ## Named Non-Numbered Routines
 
@@ -268,6 +266,7 @@ surface when touching nearby code:
 | `tick_chasing_jump_actor` | actor behavior that re-aims toward the player and uses jump/gravity terrain movement |
 | `tick_contact_recoil_actor` | actor behavior that switches to a high-bit recoil state when player contact blocks movement |
 | `tick_contact_trigger_actor` | actor behavior that wakes into chasing movement after one-step player contact |
+| `tick_defeated_actor_reward_drop` | run the high-bit defeated-actor rise/fall sequence and turn it into a pickup drop |
 | `tick_inactive_actor_slot` | initialize an inactive actor scratch slot from room actor data and spawn timing |
 | `tick_large_chasing_actor` | large actor behavior that aims toward the player and uses the wide jump/gravity movement path |
 | `tick_ledge_walking_actor` | actor behavior that walks along supported ledges and falls when unsupported |
@@ -280,6 +279,7 @@ surface when touching nearby code:
 | `tick_random_floating_actor` | actor behavior that chooses random directions and moves without terrain collision |
 | `tick_reflecting_chase_actor` | actor behavior that aims from player overlap and reflects velocity when blocked |
 | `tick_selected_item_effect` | apply the currently selected passive or consumable item effect |
+| `tick_special_exit_actor_sequence` | run the special-exit actor rise/fall sequence and raise pending special-exit flag `0xEB` |
 | `tick_standard_actor` | generic non-boss actor tick for motion continuation, collision response, expiry, and terrain probing |
 | `tick_timed_chase_actor` | actor behavior that chases for a finite timer and rejects abrupt multi-axis turns |
 | `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
@@ -325,7 +325,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Native high-bit actor and equipment helper flows: `routine_0240`, `routine_0259`.
+1. Object/player overlap search helpers: `routine_0109`, `routine_0110`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

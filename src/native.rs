@@ -2412,7 +2412,10 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
     }
 }
 
-pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the special-exit actor animation. After the rising/falling sequence
+/// collides with the playfield, the actor clears itself and raises `0xEB` so
+/// the foreground loop enters the pending special-exit room.
+pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     if (engine.mem(0xee) & 0x7f) == 0 {
         set_prompt_state(engine, 0x18);
         set_prompt_argument(engine, 0xff);
@@ -2657,7 +2660,10 @@ pub fn pop_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0240(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the high-bit defeated-actor reward drop sequence. The actor rises,
+/// falls back into the playfield, then turns into a pickup chosen from current
+/// resource needs and the drop table.
+pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineContext) {
     const DROP_ITEM_TABLE: [i32; 9] = [0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x05, 0x06, 0x07];
     if (engine.mem(0xee) & 0x7f) == 0 {
         engine.inc_mem(0xee);

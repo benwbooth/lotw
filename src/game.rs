@@ -6840,7 +6840,7 @@ mod update_room_actors {
                         if cbool(actor_state == 0) {
                             tick_inactive_actor_slot(engine, r);
                         } else if cbool(actor_state & 0x80) {
-                            routine_0240(engine, r);
+                            tick_defeated_actor_reward_drop(engine, r);
                         } else if cbool(actor_state == 0x01) {
                             dispatch_actor_behavior(engine, r);
                         } else if cbool(actor_state >= 0x18) {
