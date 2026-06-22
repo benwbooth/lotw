@@ -2466,11 +2466,13 @@ mod draw_object_slot_sprites {
             engine.set_mem(0x0205 + oam_offset, u8v(left_tile + 0x02));
         }
 
-        let subtile_delta: i32 = u16v(engine.mem(object_base + 0x0C)) + 0x100 - engine.mem(0x007B);
+        let subtile_delta: i32 =
+            u16v(engine.mem(object_base + 0x0C)) + 0x100 - engine.state.scroll_fine_x();
         let fine_x: i32 = u8v(subtile_delta) & 0x0F;
         let tile_borrow: i32 = u8v(subtile_delta >> 8);
-        let tile_delta: i32 =
-            u8v(u16v(engine.mem(object_base + 0x0D)) + tile_borrow - engine.mem(0x007C) - 1);
+        let tile_delta: i32 = u8v(u16v(engine.mem(object_base + 0x0D)) + tile_borrow
+            - engine.state.scroll_tile_x()
+            - 1);
         if cbool(tile_delta >= 0x10) {
             engine.set_mem(0x0200 + oam_offset, 0xEF);
             engine.set_mem(0x0204 + oam_offset, 0xEF);
@@ -4438,20 +4440,20 @@ mod tick_selected_item_effect {
             if cbool(selected_item != 0x0D) {
                 return;
             }
-            if cbool(engine.mem(0x0048) >= 0x11) {
+            if cbool(engine.state.map_screen_y() >= 0x11) {
                 engine.set_mem(0x0055, 0x03);
                 return;
             }
             engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
             draw_status_item_sprites(engine, r);
             engine.state.set_prompt_state(0x12);
-            engine.set_mem(0x0048, 0x10);
-            engine.set_mem(0x0047, 0x03);
-            engine.set_mem(0x007C, 0x12);
-            engine.set_mem(0x0045, 0xB0);
-            engine.set_mem(0x0044, 0x1A);
-            engine.set_mem(0x0043, 0x00);
-            engine.set_mem(0x007B, 0x00);
+            engine.state.set_map_screen_y(0x10);
+            engine.state.set_map_screen_x(0x03);
+            engine.state.set_scroll_tile_x(0x12);
+            engine.state.set_player_y(0xB0);
+            engine.state.set_player_x_tile(0x1A);
+            engine.state.set_player_x_fine(0x00);
+            engine.state.set_scroll_fine_x(0x00);
             fade_room_palette_out_reset_audio(engine, r);
             reset_room_object_slots(engine, r);
             scene_assemble(engine, r);
@@ -4686,88 +4688,96 @@ mod handle_player_room_transition {
     /// a whole room or a vertical strip; horizontal exits play the side-scroll
     /// transition while moving the map-space room coordinate.
     pub fn handle_player_room_transition(engine: &mut Engine, r: &mut RoutineContext) {
-        let player_y: i32 = engine.mem(0x0045);
+        let player_y: i32 = engine.state.player_y();
         if cbool(player_y < 0x10) {
             check_top_boundary_exit_clear(engine, r);
             if cbool(r.carry == 0) {
                 return;
             }
-            if cbool(engine.mem(0x0048) == 0x00) {
-                engine.set_mem(0x0048, 0x10);
-                engine.set_mem(0x0047, 0x03);
-                engine.set_mem(0x007C, 0x12);
-                engine.set_mem(0x0045, 0xB0);
-                engine.set_mem(0x0044, 0x1A);
-                engine.set_mem(0x0043, 0x00);
-                engine.set_mem(0x007B, 0x00);
+            if cbool(engine.state.map_screen_y() == 0x00) {
+                engine.state.set_map_screen_y(0x10);
+                engine.state.set_map_screen_x(0x03);
+                engine.state.set_scroll_tile_x(0x12);
+                engine.state.set_player_y(0xB0);
+                engine.state.set_player_x_tile(0x1A);
+                engine.state.set_player_x_fine(0x00);
+                engine.state.set_scroll_fine_x(0x00);
                 scene_rebuild_full(engine, r);
                 return;
             }
-            if cbool(engine.mem(0x0048) == 0x10) {
+            if cbool(engine.state.map_screen_y() == 0x10) {
                 return;
             }
-            engine.set_mem(0x0048, u8v(engine.mem(0x0048) - 1));
-            engine.set_mem(0x0045, 0xB0);
+            engine
+                .state
+                .set_map_screen_y(u8v(engine.state.map_screen_y() - 1));
+            engine.state.set_player_y(0xB0);
             scene_rebuild_vert(engine, r);
             return;
         }
         if cbool(player_y >= 0xA1) {
-            if cbool(engine.mem(0x0048) == 0x10) {
-                engine.set_mem(0x0048, 0x00);
-                engine.set_mem(0x0047, 0x00);
-                engine.set_mem(0x007C, 0x00);
-                engine.set_mem(0x0045, 0x00);
-                engine.set_mem(0x0043, 0x00);
-                engine.set_mem(0x007B, 0x00);
-                engine.set_mem(0x0044, 0x01);
+            if cbool(engine.state.map_screen_y() == 0x10) {
+                engine.state.set_map_screen_y(0x00);
+                engine.state.set_map_screen_x(0x00);
+                engine.state.set_scroll_tile_x(0x00);
+                engine.state.set_player_y(0x00);
+                engine.state.set_player_x_fine(0x00);
+                engine.state.set_scroll_fine_x(0x00);
+                engine.state.set_player_x_tile(0x01);
                 scene_rebuild_full(engine, r);
                 return;
             }
-            if cbool(u8v(engine.mem(0x0048) + 1) >= 0x10) {
+            if cbool(u8v(engine.state.map_screen_y() + 1) >= 0x10) {
                 return;
             }
-            engine.set_mem(0x0048, u8v(engine.mem(0x0048) + 1));
-            engine.set_mem(0x0045, 0x00);
+            engine
+                .state
+                .set_map_screen_y(u8v(engine.state.map_screen_y() + 1));
+            engine.state.set_player_y(0x00);
             scene_rebuild_vert(engine, r);
             return;
         }
-        if cbool(engine.mem(0x0048) == 0x10) {
+        if cbool(engine.state.map_screen_y() == 0x10) {
             return;
         }
         update_player_terrain_contact(engine, r);
         engine.state.set_sprite_blink_timer(0x00);
         engine.set_mem(0x56, u8v(engine.mem(0x56) & 0x07));
-        if cbool(engine.mem(0x0044) == 0x00) {
-            if cbool(u8v((engine.mem(0x0047) - 1)) & 0x80) {
+        if cbool(engine.state.player_x_tile() == 0x00) {
+            if cbool(u8v((engine.state.map_screen_x() - 1)) & 0x80) {
                 return;
             }
-            engine.set_mem(0x0047, u8v(engine.mem(0x0047) - 1));
+            engine
+                .state
+                .set_map_screen_x(u8v(engine.state.map_screen_x() - 1));
             engine.set_mem(0x57, 0x00);
             draw_player_sprites(engine, r);
-            engine.set_mem(0x007C, 0x30);
-            engine.set_mem(0x0044, 0x3F);
-            engine.set_mem(0x0043, 0x00);
+            engine.state.set_scroll_tile_x(0x30);
+            engine.state.set_player_x_tile(0x3F);
+            engine.state.set_player_x_fine(0x00);
         } else {
-            if cbool(engine.mem(0x0044) < 0x3E) {
+            if cbool(engine.state.player_x_tile() < 0x3E) {
                 return;
             }
-            if cbool(u8v(engine.mem(0x0047) + 1) >= 0x04) {
+            if cbool(u8v(engine.state.map_screen_x() + 1) >= 0x04) {
                 return;
             }
-            engine.set_mem(0x0047, u8v(engine.mem(0x0047) + 1));
+            engine
+                .state
+                .set_map_screen_x(u8v(engine.state.map_screen_x() + 1));
             engine.set_mem(0x57, 0x40);
             draw_player_sprites(engine, r);
-            engine.set_mem(0x007C, 0x00);
-            engine.set_mem(0x0043, 0x00);
-            engine.set_mem(0x0044, 0x00);
+            engine.state.set_scroll_tile_x(0x00);
+            engine.state.set_player_x_fine(0x00);
+            engine.state.set_player_x_tile(0x00);
         }
         reset_room_object_slots(engine, r);
         clear_gameplay_object_sprites(engine, r);
-        engine.set_mem(0x007B, 0x00);
+        engine.state.set_scroll_fine_x(0x00);
         scene_assemble(engine, r);
         upload_room_columns_from_bank9(engine, r);
         upload_palette_buffer(engine, r);
-        if cbool(engine.mem(0x0044) != 0x00) {
+        if cbool(engine.state.player_x_tile() != 0x00) {
             engine.set_mem(0x1D, 0x01);
             engine.set_mem(0x1C, 0x00);
             engine.set_mem(0x0213, 0x00);
@@ -4799,8 +4809,8 @@ mod handle_player_room_transition {
                     break;
                 }
             }
-            engine.set_mem(0x0016, 0x1E);
-            engine.set_mem(0x0017, 0x20);
+            engine.state.set_vram_addr_lo(0x1E);
+            engine.state.set_vram_addr_hi(0x20);
             engine.state.set_data_ptr_lo(0x2F);
             farcall_bank_09_r7(engine, r);
             engine.state.set_frame_counter(0);
@@ -4838,8 +4848,8 @@ mod handle_player_room_transition {
                 break;
             }
         }
-        engine.set_mem(0x0016, 0x00);
-        engine.set_mem(0x0017, 0x24);
+        engine.state.set_vram_addr_lo(0x00);
+        engine.state.set_vram_addr_hi(0x24);
         engine.state.set_data_ptr_lo(0x10);
         farcall_bank_09_r7(engine, r);
         engine.state.set_frame_counter(0);
@@ -7852,7 +7862,7 @@ mod aim_actor_toward_player {
     // actor data byte 9 allows occasional upward bias when the actor is below.
     pub fn aim_actor_toward_player(engine: &mut Engine, r: &mut RoutineContext) {
         let mut direction_bits: i32 = 0x00;
-        let mut dx: i32 = u16v(u16v(engine.state.obj_x_tile()) - engine.mem(0x0044));
+        let mut dx: i32 = u16v(u16v(engine.state.obj_x_tile()) - engine.state.player_x_tile());
         if cbool(u8v(dx) != 0) {
             {
                 direction_bits += 1;
@@ -7867,7 +7877,7 @@ mod aim_actor_toward_player {
         }
         engine.state.set_obj_move_state(direction_bits);
         {
-            let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.mem(0x0045));
+            let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.state.player_y());
             if !cbool(dy & 0x100) {
                 let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
                 let mut vertical_bias_enabled: i32 = engine.mem(u16v(actor_data_ptr + 0x09));

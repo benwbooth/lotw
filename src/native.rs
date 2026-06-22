@@ -292,7 +292,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0411, 0x00);
     engine.set_mem(0x0421, 0x00);
     engine.set_mem(0x0431, 0x00);
-    engine.set_mem(0x00f2, 0x00);
+    engine.state.set_obj_health(0x00);
     engine.state.set_sprite_blink_timer(0x00);
     engine.set_mem(0x88, 0x00);
     crate::game::draw_scripted_player_sprites(engine, r);
@@ -547,10 +547,10 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 /// Ticks the final-exit scripted object state machine and stores the updated
 /// scratch slot back into the active object slot.
 pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.set_mem(0xe5, 0x00);
+    engine.state.set_obj_slot_ptr_lo(0x00);
     engine.state.set_obj_slot_ptr_hi(0x04);
     crate::game::load_object_slot_scratch(engine, r);
-    if engine.mem(0x00f2) == 0 {
+    if engine.state.obj_health() == 0 {
         run_final_exit_cutscene(engine, r);
         return;
     }
@@ -563,8 +563,10 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 engine.set_mem(u16v(0x0401 + x), 0x00);
                 let sum = u8v(engine.mem(0x1c) + engine.mem(u16v(0x040c + x)));
                 if sum >= 0xb0 && sum < 0xd0 {
-                    let bl = engine.mem(0x00f2);
-                    engine.set_mem(0x00f2, if bl < 0x02 { 0x00 } else { u8v(bl - 0x02) });
+                    let bl = engine.state.obj_health();
+                    engine
+                        .state
+                        .set_obj_health(if bl < 0x02 { 0x00 } else { u8v(bl - 0x02) });
                     crate::game::build_object_health_meter_standard_tiles(engine, r);
                     engine.state.set_prompt_state(0x20);
                     engine.state.set_prompt_argument(0x01);
@@ -621,7 +623,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.state.set_obj_timer(0x00);
                 } else {
                     engine.state.set_tile_table_ptr_hi(0xb0);
-                    engine.inc_mem(0xf3);
+                    engine
+                        .state
+                        .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
                     engine.state.set_scheduler_phase(0x04);
                 }
             }
@@ -692,7 +696,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.state.set_obj_timer(0x00);
                     } else {
                         engine.state.set_tile_table_ptr_hi(0xb0);
-                        engine.inc_mem(0xf3);
+                        engine
+                            .state
+                            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
                         engine.state.set_scheduler_phase(0x04);
                     }
                 } else if !delayed_grow {
@@ -2546,7 +2552,9 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
         r.index = 0x03;
         flash_palette_buffer(engine, r);
 
-        engine.inc_mem(0xee);
+        engine
+            .state
+            .set_obj_state((engine.state.obj_state() + 1) & 0xFF);
         engine.state.set_prompt_state(0x02);
         engine.state.set_obj_cooldown(0x0f);
         engine.state.set_obj_x_vel_lo(0x00);
@@ -2556,7 +2564,9 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
     }
 
     if engine.state.obj_move_scratch() == 0 {
-        engine.dec_mem(0xf1);
+        engine
+            .state
+            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & 0xFF);
         if engine.state.obj_cooldown() == 0 {
             engine.or_mem(0xef, 0x80);
             engine.state.set_obj_move_scratch(0x01);
@@ -2575,7 +2585,9 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
         return;
     }
 
-    engine.inc_mem(0xf0);
+    engine
+        .state
+        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & 0xFF);
     engine
         .state
         .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 2) + 1));
@@ -2786,19 +2798,24 @@ pub fn pop_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
 pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineContext) {
     const DROP_ITEM_TABLE: [i32; 9] = [0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x05, 0x06, 0x07];
     if (engine.state.obj_state() & 0x7f) == 0 {
-        engine.inc_mem(0xee);
+        engine
+            .state
+            .set_obj_state((engine.state.obj_state() + 1) & 0xFF);
         engine.state.set_prompt_state(0x0e);
         engine.state.set_obj_cooldown(0x08);
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         engine.state.set_obj_move_scratch(0x00);
         engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
-        let ptr = u16v(engine.mem(0xe7) | (engine.state.actor_record_ptr_hi() << 8));
+        let ptr =
+            u16v(engine.state.actor_record_ptr_lo() | (engine.state.actor_record_ptr_hi() << 8));
         engine.state.set_obj_tile(engine.mem(u16v(ptr + 6)));
         engine.and_mem(0xef, 0x03);
     }
     if engine.state.obj_move_scratch() == 0 {
-        engine.dec_mem(0xf1);
+        engine
+            .state
+            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & 0xFF);
         if engine.state.obj_cooldown() != 0 {
             engine
                 .state
@@ -2814,7 +2831,9 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         engine.state.set_obj_move_scratch(0x01);
         return;
     }
-    engine.inc_mem(0xf0);
+    engine
+        .state
+        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & 0xFF);
     engine
         .state
         .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 2));
