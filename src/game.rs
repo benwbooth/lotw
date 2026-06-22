@@ -365,16 +365,20 @@ mod frame_counters {
     /// Ticks the frame prescaler at `0x84` and decrements the eight coarse
     /// timers at `0x85..0x8C` once per 60 frames.
     pub fn frame_counters(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.dec_mem(0x84) != 0) {
+        let prescaler_after = (engine.state.frame_prescaler() - 1) & 0xFF;
+        engine.state.set_frame_prescaler(prescaler_after);
+        if cbool(prescaler_after != 0) {
             return;
         }
-        for timer_offset in (0..=7).rev() {
-            let timer_addr = (0x85 + timer_offset) & 0xFF;
-            if cbool(engine.mem(timer_addr) != 0) {
-                engine.dec_mem(timer_addr);
+        for timer_index in (0..=7).rev() {
+            if cbool(engine.state.coarse_timer(timer_index) != 0) {
+                engine.state.set_coarse_timer(
+                    timer_index,
+                    (engine.state.coarse_timer(timer_index) - 1) & 0xFF,
+                );
             }
         }
-        engine.set_mem(0x84, 0x3C);
+        engine.state.set_frame_prescaler(0x3C);
         r.index = 0xFF;
     }
 }
@@ -411,8 +415,8 @@ mod game_update {
                     }
                     {
                         let mut clear_hi: i32 = 1;
-                        if cbool(engine.mem(0x40) == 0x04) {
-                            if cbool((engine.mem(0x84) & 0x07) == 0) {
+                        if cbool(engine.state.character_index() == 0x04) {
+                            if cbool((engine.state.frame_prescaler() & 0x07) == 0) {
                                 clear_hi = 1;
                             } else {
                                 clear_hi = (if cbool(engine.state.buttons() & 0x40) {
@@ -583,7 +587,9 @@ mod game_update {
                         r.offset = 0x01;
                         build_input_movement_delta(engine, r);
                         {
-                            let mut t: i32 = u8v(engine.state.vertical_delta() + engine.mem(0x55));
+                            let mut t: i32 =
+                                u8v(engine.state.vertical_delta()
+                                    + engine.state.selected_item_slot());
                             let mut ni: i32 = 0;
                             if cbool(t & 0x80) {
                                 ni = 0x03;
@@ -592,7 +598,7 @@ mod game_update {
                             } else {
                                 ni = 0x00;
                             }
-                            engine.set_mem(0x55, ni);
+                            engine.state.set_selected_item_slot(ni);
                         }
                         engine.state.set_prompt_state(0x0C);
                     }
@@ -763,7 +769,7 @@ mod ppu_commit_banks {
     pub fn ppu_commit_banks(engine: &mut Engine, r: &mut RoutineContext) {
         for bank_register in (0..=7).rev() {
             engine.device_write(0x8000, u8v(bank_register));
-            engine.device_write(0x8001, engine.mem(0x2A + bank_register));
+            engine.device_write(0x8001, engine.state.chr_bank(bank_register));
         }
         r.index = 0xFF;
     }
@@ -1563,7 +1569,7 @@ mod draw_scripted_player_sprites {
     /// `0x0210/0x0214`, including blink hiding and horizontal tile order.
     pub fn draw_scripted_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.state.sprite_blink_timer() != 0) {
-            if cbool((engine.mem(0x84) & 0x01) == 0) {
+            if cbool((engine.state.frame_prescaler() & 0x01) == 0) {
                 engine.set_mem(0x0210, 0xEF);
                 engine.set_mem(0x0214, 0xEF);
                 return;
@@ -1762,7 +1768,7 @@ mod blink_demo_oam_sprites {
     /// Toggles the first eight demo sprites on and off from the frame timer.
     pub fn blink_demo_oam_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sprite_y: i32 = 0xEF;
-        if cbool(engine.mem(0x84) & 0x30) {
+        if cbool(engine.state.frame_prescaler() & 0x30) {
             sprite_y = 0x80;
         }
         for oam_offset in (0..=0x1C).step_by(4) {
@@ -2212,8 +2218,8 @@ mod upload_title_screen_nametables {
     /// The source image occupies four consecutive 256-byte pages at
     /// `0x9EC9..0xA1C8`; `0xA2E9/0xA2EA` provide the title CHR banks.
     pub fn upload_title_screen_nametables(engine: &mut Engine, r: &mut RoutineContext) {
-        let ctrl: i32 = engine.mem(0x23);
-        let mask: i32 = engine.mem(0x24);
+        let ctrl: i32 = engine.state.ppu_ctrl_shadow();
+        let mask: i32 = engine.state.ppu_mask_shadow();
         engine.device_write(0x2000, ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
         engine.device_write(0x2001, mask & 0xE7);
@@ -2226,10 +2232,10 @@ mod upload_title_screen_nametables {
             }
         }
 
-        engine.set_mem(0x2A, engine.mem(0xA2E9));
-        engine.set_mem(0x2B, engine.mem(0xA2EA));
-        engine.set_mem(0x24, mask);
-        engine.set_mem(0x23, ctrl);
+        engine.state.set_chr_bank(0, engine.mem(0xA2E9));
+        engine.state.set_chr_bank(1, engine.mem(0xA2EA));
+        engine.state.set_ppu_mask_shadow(mask);
+        engine.state.set_ppu_ctrl_shadow(ctrl);
         engine.device_write(0x2000, ctrl);
         r.value = ctrl;
         r.index = 0;
@@ -2327,7 +2333,8 @@ mod draw_player_sprites {
     /// Player world X is stored in `0x43/0x44`; screen X subtracts the camera at
     /// `0x7B/0x7C`. `0x85`/`0x84` drive the invulnerability blink hide phase.
     pub fn draw_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        if (cbool(engine.state.sprite_blink_timer() != 0) && cbool((engine.mem(0x84) & 0x01) == 0))
+        if (cbool(engine.state.sprite_blink_timer() != 0)
+            && cbool((engine.state.frame_prescaler() & 0x01) == 0))
         {
             engine.set_mem(0x0210, 0xEF);
             engine.set_mem(0x0214, 0xEF);
@@ -2366,7 +2373,7 @@ mod draw_status_item_sprites {
     /// Draws the selected item cursor and the three equipped item icons in the
     /// status area. High-bit item ids hide a slot.
     pub fn draw_status_item_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_slot: i32 = engine.mem(0x0055);
+        let selected_slot: i32 = engine.state.selected_item_slot();
         if cbool(selected_slot >= 0x03) {
             engine.set_mem(0x0238, 0xEF);
             engine.set_mem(0x023C, 0xEF);
@@ -2533,8 +2540,8 @@ mod clear_name_tables_to_blank_tiles {
     /// Rendering is disabled around the direct PPU writes and the PPUCTRL/PPUMASK
     /// shadows are restored before returning.
     pub fn clear_name_tables_to_blank_tiles(engine: &mut Engine, r: &mut RoutineContext) {
-        let ctrl: i32 = engine.mem(0x23);
-        let mask: i32 = engine.mem(0x24);
+        let ctrl: i32 = engine.state.ppu_ctrl_shadow();
+        let mask: i32 = engine.state.ppu_mask_shadow();
         engine.device_write(0x2000, ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
         engine.device_write(0x2001, mask & 0xE7);
@@ -2549,8 +2556,8 @@ mod clear_name_tables_to_blank_tiles {
                 engine.device_write(0x2007, 0x00);
             }
         }
-        engine.set_mem(0x24, mask);
-        engine.set_mem(0x23, ctrl);
+        engine.state.set_ppu_mask_shadow(mask);
+        engine.state.set_ppu_ctrl_shadow(ctrl);
         engine.device_write(0x2000, ctrl);
         r.value = ctrl;
         r.index = 0;
@@ -2612,10 +2619,10 @@ mod upload_status_panel_template {
         let mut saved_mask: i32 = 0;
         let mut i: i32 = 0;
         clear_pending_vram_job(engine, r);
-        saved_ctrl = engine.mem(0x23);
+        saved_ctrl = engine.state.ppu_ctrl_shadow();
         engine.device_write(0x2000, saved_ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
-        saved_mask = engine.mem(0x24);
+        saved_mask = engine.state.ppu_mask_shadow();
         engine.device_write(0x2001, saved_mask & 0xE7);
         engine.device_write(0x2006, 0x23);
         engine.device_write(0x2006, 0x20);
@@ -2642,8 +2649,8 @@ mod upload_status_panel_template {
             }
         }
         engine.add_mem(0x29, 1);
-        engine.set_mem(0x24, saved_mask);
-        engine.set_mem(0x23, saved_ctrl);
+        engine.state.set_ppu_mask_shadow(saved_mask);
+        engine.state.set_ppu_ctrl_shadow(saved_ctrl);
         engine.device_write(0x2000, saved_ctrl);
         r.value = saved_ctrl;
         r.offset = 0x00;
@@ -2686,9 +2693,9 @@ mod upload_room_view_from_tile_pointer {
 
     /// Uploads room tiles and attributes from the tile pointer in `0x0C/0x0D`.
     pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ctrl_save: i32 = engine.mem(0x23);
+        let mut ctrl_save: i32 = engine.state.ppu_ctrl_shadow();
         let mut v29_save: i32 = engine.mem(0x29);
-        let mut v24_save: i32 = engine.mem(0x24);
+        let mut v24_save: i32 = engine.state.ppu_mask_shadow();
         let mut c0c_save: i32 = engine.state.data_ptr_lo();
         let mut c0d_save: i32 = engine.state.data_ptr_hi();
         let mut p0C: i32 = 0;
@@ -2909,9 +2916,9 @@ mod upload_room_view_from_tile_pointer {
                 break;
             }
         }
-        engine.set_mem(0x24, v24_save);
+        engine.state.set_ppu_mask_shadow(v24_save);
         engine.set_mem(0x29, v29_save);
-        engine.set_mem(0x23, ctrl_save);
+        engine.state.set_ppu_ctrl_shadow(ctrl_save);
         engine.device_write(0x2000, ctrl_save);
         r.value = ctrl_save;
         r.index = 0;
@@ -3117,7 +3124,7 @@ mod build_room_palette_buffer {
             );
         }
 
-        let family_member: i32 = engine.mem(0x40);
+        let family_member: i32 = engine.state.character_index();
         if cbool(family_member >= 0x06) {
             r.value = family_member;
             r.carry = 1;
@@ -3916,7 +3923,7 @@ mod upload_inventory_item_count_tiles {
         build_decimal_digit_tiles(engine, r);
         {
             let mut in_: i32 = x;
-            let mut dx: i32 = u8v(engine.mem(0x40) << 1);
+            let mut dx: i32 = u8v(engine.state.character_index() << 1);
             let mut yy: i32 = 0;
             let mut carry: i32 = 0;
             let mut v: i32 = 0;
@@ -4045,7 +4052,7 @@ mod load_family_item_permission_bits {
     /// the bit shifted out by the final shift.
     pub fn load_family_item_permission_bits(engine: &mut Engine, r: &mut RoutineContext) {
         let mut in_: i32 = u8v(r.value);
-        let mut x: i32 = u8v(engine.mem(0x40) << 1);
+        let mut x: i32 = u8v(engine.state.character_index() << 1);
         if cbool(in_ >= 0x08) {
             {
                 let __old = x;
@@ -4092,7 +4099,7 @@ mod load_effective_jump_duration {
     /// Loads the active character's jump duration. Carry is clear when the
     /// selected jump item is present and magic can pay for the boosted value.
     pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_item_slot: i32 = engine.mem(0x55);
+        let selected_item_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
         r.index = selected_item_slot;
         if cbool(selected_item == 0x06) && cbool(engine.state.player_magic() != 0) {
@@ -4112,7 +4119,7 @@ mod load_effective_projectile_damage {
     /// Loads the projectile damage stat. Carry is clear when the selected
     /// projectile-power item is active and magic can pay for the boosted shot.
     pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_item_slot: i32 = engine.mem(0x55);
+        let selected_item_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
         if cbool(selected_item == 0x08) && cbool(engine.state.player_magic() != 0) {
             r.value = u8v(engine.mem(0x5D) << 2);
@@ -4130,7 +4137,7 @@ mod load_effective_projectile_lifetime {
     /// Loads the projectile lifetime/state byte. Carry is clear when the
     /// selected projectile-range item is active and magic can pay for it.
     pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_item_slot: i32 = engine.mem(0x55);
+        let selected_item_slot: i32 = engine.state.selected_item_slot();
         r.index = selected_item_slot;
         if cbool(engine.mem((0x51 + selected_item_slot) & 0xFF) == 0x09)
             && cbool(engine.state.player_magic() != 0)
@@ -4320,7 +4327,7 @@ mod tick_player_jump_action {
                     engine.state.set_prompt_state(0x1B);
                     engine.state.set_jump_timer(engine.state.jump_strength());
                     {
-                        let selected_slot: i32 = engine.mem(0x55);
+                        let selected_slot: i32 = engine.state.selected_item_slot();
                         if cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x06) {
                             consume_magic_point(engine, r);
                             if !cbool(r.carry) {
@@ -4425,7 +4432,7 @@ mod tick_selected_item_effect {
     /// below `0x02` are magic-draining effect timers, `0x0B` refills magic when
     /// empty, and `0x0D` returns the player to the fixed safe room.
     pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_slot: i32 = engine.mem(0x0055);
+        let selected_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.mem(u16v((0x0051) + selected_slot));
         if cbool(selected_item >= 0x02) {
             if cbool(selected_item == 0x0B) {
@@ -4441,7 +4448,7 @@ mod tick_selected_item_effect {
                 return;
             }
             if cbool(engine.state.map_screen_y() >= 0x11) {
-                engine.set_mem(0x0055, 0x03);
+                engine.state.set_selected_item_slot(0x03);
                 return;
             }
             engine.set_mem(u16v((0x0051) + selected_slot), 0xFF);
@@ -4475,11 +4482,11 @@ mod tick_selected_item_effect {
             return;
         }
         {
-            let continue_timer: i32 = engine.mem(0x37);
+            let continue_timer: i32 = engine.state.continue_timer();
             if (cbool(continue_timer == 0) || cbool(continue_timer & 0x80)) {
                 return;
             }
-            engine.set_mem(0x37, 0xFD);
+            engine.state.set_continue_timer(0xFD);
             engine.state.set_prompt_state(0x1A);
         }
     }
@@ -4567,7 +4574,7 @@ mod enter_pending_special_exit_room {
     pub fn enter_pending_special_exit_room(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xEB, 0x00);
         run_warp_transition_effect(engine, r);
-        engine.set_mem(0x2E, 0x3E);
+        engine.state.set_chr_bank(4, 0x3E);
         engine.state.set_map_screen_y(0x10);
         engine.state.set_map_screen_x(0x03);
         engine.state.set_scroll_tile_x(0x12);
@@ -4594,7 +4601,7 @@ mod check_final_exit_trigger {
     /// Raises the final-exit flag when item `0x0F` is selected at the exact
     /// room/scroll/player position expected by the original game.
     pub fn check_final_exit_trigger(engine: &mut Engine, r: &mut RoutineContext) {
-        let selected_slot: i32 = engine.mem(0x55);
+        let selected_slot: i32 = engine.state.selected_item_slot();
         if (cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x0F)
             && cbool(engine.state.map_screen_x() == 0x01)
             && cbool(engine.state.map_screen_y() == 0x05)
@@ -5245,7 +5252,7 @@ mod try_trigger_magic_contact_actor {
     /// Marks the contacted actor for its high-bit behavior when the selected
     /// magic-contact timer is active and magic remains.
     pub fn try_trigger_magic_contact_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if (cbool(engine.mem(0x2D) < 0x30)
+        if (cbool(engine.state.chr_bank(3) < 0x30)
             && cbool(engine.mem(0x87) != 0)
             && cbool(engine.state.player_magic() != 0))
         {
@@ -5685,7 +5692,7 @@ mod dispatch_overhead_tile_action {
     }
 
     fn dispatch_four_fragment_overhead_tile(engine: &mut Engine, r: &mut RoutineContext) -> bool {
-        let selected_slot = engine.mem(0x55);
+        let selected_slot = engine.state.selected_item_slot();
         if engine.mem(u16v(0x51 + selected_slot)) != 0x0E {
             return false;
         }
@@ -6421,10 +6428,10 @@ mod restore_status_sprite_template {
                 };
             }
         }
-        engine.set_mem(0x2C, 0x34);
-        engine.set_mem(0x2D, 0x35);
-        engine.set_mem(0x2E, 0x36);
-        engine.set_mem(0x2F, 0x37);
+        engine.state.set_chr_bank(2, 0x34);
+        engine.state.set_chr_bank(3, 0x35);
+        engine.state.set_chr_bank(4, 0x36);
+        engine.state.set_chr_bank(5, 0x37);
         r.index = 0xFF;
         r.value = 0x37;
     }
@@ -6620,7 +6627,7 @@ mod update_room_actors {
                     if cbool(engine.state.map_screen_y() == 0x10) {
                         return;
                     }
-                    if cbool(engine.mem(0x2D) >= 0x30) {
+                    if cbool(engine.state.chr_bank(3) >= 0x30) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -6850,7 +6857,7 @@ mod tick_inactive_actor_slot {
         {
             let mut current_member_bit: i32 = 0x00;
             let mut carry_bit: i32 = 1;
-            let mut member_index: i32 = engine.mem(0x40);
+            let mut member_index: i32 = engine.state.character_index();
             loop {
                 let mut next_carry_bit: i32 = u8v((current_member_bit >> 7) & 1);
                 current_member_bit = u8v((current_member_bit << 1) | carry_bit);
@@ -8317,16 +8324,16 @@ mod apply_actor_player_contact_damage {
         if cbool(u8v(engine.state.obj_state() - 1) != 0) {
             return;
         }
-        if cbool(engine.mem(0x2D) >= 0x30) {
+        if cbool(engine.state.chr_bank(3) >= 0x30) {
             if cbool(engine.mem(0xE3) != 0) {
-                let mut selected_item_slot: i32 = engine.mem(0x55);
+                let mut selected_item_slot: i32 = engine.state.selected_item_slot();
                 if cbool(engine.mem(u16v(0x0051 + selected_item_slot)) == 0x0A) {
                     engine.state.set_prompt_state(0x01);
                     return;
                 }
             }
         } else {
-            if cbool(engine.mem(0x40) == 0x04) {
+            if cbool(engine.state.character_index() == 0x04) {
                 return;
             }
         }
@@ -8710,7 +8717,7 @@ mod initialize_large_actor_slot {
     /// state for the body pieces.
     pub fn initialize_large_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
         let actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-        engine.set_mem(0x2E, 0x3D);
+        engine.state.set_chr_bank(4, 0x3D);
         engine
             .state
             .set_scratch2(engine.mem(u16v(actor_data_ptr + 3)));
@@ -9204,7 +9211,9 @@ mod spawn_player_projectile {
                     }
                     engine.state.set_obj_attr(0x00);
                     engine.state.set_obj_tile(0x21);
-                    engine.state.set_prompt_state(u8v(0x22 + engine.mem(0x40)));
+                    engine
+                        .state
+                        .set_prompt_state(u8v(0x22 + engine.state.character_index()));
                     state = 1;
                     continue 'dispatch;
                 }
@@ -9261,7 +9270,7 @@ mod update_player_projectile_slot {
             finish_projectile_slot_update(engine, r);
             return;
         }
-        if (cbool(engine.mem(0x2D) >= 0x30) && cbool(engine.state.scratch0() >= 0x04)) {
+        if (cbool(engine.state.chr_bank(3) >= 0x30) && cbool(engine.state.scratch0() >= 0x04)) {
             let hit_slot: i32 = engine.state.scratch1();
             engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
             engine.state.set_obj_state(0x01);
@@ -10481,14 +10490,16 @@ mod sound_tick {
 mod statusbar_split {
     use super::*;
     pub fn statusbar_split(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x2001, engine.mem(0x24));
-        engine.set_mem(0x23, u8v((engine.mem(0x23) & 0xFE) | engine.mem(0x1D)));
-        engine.device_write(0x2000, engine.mem(0x23));
+        engine.device_write(0x2001, engine.state.ppu_mask_shadow());
+        engine.state.set_ppu_ctrl_shadow(u8v(
+            (engine.state.ppu_ctrl_shadow() & 0xFE) | engine.mem(0x1D)
+        ));
+        engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
         engine.device_write(0x2005, engine.mem(0x1C));
         engine.device_write(0x2005, engine.mem(0x1E));
         if cbool(engine.mem(0x29) != 0) {
             let _ = engine.mem(0x2002);
-            engine.device_write(0x2000, engine.mem(0x23) & 0xFE);
+            engine.device_write(0x2000, engine.state.ppu_ctrl_shadow() & 0xFE);
             engine.device_write(0x2005, 0x00);
             engine.device_write(0x2005, 0xC4);
             engine.device_write(0x8000, 0x01);
@@ -10503,14 +10514,14 @@ mod statusbar_split {
             return;
         }
         engine.device_write(0x8000, 0x01);
-        engine.device_write(0x2000, engine.mem(0x23));
+        engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
         engine.device_write(0x2005, engine.mem(0x1C));
         engine.device_write(0x2005, engine.mem(0x1E));
-        engine.device_write(0x8001, engine.mem(0x2B));
+        engine.device_write(0x8001, engine.state.chr_bank(1));
         engine.device_write(0x8000, 0x04);
-        engine.device_write(0x8001, engine.mem(0x2E));
+        engine.device_write(0x8001, engine.state.chr_bank(4));
         engine.device_write(0x8000, 0x05);
-        engine.device_write(0x8001, engine.mem(0x2F));
+        engine.device_write(0x8001, engine.state.chr_bank(5));
     }
 }
 
@@ -10523,12 +10534,12 @@ mod text_attr_build {
         b = engine.mem(p);
         engine.state.set_tile_table_ptr_hi(u8v(b + 0xA0 + carry_in));
         engine.state.set_tile_table_ptr_lo(0);
-        engine.set_mem(0x2D, engine.mem(u16v(p + 1)));
+        engine.state.set_chr_bank(3, engine.mem(u16v(p + 1)));
         engine.set_mem(0x70, engine.mem(u16v(p + 2)));
         engine.set_mem(0x71, engine.mem(u16v(p + 3)));
         engine.set_mem(0x74, engine.mem(u16v(p + 4)));
-        engine.set_mem(0x2A, engine.mem(u16v(p + 5)));
-        engine.set_mem(0x2B, engine.mem(u16v(p + 6)));
+        engine.state.set_chr_bank(0, engine.mem(u16v(p + 5)));
+        engine.state.set_chr_bank(1, engine.mem(u16v(p + 6)));
         {
             let mut ms_y: i32 = engine.state.map_screen_y();
             let mut ms_x: i32 = engine.state.map_screen_x();
@@ -10632,9 +10643,13 @@ mod vblank_commit {
         let save = *r;
         {
             engine.ppu.set_vblank(cbool(1));
-            engine
-                .ppu
-                .set_sprite0(cbool((if cbool(engine.mem(0x24) & 0x18) { 1 } else { 0 })));
+            engine.ppu.set_sprite0(cbool(
+                (if cbool(engine.state.ppu_mask_shadow() & 0x18) {
+                    1
+                } else {
+                    0
+                }),
+            ));
             engine.ppu.eval_sprite_overflow();
         }
         {
@@ -10668,7 +10683,7 @@ mod vblank_commit {
         let _ = engine.device_read(0x2002);
         engine.device_write(0x2006, engine.state.vram_addr_hi());
         engine.device_write(0x2006, engine.state.vram_addr_lo());
-        engine.device_write(0x2000, u8v(engine.mem(0x23) & 0x04));
+        engine.device_write(0x2000, u8v(engine.state.ppu_ctrl_shadow() & 0x04));
         match req {
             1 => {
                 vram_fill_run(engine, r);
@@ -10786,7 +10801,7 @@ mod vram_upload_hud {
     use super::*;
     pub fn vram_upload_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
-        engine.device_write(0x2000, u8v(engine.mem(0x23) | 0x04));
+        engine.device_write(0x2000, u8v(engine.state.ppu_ctrl_shadow() | 0x04));
         {
             x = 0x17;
             while cbool(x >= 0) {

@@ -199,6 +199,39 @@ impl GameState {
         self.set_byte(0x33, value);
     }
 
+    /// MMC3 CHR bank shadow for register `reg` (R0-R5), shadowed at
+    /// `$2A..$2F`. R0/R1 select 2 KiB CHR windows; R2-R5 select 1 KiB windows.
+    /// A per-frame committer replays these to `$8001`.
+    #[inline]
+    pub fn chr_bank(&self, reg: i32) -> i32 {
+        self.byte(0x2A + reg)
+    }
+    #[inline]
+    pub fn set_chr_bank(&mut self, reg: i32, value: i32) {
+        self.set_byte(0x2A + reg, value);
+    }
+
+    /// PPUCTRL ($2000) shadow (`$23`): nametable/increment/sprite-size and
+    /// pattern-table selection bits replayed to the PPU each frame.
+    #[inline]
+    pub fn ppu_ctrl_shadow(&self) -> i32 {
+        self.byte(0x23)
+    }
+    #[inline]
+    pub fn set_ppu_ctrl_shadow(&mut self, value: i32) {
+        self.set_byte(0x23, value);
+    }
+
+    /// PPUMASK ($2001) shadow (`$24`): rendering-enable and emphasis bits.
+    #[inline]
+    pub fn ppu_mask_shadow(&self) -> i32 {
+        self.byte(0x24)
+    }
+    #[inline]
+    pub fn set_ppu_mask_shadow(&mut self, value: i32) {
+        self.set_byte(0x24, value);
+    }
+
     // ---- Controller input -------------------------------------------------
 
     /// Buttons held this frame (`$20`). Bit layout, LSB first:
@@ -257,6 +290,19 @@ impl GameState {
     #[inline]
     pub fn frame_counter_active(&self) -> bool {
         self.frame_counter() != 0
+    }
+
+    /// Coarse timer slot `i` (0-7) in the `$85..$8C` array, each decremented
+    /// once per 60 frames by `frame_counters`. Slot 0 is the sprite-blink
+    /// timer ([`Self::sprite_blink_timer`]); slot 7 is the countdown timer
+    /// ([`Self::countdown_timer`]).
+    #[inline]
+    pub fn coarse_timer(&self, i: i32) -> i32 {
+        self.byte(0x85 + i)
+    }
+    #[inline]
+    pub fn set_coarse_timer(&mut self, i: i32, value: i32) {
+        self.set_byte(0x85 + i, value);
     }
 
     /// Sprite blink/invulnerability timer (`$85`), one of the coarse timer
@@ -959,5 +1005,48 @@ impl GameState {
     #[inline]
     pub fn set_scratch3(&mut self, value: i32) {
         self.set_byte(0x0B, value);
+    }
+
+    // ---- Misc player / UI / frame state -----------------------------------
+
+    /// Current character index (which Drasle family member is active) (`$40`).
+    #[inline]
+    pub fn character_index(&self) -> i32 {
+        self.byte(0x40)
+    }
+    #[inline]
+    pub fn set_character_index(&mut self, value: i32) {
+        self.set_byte(0x40, value);
+    }
+
+    /// Selected inventory/menu item slot (cursor index) (`$55`).
+    #[inline]
+    pub fn selected_item_slot(&self) -> i32 {
+        self.byte(0x55)
+    }
+    #[inline]
+    pub fn set_selected_item_slot(&mut self, value: i32) {
+        self.set_byte(0x55, value);
+    }
+
+    /// Continue/respawn countdown timer (`$37`).
+    #[inline]
+    pub fn continue_timer(&self) -> i32 {
+        self.byte(0x37)
+    }
+    #[inline]
+    pub fn set_continue_timer(&mut self, value: i32) {
+        self.set_byte(0x37, value);
+    }
+
+    /// 60-frame prescaler (`$84`): reloads to 0x3C and counts down each frame;
+    /// its low bits drive blink/animation cadence and the coarse timer ticks.
+    #[inline]
+    pub fn frame_prescaler(&self) -> i32 {
+        self.byte(0x84)
+    }
+    #[inline]
+    pub fn set_frame_prescaler(&mut self, value: i32) {
+        self.set_byte(0x84, value);
     }
 }

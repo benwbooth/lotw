@@ -182,17 +182,17 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x3b, 0x42);
     engine.state.set_map_screen_x(0x01);
     engine.state.set_map_screen_y(0x05);
-    engine.set_mem(0x40, 0x00);
+    engine.state.set_character_index(0x00);
     for i in 0..4 {
         engine
             .state
             .set_byte(0x5c + i, engine.state.byte(0xffa7 + i));
     }
     engine.set_mem(0x51, engine.mem(0xb0ac));
-    engine.set_mem(0x55, 0);
-    engine.set_mem(0x2c, 0x38);
-    engine.set_mem(0x2e, 0x3e);
-    engine.set_mem(0x2f, 0x20);
+    engine.state.set_selected_item_slot(0);
+    engine.state.set_chr_bank(2, 0x38);
+    engine.state.set_chr_bank(4, 0x3e);
+    engine.state.set_chr_bank(5, 0x20);
     engine.set_mem(0x56, 0x0d);
     engine.set_mem(0x57, 0);
     engine.set_mem(0x42, 1);

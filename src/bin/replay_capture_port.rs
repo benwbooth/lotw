@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let e = runner.engine();
             eprintln!(
                 "captured f{frame} char={:02X} map={:02X},{:02X} px={:02X} py={:02X} scroll={:02X},{:02X} song={:02X} item={:02X} inv0={:02X} mirror={}",
-                e.mem(0x40),
+                e.state.character_index(),
                 e.state.map_screen_x(),
                 e.state.map_screen_y(),
                 e.state.player_x_tile(),
@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 e.mem(0x1c),
                 e.mem(0x1e),
                 e.state.song(),
-                e.mem(0x55),
+                e.state.selected_item_slot(),
                 e.mem(0x60),
                 e.ppu.mirror,
             );
