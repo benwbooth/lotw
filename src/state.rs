@@ -198,4 +198,145 @@ impl GameState {
     pub fn set_saved_prg_bank_a000(&mut self, value: i32) {
         self.set_byte(0x33, value);
     }
+
+    // ---- Controller input -------------------------------------------------
+
+    /// Buttons held this frame (`$20`). Bit layout, LSB first:
+    /// `0`=Right `1`=Left `2`=Down `3`=Up `4`=Start `5`=Select `6`=B `7`=A.
+    #[inline]
+    pub fn buttons(&self) -> i32 {
+        self.byte(0x20)
+    }
+    #[inline]
+    pub fn set_buttons(&mut self, value: i32) {
+        self.set_byte(0x20, value);
+    }
+
+    /// Buttons newly pressed this frame (`$21`): the rising edge of
+    /// [`Self::buttons`], used for one-shot actions like menu confirms.
+    #[inline]
+    pub fn button_chord(&self) -> i32 {
+        self.byte(0x21)
+    }
+    #[inline]
+    pub fn set_button_chord(&mut self, value: i32) {
+        self.set_byte(0x21, value);
+    }
+
+    // ---- Frame sync / timers ----------------------------------------------
+
+    /// PPUSTATUS shadow captured by the NMI (`$26`): bit7 = vblank,
+    /// bit6 = sprite-0 hit (the status-bar split marker).
+    #[inline]
+    pub fn frame_status(&self) -> i32 {
+        self.byte(0x26)
+    }
+    #[inline]
+    pub fn set_frame_status(&mut self, value: i32) {
+        self.set_byte(0x26, value);
+    }
+
+    /// True when the captured PPUSTATUS shadow reports a sprite-0 hit (`$26`
+    /// bit6) — i.e. rendering reached the status-bar split this frame.
+    #[inline]
+    pub fn sprite0_hit(&self) -> bool {
+        (self.frame_status() & 0x40) != 0
+    }
+
+    /// Foreground frame-wait countdown (`$36`): foreground code sets it to N
+    /// and spins on [`Self::frame_counter_active`]; the NMI tail decrements it
+    /// once per frame, so the spin releases after N frames.
+    #[inline]
+    pub fn frame_counter(&self) -> i32 {
+        self.byte(0x36)
+    }
+    #[inline]
+    pub fn set_frame_counter(&mut self, value: i32) {
+        self.set_byte(0x36, value);
+    }
+    #[inline]
+    pub fn frame_counter_active(&self) -> bool {
+        self.frame_counter() != 0
+    }
+
+    /// Sprite blink/invulnerability timer (`$85`), one of the coarse timer
+    /// slots ticked once per 60 frames by the frame counters.
+    #[inline]
+    pub fn sprite_blink_timer(&self) -> i32 {
+        self.byte(0x85)
+    }
+    #[inline]
+    pub fn set_sprite_blink_timer(&mut self, value: i32) {
+        self.set_byte(0x85, value);
+    }
+
+    /// Coarse countdown timer (`$8C`), e.g. the title-screen attract timeout.
+    #[inline]
+    pub fn countdown_timer(&self) -> i32 {
+        self.byte(0x8C)
+    }
+    #[inline]
+    pub fn set_countdown_timer(&mut self, value: i32) {
+        self.set_byte(0x8C, value);
+    }
+    #[inline]
+    pub fn countdown_timer_active(&self) -> bool {
+        self.countdown_timer() != 0
+    }
+
+    // ---- Player vitals ----------------------------------------------------
+
+    /// Player health/life points (`$58`).
+    #[inline]
+    pub fn player_health(&self) -> i32 {
+        self.byte(0x58)
+    }
+    #[inline]
+    pub fn set_player_health(&mut self, value: i32) {
+        self.set_byte(0x58, value);
+    }
+
+    /// Player magic points (`$59`).
+    #[inline]
+    pub fn player_magic(&self) -> i32 {
+        self.byte(0x59)
+    }
+    #[inline]
+    pub fn set_player_magic(&mut self, value: i32) {
+        self.set_byte(0x59, value);
+    }
+
+    // ---- Audio ------------------------------------------------------------
+
+    /// Current/requested song id for the sound engine (`$8E`).
+    #[inline]
+    pub fn song(&self) -> i32 {
+        self.byte(0x8E)
+    }
+    #[inline]
+    pub fn set_song(&mut self, value: i32) {
+        self.set_byte(0x8E, value);
+    }
+
+    // ---- Text/prompt UI ---------------------------------------------------
+
+    /// Prompt/message state machine selector (`$8F`).
+    #[inline]
+    pub fn prompt_state(&self) -> i32 {
+        self.byte(0x8F)
+    }
+    #[inline]
+    pub fn set_prompt_state(&mut self, value: i32) {
+        self.set_byte(0x8F, value);
+    }
+
+    /// Argument byte for the active prompt/message (`$90`).
+    #[inline]
+    pub fn prompt_argument(&self) -> i32 {
+        self.byte(0x90)
+    }
+    #[inline]
+    pub fn set_prompt_argument(&mut self, value: i32) {
+        self.set_byte(0x90, value);
+    }
 }

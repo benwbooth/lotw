@@ -99,7 +99,7 @@ pub fn wait_frames(count: usize) -> FrameTask {
 }
 
 pub fn ae11_press_start_gate(engine: &mut crate::Engine) -> FrameTask {
-    engine.set_mem(0x8f, 0x03);
+    engine.state.set_prompt_state(0x03);
     engine.inc_mem(0x8d);
     FrameTask::new(vec![
         Wait::buttons_released(0xff),
@@ -109,6 +109,6 @@ pub fn ae11_press_start_gate(engine: &mut crate::Engine) -> FrameTask {
 }
 
 pub fn finish_ae11_press_start_gate(engine: &mut crate::Engine) {
-    engine.set_mem(0x8f, 0x04);
+    engine.state.set_prompt_state(0x04);
     engine.dec_mem(0x8d);
 }

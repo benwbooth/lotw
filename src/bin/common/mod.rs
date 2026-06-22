@@ -175,7 +175,7 @@ pub fn build_path(parts: &[&str]) -> PathBuf {
 pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     game::ram_state_init(engine, r);
     game::farcall_bank_0C0D_seed(engine, r);
-    engine.set_mem(0x8e, 0x09);
+    engine.state.set_song(0x09);
     engine.set_mem(0x41, 0xff);
     engine.set_mem(0x39, 0xc5);
     engine.set_mem(0x3a, 0x17);
@@ -194,8 +194,8 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x56, 0x0d);
     engine.set_mem(0x57, 0);
     engine.set_mem(0x42, 1);
-    engine.set_mem(0x58, 0x64);
-    engine.set_mem(0x59, 0x64);
+    engine.state.set_player_health(0x64);
+    engine.state.set_player_magic(0x64);
     engine.set_mem(0xeb, 0);
     engine.set_mem(0x44, 0x20);
     engine.set_mem(0x45, 0x80);

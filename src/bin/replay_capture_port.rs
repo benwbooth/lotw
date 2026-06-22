@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 e.mem(0x45),
                 e.mem(0x1c),
                 e.mem(0x1e),
-                e.mem(0x8e),
+                e.state.song(),
                 e.mem(0x55),
                 e.mem(0x60),
                 e.ppu.mirror,

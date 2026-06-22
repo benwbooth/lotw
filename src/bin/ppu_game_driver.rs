@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::upload_inventory_item_list(&mut engine, &mut r);
     for fr in 0..4 {
         eprintln!("frame {fr}: game_update...");
-        engine.set_mem(0x36, 0x01);
+        engine.state.set_frame_counter(0x01);
         game::game_update(&mut engine, &mut r);
         game::update_player_projectiles(&mut engine, &mut r);
         game::update_room_actors(&mut engine, &mut r);

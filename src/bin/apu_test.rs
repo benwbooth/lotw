@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut r = RoutineContext::default();
     game::ram_state_init(&mut engine, &mut r);
     game::farcall_bank_0C0D_seed(&mut engine, &mut r);
-    engine.set_mem(0x8e, song);
+    engine.state.set_song(song);
     engine.set_mem(0x8d, 0x00);
     eprintln!("song_init({song})...");
     game::song_init(&mut engine, &mut r);

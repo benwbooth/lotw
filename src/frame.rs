@@ -237,7 +237,7 @@ pub fn wait_frame(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_frame_counter(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.mem(0x36) != 0 {
+    while engine.state.frame_counter() != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;
@@ -255,7 +255,7 @@ pub fn wait_for_ppu_job_idle(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_countdown_timer(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.mem(0x8c) != 0 {
+    while engine.state.countdown_timer() != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;
@@ -270,19 +270,19 @@ pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
     } else if engine.mem(0x3c) != 0 {
         engine.set_mem(0x3c, 0);
         crate::game::upload_resource_hud(engine, r);
-    } else if engine.mem(0x36) != 0 {
+    } else if engine.state.frame_counter() != 0 {
         crate::game::upload_palette_buffer(engine, r);
     }
 }
 
 pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     crate::game::read_controllers(engine, r);
-    r.value = engine.mem(0x20);
+    r.value = engine.state.buttons();
     r.value
 }
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
-    engine.set_mem(0x36, 0x01);
+    engine.state.set_frame_counter(0x01);
     crate::game::draw_player_sprites(engine, r);
     crate::game::draw_room_object_sprites(engine, r);
     crate::game::draw_status_item_sprites(engine, r);
@@ -292,6 +292,6 @@ pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext
 }
 
 pub fn set_frame_counter_and_wait(engine: &mut Engine, r: &mut RoutineContext, frames: i32) {
-    engine.set_mem(0x36, frames);
+    engine.state.set_frame_counter(frames);
     wait_for_frame_counter(engine, r);
 }

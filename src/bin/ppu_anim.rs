@@ -24,13 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::refresh_scroll_register_shadows(&mut engine, &mut r);
     game::upload_status_panel_template(&mut engine, &mut r);
     game::upload_inventory_item_list(&mut engine, &mut r);
-    engine.set_mem(0x8e, 0);
+    engine.state.set_song(0);
     engine.set_mem(0x8d, 0);
     game::song_init(&mut engine, &mut r);
 
     for fr in 0..frames {
         engine.ppu.set_buttons(btn);
-        engine.set_mem(0x36, 1);
+        engine.state.set_frame_counter(1);
         game::read_controllers(&mut engine, &mut r);
         game::game_update(&mut engine, &mut r);
         game::update_player_projectiles(&mut engine, &mut r);
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "frame {fr}: player x_tile={:02X} y={:02X} input20={:02X}",
             engine.mem(0x44),
             engine.mem(0x45),
-            engine.mem(0x20)
+            engine.state.buttons()
         );
     }
     Ok(())
