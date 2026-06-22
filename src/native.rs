@@ -1,8 +1,8 @@
 use crate::{Engine, RoutineContext, cbool, engine::RoutineFn, frame, u8v, u16v};
 
 fn enter_return_home(engine: &mut Engine, lo: i32, hi: i32) {
-    engine.set_mem(0x0e, lo);
-    engine.set_mem(0x0f, hi);
+    engine.state.set_indirect_ptr_lo(lo);
+    engine.state.set_indirect_ptr_hi(hi);
     engine
         .state
         .set_prg_bank_8000(engine.state.saved_prg_bank_8000());
@@ -31,8 +31,8 @@ fn farcall_0c0d(engine: &mut Engine, r: &mut RoutineContext, lo: i32, hi: i32, t
     let old7 = engine.state.prg_bank_a000();
     engine.state.set_saved_prg_bank_8000(old6);
     engine.state.set_saved_prg_bank_a000(old7);
-    engine.set_mem(0x0e, lo);
-    engine.set_mem(0x0f, hi);
+    engine.state.set_indirect_ptr_lo(lo);
+    engine.state.set_indirect_ptr_hi(hi);
     engine.state.set_prg_bank_8000(0x0c);
     engine.state.set_prg_bank_a000(0x0d);
     engine.state.set_mmc3_bank_select(0x07);
@@ -812,8 +812,8 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x18, 0x40);
     engine.set_mem(0x19, 0x01);
     engine.set_mem(0x1a, 0x20);
-    engine.set_mem(0x0c, 0x9c);
-    engine.set_mem(0x0d, 0xb7);
+    engine.state.set_data_ptr_lo(0x9c);
+    engine.state.set_data_ptr_hi(0xb7);
 
     loop {
         crate::game::advance_intro_text_scroll(engine, r);
@@ -952,15 +952,15 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             r.value = 0x40;
             crate::game::rng_update(engine, r);
             engine.state.set_player_x_tile(r.value);
-            engine.set_mem(0x0c, r.value);
+            engine.state.set_data_ptr_lo(r.value);
             engine.state.set_player_x_fine(0x00);
             r.value = 0x0b;
             crate::game::rng_update(engine, r);
             r.value = u8v(r.value << 4);
             engine.state.set_player_y(r.value);
-            engine.set_mem(0x0d, r.value);
+            engine.state.set_data_ptr_hi(r.value);
             crate::game::resolve_room_tile_pointer(engine, r);
-            let p = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+            let p = u16v(engine.state.data_ptr());
             let mut t = engine.mem(p) & 0x3f;
             if t >= 0x30 {
                 continue;
@@ -1110,7 +1110,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
 /// timers used by the story/final-exit transitions.
 pub fn drain_audio_timers_with_object_frames(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xb4, 0);
-    engine.set_mem(0x0d, 0x10);
+    engine.state.set_data_ptr_hi(0x10);
     loop {
         if engine.mem(0xa0) != 0 {
             engine.dec_mem(0xa0);
@@ -1121,19 +1121,23 @@ pub fn drain_audio_timers_with_object_frames(engine: &mut Engine, r: &mut Routin
         if engine.mem(0xd0) != 0 {
             engine.dec_mem(0xd0);
         }
-        engine.set_mem(0x0c, 0x14);
+        engine.state.set_data_ptr_lo(0x14);
         loop {
             crate::game::draw_room_object_sprites(engine, r);
             engine.state.set_frame_counter(0x01);
             frame::commit_frame_work(engine, r);
             frame::wait_for_frame_counter(engine, r);
-            engine.dec_mem(0x0c);
-            if engine.mem(0x0c) == 0 {
+            engine
+                .state
+                .set_data_ptr_lo((engine.state.data_ptr_lo() - 1) & 0xFF);
+            if engine.state.data_ptr_lo() == 0 {
                 break;
             }
         }
-        engine.dec_mem(0x0d);
-        if engine.mem(0x0d) == 0 {
+        engine
+            .state
+            .set_data_ptr_hi((engine.state.data_ptr_hi() - 1) & 0xFF);
+        if engine.state.data_ptr_hi() == 0 {
             break;
         }
     }
@@ -1465,7 +1469,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.mem(0x0f) - engine.mem(u16v(0x040d + x)));
+                d = u8v(engine.state.indirect_ptr_hi() - engine.mem(u16v(0x040d + x)));
                 if d == 0 {
                     engine.set_mem(0x08, u8v(y));
                     engine.set_mem(0x09, x);
@@ -1473,7 +1477,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.mem(0x0e) - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
                     if (d & 0x80) != 0 {
                         engine.set_mem(0x08, u8v(y));
                         engine.set_mem(0x09, x);
@@ -1484,7 +1488,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.mem(0x0e) - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
                     if d != 0 && (d & 0x80) == 0 {
                         engine.set_mem(0x08, u8v(y));
                         engine.set_mem(0x09, x);
@@ -1530,7 +1534,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.mem(0x0f) - engine.mem(u16v(0x040d + x)));
+                d = u8v(engine.state.indirect_ptr_hi() - engine.mem(u16v(0x040d + x)));
                 if d == 0 {
                     engine.set_mem(0x08, u8v(y));
                     engine.set_mem(0x09, x);
@@ -1538,7 +1542,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.mem(0x0e) - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
                     if (d & 0x80) != 0 {
                         engine.set_mem(0x08, u8v(y));
                         engine.set_mem(0x09, x);
@@ -1549,7 +1553,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.mem(0x0e) - engine.mem(u16v(0x040c + x)));
+                    d = u8v(engine.state.indirect_ptr_lo() - engine.mem(u16v(0x040c + x)));
                     if d != 0 && (d & 0x80) == 0 {
                         engine.set_mem(0x08, u8v(y));
                         engine.set_mem(0x09, x);
@@ -1580,17 +1584,21 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         return;
     }
 
-    engine.set_mem(0x0c, engine.state.player_x_tile());
-    engine.set_mem(0x0f, engine.state.player_x_tile());
-    engine.set_mem(0x0e, engine.state.player_x_fine());
-    engine.set_mem(0x0d, engine.state.player_y());
+    engine.state.set_data_ptr_lo(engine.state.player_x_tile());
+    engine
+        .state
+        .set_indirect_ptr_hi(engine.state.player_x_tile());
+    engine
+        .state
+        .set_indirect_ptr_lo(engine.state.player_x_fine());
+    engine.state.set_data_ptr_hi(engine.state.player_y());
     engine.set_mem(0x0a, u8v(engine.state.player_y() + 1));
     crate::game::resolve_room_tile_pointer(engine, r);
 
     if engine.state.player_x_fine() == 0 {
         engine.set_mem(0x50, 0x01);
         r.offset = 0x00;
-        let tile_ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+        let tile_ptr = u16v(engine.state.data_ptr());
         if (engine.mem(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
@@ -1670,7 +1678,7 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
 /// Special tiles can spend keys/magic, spawn transient objects, or launch the
 /// tile-removal projectile; ordinary tiles return carry for solid terrain.
 pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
-    let tile_ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+    let tile_ptr = u16v(engine.state.data_ptr());
     let tile_offset = r.offset;
     let tile = engine.mem(u16v(tile_ptr + tile_offset)) & 0x3f;
     if tile == engine.mem(0x70) {
@@ -1737,15 +1745,15 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         let x2 = u8v((engine.mem(0xfd) & 0x0f) << 1);
                         let lo = u8v(engine.state.player_x_tile() + engine.mem(u16v(0xfeab + x2)));
                         engine.set_mem(0x049d, lo);
-                        engine.set_mem(0x0c, lo);
+                        engine.state.set_data_ptr_lo(lo);
                         engine.set_mem(0x049c, 0x00);
                         let hi = u8v(engine.state.player_y() + engine.mem(u16v(0xfeac + x2)));
                         engine.set_mem(0x049e, hi);
-                        engine.set_mem(0x0d, hi);
+                        engine.state.set_data_ptr_hi(hi);
                         crate::game::resolve_room_tile_pointer(engine, r);
                         r.offset = 0x00;
                         engine.set_mem(0x0b, 0x00);
-                        let p = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+                        let p = u16v(engine.state.data_ptr());
                         let b = engine.mem(p) & 0x3f;
                         if b == 0x3e {
                             engine.set_mem(0x0490, 0xe1);
@@ -2109,8 +2117,8 @@ pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineConte
     crate::game::upload_staged_room_columns(engine, r);
     crate::game::refresh_scroll_register_shadows(engine, r);
 
-    engine.set_mem(0x0e, 0xd4);
-    engine.set_mem(0x0f, 0xb4);
+    engine.state.set_indirect_ptr_lo(0xd4);
+    engine.state.set_indirect_ptr_hi(0xb4);
     crate::game::encode_inventory_snapshot_item_list(engine, r);
     crate::game::upload_inventory_item_list(engine, r);
 
@@ -2287,7 +2295,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         let hi = engine.mem(0x0a) & 0xf0;
         let mut chosen: Option<i32> = None;
         if hi == 0x50 {
-            if (engine.mem(0x0f) & 0x0f) == 0x05 && engine.mem(0x37) != 0 {
+            if (engine.state.indirect_ptr_hi() & 0x0f) == 0x05 && engine.mem(0x37) != 0 {
                 let mut x = u8v(engine.state.song() + 1);
                 if x >= 0x10 {
                     x = 0x00;
@@ -2306,14 +2314,14 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             }
             continue;
         } else if hi == 0x70 {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             if lo == 0x06 {
                 chosen = Some(0x00);
             } else if lo == 0x08 {
                 chosen = Some(0x01);
             }
         } else if hi == 0x80 {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             if lo == 0x04 {
                 chosen = Some(0x02);
             } else if lo == 0x0a {
@@ -2326,7 +2334,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 continue;
             }
         } else if hi == 0x90 {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             if lo == 0x06 {
                 chosen = Some(0x03);
             } else if lo == 0x0a {
@@ -2483,12 +2491,16 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
 
         let ty = engine.mem(0x0a);
         if ty >= 0x30 && ty < 0xa1 {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             if lo >= 0x02 {
-                let store = lo < 0x0d || engine.mem(0x0e) == 0;
+                let store = lo < 0x0d || engine.state.indirect_ptr_lo() == 0;
                 if store {
-                    engine.state.set_player_x_fine(engine.mem(0x0e));
-                    engine.state.set_player_x_tile(engine.mem(0x0f));
+                    engine
+                        .state
+                        .set_player_x_fine(engine.state.indirect_ptr_lo());
+                    engine
+                        .state
+                        .set_player_x_tile(engine.state.indirect_ptr_hi());
                     engine.state.set_player_y(engine.mem(0x0a));
                 }
             }
@@ -2593,10 +2605,14 @@ pub fn walk_purchase_room_until_action_or_exit(engine: &mut Engine, r: &mut Rout
             return;
         }
         if ty >= 0x8c {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             if lo >= 0x02 && lo < 0x0d {
-                engine.state.set_player_x_fine(engine.mem(0x0e));
-                engine.state.set_player_x_tile(engine.mem(0x0f));
+                engine
+                    .state
+                    .set_player_x_fine(engine.state.indirect_ptr_lo());
+                engine
+                    .state
+                    .set_player_x_tile(engine.state.indirect_ptr_hi());
                 engine.state.set_player_y(engine.mem(0x0a));
             }
         }
@@ -2634,18 +2650,22 @@ pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut Routi
             return;
         }
         if ty >= 0x20 {
-            let lo = engine.mem(0x0f) & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & 0x0f;
             let mut store = false;
             if lo >= 0x01 {
                 if lo < 0x0f {
                     store = true;
-                } else if engine.mem(0x0e) == 0 {
+                } else if engine.state.indirect_ptr_lo() == 0 {
                     store = true;
                 }
             }
             if store {
-                engine.state.set_player_x_fine(engine.mem(0x0e));
-                engine.state.set_player_x_tile(engine.mem(0x0f));
+                engine
+                    .state
+                    .set_player_x_fine(engine.state.indirect_ptr_lo());
+                engine
+                    .state
+                    .set_player_x_tile(engine.state.indirect_ptr_hi());
                 engine.state.set_player_y(engine.mem(0x0a));
             }
         }

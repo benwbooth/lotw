@@ -851,4 +851,66 @@ impl GameState {
     pub fn set_scheduler_phase(&mut self, value: i32) {
         self.set_byte(0xE9, value);
     }
+
+    // ---- General indirect pointers ----------------------------------------
+    //
+    // The two reusable 6502 indirect-addressing pointers. `data_ptr`
+    // ($0C/$0D) is predominantly the room/tile data source pointer;
+    // `indirect_ptr` ($0E/$0F) is the far-call target and a general scratch
+    // pointer. Both are reused per routine, so the meaning of a deref is local
+    // to its caller; the names capture the dominant role.
+
+    /// Data/source indirect pointer (`$0C`/`$0D`).
+    #[inline]
+    pub fn data_ptr(&self) -> i32 {
+        self.byte(0x0C) | (self.byte(0x0D) << 8)
+    }
+    #[inline]
+    pub fn set_data_ptr(&mut self, value: i32) {
+        self.set_byte(0x0C, value & 0xFF);
+        self.set_byte(0x0D, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn data_ptr_lo(&self) -> i32 {
+        self.byte(0x0C)
+    }
+    #[inline]
+    pub fn set_data_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x0C, value);
+    }
+    #[inline]
+    pub fn data_ptr_hi(&self) -> i32 {
+        self.byte(0x0D)
+    }
+    #[inline]
+    pub fn set_data_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x0D, value);
+    }
+
+    /// General indirect / far-call target pointer (`$0E`/`$0F`).
+    #[inline]
+    pub fn indirect_ptr(&self) -> i32 {
+        self.byte(0x0E) | (self.byte(0x0F) << 8)
+    }
+    #[inline]
+    pub fn set_indirect_ptr(&mut self, value: i32) {
+        self.set_byte(0x0E, value & 0xFF);
+        self.set_byte(0x0F, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn indirect_ptr_lo(&self) -> i32 {
+        self.byte(0x0E)
+    }
+    #[inline]
+    pub fn set_indirect_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x0E, value);
+    }
+    #[inline]
+    pub fn indirect_ptr_hi(&self) -> i32 {
+        self.byte(0x0F)
+    }
+    #[inline]
+    pub fn set_indirect_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x0F, value);
+    }
 }
