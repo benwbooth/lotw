@@ -903,11 +903,15 @@ mod advance_scripted_scroll_slice {
             engine.state.set_vram_addr_hi(0x20);
             engine.set_mem(
                 0x17,
-                u8v((u8v((engine.mem(0x1D) ^ 0x01) << 2)) | engine.state.vram_addr_hi()),
+                u8v((u8v((engine.state.nametable_select() ^ 0x01) << 2))
+                    | engine.state.vram_addr_hi()),
             );
             engine.set_mem(
                 0xF9,
-                u8v((u8v((((engine.mem(0x1D) ^ 0x01) << 4) + 0x07))) | engine.state.scroll_tile_x()),
+                u8v(
+                    (u8v((((engine.state.nametable_select() ^ 0x01) << 4) + 0x07)))
+                        | engine.state.scroll_tile_x(),
+                ),
             );
             engine.state.set_obj_x_tile(0x09);
         }
@@ -926,7 +930,9 @@ mod advance_scripted_scroll_slice {
             .state
             .set_obj_x_tile(u8v(engine.state.obj_x_tile() - 1));
         if cbool(engine.state.obj_x_tile() == 0) {
-            engine.xor_mem(0x1D, 0x01);
+            engine
+                .state
+                .set_nametable_select(engine.state.nametable_select() ^ 0x01);
         }
     }
 }
@@ -1335,8 +1341,9 @@ mod tick_scripted_player_motion {
             if engine.state.sprite0_hit() {
                 r.index = u8v(engine.mem(0x3E) + 1);
                 if !cbool(r.index & 0x06) {
-                    let collision_screen_x =
-                        u8v(u8v(engine.mem(0x1C) + engine.mem(u16v(0x040C + r.index))));
+                    let collision_screen_x = u8v(u8v(
+                        engine.state.scroll_pixel_x() + engine.mem(u16v(0x040C + r.index))
+                    ));
                     r.value = u8v(if cbool(collision_screen_x < 0xB0) {
                         0x0A
                     } else {
@@ -2221,7 +2228,7 @@ mod upload_title_screen_nametables {
         let ctrl: i32 = engine.state.ppu_ctrl_shadow();
         let mask: i32 = engine.state.ppu_mask_shadow();
         engine.device_write(0x2000, ctrl & 0x7B);
-        engine.set_mem(0x29, 0x00);
+        engine.state.set_statusbar_split_flag(0x00);
         engine.device_write(0x2001, mask & 0xE7);
         engine.device_write(0x2006, 0x20);
         engine.device_write(0x2006, 0x00);
@@ -2318,8 +2325,8 @@ mod refresh_scroll_register_shadows {
         let scroll_pixel_x: i32 = u8v((scroll_tile_x << 4) | scroll_fine_x);
         let nametable_x_bit: i32 = (scroll_tile_x >> 4) & 0x01;
 
-        engine.set_mem(0x1C, scroll_pixel_x);
-        engine.set_mem(0x1D, nametable_x_bit);
+        engine.state.set_scroll_pixel_x(scroll_pixel_x);
+        engine.state.set_nametable_select(nametable_x_bit);
         r.index = scroll_pixel_x;
         r.value = nametable_x_bit;
     }
@@ -2543,7 +2550,7 @@ mod clear_name_tables_to_blank_tiles {
         let ctrl: i32 = engine.state.ppu_ctrl_shadow();
         let mask: i32 = engine.state.ppu_mask_shadow();
         engine.device_write(0x2000, ctrl & 0x7B);
-        engine.set_mem(0x29, 0x00);
+        engine.state.set_statusbar_split_flag(0x00);
         engine.device_write(0x2001, mask & 0xE7);
         engine.device_write(0x2006, 0x20);
         engine.device_write(0x2006, 0x00);
@@ -2621,7 +2628,7 @@ mod upload_status_panel_template {
         clear_pending_vram_job(engine, r);
         saved_ctrl = engine.state.ppu_ctrl_shadow();
         engine.device_write(0x2000, saved_ctrl & 0x7B);
-        engine.set_mem(0x29, 0x00);
+        engine.state.set_statusbar_split_flag(0x00);
         saved_mask = engine.state.ppu_mask_shadow();
         engine.device_write(0x2001, saved_mask & 0xE7);
         engine.device_write(0x2006, 0x23);
@@ -2648,7 +2655,9 @@ mod upload_status_panel_template {
                 };
             }
         }
-        engine.add_mem(0x29, 1);
+        engine
+            .state
+            .set_statusbar_split_flag((engine.state.statusbar_split_flag() + 1) & 0xFF);
         engine.state.set_ppu_mask_shadow(saved_mask);
         engine.state.set_ppu_ctrl_shadow(saved_ctrl);
         engine.device_write(0x2000, saved_ctrl);
@@ -2694,7 +2703,7 @@ mod upload_room_view_from_tile_pointer {
     /// Uploads room tiles and attributes from the tile pointer in `0x0C/0x0D`.
     pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
         let mut ctrl_save: i32 = engine.state.ppu_ctrl_shadow();
-        let mut v29_save: i32 = engine.mem(0x29);
+        let mut v29_save: i32 = engine.state.statusbar_split_flag();
         let mut v24_save: i32 = engine.state.ppu_mask_shadow();
         let mut c0c_save: i32 = engine.state.data_ptr_lo();
         let mut c0d_save: i32 = engine.state.data_ptr_hi();
@@ -2702,7 +2711,7 @@ mod upload_room_view_from_tile_pointer {
         let mut p79: i32 = 0;
         let mut outer: i32 = 0;
         engine.device_write(0x2000, (ctrl_save & 0x7F) | 0x04);
-        engine.set_mem(0x29, 0x00);
+        engine.state.set_statusbar_split_flag(0x00);
         engine.device_write(0x2001, v24_save & 0xE7);
         p79 = u16v(engine.state.tile_table_ptr());
         {
@@ -2917,7 +2926,7 @@ mod upload_room_view_from_tile_pointer {
             }
         }
         engine.state.set_ppu_mask_shadow(v24_save);
-        engine.set_mem(0x29, v29_save);
+        engine.state.set_statusbar_split_flag(v29_save);
         engine.state.set_ppu_ctrl_shadow(ctrl_save);
         engine.device_write(0x2000, ctrl_save);
         r.value = ctrl_save;
@@ -4636,10 +4645,12 @@ mod run_warp_transition_effect {
         loop {
             let mut x: i32 = 0x0C;
             loop {
-                let mut sum: i32 = u16v(engine.mem(0x1C) + engine.state.scratch0());
-                engine.set_mem(0x1C, u8v(sum));
+                let mut sum: i32 = u16v(engine.state.scroll_pixel_x() + engine.state.scratch0());
+                engine.state.set_scroll_pixel_x(u8v(sum));
                 if cbool(sum & 0x100) {
-                    engine.set_mem(0x1D, u8v(engine.mem(0x1D) ^ 0x01));
+                    engine
+                        .state
+                        .set_nametable_select(u8v(engine.state.nametable_select() ^ 0x01));
                 }
                 r.value = 0xFF;
                 queue_ppu_job_and_wait(engine, r);
@@ -4785,8 +4796,8 @@ mod handle_player_room_transition {
         upload_room_columns_from_bank9(engine, r);
         upload_palette_buffer(engine, r);
         if cbool(engine.state.player_x_tile() != 0x00) {
-            engine.set_mem(0x1D, 0x01);
-            engine.set_mem(0x1C, 0x00);
+            engine.state.set_nametable_select(0x01);
+            engine.state.set_scroll_pixel_x(0x00);
             engine.set_mem(0x0213, 0x00);
             engine.set_mem(0x0217, 0x08);
             engine.state.set_scratch2(0x0F);
@@ -4803,7 +4814,9 @@ mod handle_player_room_transition {
                     }
                     engine.set_mem(0x0213, u8v(engine.mem(0x0213) + 0x04));
                     engine.set_mem(0x0217, u8v(engine.mem(0x0213) + 0x08));
-                    engine.set_mem(0x1C, u8v(engine.mem(0x1C) - 0x04));
+                    engine
+                        .state
+                        .set_scroll_pixel_x(u8v(engine.state.scroll_pixel_x() - 0x04));
                     r.value = 0xFF;
                     queue_ppu_job_and_wait(engine, r);
                     engine.state.set_scratch3(u8v(engine.state.scratch3() - 1));
@@ -4824,8 +4837,8 @@ mod handle_player_room_transition {
             r.carry = 1;
             return;
         }
-        engine.set_mem(0x1C, 0xFC);
-        engine.set_mem(0x1D, 0x01);
+        engine.state.set_scroll_pixel_x(0xFC);
+        engine.state.set_nametable_select(0x01);
         engine.set_mem(0x0213, 0xF0);
         engine.set_mem(0x0217, 0xF8);
         engine.state.set_scratch2(0x0F);
@@ -4842,7 +4855,9 @@ mod handle_player_room_transition {
                 }
                 engine.set_mem(0x0213, u8v(engine.mem(0x0213) - 0x04));
                 engine.set_mem(0x0217, u8v(engine.mem(0x0213) + 0x08));
-                engine.set_mem(0x1C, u8v(engine.mem(0x1C) + 0x04));
+                engine
+                    .state
+                    .set_scroll_pixel_x(u8v(engine.state.scroll_pixel_x() + 0x04));
                 r.value = 0xFF;
                 queue_ppu_job_and_wait(engine, r);
                 engine.state.set_scratch3(u8v(engine.state.scratch3() - 1));
@@ -10492,12 +10507,12 @@ mod statusbar_split {
     pub fn statusbar_split(engine: &mut Engine, r: &mut RoutineContext) {
         engine.device_write(0x2001, engine.state.ppu_mask_shadow());
         engine.state.set_ppu_ctrl_shadow(u8v(
-            (engine.state.ppu_ctrl_shadow() & 0xFE) | engine.mem(0x1D)
+            (engine.state.ppu_ctrl_shadow() & 0xFE) | engine.state.nametable_select()
         ));
         engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
-        engine.device_write(0x2005, engine.mem(0x1C));
+        engine.device_write(0x2005, engine.state.scroll_pixel_x());
         engine.device_write(0x2005, engine.mem(0x1E));
-        if cbool(engine.mem(0x29) != 0) {
+        if cbool(engine.state.statusbar_split_flag() != 0) {
             let _ = engine.mem(0x2002);
             engine.device_write(0x2000, engine.state.ppu_ctrl_shadow() & 0xFE);
             engine.device_write(0x2005, 0x00);
@@ -10510,12 +10525,12 @@ mod statusbar_split {
             engine.device_write(0x8001, 0x3F);
         }
         sound_tick(engine, r);
-        if cbool(engine.mem(0x29) == 0) {
+        if cbool(engine.state.statusbar_split_flag() == 0) {
             return;
         }
         engine.device_write(0x8000, 0x01);
         engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
-        engine.device_write(0x2005, engine.mem(0x1C));
+        engine.device_write(0x2005, engine.state.scroll_pixel_x());
         engine.device_write(0x2005, engine.mem(0x1E));
         engine.device_write(0x8001, engine.state.chr_bank(1));
         engine.device_write(0x8000, 0x04);

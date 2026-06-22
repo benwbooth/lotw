@@ -1007,6 +1007,42 @@ impl GameState {
         self.set_byte(0x0B, value);
     }
 
+    // ---- Scroll / nametable / status-bar split ----------------------------
+
+    /// Horizontal scroll position in pixels (`$1C`); added to object positions
+    /// to convert room coordinates to on-screen coordinates.
+    #[inline]
+    pub fn scroll_pixel_x(&self) -> i32 {
+        self.byte(0x1C)
+    }
+    #[inline]
+    pub fn set_scroll_pixel_x(&mut self, value: i32) {
+        self.set_byte(0x1C, value);
+    }
+
+    /// Active nametable selection bit (`$1D`), toggled as the camera crosses
+    /// nametable boundaries.
+    #[inline]
+    pub fn nametable_select(&self) -> i32 {
+        self.byte(0x1D)
+    }
+    #[inline]
+    pub fn set_nametable_select(&mut self, value: i32) {
+        self.set_byte(0x1D, value);
+    }
+
+    /// Status-bar sprite-0 split enable flag (`$29`); nonzero makes the
+    /// renderer split the screen for the HUD band.
+    pub const STATUSBAR_SPLIT_FLAG: i32 = 0x29;
+    #[inline]
+    pub fn statusbar_split_flag(&self) -> i32 {
+        self.byte(0x29)
+    }
+    #[inline]
+    pub fn set_statusbar_split_flag(&mut self, value: i32) {
+        self.set_byte(0x29, value);
+    }
+
     // ---- RNG state ($38..$3B) ---------------------------------------------
     //
     // `rng_update` advances a 16-bit LFSR-style seed ($3A low, $3B high) mixed

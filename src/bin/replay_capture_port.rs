@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 e.state.map_screen_y(),
                 e.state.player_x_tile(),
                 e.state.player_y(),
-                e.mem(0x1c),
+                e.state.scroll_pixel_x(),
                 e.mem(0x1e),
                 e.state.song(),
                 e.state.selected_item_slot(),

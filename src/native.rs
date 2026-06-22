@@ -252,7 +252,7 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         }
         x = u8v(x - 1);
         engine.set_mem(0x1e, x);
-        engine.set_mem(0x1d, (x & 0x08) >> 3);
+        engine.state.set_nametable_select((x & 0x08) >> 3);
         r.value = 0xff;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -313,7 +313,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::update_scripted_player_pose_from_motion(engine, r);
     crate::game::draw_scripted_player_sprites(engine, r);
     engine.state.set_scroll_tile_x(0x20);
-    engine.set_mem(0x1d, 0x01);
+    engine.state.set_nametable_select(0x01);
     engine.state.set_prompt_state(0x20);
     engine.state.set_prompt_argument(0x80);
     engine.state.set_tile_table_ptr_hi(0xb6);
@@ -350,7 +350,9 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x10, 0x00);
     loop {
         if (engine.state.frame_prescaler() & 0x07) == 0 {
-            engine.xor_mem(0x1d, 0x01);
+            engine
+                .state
+                .set_nametable_select(engine.state.nametable_select() ^ 0x01);
             engine.state.set_prompt_state(0x20);
             engine.state.set_prompt_argument(0x80);
         }
@@ -375,7 +377,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
     }
 
-    engine.set_mem(0x1d, 0x01);
+    engine.state.set_nametable_select(0x01);
     r.value = 0xff;
     queue_ppu_job_and_wait(engine, r);
     if engine.state.player_health() == 0 {
@@ -561,7 +563,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
             let x = u8v(t << 3);
             if engine.mem(u16v(0x0401 + x)) != 0 {
                 engine.set_mem(u16v(0x0401 + x), 0x00);
-                let sum = u8v(engine.mem(0x1c) + engine.mem(u16v(0x040c + x)));
+                let sum = u8v(engine.state.scroll_pixel_x() + engine.mem(u16v(0x040c + x)));
                 if sum >= 0xb0 && sum < 0xd0 {
                     let bl = engine.state.obj_health();
                     engine
@@ -600,18 +602,20 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
                 if engine.state.scheduler_phase() != 0 {
                     engine.state.set_tile_table_ptr_hi(0xb2);
-                    if engine.mem(0x1c) != 0 {
-                        let v = if engine.mem(0x1c) < 0x04 {
+                    if engine.state.scroll_pixel_x() != 0 {
+                        let v = if engine.state.scroll_pixel_x() < 0x04 {
                             0x00
                         } else {
-                            u8v(engine.mem(0x1c) - 0x04)
+                            u8v(engine.state.scroll_pixel_x() - 0x04)
                         };
-                        engine.set_mem(0x1c, v);
+                        engine.state.set_scroll_pixel_x(v);
                         if v >= 0x11 {
                             if engine.mem(0x1e) < 0xd2 {
                                 engine.add_mem(0x1e, 0x04);
-                            } else if engine.mem(0x1c) != 0 {
-                                engine.sub_mem(0x1c, 0x04);
+                            } else if engine.state.scroll_pixel_x() != 0 {
+                                engine.state.set_scroll_pixel_x(
+                                    (engine.state.scroll_pixel_x() - 0x04) & 0xFF,
+                                );
                             }
                         } else if engine.mem(0x1e) >= 0xc3 {
                             engine.sub_mem(0x1e, 0x04);
@@ -619,7 +623,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     } else if engine.mem(0x1e) >= 0xc3 {
                         engine.sub_mem(0x1e, 0x04);
                     }
-                } else if engine.mem(0x1c) != 0 {
+                } else if engine.state.scroll_pixel_x() != 0 {
                     engine.state.set_obj_timer(0x00);
                 } else {
                     engine.state.set_tile_table_ptr_hi(0xb0);
@@ -652,8 +656,10 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 } else {
                     let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
                     engine.state.set_tile_table_ptr_hi(a);
-                    engine.add_mem(0x1c, 0x04);
-                    if engine.mem(0x1c) >= 0x40 {
+                    engine
+                        .state
+                        .set_scroll_pixel_x((engine.state.scroll_pixel_x() + 0x04) & 0xFF);
+                    if engine.state.scroll_pixel_x() >= 0x40 {
                         engine.state.set_obj_timer(0x00);
                     } else {
                         engine.set_mem(0x1e, 0xc2);
@@ -661,9 +667,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             _ => {
-                let sum = u8v(engine.mem(0x1c) + engine.state.player_x_fine());
-                let carry = sum < engine.mem(0x1c);
-                let close = carry || sum >= 0xc0 || engine.mem(0x1c) >= 0x40;
+                let sum = u8v(engine.state.scroll_pixel_x() + engine.state.player_x_fine());
+                let carry = sum < engine.state.scroll_pixel_x();
+                let close = carry || sum >= 0xc0 || engine.state.scroll_pixel_x() >= 0x40;
                 let delayed_grow = sum < 0x80 || sum >= 0xa0;
                 if close || (delayed_grow && engine.mem(0x1e) >= 0xc3) {
                     engine.state.set_obj_timer(0x03);
@@ -673,18 +679,20 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
                     if engine.state.scheduler_phase() != 0 {
                         engine.state.set_tile_table_ptr_hi(0xb2);
-                        if engine.mem(0x1c) != 0 {
-                            let v = if engine.mem(0x1c) < 0x04 {
+                        if engine.state.scroll_pixel_x() != 0 {
+                            let v = if engine.state.scroll_pixel_x() < 0x04 {
                                 0x00
                             } else {
-                                u8v(engine.mem(0x1c) - 0x04)
+                                u8v(engine.state.scroll_pixel_x() - 0x04)
                             };
-                            engine.set_mem(0x1c, v);
+                            engine.state.set_scroll_pixel_x(v);
                             if v >= 0x11 {
                                 if engine.mem(0x1e) < 0xd2 {
                                     engine.add_mem(0x1e, 0x04);
-                                } else if engine.mem(0x1c) != 0 {
-                                    engine.sub_mem(0x1c, 0x04);
+                                } else if engine.state.scroll_pixel_x() != 0 {
+                                    engine.state.set_scroll_pixel_x(
+                                        (engine.state.scroll_pixel_x() - 0x04) & 0xFF,
+                                    );
                                 }
                             } else if engine.mem(0x1e) >= 0xc3 {
                                 engine.sub_mem(0x1e, 0x04);
@@ -692,7 +700,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         } else if engine.mem(0x1e) >= 0xc3 {
                             engine.sub_mem(0x1e, 0x04);
                         }
-                    } else if engine.mem(0x1c) != 0 {
+                    } else if engine.state.scroll_pixel_x() != 0 {
                         engine.state.set_obj_timer(0x00);
                     } else {
                         engine.state.set_tile_table_ptr_hi(0xb0);
@@ -716,8 +724,10 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     } else {
                         let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
                         engine.state.set_tile_table_ptr_hi(a);
-                        engine.add_mem(0x1c, 0x04);
-                        if engine.mem(0x1c) >= 0x40 {
+                        engine
+                            .state
+                            .set_scroll_pixel_x((engine.state.scroll_pixel_x() + 0x04) & 0xFF);
+                        if engine.state.scroll_pixel_x() >= 0x40 {
                             engine.state.set_obj_timer(0x00);
                         } else {
                             engine.set_mem(0x1e, 0xc2);
@@ -816,8 +826,8 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_song(0x0a);
     crate::game::song_init(engine, r);
 
-    engine.set_mem(0x1c, 0x00);
-    engine.set_mem(0x1d, 0x00);
+    engine.state.set_scroll_pixel_x(0x00);
+    engine.state.set_nametable_select(0x00);
     engine.state.set_scratch2(0x00);
     engine.state.set_scroll_fine_x(0x00);
     engine.state.set_scroll_tile_x(0x00);
@@ -887,13 +897,13 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
     'restart: loop {
         crate::game::reset_menu_state_and_palette(engine, r);
         engine.state.set_chr_bank(2, 0x37);
-        engine.set_mem(0x29, 0x00);
+        engine.state.set_statusbar_split_flag(0x00);
         engine.state.set_ppu_ctrl_shadow(0xa0);
         engine.device_write(0x2000, 0xa0);
         engine.state.set_ppu_mask_shadow(0x00);
         engine.device_write(0x2001, 0x00);
-        engine.set_mem(0x1c, 0x00);
-        engine.set_mem(0x1d, 0x00);
+        engine.state.set_scroll_pixel_x(0x00);
+        engine.state.set_nametable_select(0x00);
         engine.set_mem(0x1e, 0xe8);
         for x in (0..=0x1f).rev() {
             engine.set_mem(u16v(0x0180 + x), 0x0f);
@@ -1243,8 +1253,8 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     crate::game::draw_room_object_sprites(engine, r);
     engine.state.set_chr_bank(1, 0x16);
     engine.state.set_chr_bank(2, 0x36);
-    engine.set_mem(0x1c, 0x00);
-    engine.set_mem(0x1d, 0x00);
+    engine.state.set_scroll_pixel_x(0x00);
+    engine.state.set_nametable_select(0x00);
     engine.set_mem(0x1e, 0x00);
     engine.state.set_scroll_fine_x(0x00);
     engine.state.set_scroll_tile_x(0x00);

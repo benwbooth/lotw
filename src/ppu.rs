@@ -296,7 +296,8 @@ impl Ppu {
             0x0000
         };
         let tall = (self.ctrl & 0x20) != 0;
-        let split = memory[0x29] != 0;
+        // Status-bar sprite-0 split flag (GameState::STATUSBAR_SPLIT_FLAG, $29).
+        let split = memory[crate::state::GameState::STATUSBAR_SPLIT_FLAG as usize] != 0;
         let mut split_y = if split { self.oam[0] as i32 + 1 } else { 0 };
         split_y = split_y.clamp(0, PPU_H as i32);
 
