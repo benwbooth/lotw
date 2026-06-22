@@ -110,6 +110,7 @@ pub use load_effective_projectile_lifetime::load_effective_projectile_lifetime;
 pub use load_family_item_permission_bits::load_family_item_permission_bits;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
+pub use load_title_palette_buffer::load_title_palette_buffer;
 pub use main_init::main_init;
 pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
 pub use metasprite_build::metasprite_build;
@@ -136,6 +137,7 @@ pub use redraw_room_tile_column::redraw_room_tile_column;
 pub use refresh_scroll_register_shadows::refresh_scroll_register_shadows;
 pub use refresh_temporary_room_page::refresh_temporary_room_page;
 pub use reset::reset;
+pub use reset_menu_state_and_palette::reset_menu_state_and_palette;
 pub use reset_room_object_slots::reset_room_object_slots;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use restore_inventory_state_snapshot::restore_inventory_state_snapshot;
@@ -185,10 +187,6 @@ pub use routine_0047::routine_0047;
 pub use routine_0048::routine_0048;
 pub use routine_0051::routine_0051;
 pub use routine_0052::routine_0052;
-pub use routine_0053::routine_0053;
-pub use routine_0054::routine_0054;
-pub use routine_0056::routine_0056;
-pub use routine_0057::routine_0057;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -278,6 +276,7 @@ pub use upload_shop_price_tiles::upload_shop_price_tiles;
 pub use upload_staged_room_columns::upload_staged_room_columns;
 pub use upload_staged_room_view::upload_staged_room_view;
 pub use upload_status_panel_template::upload_status_panel_template;
+pub use upload_title_screen_nametables::upload_title_screen_nametables;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
 pub use vram_blit_stack::vram_blit_stack;
@@ -2358,92 +2357,46 @@ mod routine_0052 {
     }
 }
 
-mod routine_0053 {
+mod reset_menu_state_and_palette {
     use super::*;
-    pub fn routine_0053(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x40;
-        loop {
-            engine.set_mem(u16v(0x00 + x), engine.mem(u16v(0x9B9F + x)));
-            {
-                let __old = x;
-                x += 1;
-                __old
-            };
-            if !cbool(x != 0x8C) {
-                break;
-            }
+
+    /// Restores the title/menu working state from ROM defaults and blacks out
+    /// the palette buffer. Unlike the full boot RAM initializer, this only
+    /// rewrites `0x40..0x8B`, leaving broader runtime buffers intact.
+    pub fn reset_menu_state_and_palette(engine: &mut Engine, r: &mut RoutineContext) {
+        for addr in 0x40..0x8C {
+            engine.set_mem(addr, engine.mem(0x9B9F + addr));
         }
-        {
-            x = 0x1F;
-            while cbool((x & 0x80) == 0) {
-                engine.set_mem(u16v(0x0180 + x), 0x0F);
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for palette_offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0180 + palette_offset, 0x0F);
         }
         r.value = 0x0F;
         r.index = 0xFF;
     }
 }
 
-mod routine_0054 {
+mod upload_title_screen_nametables {
     use super::*;
-    pub fn routine_0054(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ctrl: i32 = engine.mem(0x23);
-        let mut mask: i32 = engine.mem(0x24);
-        let mut i: i32 = 0;
+
+    /// Uploads the title-screen nametable image and title CHR bank shadows.
+    ///
+    /// The source image occupies four consecutive 256-byte pages at
+    /// `0x9EC9..0xA1C8`; `0xA2E9/0xA2EA` provide the title CHR banks.
+    pub fn upload_title_screen_nametables(engine: &mut Engine, r: &mut RoutineContext) {
+        let ctrl: i32 = engine.mem(0x23);
+        let mask: i32 = engine.mem(0x24);
         engine.device_write(0x2000, ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
         engine.device_write(0x2001, mask & 0xE7);
         engine.device_write(0x2006, 0x20);
         engine.device_write(0x2006, 0x00);
-        {
-            i = 0;
-            while cbool(i < 0x100) {
-                engine.device_write(0x2007, engine.mem(u16v(0x9EC9 + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
+
+        for source_page in [0x9EC9, 0x9FC9, 0xA0C9, 0xA1C9] {
+            for offset in 0..0x100 {
+                engine.device_write(0x2007, engine.mem(u16v(source_page + offset)));
             }
         }
-        {
-            i = 0;
-            while cbool(i < 0x100) {
-                engine.device_write(0x2007, engine.mem(u16v(0x9FC9 + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            i = 0;
-            while cbool(i < 0x100) {
-                engine.device_write(0x2007, engine.mem(u16v(0xA0C9 + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            i = 0;
-            while cbool(i < 0x100) {
-                engine.device_write(0x2007, engine.mem(u16v(0xA1C9 + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
+
         engine.set_mem(0x2A, engine.mem(0xA2E9));
         engine.set_mem(0x2B, engine.mem(0xA2EA));
         engine.set_mem(0x24, mask);
@@ -2454,54 +2407,13 @@ mod routine_0054 {
     }
 }
 
-mod routine_0056 {
+mod load_title_palette_buffer {
     use super::*;
-    pub fn routine_0056(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(r.index);
-        let mut y: i32 = u8v(r.offset);
-        loop {
-            let mut lo: i32 = engine.mem(u16v(0x0180 + x)) & 0x0F;
-            engine.set_mem(0x08, lo);
-            let mut hi: i32 = engine.mem(u16v(0x0180 + x)) & 0xF0;
-            let mut sub: i32 = engine.mem(0x09);
-            let mut res: i32 = 0;
-            if cbool(hi >= sub) {
-                res = u8v(u8v(hi - sub) | lo);
-            } else {
-                res = 0x0F;
-            }
-            engine.set_mem(u16v(0x0180 + x), res);
-            {
-                x += 1;
-                x
-            };
-            {
-                y -= 1;
-                y
-            };
-            if !cbool(y != 0) {
-                break;
-            }
-        }
-        r.index = x;
-        r.offset = y;
-    }
-}
 
-mod routine_0057 {
-    use super::*;
-    pub fn routine_0057(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x1F;
-            while cbool(x >= 0) {
-                engine.set_mem(0x0180 + x, engine.mem(0xA2C9 + x));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+    /// Copies the title-screen palette from ROM into the palette upload buffer.
+    pub fn load_title_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
+        for palette_offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0180 + palette_offset, engine.mem(0xA2C9 + palette_offset));
         }
         r.index = 0xFF;
     }

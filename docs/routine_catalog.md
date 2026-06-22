@@ -92,9 +92,9 @@ would currently be weaker than the cluster name.
 | `game` | `0003`, `0005..0019` | cluster | opening/title scripted helpers, timed waits, cutscene sprite setup, and startup scene setup |
 | `game` | `0021..0028`, `0030..0032` | cluster | password/title/menu support and first-room transition helpers |
 | `native` | `0001`, `0002`, `0004`, `0020`, `0029` | inferred | high-level start flow, intro/menu flow, and blocking input gates rewritten around frame tasks |
-| `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050`, `0055` | inferred | title screen, family select, password entry, and start-game screen orchestration |
+| `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050` | inferred | title screen, family select, password entry, and start-game screen orchestration |
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
-| `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
+| `game` | `0051`, `0052` | inferred | inventory/password buffer packing and validation transforms |
 
 ## Named Non-Numbered Routines
 
@@ -194,6 +194,7 @@ surface when touching nearby code:
 | `fade_room_palette_out_keep_audio` | fade the room palette out while preserving active audio channel state |
 | `fade_room_palette_out_reset_audio` | fade the room palette out and reset active audio channel state |
 | `fade_room_palette_row_in` | fade in the first room palette row from active room data |
+| `fade_title_palette_in` | fade the title-screen palette from black to its ROM palette |
 | `fade_two_room_palette_rows_in` | fade in the first two room palette rows from active room data |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
@@ -216,6 +217,7 @@ surface when touching nearby code:
 | `load_family_item_permission_bits` | load shifted family/item permission bits and return the final shifted-out bit in carry |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
+| `load_title_palette_buffer` | copy the title-screen ROM palette into the palette upload buffer |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `maybe_spawn_pursuer_actor` | one-in-30 secondary actor spawn path that seeds scratch position from the player slot |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
@@ -244,6 +246,7 @@ surface when touching nearby code:
 | `refresh_scroll_register_shadows` | convert camera tile/sub-tile position into PPU scroll and nametable shadows |
 | `refresh_temporary_room_page` | rebuild a temporary room page with the shorter fade that preserves audio state |
 | `reset` | top-level reset entry |
+| `reset_menu_state_and_palette` | restore title/menu RAM defaults and black out the palette buffer |
 | `reset_room_object_slots` | clear all room object slots to inactive and reset the actor scheduler phase |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `restore_room_from_checkpoint` | pop a temporary-room checkpoint and rebuild the gameplay room, saved song, sprites, and player pose |
@@ -347,6 +350,7 @@ surface when touching nearby code:
 | `upload_staged_room_view` | upload the full room view from the staged room tile pages |
 | `upload_staged_room_columns` | upload the 16 visible room columns using the current staged room data |
 | `upload_status_panel_template` | upload the fixed status-panel nametable template and clear its attribute bytes |
+| `upload_title_screen_nametables` | upload the title-screen nametable image and CHR bank shadows |
 | `update_wide_object_terrain_probe` | advance the wide object terrain probe when its footprint stays clear |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |

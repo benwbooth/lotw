@@ -764,7 +764,7 @@ pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
     );
     crate::game::upload_status_panel_template(engine, r);
     crate::game::clear_oam_with_sprite_zero_template(engine, r);
-    crate::game::routine_0053(engine, r);
+    crate::game::reset_menu_state_and_palette(engine, r);
     crate::game::sync_health_hud(engine, r);
     crate::game::sync_coin_hud(engine, r);
     crate::game::sync_key_hud(engine, r);
@@ -859,7 +859,7 @@ pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
 
 pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
     'restart: loop {
-        crate::game::routine_0053(engine, r);
+        crate::game::reset_menu_state_and_palette(engine, r);
         engine.set_mem(0x2c, 0x37);
         engine.set_mem(0x29, 0x00);
         engine.set_mem(0x23, 0xa0);
@@ -879,12 +879,12 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x2c, 0x15);
         engine.set_mem(0x8e, 0x09);
         crate::game::song_init(engine, r);
-        crate::game::routine_0054(engine, r);
+        crate::game::upload_title_screen_nametables(engine, r);
         engine.set_mem(0x24, 0x1e);
         engine.device_write(0x2001, 0x1e);
         set_frame_counter(engine, 0x78);
         frame::wait_for_frame_counter(engine, r);
-        routine_0055(engine, r);
+        fade_title_palette_in(engine, r);
         set_countdown_timer(engine, 0x14);
 
         loop {
@@ -1278,14 +1278,15 @@ pub fn routine_0050(engine: &mut Engine, r: &mut RoutineContext) {
     frame::wait_for_frame_counter(engine, r);
 }
 
-pub fn routine_0055(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades the title-screen palette from black to its ROM palette in five steps.
+pub fn fade_title_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x09, 0x40);
     loop {
         set_frame_counter(engine, 0x05);
-        crate::game::routine_0057(engine, r);
+        crate::game::load_title_palette_buffer(engine, r);
         r.index = 0x00;
         r.offset = 0x20;
-        crate::game::routine_0056(engine, r);
+        crate::game::dim_palette_range_by_step(engine, r);
 
         enter_return_home(engine, 0x35, 0xc1);
         frame::commit_frame_work(engine, r);

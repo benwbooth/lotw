@@ -22,3 +22,81 @@ fn dim_palette_range_by_step_saturates_to_black() {
     assert_eq!(r.index, 0x03);
     assert_eq!(r.offset, 0x00);
 }
+
+#[test]
+fn reset_menu_state_copies_partial_ram_defaults_and_blacks_palette() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    for addr in 0x40..0x8C {
+        engine.set_mem(addr, 0xAA);
+        engine.set_mem(0x9B9F + addr, addr ^ 0x55);
+    }
+    for offset in 0..=0x1F {
+        engine.set_mem(0x0180 + offset, 0x30 + (offset & 0x0F));
+    }
+
+    game::reset_menu_state_and_palette(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x40), 0x15);
+    assert_eq!(engine.mem(0x8B), 0xDE);
+    assert!((0..=0x1F).all(|offset| engine.mem(0x0180 + offset) == 0x0F));
+    assert_eq!(r.value, 0x0F);
+    assert_eq!(r.index, 0xFF);
+}
+
+#[test]
+fn load_title_palette_buffer_copies_rom_palette() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    for offset in 0..=0x1F {
+        engine.set_mem(0xA2C9 + offset, 0x40 + offset);
+    }
+
+    game::load_title_palette_buffer(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0180), 0x40);
+    assert_eq!(engine.mem(0x019F), 0x5F);
+    assert_eq!(r.index, 0xFF);
+}
+
+#[test]
+fn upload_title_screen_nametables_copies_rom_pages_and_chr_banks() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.ppu.mirror = 1;
+    engine.ppu.vram.fill(0x77);
+    engine.set_mem(0x23, 0xAB);
+    engine.set_mem(0x24, 0x1E);
+    engine.set_mem(0xA2E9, 0x12);
+    engine.set_mem(0xA2EA, 0x34);
+
+    for (page_index, source_page) in [0x9EC9, 0x9FC9, 0xA0C9, 0xA1C9].into_iter().enumerate() {
+        for offset in 0..0x100 {
+            engine.set_mem(
+                source_page + offset,
+                (page_index as i32 * 0x40) + (offset & 0x3F),
+            );
+        }
+    }
+
+    game::upload_title_screen_nametables(&mut engine, &mut r);
+
+    assert_eq!(engine.ppu.vram[0x000], 0x00);
+    assert_eq!(engine.ppu.vram[0x100], 0x40);
+    assert_eq!(engine.ppu.vram[0x200], 0x80);
+    assert_eq!(engine.ppu.vram[0x300], 0xC0);
+    assert_eq!(engine.ppu.vram[0x3FF], 0xFF);
+    assert_eq!(engine.ppu.vram[0x400], 0x77);
+    assert_eq!(engine.mem(0x2A), 0x12);
+    assert_eq!(engine.mem(0x2B), 0x34);
+    assert_eq!(engine.mem(0x23), 0xAB);
+    assert_eq!(engine.mem(0x24), 0x1E);
+    assert_eq!(engine.mem(0x29), 0x00);
+    assert_eq!(engine.ppu.ctrl, 0xAB);
+    assert_eq!(engine.ppu.mask, 0x06);
+    assert_eq!(r.value, 0xAB);
+    assert_eq!(r.index, 0x00);
+}
