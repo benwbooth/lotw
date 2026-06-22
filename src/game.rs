@@ -23,6 +23,7 @@ pub use animate_actor_flip_toggle::animate_actor_flip_toggle;
 pub use animate_actor_walk_toggle::animate_actor_walk_toggle;
 pub use animate_large_actor_body_tiles::animate_large_actor_body_tiles;
 pub use apply_actor_player_contact_damage::apply_actor_player_contact_damage;
+pub use apply_event_collectible_reward::apply_event_collectible_reward;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use audio_cmd_set_channel_flags::audio_cmd_set_channel_flags;
 pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
@@ -50,11 +51,19 @@ pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_dir
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_pending_vram_job::clear_pending_vram_job;
+pub use collect_key_bundle_reward::collect_key_bundle_reward;
+pub use collect_large_coin_reward::collect_large_coin_reward;
+pub use collect_room_pickup_object::collect_room_pickup_object;
+pub use collect_single_key_reward::collect_single_key_reward;
+pub use collect_small_coin_reward::collect_small_coin_reward;
+pub use collect_small_health_reward::collect_small_health_reward;
+pub use collect_small_magic_reward::collect_small_magic_reward;
 pub use commit_actor_projected_position::commit_actor_projected_position;
 pub use compose_large_actor_body_slots::compose_large_actor_body_slots;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
+pub use defeat_active_room_actors::defeat_active_room_actors;
 pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
@@ -62,6 +71,10 @@ pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
 pub use frame_counters::frame_counters;
 pub use game_update::game_update;
+pub use grant_long_invulnerability::grant_long_invulnerability;
+pub use grant_long_speed_boost::grant_long_speed_boost;
+pub use grant_short_invulnerability::grant_short_invulnerability;
+pub use grant_short_speed_boost::grant_short_speed_boost;
 pub use inc16_95::inc16_95;
 pub use initialize_large_actor_slot::initialize_large_actor_slot;
 pub use load_effective_jump_duration::load_effective_jump_duration;
@@ -178,20 +191,6 @@ pub use routine_0144::routine_0144;
 pub use routine_0145::routine_0145;
 pub use routine_0146::routine_0146;
 pub use routine_0147::routine_0147;
-pub use routine_0149::routine_0149;
-pub use routine_0150::routine_0150;
-pub use routine_0151::routine_0151;
-pub use routine_0152::routine_0152;
-pub use routine_0153::routine_0153;
-pub use routine_0154::routine_0154;
-pub use routine_0155::routine_0155;
-pub use routine_0156::routine_0156;
-pub use routine_0157::routine_0157;
-pub use routine_0158::routine_0158;
-pub use routine_0159::routine_0159;
-pub use routine_0160::routine_0160;
-pub use routine_0161::routine_0161;
-pub use routine_0162::routine_0162;
 pub use routine_0164::routine_0164;
 pub use routine_0165::routine_0165;
 pub use routine_0166::routine_0166;
@@ -259,6 +258,7 @@ pub use tick_standard_actor::tick_standard_actor;
 pub use tick_timed_chase_actor::tick_timed_chase_actor;
 pub use tick_triangle_channel::tick_triangle_channel;
 pub use tick_wandering_jump_actor::tick_wandering_jump_actor;
+pub use trigger_damage_pickup::trigger_damage_pickup;
 pub use try_actor_gravity_motion::try_actor_gravity_motion;
 pub use try_actor_jump_arc_motion::try_actor_jump_arc_motion;
 pub use try_large_actor_gravity_motion::try_large_actor_gravity_motion;
@@ -5326,7 +5326,7 @@ mod routine_0146 {
                             continue 'dispatch;
                         }
                     }
-                    routine_0149(engine, r);
+                    apply_event_collectible_reward(engine, r);
                     routine_0089(engine, r);
                     {
                         state = 7;
@@ -5352,7 +5352,7 @@ mod routine_0146 {
                             continue 'dispatch;
                         }
                     }
-                    routine_0150(engine, r);
+                    collect_room_pickup_object(engine, r);
                     {
                         state = 7;
                         continue 'dispatch;
@@ -5456,24 +5456,27 @@ mod routine_0147 {
     }
 }
 
-mod routine_0149 {
+mod apply_event_collectible_reward {
     use super::*;
-    pub fn routine_0149(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut n: i32 = u8v(u8v(r.value - 0x02));
+
+    /// Applies a collectible reward that came from an event/shop path where no
+    /// room object slot needs to be cleared.
+    pub fn apply_event_collectible_reward(engine: &mut Engine, r: &mut RoutineContext) {
+        let reward_id: i32 = u8v(u8v(r.value - 0x02));
         engine.set_mem(0x04A1, 0x00);
-        if cbool(n >= 0x18) {
+        if cbool(reward_id >= 0x18) {
             engine.set_mem(0x8F, 0x06);
             return;
         }
-        if cbool(n < 0x08) {
-            const tbl: [i32; 8] = [
+        if cbool(reward_id < 0x08) {
+            const EVENT_REWARD_TEXT: [i32; 8] = [
                 0xD16A, 0xD199, 0xDB47, 0xDB52, 0xDB66, 0xDB7B, 0xDBB7, 0xDB9B,
             ];
-            engine.set_mem(0x0C, u8v(tbl[n as usize as usize] & 0xFF));
-            engine.set_mem(0x0D, u8v(tbl[n as usize as usize] >> 8));
-            r.value = u8v(n << 1);
+            engine.set_mem(0x0C, u8v(EVENT_REWARD_TEXT[reward_id as usize] & 0xFF));
+            engine.set_mem(0x0D, u8v(EVENT_REWARD_TEXT[reward_id as usize] >> 8));
+            r.value = u8v(reward_id << 1);
             r.index = r.value;
-            match n {
+            match reward_id {
                 0 => {
                     animate_health_refill_to_cap(engine, r);
                 }
@@ -5481,36 +5484,36 @@ mod routine_0149 {
                     animate_magic_refill_to_cap(engine, r);
                 }
                 2 => {
-                    routine_0154(engine, r);
+                    collect_large_coin_reward(engine, r);
                 }
                 3 => {
-                    routine_0155(engine, r);
+                    trigger_damage_pickup(engine, r);
                 }
                 4 => {
-                    routine_0157(engine, r);
+                    collect_key_bundle_reward(engine, r);
                 }
                 5 => {
-                    routine_0159(engine, r);
+                    grant_long_invulnerability(engine, r);
                 }
                 6 => {
-                    routine_0162(engine, r);
+                    defeat_active_room_actors(engine, r);
                 }
                 7 => {
-                    routine_0161(engine, r);
+                    grant_long_speed_boost(engine, r);
                 }
                 _ => {}
             }
             return;
         }
         {
-            let mut x: i32 = u8v(n - 0x08);
-            if cbool(engine.mem(u16v(0x60 + x)) >= 0x0B) {
+            let inventory_item_id: i32 = u8v(reward_id - 0x08);
+            if cbool(engine.mem(u16v(0x60 + inventory_item_id)) >= 0x0B) {
                 engine.set_mem(0x8F, 0x1D);
                 return;
             }
-            engine.inc_mem(u16v(0x60 + x));
+            engine.inc_mem(u16v(0x60 + inventory_item_id));
             engine.set_mem(0x8F, 0x13);
-            if cbool(x == 0x0E) {
+            if cbool(inventory_item_id == 0x0E) {
                 routine_0089(engine, r);
                 routine_0138(engine, r);
             }
@@ -5518,70 +5521,72 @@ mod routine_0149 {
     }
 }
 
-mod routine_0150 {
+mod collect_room_pickup_object {
     use super::*;
-    pub fn routine_0150(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut n: i32 = u8v(u8v(r.value - 0x02));
-        if cbool(n >= 0x18) {
+
+    /// Clears the touched room object slot/OAM entry and applies its reward.
+    pub fn collect_room_pickup_object(engine: &mut Engine, r: &mut RoutineContext) {
+        let reward_id: i32 = u8v(u8v(r.value - 0x02));
+        if cbool(reward_id >= 0x18) {
             return;
         }
         {
-            let mut slot: i32 = u8v(r.index);
-            engine.set_mem(u16v(0x0401 + slot), 0x00);
-            engine.set_mem(u16v(0x0406 + slot), 0xF0);
+            let object_slot_offset: i32 = u8v(r.index);
+            engine.set_mem(u16v(0x0401 + object_slot_offset), 0x00);
+            engine.set_mem(u16v(0x0406 + object_slot_offset), 0xF0);
         }
         {
-            let mut oam: i32 = u8v((engine.mem(0x08) << 3) | 0x80);
-            engine.set_mem(u16v(0x0200 + oam), 0xEF);
-            engine.set_mem(u16v(0x0204 + oam), 0xEF);
-            r.index = oam;
+            let oam_offset: i32 = u8v((engine.mem(0x08) << 3) | 0x80);
+            engine.set_mem(u16v(0x0200 + oam_offset), 0xEF);
+            engine.set_mem(u16v(0x0204 + oam_offset), 0xEF);
+            r.index = oam_offset;
         }
-        if cbool(n < 0x08) {
-            const tbl: [i32; 8] = [
+        if cbool(reward_id < 0x08) {
+            const PICKUP_REWARD_TEXT: [i32; 8] = [
                 0xDB26, 0xDB31, 0xDB3C, 0xDB52, 0xDB5D, 0xDB71, 0xDBB7, 0xDB85,
             ];
-            engine.set_mem(0x0C, u8v(tbl[n as usize as usize] & 0xFF));
-            engine.set_mem(0x0D, u8v(tbl[n as usize as usize] >> 8));
-            r.value = u8v(n << 1);
+            engine.set_mem(0x0C, u8v(PICKUP_REWARD_TEXT[reward_id as usize] & 0xFF));
+            engine.set_mem(0x0D, u8v(PICKUP_REWARD_TEXT[reward_id as usize] >> 8));
+            r.value = u8v(reward_id << 1);
             r.index = r.value;
-            match n {
+            match reward_id {
                 0 => {
-                    routine_0151(engine, r);
+                    collect_small_health_reward(engine, r);
                 }
                 1 => {
-                    routine_0152(engine, r);
+                    collect_small_magic_reward(engine, r);
                 }
                 2 => {
-                    routine_0153(engine, r);
+                    collect_small_coin_reward(engine, r);
                 }
                 3 => {
-                    routine_0155(engine, r);
+                    trigger_damage_pickup(engine, r);
                 }
                 4 => {
-                    routine_0156(engine, r);
+                    collect_single_key_reward(engine, r);
                 }
                 5 => {
-                    routine_0158(engine, r);
+                    grant_short_invulnerability(engine, r);
                 }
                 6 => {
-                    routine_0162(engine, r);
+                    defeat_active_room_actors(engine, r);
                 }
                 7 => {
-                    routine_0160(engine, r);
+                    grant_short_speed_boost(engine, r);
                 }
                 _ => {}
             }
             return;
         }
         {
-            let mut x: i32 = u8v(n - 0x08);
-            if cbool(engine.mem(u16v(0x60 + x)) >= 0x0B) {
+            let inventory_item_id: i32 = u8v(reward_id - 0x08);
+            if cbool(engine.mem(u16v(0x60 + inventory_item_id)) >= 0x0B) {
                 engine.set_mem(0x8F, 0x1D);
                 return;
             }
-            engine.inc_mem(u16v(0x60 + x));
+            engine.inc_mem(u16v(0x60 + inventory_item_id));
             engine.set_mem(0x8F, 0x13);
-            if cbool(x == 0x0E) {
+            if cbool(inventory_item_id == 0x0E) {
                 routine_0089(engine, r);
                 routine_0138(engine, r);
             }
@@ -5589,148 +5594,163 @@ mod routine_0150 {
     }
 }
 
-mod routine_0151 {
+mod collect_small_health_reward {
     use super::*;
-    pub fn routine_0151(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds a small health reward and plays the health pickup sound.
+    pub fn collect_small_health_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x1E);
         r.value = 0x05;
         add_health_points(engine, r);
     }
 }
 
-mod routine_0152 {
+mod collect_small_magic_reward {
     use super::*;
-    pub fn routine_0152(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds a small magic reward.
+    pub fn collect_small_magic_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x05;
         add_magic_points(engine, r);
     }
 }
 
-mod routine_0153 {
+mod collect_small_coin_reward {
     use super::*;
-    pub fn routine_0153(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds the small coin reward.
+    pub fn collect_small_coin_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x02;
         add_coins(engine, r);
     }
 }
 
-mod routine_0154 {
+mod collect_large_coin_reward {
     use super::*;
-    pub fn routine_0154(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds the large coin reward.
+    pub fn collect_large_coin_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x32;
         add_coins(engine, r);
     }
 }
 
-mod routine_0155 {
+mod trigger_damage_pickup {
     use super::*;
-    pub fn routine_0155(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Applies the harmful pickup/trap effect.
+    pub fn trigger_damage_pickup(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x1D);
         r.value = 0x05;
         subtract_health_points(engine, r);
     }
 }
 
-mod routine_0156 {
+mod collect_single_key_reward {
     use super::*;
-    pub fn routine_0156(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds one key.
+    pub fn collect_single_key_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x15);
         add_key(engine, r);
     }
 }
 
-mod routine_0157 {
+mod collect_key_bundle_reward {
     use super::*;
-    pub fn routine_0157(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds the large key bundle reward.
+    pub fn collect_key_bundle_reward(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x15);
         r.value = 0x14;
         add_keys(engine, r);
     }
 }
 
-mod routine_0158 {
+mod grant_short_invulnerability {
     use super::*;
-    pub fn routine_0158(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Grants the short invulnerability timer.
+    pub fn grant_short_invulnerability(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x13);
         engine.set_mem(0x85, 0x0A);
         r.value = 0x0A;
     }
 }
 
-mod routine_0159 {
+mod grant_long_invulnerability {
     use super::*;
-    pub fn routine_0159(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Grants the long invulnerability timer.
+    pub fn grant_long_invulnerability(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x13);
         engine.set_mem(0x85, 0x1E);
         r.value = 0x1E;
     }
 }
 
-mod routine_0160 {
+mod grant_short_speed_boost {
     use super::*;
-    pub fn routine_0160(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x1E;
-        let mut a: i32 = 0;
+
+    /// Starts or queues a short speed/action boost timer in `0x88..0x8A`.
+    pub fn grant_short_speed_boost(engine: &mut Engine, r: &mut RoutineContext) {
+        let boost_duration: i32 = 0x1E;
+        let mut displaced_timer: i32 = 0;
         engine.set_mem(0x8F, 0x13);
-        a = engine.mem(0x88);
-        if cbool(a != 0) {
-            a = engine.mem(0x89);
-            if cbool(a != 0) {
-                engine.set_mem(0x8A, x);
+        displaced_timer = engine.mem(0x88);
+        if cbool(displaced_timer != 0) {
+            displaced_timer = engine.mem(0x89);
+            if cbool(displaced_timer != 0) {
+                engine.set_mem(0x8A, boost_duration);
             }
-            engine.set_mem(0x89, x);
+            engine.set_mem(0x89, boost_duration);
         }
-        engine.set_mem(0x88, x);
-        r.value = a;
-        r.index = x;
+        engine.set_mem(0x88, boost_duration);
+        r.value = displaced_timer;
+        r.index = boost_duration;
     }
 }
 
-mod routine_0161 {
+mod grant_long_speed_boost {
     use super::*;
-    pub fn routine_0161(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x3C;
-        let mut a: i32 = 0;
+
+    /// Starts or queues a long speed/action boost timer in `0x88..0x8B`.
+    pub fn grant_long_speed_boost(engine: &mut Engine, r: &mut RoutineContext) {
+        let boost_duration: i32 = 0x3C;
+        let mut displaced_timer: i32 = 0;
         engine.set_mem(0x8F, 0x13);
-        a = engine.mem(0x88);
-        if cbool(a != 0) {
-            a = engine.mem(0x89);
-            if cbool(a != 0) {
-                a = engine.mem(0x8A);
-                if cbool(a != 0) {
-                    engine.set_mem(0x8B, x);
+        displaced_timer = engine.mem(0x88);
+        if cbool(displaced_timer != 0) {
+            displaced_timer = engine.mem(0x89);
+            if cbool(displaced_timer != 0) {
+                displaced_timer = engine.mem(0x8A);
+                if cbool(displaced_timer != 0) {
+                    engine.set_mem(0x8B, boost_duration);
                 }
-                engine.set_mem(0x8A, x);
+                engine.set_mem(0x8A, boost_duration);
             }
-            engine.set_mem(0x89, x);
+            engine.set_mem(0x89, boost_duration);
         }
-        engine.set_mem(0x88, x);
-        r.value = a;
-        r.index = x;
+        engine.set_mem(0x88, boost_duration);
+        r.value = displaced_timer;
+        r.index = boost_duration;
     }
 }
 
-mod routine_0162 {
+mod defeat_active_room_actors {
     use super::*;
-    pub fn routine_0162(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x09;
-        let mut y: i32 = 0x00;
-        loop {
-            if cbool(engine.mem(u16v(0x0401 + y)) == 0x01) {
-                engine.set_mem(u16v(0x0401 + y), 0x80);
+
+    /// Marks active room actors as defeated, then runs the palette flash effect.
+    pub fn defeat_active_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut slot_offset: i32 = 0x00;
+        for _ in 0..9 {
+            if cbool(engine.mem(u16v(0x0401 + slot_offset)) == 0x01) {
+                engine.set_mem(u16v(0x0401 + slot_offset), 0x80);
             }
-            y = u8v(y + 0x10);
-            if !cbool(
-                {
-                    x -= 1;
-                    x
-                } != 0,
-            ) {
-                break;
-            }
+            slot_offset = u8v(slot_offset + 0x10);
         }
         engine.set_mem(0x8F, 0x18);
         engine.set_mem(0x90, 0xFF);

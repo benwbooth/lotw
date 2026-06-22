@@ -65,7 +65,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x75..0x78` | room map pointer and saved pointer | tile addressing and scene assembly |
 | `0x79..0x7A` | current metasprite/table pointer | sprite build and room assets |
 | `0x7B..0x7C` | scroll/world position | sprite projection and room render |
-| `0x84..0x8C` | frame timers | `frame_counters` |
+| `0x84..0x8C` | frame/effect timers | `frame_counters`, invulnerability and speed-boost rewards |
 | `0x8D..0x8F` | audio/sfx mode and pending sfx id | sound tick and sfx overlay |
 | `0x90..0x92` | sfx/music scratch | sound init and overlay voice |
 | `0x93..0xC6` | music channel state | `tick_*_channel`, `dispatch_audio_stream_command`, envelope helpers |
@@ -100,8 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 | `game` | `0135..0147` | inferred | item action dispatch, item pickup/collection, actor contact, and room-interaction checks |
 | `native` | `0148` | inferred | consume secondary counter/resource for an action |
-| `game` | `0149..0150` | inferred | collectible dispatch and object slot clear on pickup |
-| `game` | `0151..0162` | cluster | item-specific pickup/effect handlers |
 | `native` | `0163` | inferred | player movement collision commit and contact feedback |
 | `game` | `0164..0168` | cluster | tile collision probes, item-use gating, and family/item interaction helpers |
 | `native` | `0169` | inferred | tile action dispatch, including item use and special projectile spawn |
@@ -137,6 +135,7 @@ surface when touching nearby code:
 | `animate_magic_refill_to_cap` | count magic up to the reward cap while updating HUD and prompt animation |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
+| `apply_event_collectible_reward` | apply a reward from an event/shop path where no room object slot is cleared |
 | `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
 | `audio_cmd_set_duty_instrument` | audio bytecode command 0: set pulse duty bits and choose the envelope/instrument table offset |
 | `audio_cmd_set_pitch_offset` | audio bytecode command 3: set the selected channel's fine pitch offset |
@@ -163,6 +162,13 @@ surface when touching nearby code:
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
+| `collect_key_bundle_reward` | add the large key bundle reward and play its pickup sound |
+| `collect_large_coin_reward` | add the large coin reward and play its pickup sound |
+| `collect_room_pickup_object` | clear the touched room object/OAM entry and apply its collectible reward |
+| `collect_single_key_reward` | add one key and play its pickup sound |
+| `collect_small_coin_reward` | add the small coin reward and play its pickup sound |
+| `collect_small_health_reward` | add the small health reward and play its pickup sound |
+| `collect_small_magic_reward` | add the small magic reward and play its pickup sound |
 | `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
 | `compose_large_actor_body_slots` | mirror the large actor logical slot into the three linked 2x2 body sprite slots and refresh its health meter |
 | `consume_health_point` | spend one health point and report empty health through carry |
@@ -170,11 +176,16 @@ surface when touching nearby code:
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
 | `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
+| `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
 | `frame_counters` | tick coarse frame timers once per second |
 | `game_update` | foreground input/player/item update |
+| `grant_long_invulnerability` | start the long invulnerability reward timer |
+| `grant_long_speed_boost` | start or queue a long speed/action boost reward timer |
+| `grant_short_invulnerability` | start the short invulnerability reward timer |
+| `grant_short_speed_boost` | start or queue a short speed/action boost reward timer |
 | `inc16_95` | increment the music stream pointer for the selected channel |
 | `initialize_large_actor_slot` | spawn the special large actor slot from room actor data after checking its wide footprint |
 | `load_effective_jump_duration` | load jump duration, applying the selected jump-item boost when magic is available |
@@ -248,6 +259,7 @@ surface when touching nearby code:
 | `try_move_actor_with_terrain` | project an actor move, check bounds/player/terrain, and report whether movement was blocked |
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
 | `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
+| `trigger_damage_pickup` | apply the harmful pickup/trap reward effect |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
@@ -269,7 +281,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Inventory, item actions, and pickup effects: `routine_0135..0168`.
+1. Item action and movement collision helpers: `routine_0135..0148`, `routine_0163..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
