@@ -126,7 +126,7 @@ fn item_spawn_setup(engine: &mut Engine, r: &mut RoutineContext, x: i32) {
     engine.set_mem(0xf3, 0xf0);
     engine.set_mem(0xf0, 0x00);
     engine.set_mem(0xf1, 0x00);
-    crate::game::routine_0250(engine, r);
+    crate::game::update_object_terrain_probe(engine, r);
 }
 
 pub fn queue_ppu_job_and_wait(engine: &mut Engine, r: &mut RoutineContext) {

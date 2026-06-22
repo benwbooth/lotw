@@ -83,3 +83,37 @@ fn build_direction_velocity_clears_velocity_for_zero_speed() {
     assert_eq!(engine.mem(0xF6), 0x00);
     assert_eq!(engine.mem(0xF7), 0x00);
 }
+
+#[test]
+fn solid_tile_probes_set_carry_for_solid_range() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext {
+        offset: 0x01,
+        ..RoutineContext::default()
+    };
+
+    engine.set_mem(0x0C, 0x00);
+    engine.set_mem(0x0D, 0x02);
+    engine.set_mem(0x0201, 0x30);
+
+    game::probe_object_solid_tile(&mut engine, &mut r);
+    assert_eq!(r.carry, 1);
+
+    engine.set_mem(0x0201, 0x2F);
+    game::probe_projected_solid_tile(&mut engine, &mut r);
+    assert_eq!(r.carry, 0);
+}
+
+#[test]
+fn try_reflect_object_velocity_reports_no_reflection_when_stationary() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0xF5, 0x00);
+    engine.set_mem(0xF7, 0x00);
+
+    game::try_reflect_object_velocity(&mut engine, &mut r);
+
+    assert_eq!(r.carry, 1);
+    assert_eq!(engine.mem(0xF6), 0x00);
+}

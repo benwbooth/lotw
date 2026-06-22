@@ -119,7 +119,6 @@ would currently be weaker than the cluster name.
 | `game` | `0230..0239` | inferred | actor movement helper routines, velocity reset, and collision response |
 | `native` | `0240` | inferred | high-bit/special actor update path |
 | `game` | `0241..0249` | inferred | object motion prediction, animation, collision scan, and hit/damage application |
-| `game` | `0250..0256` | inferred | terrain collision probes and actor movement validation |
 | `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
 | `game` | `0273..0276` | inferred | four music/audio channel tickers |
@@ -146,6 +145,8 @@ surface when touching nearby code:
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
+| `check_projected_terrain_collision` | test the projected one-tile-wide object footprint against terrain |
+| `check_projected_wide_terrain_collision` | test the projected wide object footprint against terrain |
 | `check_player_overlap` | test projected object position against the player hitbox |
 | `check_player_overlap_wide` | wider player hitbox test used by large/falling movement probes |
 | `check_player_x_overlap` | horizontal half of the player hitbox test |
@@ -166,6 +167,8 @@ surface when touching nearby code:
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
+| `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
+| `probe_projected_solid_tile` | test a tile in the projected movement footprint for solidity |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
@@ -188,11 +191,14 @@ surface when touching nearby code:
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
+| `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
+| `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
+| `update_wide_object_terrain_probe` | advance the wide object terrain probe when its footprint stays clear |
 | `vblank_commit` | NMI-style interrupt body for OAM, VRAM jobs, and tail work |
 | `vblank_commit_tail` | common NMI tail: banks, status bar, sound, frame timers |
 | `vram_*` | deferred VRAM job implementations |
@@ -203,10 +209,9 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Terrain collision and actor movement validation: `routine_0250..0256`.
-2. Audio command engine: `routine_0273..0289`.
-3. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
-4. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. Audio command engine: `routine_0273..0289`.
+2. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+3. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

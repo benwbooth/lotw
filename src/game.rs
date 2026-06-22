@@ -28,6 +28,8 @@ pub use check_player_overlap_wide::check_player_overlap_wide;
 pub use check_player_x_overlap::check_player_x_overlap;
 pub use check_player_y_overlap::check_player_y_overlap;
 pub use check_position_out_of_bounds::check_position_out_of_bounds;
+pub use check_projected_terrain_collision::check_projected_terrain_collision;
+pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_collision;
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
@@ -42,6 +44,8 @@ pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
 pub use metasprite_build::metasprite_build;
 pub use ppu_commit_banks::ppu_commit_banks;
+pub use probe_object_solid_tile::probe_object_solid_tile;
+pub use probe_projected_solid_tile::probe_projected_solid_tile;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
@@ -222,13 +226,6 @@ pub use routine_0246::routine_0246;
 pub use routine_0247::routine_0247;
 pub use routine_0248::routine_0248;
 pub use routine_0249::routine_0249;
-pub use routine_0250::routine_0250;
-pub use routine_0251::routine_0251;
-pub use routine_0252::routine_0252;
-pub use routine_0253::routine_0253;
-pub use routine_0254::routine_0254;
-pub use routine_0255::routine_0255;
-pub use routine_0256::routine_0256;
 pub use routine_0257::routine_0257;
 pub use routine_0258::routine_0258;
 pub use routine_0260::routine_0260;
@@ -273,10 +270,13 @@ pub use sync_health_hud::sync_health_hud;
 pub use sync_key_hud::sync_key_hud;
 pub use sync_magic_hud::sync_magic_hud;
 pub use text_attr_build::text_attr_build;
+pub use try_reflect_object_velocity::try_reflect_object_velocity;
+pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
+pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
 pub use upload_resource_hud::upload_resource_hud;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
@@ -6993,7 +6993,7 @@ mod routine_0215 {
         engine.set_mem(0x0B, 0x00);
         check_player_overlap(engine, r);
         if cbool(r.carry) {}
-        routine_0253(engine, r);
+        check_projected_terrain_collision(engine, r);
         if cbool(r.carry) {}
         engine.set_mem(0xF9, engine.mem(0x0E));
         engine.set_mem(0xFA, engine.mem(0x0F));
@@ -7208,7 +7208,7 @@ mod routine_0219 {
                         engine.set_mem(0xFB, x);
                         engine.set_mem(0xFC, a);
                     }
-                    routine_0250(engine, r);
+                    update_object_terrain_probe(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7311,7 +7311,7 @@ mod routine_0220 {
                     continue 'dispatch;
                 }
                 4 => {
-                    routine_0250(engine, r);
+                    update_object_terrain_probe(engine, r);
                     routine_0242(engine, r);
                     engine.set_mem(0xF6, saved_f6);
                     break 'dispatch;
@@ -7371,14 +7371,14 @@ mod routine_0222 {
                 reached_EBCC = 1;
             } else {
                 r.offset = 0x01;
-                routine_0252(engine, r);
+                probe_object_solid_tile(engine, r);
                 if cbool(r.carry == 0) {
                     reached_EBCC = 1;
                 } else if cbool(engine.mem(0x0E) == 0) {
                     reached_EBC6 = 1;
                 } else {
                     r.offset = 0x0D;
-                    routine_0252(engine, r);
+                    probe_object_solid_tile(engine, r);
                     if cbool(r.carry == 0) {
                         reached_EBCC = 1;
                     } else {
@@ -7394,7 +7394,7 @@ mod routine_0222 {
                 routine_0238(engine, r);
             }
         }
-        routine_0250(engine, r);
+        update_object_terrain_probe(engine, r);
         routine_0242(engine, r);
     }
 }
@@ -7542,7 +7542,7 @@ mod routine_0223 {
                     continue 'dispatch;
                 }
                 6 => {
-                    routine_0250(engine, r);
+                    update_object_terrain_probe(engine, r);
                     routine_0242(engine, r);
                     break 'dispatch;
                 }
@@ -7569,7 +7569,7 @@ mod routine_0224 {
         }
         routine_0248(engine, r);
         if cbool(r.carry) {
-            routine_0256(engine, r);
+            try_reflect_object_velocity(engine, r);
             if cbool(r.carry) {
                 routine_0239(engine, r);
                 routine_0242(engine, r);
@@ -7660,7 +7660,7 @@ mod routine_0225 {
                 2 => {
                     engine.set_mem(0xF5, 0x00);
                     engine.set_mem(0xF6, 0x00);
-                    routine_0250(engine, r);
+                    update_object_terrain_probe(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 6;
@@ -7675,7 +7675,7 @@ mod routine_0225 {
                     routine_0238(engine, r);
                     {
                         let mut saved_f0: i32 = engine.mem(0xF0);
-                        routine_0250(engine, r);
+                        update_object_terrain_probe(engine, r);
                         if !cbool(r.carry) {
                             {
                                 state = 4;
@@ -7934,7 +7934,7 @@ mod routine_0230 {
         engine.set_mem(0x0D, u8v(engine.mem(0x0A) - 0x10));
         resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
-        routine_0255(engine, r);
+        probe_projected_solid_tile(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
@@ -7942,7 +7942,7 @@ mod routine_0230 {
             return;
         }
         r.offset = 0x0C;
-        routine_0255(engine, r);
+        probe_projected_solid_tile(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
@@ -8108,7 +8108,7 @@ mod routine_0237 {
             return;
         }
         engine.set_mem(0xF1, u8v(engine.mem(0xF1) + 1));
-        routine_0256(engine, r);
+        try_reflect_object_velocity(engine, r);
     }
 }
 
@@ -8285,7 +8285,7 @@ mod routine_0247 {
                     routine_0249(engine, r);
                 }
             }
-            routine_0253(engine, r);
+            check_projected_terrain_collision(engine, r);
             if cbool(r.carry == 0) {
                 cflag = 0;
                 break;
@@ -8362,62 +8362,54 @@ mod routine_0249 {
     }
 }
 
-mod routine_0250 {
+mod update_object_terrain_probe {
     use super::*;
-    fn f179_fail(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF0) >= 0x0C) {
-            engine.set_mem(0xF1, u8v(engine.mem(0xF0) - 0x04));
-        }
-        engine.set_mem(0xF0, 0x00);
-        r.carry = 1;
-    }
-
-    fn f179_ok(engine: &mut Engine, r: &mut RoutineContext) {
+    fn mark_probe_clear(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
         r.carry = 0;
     }
 
-    pub fn routine_0250(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
+    /// Updates the normal one-tile-wide terrain probe for the current object.
+    /// When the checked footprint stays clear, the object terrain counter
+    /// `0xF0` advances and carry is clear.
+    pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xF1) != 0) {
             return;
         }
         engine.set_mem(0x0C, engine.mem(0xFA));
         engine.set_mem(0x0F, engine.mem(0xFA));
         engine.set_mem(0x0E, engine.mem(0xF9));
-        x = engine.mem(0xFB);
-        y = u8v(engine.mem(0xEE) - 1);
-        if cbool(y == 0) {
-            if cbool(x >= 0xB0) {
+        let mut tile_y: i32 = engine.mem(0xFB);
+        let active_state: i32 = u8v(engine.mem(0xEE) - 1);
+        if cbool(active_state == 0) {
+            if cbool(tile_y >= 0xB0) {
                 return;
             }
-            engine.set_mem(0x0D, x);
-            x = u8v(x + 1);
-            engine.set_mem(0x0A, x);
+            engine.set_mem(0x0D, tile_y);
+            tile_y = u8v(tile_y + 1);
+            engine.set_mem(0x0A, tile_y);
             check_player_overlap(engine, r);
             if cbool(r.carry) {
                 return;
             }
         } else {
-            if cbool(x != 0xEF) {
-            } else {
-                x = engine.mem(0xFC);
+            if cbool(tile_y == 0xEF) {
+                tile_y = engine.mem(0xFC);
             }
-            engine.set_mem(0x0D, x);
+            engine.set_mem(0x0D, tile_y);
         }
         resolve_room_tile_pointer(engine, r);
         if cbool(engine.mem(0xF9) == 0) {
-            let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-            if cbool((engine.mem(ptr) & 0x3F) == 0) {
+            let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+            if cbool((engine.mem(tile_ptr) & 0x3F) == 0) {
                 return;
             }
-            if cbool((engine.mem(u16v(ptr + 1)) & 0x3F) == 0) {
+            if cbool((engine.mem(u16v(tile_ptr + 1)) & 0x3F) == 0) {
                 return;
             }
         }
         r.offset = 0x01;
-        routine_0252(engine, r);
+        probe_object_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
@@ -8425,25 +8417,21 @@ mod routine_0250 {
             return;
         }
         r.offset = 0x0D;
-        routine_0252(engine, r);
+        probe_object_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
-        f179_ok(engine, r);
+        mark_probe_clear(engine, r);
     }
 }
 
-mod routine_0251 {
+mod update_wide_object_terrain_probe {
     use super::*;
-    fn bail(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut f0: i32 = engine.mem(0xF0);
-        if cbool(f0 >= 0x0C) {
-            engine.set_mem(0xF1, u8v(f0 - 0x04));
-        }
-        engine.set_mem(0xF0, 0x00);
-    }
 
-    pub fn routine_0251(engine: &mut Engine, r: &mut RoutineContext) {
+    /// Updates the wider terrain probe used by large objects. It samples the
+    /// lower footprint and advances `0xF0` when no solid tile or player overlap
+    /// blocks movement.
+    pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xF1) != 0) {
             return;
         }
@@ -8462,18 +8450,18 @@ mod routine_0251 {
             return;
         }
         r.offset = 0x02;
-        routine_0252(engine, r);
+        probe_object_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
         r.offset = 0x0E;
-        routine_0252(engine, r);
+        probe_object_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
         if cbool(engine.mem(0xF9) != 0) {
             r.offset = 0x1A;
-            routine_0252(engine, r);
+            probe_object_solid_tile(engine, r);
             if cbool(r.carry) {
                 return;
             }
@@ -8482,29 +8470,35 @@ mod routine_0251 {
     }
 }
 
-mod routine_0252 {
+mod probe_object_solid_tile {
     use super::*;
-    pub fn routine_0252(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        let mut v: i32 = u8v(engine.mem(u16v(ptr + r.offset)) & 0x3F);
-        r.carry = u8v(u8v(v >= 0x30));
+
+    /// Probes the room tile at `current_tile_pointer + r.offset`. Carry is set
+    /// when the low six tile bits are in the solid range `>= 0x30`.
+    pub fn probe_object_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tile_id: i32 = u8v(engine.mem(u16v(tile_ptr + r.offset)) & 0x3F);
+        r.carry = u8v(u8v(tile_id >= 0x30));
     }
 }
 
-mod routine_0253 {
+mod check_projected_terrain_collision {
     use super::*;
-    pub fn routine_0253(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Checks the projected one-tile-wide object footprint in `0x0E..0x0F/0x0A`
+    /// against terrain. Carry is clear only when all sampled tiles are clear.
+    pub fn check_projected_terrain_collision(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, engine.mem(0x0A));
         resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
-        routine_0255(engine, r);
+        probe_projected_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
         if cbool(engine.mem(0x0E) != 0) {
             r.offset = 0x0C;
-            routine_0255(engine, r);
+            probe_projected_solid_tile(engine, r);
             if cbool(r.carry) {
                 return;
             }
@@ -8516,7 +8510,7 @@ mod routine_0253 {
             return;
         }
         r.offset = 0x01;
-        routine_0255(engine, r);
+        probe_projected_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
@@ -8524,7 +8518,7 @@ mod routine_0253 {
             return;
         }
         r.offset = 0x0D;
-        routine_0255(engine, r);
+        probe_projected_solid_tile(engine, r);
         if cbool(r.carry) {
             return;
         }
@@ -8532,15 +8526,17 @@ mod routine_0253 {
     }
 }
 
-mod routine_0254 {
+mod check_projected_wide_terrain_collision {
     use super::*;
-    fn probe(engine: &mut Engine, r: &mut RoutineContext, mut y: i32) -> i32 {
-        r.offset = y;
-        routine_0255(engine, r);
+    fn probe(engine: &mut Engine, r: &mut RoutineContext, tile_offset: i32) -> i32 {
+        r.offset = tile_offset;
+        probe_projected_solid_tile(engine, r);
         return r.carry;
     }
 
-    pub fn routine_0254(engine: &mut Engine, r: &mut RoutineContext) {
+    /// Checks the projected wide object footprint in `0x0E..0x0F/0x0A` against
+    /// terrain. Carry is clear only when every sampled tile is clear.
+    pub fn check_projected_wide_terrain_collision(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, engine.mem(0x0A));
         resolve_room_tile_pointer(engine, r);
@@ -8586,19 +8582,26 @@ mod routine_0254 {
     }
 }
 
-mod routine_0255 {
+mod probe_projected_solid_tile {
     use super::*;
-    pub fn routine_0255(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        let mut v: i32 = u8v(engine.mem(u16v(ptr + r.offset)) & 0x3F);
-        r.carry = u8v(u8v(v >= 0x30));
+
+    /// Probes a projected footprint tile at `current_tile_pointer + r.offset`.
+    /// Carry is set when the low six tile bits are in the solid range.
+    pub fn probe_projected_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tile_id: i32 = u8v(engine.mem(u16v(tile_ptr + r.offset)) & 0x3F);
+        r.carry = u8v(u8v(tile_id >= 0x30));
     }
 }
 
-mod routine_0256 {
+mod try_reflect_object_velocity {
     use super::*;
-    pub fn routine_0256(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = 0;
+
+    /// Attempts to reflect object velocity away from the nearest subtile edge
+    /// and re-run movement validation. Carry remains set if no reflection was
+    /// possible.
+    pub fn try_reflect_object_velocity(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut edge_nibble: i32 = 0;
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -8606,14 +8609,14 @@ mod routine_0256 {
                     engine.set_mem(0xF6, 0x00);
                     if cbool(engine.mem(0xF5) != 0) {
                         engine.set_mem(0xF5, 0x00);
-                        v = engine.mem(0xFB) & 0x0F;
-                        if cbool(v == 0) {
+                        edge_nibble = engine.mem(0xFB) & 0x0F;
+                        if cbool(edge_nibble == 0) {
                             {
                                 state = 2;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(v < 0x06) {
+                        if cbool(edge_nibble < 0x06) {
                             if cbool(engine.mem(0xF4) & 0x04) {
                                 {
                                     state = 2;
@@ -8626,7 +8629,7 @@ mod routine_0256 {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(v >= 0x0B) {
+                        if cbool(edge_nibble >= 0x0B) {
                             if cbool(engine.mem(0xF4) & 0x08) {
                                 {
                                     state = 2;
@@ -8651,14 +8654,14 @@ mod routine_0256 {
                         }
                     }
                     engine.set_mem(0xF7, 0x00);
-                    v = engine.mem(0xF9);
-                    if cbool(v == 0) {
+                    edge_nibble = engine.mem(0xF9);
+                    if cbool(edge_nibble == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(v < 0x06) {
+                    if cbool(edge_nibble < 0x06) {
                         if cbool(engine.mem(0xF4) & 0x01) {
                             {
                                 state = 2;
@@ -8672,7 +8675,7 @@ mod routine_0256 {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(v >= 0x0B) {
+                    if cbool(edge_nibble >= 0x0B) {
                         if cbool(engine.mem(0xF4) & 0x02) {
                             {
                                 state = 2;
@@ -8734,7 +8737,7 @@ mod routine_0257 {
         engine.set_mem(0x0F, engine.mem(u16v(e7 + 2)));
         engine.set_mem(0x0E, 0x00);
         engine.set_mem(0x0B, 0x00);
-        routine_0254(engine, r);
+        check_projected_wide_terrain_collision(engine, r);
         if cbool(r.carry) {
             return;
         }
@@ -8885,7 +8888,7 @@ mod routine_0258 {
                     continue 'dispatch;
                 }
                 6 => {
-                    routine_0251(engine, r);
+                    update_wide_object_terrain_probe(engine, r);
                     routine_0263(engine, r);
                     routine_0264(engine, r);
                     break 'dispatch;
@@ -8958,7 +8961,7 @@ mod routine_0262 {
             if cbool(r.carry) {
                 routine_0249(engine, r);
             }
-            routine_0254(engine, r);
+            check_projected_wide_terrain_collision(engine, r);
             if cbool(r.carry == 0) {
                 cflag = 0;
                 break;
@@ -9419,7 +9422,7 @@ mod update_tile_projectile_motion {
                             continue 'dispatch;
                         }
                     }
-                    routine_0253(engine, r);
+                    check_projected_terrain_collision(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 2;
