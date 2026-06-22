@@ -923,7 +923,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             r.value = u8v(r.value << 4);
             engine.set_mem(0x45, r.value);
             engine.set_mem(0x0d, r.value);
-            crate::game::routine_0090(engine, r);
+            crate::game::resolve_room_tile_pointer(engine, r);
             let p = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
             let mut t = engine.mem(p) & 0x3f;
             if t >= 0x30 {
@@ -1507,7 +1507,7 @@ pub fn routine_0163(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0e, engine.mem(0x43));
         engine.set_mem(0x0d, engine.mem(0x45));
         engine.set_mem(0x0a, u8v(engine.mem(0x45) + 1));
-        crate::game::routine_0090(engine, r);
+        crate::game::resolve_room_tile_pointer(engine, r);
         if engine.mem(0x43) == 0 {
             engine.set_mem(0x50, 0x01);
             r.offset = 0x00;
@@ -1652,7 +1652,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                         let hi = u8v(engine.mem(0x45) + engine.mem(u16v(0xfeac + x2)));
                         engine.set_mem(0x049e, hi);
                         engine.set_mem(0x0d, hi);
-                        crate::game::routine_0090(engine, r);
+                        crate::game::resolve_room_tile_pointer(engine, r);
                         r.offset = 0x00;
                         engine.set_mem(0x0b, 0x00);
                         let p = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
@@ -1675,7 +1675,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
             if idx == 2 {
                 if (engine.mem(0xfd) & 0x0f) != 0 {
                     r.offset = 0x01;
-                    crate::game::routine_0108(engine, r);
+                    crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
                     let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
                     engine.set_mem(0xed, engine.mem(u16v(p79 + 0xf8)) & 0xfe);
@@ -1704,7 +1704,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                 if engine.mem(0x59) != 0 {
                     if (engine.mem(0xfd) & 0x0f) != 0 {
                         r.offset = 0x08;
-                        crate::game::routine_0108(engine, r);
+                        crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;
                         let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
                         engine.set_mem(0xed, engine.mem(u16v(p79 + 0xf8)) & 0xfe);
@@ -2354,7 +2354,7 @@ pub fn routine_0191(engine: &mut Engine, r: &mut RoutineContext) {
 
         r.value = buttons & 0x0f;
         r.offset = 0x01;
-        crate::game::routine_0107(engine, r);
+        crate::game::build_input_movement_delta(engine, r);
         crate::game::routine_0143(engine, r);
 
         let ty = engine.mem(0x0a);
@@ -2416,7 +2416,7 @@ pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
         let a = u8v(((engine.mem(0xf1) >> 2) ^ 0xff) + 1);
         engine.set_mem(0xf7, a);
         crate::game::routine_0241(engine, r);
-        crate::game::routine_0115(engine, r);
+        crate::game::check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
             engine.or_mem(0xef, 0x80);
             engine.set_mem(0xf0, 0x01);
@@ -2429,7 +2429,7 @@ pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0xf0);
     engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 2) + 1));
     crate::game::routine_0241(engine, r);
-    crate::game::routine_0115(engine, r);
+    crate::game::check_position_out_of_bounds(engine, r);
     if cbool(r.carry) {
         engine.set_mem(0xee, 0x00);
         engine.set_mem(0xf3, 0xf0);
@@ -2451,7 +2451,7 @@ pub fn routine_0189(engine: &mut Engine, r: &mut RoutineContext) {
 
         r.value = buttons & 0x0f;
         r.offset = 0x01;
-        crate::game::routine_0107(engine, r);
+        crate::game::build_input_movement_delta(engine, r);
         crate::game::routine_0143(engine, r);
 
         let ty = engine.mem(0x0a);
@@ -2489,7 +2489,7 @@ pub fn routine_0190(engine: &mut Engine, r: &mut RoutineContext) {
 
         r.value = buttons & 0x0f;
         r.offset = 0x01;
-        crate::game::routine_0107(engine, r);
+        crate::game::build_input_movement_delta(engine, r);
         crate::game::routine_0143(engine, r);
 
         let ty = engine.mem(0x0a);
@@ -2625,7 +2625,7 @@ pub fn routine_0240(engine: &mut Engine, r: &mut RoutineContext) {
         if engine.mem(0xf1) != 0 {
             engine.set_mem(0xf7, u8v(0 - engine.mem(0xf1)));
             crate::game::routine_0241(engine, r);
-            crate::game::routine_0115(engine, r);
+            crate::game::check_position_out_of_bounds(engine, r);
             if !cbool(r.carry) {
                 engine.set_mem(0xfb, engine.mem(0x0a));
                 return;
@@ -2638,7 +2638,7 @@ pub fn routine_0240(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0xf0);
     engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 1) + 2));
     crate::game::routine_0241(engine, r);
-    crate::game::routine_0115(engine, r);
+    crate::game::check_position_out_of_bounds(engine, r);
     if !cbool(r.carry) {
         engine.set_mem(0xfb, engine.mem(0x0a));
         return;

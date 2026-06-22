@@ -269,7 +269,7 @@ pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::routine_0082(engine, r);
     } else if engine.mem(0x3c) != 0 {
         engine.set_mem(0x3c, 0);
-        crate::game::routine_0092(engine, r);
+        crate::game::upload_resource_hud(engine, r);
     } else if engine.mem(0x36) != 0 {
         crate::game::routine_0075(engine, r);
     }

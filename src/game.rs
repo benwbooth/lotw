@@ -15,6 +15,15 @@ pub use add_key::add_key;
 pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
+pub use build_direction_velocity::build_direction_velocity;
+pub use build_input_movement_delta::build_input_movement_delta;
+pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
+pub use check_player_overlap::check_player_overlap;
+pub use check_player_overlap_wide::check_player_overlap_wide;
+pub use check_player_x_overlap::check_player_x_overlap;
+pub use check_player_y_overlap::check_player_y_overlap;
+pub use check_position_out_of_bounds::check_position_out_of_bounds;
+pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
@@ -32,6 +41,7 @@ pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use reset::reset;
+pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
 pub use rng_update::rng_update;
 pub use routine_0003::routine_0003;
 pub use routine_0005::routine_0005;
@@ -102,9 +112,6 @@ pub use routine_0086::routine_0086;
 pub use routine_0087::routine_0087;
 pub use routine_0088::routine_0088;
 pub use routine_0089::routine_0089;
-pub use routine_0090::routine_0090;
-pub use routine_0091::routine_0091;
-pub use routine_0092::routine_0092;
 pub use routine_0097::routine_0097;
 pub use routine_0098::routine_0098;
 pub use routine_0099::routine_0099;
@@ -112,15 +119,6 @@ pub use routine_0100::routine_0100;
 pub use routine_0101::routine_0101;
 pub use routine_0102::routine_0102;
 pub use routine_0103::routine_0103;
-pub use routine_0106::routine_0106;
-pub use routine_0107::routine_0107;
-pub use routine_0108::routine_0108;
-pub use routine_0111::routine_0111;
-pub use routine_0112::routine_0112;
-pub use routine_0113::routine_0113;
-pub use routine_0114::routine_0114;
-pub use routine_0115::routine_0115;
-pub use routine_0116::routine_0116;
 pub use routine_0117::routine_0117;
 pub use routine_0118::routine_0118;
 pub use routine_0119::routine_0119;
@@ -257,6 +255,7 @@ pub use routine_0286::routine_0286;
 pub use routine_0287::routine_0287;
 pub use routine_0288::routine_0288;
 pub use routine_0289::routine_0289;
+pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
 pub use sfx_overlay_voice::sfx_overlay_voice;
 pub use song_init::song_init;
@@ -278,6 +277,7 @@ pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
+pub use upload_resource_hud::upload_resource_hud;
 pub use vblank_commit::vblank_commit;
 pub use vblank_commit_tail::vblank_commit_tail;
 pub use vram_blit_stack::vram_blit_stack;
@@ -297,7 +297,7 @@ mod farcall_bank_09_r7 {
         engine.device_write(0x8001, 0x09);
         engine.set_mem(0x0D, 0x00);
         r.value = 0x00;
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         metasprite_build(engine, r);
         engine.set_mem(0x25, 0x07);
         engine.device_write(0x8000, 0x07);
@@ -430,7 +430,7 @@ mod game_update {
                         }
                     }
                     r.offset = y;
-                    routine_0107(engine, r);
+                    build_input_movement_delta(engine, r);
                     if cbool(engine.mem(0x4E) != 0) {
                         engine.set_mem(0x4B, u8v((engine.mem(0x4E) >> 2) + 1));
                         routine_0146(engine, r);
@@ -539,7 +539,7 @@ mod game_update {
                         engine.shl_mem(0x20, 1);
                         engine.shl_mem(0x20, 1);
                         r.offset = 0x01;
-                        routine_0107(engine, r);
+                        build_input_movement_delta(engine, r);
                         {
                             let mut t: i32 = u8v(engine.mem(0x4B) + engine.mem(0x55));
                             let mut ni: i32 = 0;
@@ -2901,7 +2901,7 @@ mod routine_0073 {
 mod routine_0075 {
     use super::*;
     pub fn routine_0075(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0106(engine, r);
+        clear_pending_vram_job(engine, r);
         engine.set_mem(0x16, 0x00);
         engine.set_mem(0x17, 0x3F);
         r.value = 0x02;
@@ -2915,7 +2915,7 @@ mod routine_0076 {
         let mut saved_ctrl: i32 = 0;
         let mut saved_mask: i32 = 0;
         let mut i: i32 = 0;
-        routine_0106(engine, r);
+        clear_pending_vram_job(engine, r);
         saved_ctrl = engine.mem(0x23);
         engine.device_write(0x2000, saved_ctrl & 0x7B);
         engine.set_mem(0x29, 0x00);
@@ -2959,7 +2959,7 @@ mod routine_0077 {
     pub fn routine_0077(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x7C) & 0xFE);
         engine.set_mem(0x0D, 0x00);
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         routine_0079(engine, r);
     }
 }
@@ -2969,7 +2969,7 @@ mod routine_0078 {
     pub fn routine_0078(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x7C) & 0xFE);
         engine.set_mem(0x0D, 0x00);
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         engine.set_mem(0x0D, u8v((engine.mem(0x0D) - 0x05) + engine.mem(0x76)));
         routine_0079(engine, r);
     }
@@ -3170,7 +3170,7 @@ mod routine_0080 {
     use super::*;
     pub fn routine_0080(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sx: i32 = 0;
-        routine_0106(engine, r);
+        clear_pending_vram_job(engine, r);
         sx = engine.mem(0x7C);
         engine.set_mem(0x16, u8v((sx << 1) & 0x1F));
         engine.set_mem(0x17, u8v((sx & 0x10) >> 2));
@@ -3199,7 +3199,7 @@ mod routine_0081 {
     use super::*;
     pub fn routine_0081(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sx: i32 = 0;
-        routine_0106(engine, r);
+        clear_pending_vram_job(engine, r);
         sx = engine.mem(0x7C);
         engine.set_mem(0x16, u8v((sx << 1) & 0x1F));
         engine.set_mem(0x17, u8v((sx & 0x10) >> 2));
@@ -3228,7 +3228,7 @@ mod routine_0082 {
     use super::*;
     pub fn routine_0082(engine: &mut Engine, r: &mut RoutineContext) {
         let mut col: i32 = 0;
-        routine_0106(engine, r);
+        clear_pending_vram_job(engine, r);
         if cbool(engine.mem(0x7F) & 0x80) {
             col = engine.mem(0x7C);
         } else {
@@ -3247,7 +3247,7 @@ mod routine_0083 {
     use super::*;
     pub fn routine_0083(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0D, 0x00);
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         engine.set_mem(0x0D, u8v(u8v(engine.mem(0x0D) - 0x05) + engine.mem(0x76)));
         metasprite_build(engine, r);
     }
@@ -3453,52 +3453,57 @@ mod routine_0089 {
     }
 }
 
-mod routine_0090 {
+mod resolve_room_tile_pointer {
     use super::*;
-    pub fn routine_0090(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_0d: i32 = engine.mem(0x0D);
-        routine_0091(engine, r);
+
+    /// Converts tile coordinates in `0x0C/0x0D` into the current room tile
+    /// pointer. `0x10/0x11` receives the same offset plus the room base pointer.
+    pub fn resolve_room_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_y: i32 = engine.mem(0x0D);
+        scale_room_tile_column(engine, r);
         engine.set_mem(0x11, engine.mem(0x0D));
         {
-            let mut a: i32 = u8v(saved_0d >> 4);
-            let mut s: i32 = u16v(a + engine.mem(0x0C));
-            engine.set_mem(0x0C, u8v(s));
-            engine.set_mem(0x10, u8v(s));
-            if cbool(s & 0x100) {
+            let tile_row: i32 = u8v(tile_y >> 4);
+            let room_offset: i32 = u16v(tile_row + engine.mem(0x0C));
+            engine.set_mem(0x0C, u8v(room_offset));
+            engine.set_mem(0x10, u8v(room_offset));
+            if cbool(room_offset & 0x100) {
                 engine.set_mem(0x0D, u8v(engine.mem(0x0D) + 1));
                 engine.set_mem(0x11, u8v(engine.mem(0x11) + 1));
             }
         }
         engine.set_mem(0x0D, u8v(engine.mem(0x0D) + 0x05));
         {
-            let mut lo: i32 = u16v(engine.mem(0x10) + engine.mem(0x75));
-            let mut carry: i32 = u8v(lo >> 8);
-            engine.set_mem(0x10, u8v(lo));
+            let room_ptr_lo: i32 = u16v(engine.mem(0x10) + engine.mem(0x75));
+            let carry: i32 = u8v(room_ptr_lo >> 8);
+            engine.set_mem(0x10, u8v(room_ptr_lo));
             engine.set_mem(0x11, u8v(engine.mem(0x11) + engine.mem(0x76) + carry));
         }
     }
 }
 
-mod routine_0091 {
+mod scale_room_tile_column {
     use super::*;
-    pub fn routine_0091(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut four: i32 = u16v(engine.mem(0x0C) << 2);
-        let mut eight: i32 = u16v(engine.mem(0x0C) << 3);
-        let mut result: i32 = u16v(four + eight);
-        let mut x: i32 = u8v(four >> 8);
-        let mut y: i32 = u8v(four);
-        engine.set_mem(0x0C, u8v(result));
-        engine.set_mem(0x0D, u8v(result >> 8));
-        r.index = x;
-        r.offset = y;
-        r.value = u8v(result >> 8);
+
+    /// Multiplies the tile column in `0x0C` by the room-data stride of 12.
+    pub fn scale_room_tile_column(engine: &mut Engine, r: &mut RoutineContext) {
+        let column_times_four: i32 = u16v(engine.mem(0x0C) << 2);
+        let column_times_eight: i32 = u16v(engine.mem(0x0C) << 3);
+        let column_offset: i32 = u16v(column_times_four + column_times_eight);
+        engine.set_mem(0x0C, u8v(column_offset));
+        engine.set_mem(0x0D, u8v(column_offset >> 8));
+        r.index = u8v(column_times_four >> 8);
+        r.offset = u8v(column_times_four);
+        r.value = u8v(column_offset >> 8);
     }
 }
 
-mod routine_0092 {
+mod upload_resource_hud {
     use super::*;
-    pub fn routine_0092(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0106(engine, r);
+
+    /// Queues the resource HUD VRAM upload after resource counters changed.
+    pub fn upload_resource_hud(engine: &mut Engine, r: &mut RoutineContext) {
+        clear_pending_vram_job(engine, r);
         engine.set_mem(0x16, 0x60);
         engine.set_mem(0x17, 0x23);
         r.value = 0x04;
@@ -3883,118 +3888,129 @@ mod routine_0103 {
     }
 }
 
-mod routine_0106 {
+mod clear_pending_vram_job {
     use super::*;
-    pub fn routine_0106(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Clears the deferred VRAM job selector at `0x28`.
+    pub fn clear_pending_vram_job(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x28, 0);
     }
 }
 
-mod routine_0107 {
+mod build_input_movement_delta {
     use super::*;
-    pub fn routine_0107(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = u8v(r.offset);
-        let mut x: i32 = 0;
-        let mut a: i32 = 0;
-        let mut c: i32 = 0;
-        let mut sign_fill: i32 = 0;
-        engine.set_mem(0x09, y);
-        if cbool(y == 0) {
+
+    /// Builds player movement deltas from current directional input and speed
+    /// `r.offset`, storing them in `0x49..0x4B`.
+    pub fn build_input_movement_delta(engine: &mut Engine, r: &mut RoutineContext) {
+        let speed: i32 = u8v(r.offset);
+        engine.set_mem(0x09, speed);
+        if cbool(speed == 0) {
             engine.set_mem(0x49, 0);
             engine.set_mem(0x4A, 0);
             engine.set_mem(0x4B, 0);
             return;
         }
-        x = u8v((engine.mem(0x20) & 0x0F) << 1);
-        a = 0;
+        let direction_index: i32 = u8v((engine.mem(0x20) & 0x0F) << 1);
+        let mut horizontal_delta: i32 = 0;
         {
-            c = y;
-            while cbool(c != 0) {
-                a = u8v(a + engine.mem(0xFE8B + x));
+            let mut steps = speed;
+            while cbool(steps != 0) {
+                horizontal_delta = u8v(horizontal_delta + engine.mem(0xFE8B + direction_index));
                 {
-                    let __old = c;
-                    c -= 1;
+                    let __old = steps;
+                    steps -= 1;
                     __old
                 };
             }
         }
-        engine.set_mem(0x49, a & 0x0F);
-        sign_fill = (if cbool(a & 0x80) { 0xF0 } else { 0x00 });
+        engine.set_mem(0x49, horizontal_delta & 0x0F);
+        let sign_fill: i32 = (if cbool(horizontal_delta & 0x80) {
+            0xF0
+        } else {
+            0x00
+        });
         engine.set_mem(0x08, sign_fill);
-        engine.set_mem(0x4A, u8v(((a & 0xF0) >> 4) | sign_fill));
-        a = 0;
+        engine.set_mem(0x4A, u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
+        let mut vertical_delta: i32 = 0;
         {
-            c = y;
-            while cbool(c != 0) {
-                a = u8v(a + engine.mem(0xFE8C + x));
+            let mut steps = speed;
+            while cbool(steps != 0) {
+                vertical_delta = u8v(vertical_delta + engine.mem(0xFE8C + direction_index));
                 {
-                    let __old = c;
-                    c -= 1;
+                    let __old = steps;
+                    steps -= 1;
                     __old
                 };
             }
         }
-        engine.set_mem(0x4B, a);
+        engine.set_mem(0x4B, vertical_delta);
     }
 }
 
-mod routine_0108 {
+mod build_direction_velocity {
     use super::*;
-    pub fn routine_0108(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = u8v(r.offset);
-        let mut x: i32 = 0;
-        let mut a: i32 = 0;
-        let mut c: i32 = 0;
-        let mut sign_fill: i32 = 0;
-        engine.set_mem(0x09, y);
-        if cbool(y == 0) {
+
+    /// Builds object/projectile velocity from direction bits in `r.value` and
+    /// speed `r.offset`, storing it in `0xF5..0xF7`.
+    pub fn build_direction_velocity(engine: &mut Engine, r: &mut RoutineContext) {
+        let speed: i32 = u8v(r.offset);
+        engine.set_mem(0x09, speed);
+        if cbool(speed == 0) {
             engine.set_mem(0xF5, 0);
             engine.set_mem(0xF6, 0);
             engine.set_mem(0xF7, 0);
             return;
         }
-        x = u8v((r.value & 0x0F) << 1);
-        a = 0;
+        let direction_index: i32 = u8v((r.value & 0x0F) << 1);
+        let mut horizontal_delta: i32 = 0;
         {
-            c = y;
-            while cbool(c != 0) {
-                a = u8v(a + engine.mem(0xFE8B + x));
+            let mut steps = speed;
+            while cbool(steps != 0) {
+                horizontal_delta = u8v(horizontal_delta + engine.mem(0xFE8B + direction_index));
                 {
-                    let __old = c;
-                    c -= 1;
+                    let __old = steps;
+                    steps -= 1;
                     __old
                 };
             }
         }
-        engine.set_mem(0xF5, a & 0x0F);
-        sign_fill = (if cbool(a & 0x80) { 0xF0 } else { 0x00 });
+        engine.set_mem(0xF5, horizontal_delta & 0x0F);
+        let sign_fill: i32 = (if cbool(horizontal_delta & 0x80) {
+            0xF0
+        } else {
+            0x00
+        });
         engine.set_mem(0x08, sign_fill);
-        engine.set_mem(0xF6, u8v(((a & 0xF0) >> 4) | sign_fill));
-        a = 0;
+        engine.set_mem(0xF6, u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
+        let mut vertical_delta: i32 = 0;
         {
-            c = y;
-            while cbool(c != 0) {
-                a = u8v(a + engine.mem(0xFE8C + x));
+            let mut steps = speed;
+            while cbool(steps != 0) {
+                vertical_delta = u8v(vertical_delta + engine.mem(0xFE8C + direction_index));
                 {
-                    let __old = c;
-                    c -= 1;
+                    let __old = steps;
+                    steps -= 1;
                     __old
                 };
             }
         }
-        engine.set_mem(0xF7, a);
+        engine.set_mem(0xF7, vertical_delta);
     }
 }
 
-mod routine_0111 {
+mod check_player_overlap {
     use super::*;
-    pub fn routine_0111(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Checks the projected object position against the player hitbox. Carry
+    /// and `0xEA` are set on overlap.
+    pub fn check_player_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xEA, 0x00);
-        routine_0113(engine, r);
+        check_player_y_overlap(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
-        routine_0112(engine, r);
+        check_player_x_overlap(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
@@ -4003,27 +4019,30 @@ mod routine_0111 {
     }
 }
 
-mod routine_0112 {
+mod check_player_x_overlap {
     use super::*;
-    pub fn routine_0112(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut d: i32 = u8v(engine.mem(0x0F) - engine.mem(0x44));
-        if cbool(d == 0) {
+
+    /// Checks horizontal player overlap using projected tile/subtile position
+    /// in `0x0E/0x0F`.
+    pub fn check_player_x_overlap(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_delta: i32 = u8v(engine.mem(0x0F) - engine.mem(0x44));
+        if cbool(tile_delta == 0) {
             return;
         }
-        if cbool(d < 0x02) {
-            let mut f: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
-            r.carry = (if cbool(f & 0x80) { 1 } else { 0 });
+        if cbool(tile_delta < 0x02) {
+            let subtile_delta: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
+            r.carry = (if cbool(subtile_delta & 0x80) { 1 } else { 0 });
             return;
         }
-        if cbool(d < 0xFF) {
+        if cbool(tile_delta < 0xFF) {
             return;
         }
         {
-            let mut f: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
-            if cbool(f == 0) {
+            let subtile_delta: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
+            if cbool(subtile_delta == 0) {
                 return;
             }
-            if cbool(f & 0x80) {
+            if cbool(subtile_delta & 0x80) {
                 return;
             }
             r.carry = 1;
@@ -4031,13 +4050,15 @@ mod routine_0112 {
     }
 }
 
-mod routine_0113 {
+mod check_player_y_overlap {
     use super::*;
-    pub fn routine_0113(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut diff: i32 = u8v(engine.mem(0x0A) - engine.mem(0x45));
-        if cbool(diff < 0x10) {
+
+    /// Checks vertical player overlap using projected y position in `0x0A`.
+    pub fn check_player_y_overlap(engine: &mut Engine, r: &mut RoutineContext) {
+        let y_delta: i32 = u8v(engine.mem(0x0A) - engine.mem(0x45));
+        if cbool(y_delta < 0x10) {
             r.carry = 1;
-        } else if cbool(diff < 0xF1) {
+        } else if cbool(y_delta < 0xF1) {
             r.carry = 0;
         } else {
             r.carry = 1;
@@ -4045,9 +4066,12 @@ mod routine_0113 {
     }
 }
 
-mod routine_0114 {
+mod check_player_overlap_wide {
     use super::*;
-    pub fn routine_0114(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Wider player-overlap test used by falling/large movement probes. Carry
+    /// and `0xEA` are set on overlap.
+    pub fn check_player_overlap_wide(engine: &mut Engine, r: &mut RoutineContext) {
         let mut dy: i32 = 0;
         let mut dx: i32 = 0;
         let mut state: i32 = 0;
@@ -4074,8 +4098,8 @@ mod routine_0114 {
                         }
                     }
                     if cbool(dx < 0x02) {
-                        let mut f: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
-                        if cbool(f & 0x80) {
+                        let subtile_delta: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
+                        if cbool(subtile_delta & 0x80) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -4088,11 +4112,11 @@ mod routine_0114 {
                         return;
                     }
                     {
-                        let mut f: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
-                        if cbool(f == 0) {
+                        let subtile_delta: i32 = u8v(engine.mem(0x0E) - engine.mem(0x43));
+                        if cbool(subtile_delta == 0) {
                             return;
                         }
-                        if cbool(f & 0x80) {
+                        if cbool(subtile_delta & 0x80) {
                             return;
                         }
                         {
@@ -4114,9 +4138,12 @@ mod routine_0114 {
     }
 }
 
-mod routine_0115 {
+mod check_position_out_of_bounds {
     use super::*;
-    pub fn routine_0115(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Checks projected position against the general playfield bounds. Carry is
+    /// set when the position is outside the allowed area.
+    pub fn check_position_out_of_bounds(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x0A) >= 0xC0) {
             r.carry = 1;
         } else if cbool(engine.mem(0x0F) < 0x3F) {
@@ -4129,9 +4156,12 @@ mod routine_0115 {
     }
 }
 
-mod routine_0116 {
+mod check_actor_position_out_of_bounds {
     use super::*;
-    pub fn routine_0116(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Checks projected actor position against the tighter actor playfield
+    /// bounds. Carry is set when the position is outside the allowed area.
+    pub fn check_actor_position_out_of_bounds(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x0A) >= 0xB0) {
             r.carry = 1;
             return;
@@ -5267,7 +5297,7 @@ mod routine_0146 {
             match state {
                 1 => {
                     routine_0143(engine, r);
-                    routine_0115(engine, r);
+                    check_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
                         routine_0142(engine, r);
                         if cbool(r.carry) {
@@ -5743,7 +5773,7 @@ mod routine_0164 {
         }
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, 0x00);
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         {
             let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
             let mut v: i32 = engine.mem(ptr) & 0x3F;
@@ -5809,7 +5839,7 @@ mod routine_0167 {
                     engine.set_mem(0x0D, x);
                     x = engine.mem(0x44);
                     engine.set_mem(0x0C, x);
-                    routine_0090(engine, r);
+                    resolve_room_tile_pointer(engine, r);
                     ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
                     r.offset = 0x00;
                     a = engine.mem(u16v(ptr + r.offset)) & 0x3F;
@@ -5927,7 +5957,7 @@ mod routine_0168 {
                     s_0A = engine.mem(0x0A);
                     engine.set_mem(0x0C, engine.mem(0x0F));
                     engine.set_mem(0x0D, engine.mem(0x0A));
-                    routine_0090(engine, r);
+                    resolve_room_tile_pointer(engine, r);
                     r.offset = 0x00;
                     routine_0169(engine, r);
                     if cbool(r.carry) {
@@ -6998,7 +7028,7 @@ mod routine_0215 {
         }
         engine.set_mem(0x0E, 0x00);
         engine.set_mem(0x0B, 0x00);
-        routine_0111(engine, r);
+        check_player_overlap(engine, r);
         if cbool(r.carry) {}
         routine_0253(engine, r);
         if cbool(r.carry) {}
@@ -7255,7 +7285,7 @@ mod routine_0220 {
                     saved_f6 = engine.mem(0xF6);
                     r.offset = engine.mem(0xF6);
                     r.value = engine.mem(0xF4);
-                    routine_0108(engine, r);
+                    build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
                         routine_0236(engine, r);
                         if cbool(r.carry) {
@@ -7340,7 +7370,7 @@ mod routine_0221 {
             let mut v: i32 = engine.mem(u16v(ptr + 0x09));
             r.offset = v;
             r.value = engine.mem(0xF4);
-            routine_0108(engine, r);
+            build_direction_velocity(engine, r);
         }
         routine_0248(engine, r);
         if cbool(r.carry) {
@@ -7372,7 +7402,7 @@ mod routine_0222 {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(ptr + 9));
             r.value = engine.mem(0xF4);
-            routine_0108(engine, r);
+            build_direction_velocity(engine, r);
             routine_0247(engine, r);
             if cbool(r.carry) {
                 reached_EBCC = 1;
@@ -7430,7 +7460,7 @@ mod routine_0223 {
                         let mut ptr: i32 = 0;
                         engine.set_mem(0x0C, engine.mem(0xFA));
                         engine.set_mem(0x0D, engine.mem(0xFB));
-                        routine_0090(engine, r);
+                        resolve_room_tile_pointer(engine, r);
                         ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
                         if cbool((engine.mem(ptr) & 0x3F) == 0) {
                             {
@@ -7486,7 +7516,7 @@ mod routine_0223 {
                         r.offset = engine.mem(u16v(ptr + 0x09));
                     }
                     r.value = engine.mem(0xF4);
-                    routine_0108(engine, r);
+                    build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
                         routine_0236(engine, r);
                         if cbool(r.carry) {
@@ -7572,7 +7602,7 @@ mod routine_0224 {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(ptr + 0x09));
             r.value = engine.mem(0xF4);
-            routine_0108(engine, r);
+            build_direction_velocity(engine, r);
         }
         routine_0248(engine, r);
         if cbool(r.carry) {
@@ -7630,7 +7660,7 @@ mod routine_0225 {
                     if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
                         routine_0233(engine, r);
                     }
-                    routine_0112(engine, r);
+                    check_player_x_overlap(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 2;
@@ -7642,7 +7672,7 @@ mod routine_0225 {
                         r.offset = engine.mem(u16v(ptr + 0x09));
                     }
                     r.value = engine.mem(0xF4);
-                    routine_0108(engine, r);
+                    build_direction_velocity(engine, r);
                     routine_0247(engine, r);
                     if cbool(r.carry) {
                         {
@@ -7807,9 +7837,9 @@ mod routine_0227 {
     use super::*;
     pub fn routine_0227(engine: &mut Engine, r: &mut RoutineContext) {
         r.offset = 0x01;
-        routine_0108(engine, r);
+        build_direction_velocity(engine, r);
         routine_0241(engine, r);
-        routine_0111(engine, r);
+        check_player_overlap(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
@@ -7828,7 +7858,7 @@ mod routine_0228 {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(ptr + 0x09));
             r.value = engine.mem(0xF4);
-            routine_0108(engine, r);
+            build_direction_velocity(engine, r);
         }
         routine_0248(engine, r);
         if cbool(r.carry) {
@@ -7905,7 +7935,7 @@ mod routine_0229 {
                         let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                         r.offset = engine.mem(u16v(ptr + 0x09));
                         r.value = engine.mem(0xF4);
-                        routine_0108(engine, r);
+                        build_direction_velocity(engine, r);
                     }
                     routine_0248(engine, r);
                     if cbool(r.carry) {
@@ -7939,7 +7969,7 @@ mod routine_0230 {
         }
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, u8v(engine.mem(0x0A) - 0x10));
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
         routine_0255(engine, r);
         if cbool(r.carry == 0) {
@@ -8006,7 +8036,7 @@ mod routine_0232 {
         engine.set_mem(0x0F, engine.mem(0xFA));
         engine.set_mem(0x0E, engine.mem(0xF9));
         engine.set_mem(0x0A, engine.mem(0xFB));
-        routine_0112(engine, r);
+        check_player_x_overlap(engine, r);
         x = 0x00;
         if cbool(r.carry == 0) {
             let mut d: i32 = u8v(engine.mem(0xFA) - engine.mem(0x44));
@@ -8021,7 +8051,7 @@ mod routine_0232 {
             }
         }
         engine.set_mem(0xF4, x);
-        routine_0113(engine, r);
+        check_player_y_overlap(engine, r);
         x = 0x00;
         if cbool(r.carry == 0) {
             let mut carry: i32 = u8v((if cbool(engine.mem(0xFB) >= engine.mem(0x45)) {
@@ -8279,7 +8309,7 @@ mod routine_0247 {
         let mut cflag: i32 = 0;
         loop {
             routine_0241(engine, r);
-            routine_0115(engine, r);
+            check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
                 engine.set_mem(0xF3, 0xF0);
@@ -8287,7 +8317,7 @@ mod routine_0247 {
                 break;
             }
             if cbool(u8v(engine.mem(0xEE) - 1) == 0) {
-                routine_0111(engine, r);
+                check_player_overlap(engine, r);
                 if cbool(r.carry) {
                     routine_0249(engine, r);
                 }
@@ -8323,13 +8353,13 @@ mod routine_0248 {
     use super::*;
     pub fn routine_0248(engine: &mut Engine, r: &mut RoutineContext) {
         routine_0241(engine, r);
-        routine_0111(engine, r);
+        check_player_overlap(engine, r);
         if cbool(r.carry) {
             routine_0249(engine, r);
             r.carry = 1;
             return;
         }
-        routine_0115(engine, r);
+        check_position_out_of_bounds(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
@@ -8402,7 +8432,7 @@ mod routine_0250 {
             engine.set_mem(0x0D, x);
             x = u8v(x + 1);
             engine.set_mem(0x0A, x);
-            routine_0111(engine, r);
+            check_player_overlap(engine, r);
             if cbool(r.carry) {
                 return;
             }
@@ -8413,7 +8443,7 @@ mod routine_0250 {
             }
             engine.set_mem(0x0D, x);
         }
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         if cbool(engine.mem(0xF9) == 0) {
             let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
             if cbool((engine.mem(ptr) & 0x3F) == 0) {
@@ -8459,12 +8489,12 @@ mod routine_0251 {
         engine.set_mem(0x0E, engine.mem(0xF9));
         engine.set_mem(0x0D, engine.mem(0xFB));
         engine.set_mem(0x0A, u8v(engine.mem(0xFB) + 1));
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         if cbool(engine.mem(0xFB) >= 0xA0) {
             engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
             return;
         }
-        routine_0114(engine, r);
+        check_player_overlap_wide(engine, r);
         if cbool(r.carry) {
             return;
         }
@@ -8503,7 +8533,7 @@ mod routine_0253 {
     pub fn routine_0253(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, engine.mem(0x0A));
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
         routine_0255(engine, r);
         if cbool(r.carry) {
@@ -8550,7 +8580,7 @@ mod routine_0254 {
     pub fn routine_0254(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, engine.mem(0x0A));
-        routine_0090(engine, r);
+        resolve_room_tile_pointer(engine, r);
         if cbool(probe(engine, r, 0x00)) {
             return;
         }
@@ -8829,7 +8859,7 @@ mod routine_0258 {
                 2 => {
                     r.value = engine.mem(0xF4);
                     r.offset = 0x02;
-                    routine_0108(engine, r);
+                    build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
                         routine_0260(engine, r);
                         if cbool(r.carry) {
@@ -8954,14 +8984,14 @@ mod routine_0262 {
         let mut cflag: i32 = 0;
         loop {
             routine_0241(engine, r);
-            routine_0115(engine, r);
+            check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
                 engine.set_mem(0xF3, 0xF0);
                 cflag = 1;
                 break;
             }
-            routine_0114(engine, r);
+            check_player_overlap_wide(engine, r);
             if cbool(r.carry) {
                 routine_0249(engine, r);
             }
@@ -9169,9 +9199,9 @@ mod spawn_player_projectile {
                         0x02
                     }));
                     r.value = engine.mem(0xFD);
-                    routine_0108(engine, r);
+                    build_direction_velocity(engine, r);
                     project_player_projectile_position(engine, r);
-                    routine_0115(engine, r);
+                    check_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -9243,7 +9273,7 @@ mod update_player_projectile_slot {
             return;
         }
         routine_0241(engine, r);
-        routine_0115(engine, r);
+        check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
             engine.set_mem(0xEE, 0x00);
             finish_projectile_slot_update(engine, r);
@@ -9367,7 +9397,7 @@ mod update_tile_projectile {
         if cbool(engine.mem(0xF0) != 0) {
             engine.set_mem(0x0C, engine.mem(0xFA));
             engine.set_mem(0x0D, engine.mem(0xFB));
-            routine_0090(engine, r);
+            resolve_room_tile_pointer(engine, r);
             let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
             engine.set_mem(tile_ptr, engine.mem(0xF0));
             let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));
@@ -9419,7 +9449,7 @@ mod update_tile_projectile_motion {
                     }
                     engine.set_mem(0xE3, 0x09);
                     routine_0241(engine, r);
-                    routine_0116(engine, r);
+                    check_actor_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 2;
@@ -9433,7 +9463,7 @@ mod update_tile_projectile_motion {
                             continue 'dispatch;
                         }
                     }
-                    routine_0111(engine, r);
+                    check_player_overlap(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -9511,7 +9541,7 @@ mod update_tile_projectile_motion {
                         if cbool(engine.mem(0xF0) != 0) {
                             engine.set_mem(0x0C, engine.mem(0xFA));
                             engine.set_mem(0x0D, engine.mem(0xFB));
-                            routine_0090(engine, r);
+                            resolve_room_tile_pointer(engine, r);
                             let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
                             engine.set_mem(tile_ptr, engine.mem(0xF0));
                             let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));

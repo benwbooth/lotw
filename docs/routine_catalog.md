@@ -45,7 +45,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x24` | PPU mask shadow | renderer and sprite-zero handling |
 | `0x25` | selected PRG-bank register | bank switching helpers |
 | `0x26` | PPU status latch | `vblank_commit` |
-| `0x28` | queued VRAM job id | `queue_ppu_job_and_wait`, `vblank_commit` |
+| `0x28` | queued VRAM job id | `clear_pending_vram_job`, `queue_ppu_job_and_wait`, `vblank_commit` |
 | `0x2A..0x2F` | PPU bank shadows | `text_attr_build`, `ppu_commit_banks` |
 | `0x30..0x33` | PRG bank shadows and saved banks | farcall helpers |
 | `0x36` | frame wait countdown | `frame` module, `vblank_commit_tail` |
@@ -95,11 +95,9 @@ would currently be weaker than the cluster name.
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
 | `native` | `0067..0072`, `0074` | inferred | room transition and item/inventory screen orchestration |
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
-| `game` | `0090..0092` | inferred | tile address math and deferred frame work commit |
-| `game` | `0097..0103`, `0106..0108` | cluster | movement vector, tile lookup, direction, and frame/input helper routines |
+| `game` | `0097..0103` | cluster | HUD bar drawing, value-to-digit conversion, and frame/input helper routines |
 | `native` | `0104`, `0105` | inferred | wait-for-release and wait-for-press input gates |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
-| `game` | `0111..0116` | inferred | player/object hitbox and screen-bound checks |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 | `game` | `0124..0128` | inferred | item effect helpers and resource display refresh |
 | `game` | `0129..0132` | cluster | inventory/status UI update helpers |
@@ -142,6 +140,15 @@ surface when touching nearby code:
 | `add_key` | add one key and refresh the key HUD digits |
 | `add_keys` | add to the key counter and refresh its HUD digits |
 | `add_magic_points` | add to magic and refresh its HUD digits |
+| `build_direction_velocity` | convert direction bits and speed into object velocity scratch `0xF5..0xF7` |
+| `build_input_movement_delta` | convert current input and speed into player movement scratch `0x49..0x4B` |
+| `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
+| `check_player_overlap` | test projected object position against the player hitbox |
+| `check_player_overlap_wide` | wider player hitbox test used by large/falling movement probes |
+| `check_player_x_overlap` | horizontal half of the player hitbox test |
+| `check_player_y_overlap` | vertical half of the player hitbox test |
+| `check_position_out_of_bounds` | test projected position against the general playfield bounds |
+| `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
@@ -159,7 +166,9 @@ surface when touching nearby code:
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `reset` | top-level reset entry |
+| `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `rng_update` | update random source bounded by `r.value` |
+| `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -174,6 +183,7 @@ surface when touching nearby code:
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
+| `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
@@ -186,11 +196,11 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Tile address, movement vector, and collision probes: `routine_0090..0092`,
-   `routine_0097..0116`, `routine_0250..0256`.
-2. Audio command engine: `routine_0273..0289`.
-3. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
-4. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. HUD/status bar drawing helpers: `routine_0097..0103`.
+2. Terrain collision and actor movement validation: `routine_0250..0256`.
+3. Audio command engine: `routine_0273..0289`.
+4. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+5. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
