@@ -1,5 +1,9 @@
 use lotw::{Engine, RoutineContext, game};
 
+fn encoded_intro_tile(source_byte: i32) -> i32 {
+    (((source_byte & 0xF0) << 1) | (source_byte & 0x0F)) & 0xFF
+}
+
 #[test]
 fn title_oam_template_copies_full_sprite_block() {
     let mut engine = Engine::new();
@@ -111,4 +115,67 @@ fn intro_text_vram_address_tracks_scroll_offset() {
     assert_eq!(engine.mem(0x17), 0x23);
     assert_eq!(engine.mem(0x16), 0xC0);
     assert_eq!(r.value, 0xC0);
+}
+
+#[test]
+fn intro_text_line_terminator_sets_carry_without_upload() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    for offset in 0..=0x1F {
+        engine.set_mem(0x0140 + offset, 0x55);
+    }
+    engine.set_mem(0x0C, 0x00);
+    engine.set_mem(0x0D, 0xB0);
+    engine.set_mem(0xB000, 0x00);
+
+    game::stage_intro_text_line(&mut engine, &mut r);
+
+    assert_eq!(r.carry, 1);
+    assert_eq!(engine.mem(0x28), 0);
+    for offset in 0..=0x1F {
+        assert_eq!(engine.mem(0x0140 + offset), 0xC0);
+    }
+}
+
+#[test]
+fn intro_text_line_stages_encoded_tiles_until_terminator() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x0C, 0x00);
+    engine.set_mem(0x0D, 0xB0);
+    engine.set_mem(0xB000, 0x12);
+    engine.set_mem(0xB001, 0x34);
+    engine.set_mem(0xB002, 0x00);
+
+    game::stage_intro_text_line(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0140), encoded_intro_tile(0x12));
+    assert_eq!(engine.mem(0x0141), encoded_intro_tile(0x34));
+    assert_eq!(engine.mem(0x0142), 0xC0);
+    assert_eq!(engine.mem(0x28), 0x00);
+    assert_eq!(engine.mem(0x0C), 0x00);
+    assert_eq!(engine.mem(0x0D), 0xB0);
+    assert_eq!(r.carry, 1);
+}
+
+#[test]
+fn scrolling_intro_text_line_offsets_staged_tiles_until_terminator() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x0C, 0xFE);
+    engine.set_mem(0x0D, 0xB0);
+    engine.set_mem(0xB0FE, 0x12);
+    engine.set_mem(0xB0FF, 0x00);
+
+    game::stage_scrolling_intro_text_line(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0140), (encoded_intro_tile(0x12) + 0x10) & 0xFF);
+    assert_eq!(engine.mem(0x0141), 0xC0);
+    assert_eq!(engine.mem(0x0C), 0xFE);
+    assert_eq!(engine.mem(0x0D), 0xB0);
+    assert_eq!(engine.mem(0x28), 0x00);
+    assert_eq!(r.carry, 1);
 }

@@ -1803,40 +1803,32 @@ mod stage_intro_text_line {
 
     /// Stages one intro text line into `0x0140` until CR or terminator.
     pub fn stage_intro_text_line(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = 0;
-        let mut y: i32 = 0;
         clear_text_staging_buffer(engine, r);
-        ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        {
-            let mut i: i32 = 0;
-            {
-                i = 0;
-                y = 0;
-                while cbool(i < 256) {
-                    let mut b: i32 = engine.mem(u16v(ptr + y));
-                    if cbool(b == 0x00) {
-                        r.carry = 1;
-                        return;
-                    }
-                    if cbool(b == 0x0D) {
-                        set_intro_text_vram_address(engine, r);
-                        r.value = 0x05;
-                        upload_intro_text_scroll_slice(engine, r);
-                        r.carry = 0;
-                        return;
-                    }
-                    engine.set_mem(0x08, b & 0x0F);
-                    engine.set_mem(u16v(0x0140 + y), u8v(((b & 0xF0) << 1) | engine.mem(0x08)));
-                    {
-                        i += 1;
-                        i
-                    };
-                    {
-                        y += 1;
-                        y
-                    };
-                }
+
+        let source_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let mut text_offset: i32 = 0;
+        let mut guard: i32 = 0;
+        while cbool(guard < 256) {
+            let source_byte: i32 = engine.mem(u16v(source_ptr + text_offset));
+            if cbool(source_byte == 0x00) {
+                r.carry = 1;
+                return;
             }
+            if cbool(source_byte == 0x0D) {
+                set_intro_text_vram_address(engine, r);
+                r.value = 0x05;
+                upload_intro_text_scroll_slice(engine, r);
+                r.carry = 0;
+                return;
+            }
+
+            engine.set_mem(0x08, source_byte & 0x0F);
+            engine.set_mem(
+                u16v(0x0140 + text_offset),
+                u8v(((source_byte & 0xF0) << 1) | engine.mem(0x08)),
+            );
+            guard += 1;
+            text_offset += 1;
         }
     }
 }
@@ -1847,63 +1839,43 @@ mod stage_scrolling_intro_text_line {
     /// Stages the next intro text line, advances the source pointer past CR,
     /// and offsets the tile ids for the scrolling text row.
     pub fn stage_scrolling_intro_text_line(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = 0;
-        let mut y: i32 = 0;
-        let mut c: i32 = 0;
-        let mut lo: i32 = 0;
-        let mut guard: i32 = 0;
         clear_text_staging_buffer(engine, r);
-        ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        y = 0x00;
-        {
-            guard = 0;
-            while cbool(guard < 256) {
-                c = engine.mem(u16v(ptr + y));
-                if cbool(c == 0x00) {
-                    r.carry = 1;
-                    return;
-                }
-                if cbool(c == 0x0D) {
-                    let mut sum: i32 = 0;
-                    {
-                        let __old = y;
-                        y += 1;
-                        __old
-                    };
-                    sum = u16v(y + engine.mem(0x0C));
-                    lo = u8v(sum);
-                    engine.set_mem(0x0C, lo);
-                    if cbool(sum > 0xFF) {
-                        engine.set_mem(0x0D, u8v(engine.mem(0x0D) + 1));
-                    }
-                    r.value = 0x08;
-                    set_intro_text_vram_address(engine, r);
-                    r.value = 0x05;
-                    upload_intro_text_scroll_slice(engine, r);
-                    r.carry = 0;
-                    return;
-                }
-                {
-                    let mut lonib: i32 = c & 0x0F;
-                    let mut hi: i32 = 0;
-                    let mut v: i32 = 0;
-                    engine.set_mem(0x08, lonib);
-                    hi = u8v((c & 0xF0) << 1);
-                    v = u8v(hi | engine.mem(0x08));
-                    v = u8v(v + 0x10);
-                    engine.set_mem(u16v(0x0140 + y), v);
-                }
-                {
-                    let __old = y;
-                    y += 1;
-                    __old
-                };
-                {
-                    let __old = guard;
-                    guard += 1;
-                    __old
-                };
+
+        let source_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let mut text_offset: i32 = 0x00;
+        let mut scan_guard: i32 = 0;
+        while cbool(scan_guard < 256) {
+            let source_byte: i32 = engine.mem(u16v(source_ptr + text_offset));
+            if cbool(source_byte == 0x00) {
+                r.carry = 1;
+                return;
             }
+            if cbool(source_byte == 0x0D) {
+                text_offset += 1;
+
+                let advanced_source: i32 = u16v(text_offset + engine.mem(0x0C));
+                engine.set_mem(0x0C, u8v(advanced_source));
+                if cbool(advanced_source > 0xFF) {
+                    engine.set_mem(0x0D, u8v(engine.mem(0x0D) + 1));
+                }
+
+                r.value = 0x08;
+                set_intro_text_vram_address(engine, r);
+                r.value = 0x05;
+                upload_intro_text_scroll_slice(engine, r);
+                r.carry = 0;
+                return;
+            }
+
+            let low_nibble: i32 = source_byte & 0x0F;
+            engine.set_mem(0x08, low_nibble);
+
+            let high_bits: i32 = u8v((source_byte & 0xF0) << 1);
+            let tile_id: i32 = u8v((high_bits | engine.mem(0x08)) + 0x10);
+            engine.set_mem(u16v(0x0140 + text_offset), tile_id);
+
+            text_offset += 1;
+            scan_guard += 1;
         }
     }
 }
@@ -1946,13 +1918,13 @@ mod upload_intro_text_scroll_slice {
     /// Uploads the staged intro text row plus three spacer rows for the current
     /// scroll offset.
     pub fn upload_intro_text_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_a: i32 = u8v(r.value);
-        let mut v: i32 = u8v(engine.mem(0x0A) + 0x06);
-        if cbool(v >= 0xF0) {
-            v = u8v(v + 0x10);
+        let first_job_id: i32 = u8v(r.value);
+        let mut scroll_upload_row: i32 = u8v(engine.mem(0x0A) + 0x06);
+        if cbool(scroll_upload_row >= 0xF0) {
+            scroll_upload_row = u8v(scroll_upload_row + 0x10);
         }
-        engine.set_mem(0x1E, v);
-        r.value = saved_a;
+        engine.set_mem(0x1E, scroll_upload_row);
+        r.value = first_job_id;
         queue_ppu_job_and_wait(engine, r);
         r.value = 0xFF;
         queue_ppu_job_and_wait(engine, r);
@@ -1968,20 +1940,12 @@ mod load_intro_text_palette {
 
     /// Loads the intro/text palette and queues it for upload.
     pub fn load_intro_text_palette(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
         engine.set_mem(0x0180, 0x0F);
         engine.set_mem(0x0181, 0x0C);
         engine.set_mem(0x0182, 0x10);
         engine.set_mem(0x0183, 0x30);
-        {
-            x = 0x1B;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x0184 + x), 0x0F);
-                {
-                    x -= 1;
-                    x
-                };
-            }
+        for palette_offset in (0..=0x1B).rev() {
+            engine.set_mem(0x0184 + palette_offset, 0x0F);
         }
         r.value = 0x0F;
         upload_palette_buffer(engine, r);
@@ -1994,15 +1958,10 @@ mod hide_all_sprite_y_positions {
     /// Hides every staged sprite by writing the offscreen Y value to each OAM
     /// entry while leaving tile/attribute/X bytes untouched.
     pub fn hide_all_sprite_y_positions(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x00;
-        loop {
-            engine.set_mem(u16v(0x0200 + x), 0xEF);
-            x = u8v(x + 4);
-            if !cbool(x != 0) {
-                break;
-            }
+        for oam_offset in (0..=0xFC).step_by(4) {
+            engine.set_mem(0x0200 + oam_offset, 0xEF);
         }
-        r.index = x;
+        r.index = 0x00;
         r.value = 0xEF;
     }
 }
