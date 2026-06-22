@@ -10,11 +10,58 @@ use lotw::{PPU_H, PPU_W, game};
 use sdl3::{
     audio::{AudioFormat, AudioSpec},
     event::Event,
+    gamepad::{Axis, Button, Gamepad},
     keyboard::{Keycode, Scancode},
     pixels::PixelFormat,
     render::ScaleMode,
     sys::render::SDL_LOGICAL_PRESENTATION_LETTERBOX,
 };
+
+const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 60);
+const STICK_DEAD_ZONE: i16 = 12_000;
+
+fn open_gamepads(sdl: &sdl3::Sdl) -> Vec<Gamepad> {
+    let Ok(gamepad) = sdl.gamepad() else {
+        return Vec::new();
+    };
+    let Ok(ids) = gamepad.gamepads() else {
+        return Vec::new();
+    };
+    ids.into_iter()
+        .filter_map(|id| gamepad.open(id).ok())
+        .collect()
+}
+
+fn gamepad_buttons(gamepads: &[Gamepad]) -> i32 {
+    let mut buttons = 0;
+    for gamepad in gamepads.iter().filter(|gamepad| gamepad.connected()) {
+        if gamepad.button(Button::DPadRight) || gamepad.axis(Axis::LeftX) > STICK_DEAD_ZONE {
+            buttons |= 0x80;
+        }
+        if gamepad.button(Button::DPadLeft) || gamepad.axis(Axis::LeftX) < -STICK_DEAD_ZONE {
+            buttons |= 0x40;
+        }
+        if gamepad.button(Button::DPadDown) || gamepad.axis(Axis::LeftY) > STICK_DEAD_ZONE {
+            buttons |= 0x20;
+        }
+        if gamepad.button(Button::DPadUp) || gamepad.axis(Axis::LeftY) < -STICK_DEAD_ZONE {
+            buttons |= 0x10;
+        }
+        if gamepad.button(Button::Start) {
+            buttons |= 0x08;
+        }
+        if gamepad.button(Button::Back) {
+            buttons |= 0x04;
+        }
+        if gamepad.button(Button::East) {
+            buttons |= 0x02;
+        }
+        if gamepad.button(Button::South) {
+            buttons |= 0x01;
+        }
+    }
+    buttons
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
@@ -61,6 +108,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut event_pump = sdl.event_pump()?;
+    let mut gamepads = open_gamepads(&sdl);
     let mut fb = vec![0; PPU_W * PPU_H * 3];
     let mut audio_buf = vec![0i16; common::SPF];
     let mut running = true;
@@ -70,11 +118,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     while running {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
+                Event::Quit { .. } => running = false,
+                Event::ControllerDeviceAdded { .. } | Event::ControllerDeviceRemoved { .. } => {
+                    gamepads = open_gamepads(&sdl);
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    keymod,
                     ..
-                } => running = false,
+                } if keymod
+                    .intersects(sdl3::keyboard::Mod::LCTRLMOD | sdl3::keyboard::Mod::RCTRLMOD) =>
+                {
+                    running = false;
+                }
                 _ => {}
             }
         }
@@ -105,6 +161,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         if keyboard.is_scancode_pressed(Scancode::Z) {
             buttons |= 0x01;
         }
+        buttons |= gamepad_buttons(&gamepads);
         if autostart {
             if (150..168).contains(&frames) {
                 buttons |= 0x08;
@@ -152,7 +209,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             running = false;
         }
 
-        next_frame += Duration::from_micros(1_000_000 / 60);
+        next_frame += FRAME_TIME;
         let now = Instant::now();
         if next_frame > now {
             std::thread::sleep(next_frame - now);
