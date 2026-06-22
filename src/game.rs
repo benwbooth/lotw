@@ -2272,9 +2272,8 @@ mod draw_status_item_sprites {
             engine.set_mem(0x023E, 0x41);
         }
 
-        let mut item_slot: i32 = 0x02;
-        let mut oam_offset: i32 = 0x10;
-        loop {
+        for item_slot in (0..=0x02).rev() {
+            let oam_offset: i32 = item_slot << 3;
             let item_id: i32 = engine.mem(u16v(0x0051 + item_slot));
             let sprite_y: i32 = if cbool(item_id & 0x80) {
                 0xEF
@@ -2291,16 +2290,6 @@ mod draw_status_item_sprites {
             };
             engine.set_mem(u16v(0x0220 + oam_offset), sprite_y);
             engine.set_mem(u16v(0x0224 + oam_offset), sprite_y);
-            oam_offset = u8v(oam_offset - 0x08);
-            if cbool(
-                {
-                    let __old = item_slot;
-                    item_slot -= 1;
-                    __old
-                } == 0,
-            ) {
-                break;
-            }
         }
     }
 }
