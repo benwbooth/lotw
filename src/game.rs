@@ -24,6 +24,7 @@ pub use animate_actor_walk_toggle::animate_actor_walk_toggle;
 pub use animate_large_actor_body_tiles::animate_large_actor_body_tiles;
 pub use apply_actor_player_contact_damage::apply_actor_player_contact_damage;
 pub use apply_event_collectible_reward::apply_event_collectible_reward;
+pub use apply_hazard_tile_contact::apply_hazard_tile_contact;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use audio_cmd_set_channel_flags::audio_cmd_set_channel_flags;
 pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
@@ -46,6 +47,7 @@ pub use check_player_y_overlap::check_player_y_overlap;
 pub use check_position_out_of_bounds::check_position_out_of_bounds;
 pub use check_projected_terrain_collision::check_projected_terrain_collision;
 pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_collision;
+pub use check_top_boundary_exit_clear::check_top_boundary_exit_clear;
 pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
@@ -66,6 +68,8 @@ pub use consume_magic_point::consume_magic_point;
 pub use defeat_active_room_actors::defeat_active_room_actors;
 pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
+pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
+pub use dispatch_projected_tile_actions::dispatch_projected_tile_actions;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
@@ -89,6 +93,7 @@ pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
 pub use probe_actor_overhead_step::probe_actor_overhead_step;
 pub use probe_object_solid_tile::probe_object_solid_tile;
+pub use probe_player_solid_tile::probe_player_solid_tile;
 pub use probe_projected_solid_tile::probe_projected_solid_tile;
 pub use project_actor_position::project_actor_position;
 pub use project_player_projectile_position::project_player_projectile_position;
@@ -191,11 +196,6 @@ pub use routine_0144::routine_0144;
 pub use routine_0145::routine_0145;
 pub use routine_0146::routine_0146;
 pub use routine_0147::routine_0147;
-pub use routine_0164::routine_0164;
-pub use routine_0165::routine_0165;
-pub use routine_0166::routine_0166;
-pub use routine_0167::routine_0167;
-pub use routine_0168::routine_0168;
 pub use routine_0170::routine_0170;
 pub use routine_0171::routine_0171;
 pub use routine_0172::routine_0172;
@@ -431,7 +431,7 @@ mod game_update {
                         }
                     }
                     if cbool(engine.mem(0x20) & 0x08) {
-                        routine_0167(engine, r);
+                        dispatch_overhead_tile_action(engine, r);
                         if cbool(engine.lotw_nonlocal_handoff) {
                             return;
                         }
@@ -526,7 +526,7 @@ mod game_update {
                         a = 0x00;
                     }
                     engine.set_mem(0x45, a);
-                    routine_0163(engine, r);
+                    update_player_terrain_contact(engine, r);
                     {
                         state = 6;
                         continue 'dispatch;
@@ -537,7 +537,7 @@ mod game_update {
                 4 => {
                     engine.set_mem(0x4F, 0x00);
                     engine.set_mem(0x4E, 0x00);
-                    routine_0163(engine, r);
+                    update_player_terrain_contact(engine, r);
                     {
                         state = 6;
                         continue 'dispatch;
@@ -4643,7 +4643,7 @@ mod routine_0135 {
                         }
                         engine.set_mem(0x45, y);
                     }
-                    routine_0163(engine, r);
+                    update_player_terrain_contact(engine, r);
                     {
                         state = 4;
                         continue 'dispatch;
@@ -4654,7 +4654,7 @@ mod routine_0135 {
                 3 => {
                     engine.set_mem(0x4F, 0x00);
                     engine.set_mem(0x4E, 0x00);
-                    routine_0163(engine, r);
+                    update_player_terrain_contact(engine, r);
                     state = 4;
                     continue 'dispatch;
                 }
@@ -4926,7 +4926,7 @@ mod routine_0142 {
     pub fn routine_0142(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = engine.mem(0x0045);
         if cbool(a < 0x10) {
-            routine_0164(engine, r);
+            check_top_boundary_exit_clear(engine, r);
             if cbool(r.carry == 0) {
                 return;
             }
@@ -4972,7 +4972,7 @@ mod routine_0142 {
         if cbool(engine.mem(0x0048) == 0x10) {
             return;
         }
-        routine_0163(engine, r);
+        update_player_terrain_contact(engine, r);
         engine.set_mem(0x85, 0x00);
         engine.set_mem(0x56, u8v(engine.mem(0x56) & 0x07));
         if cbool(engine.mem(0x0044) == 0x00) {
@@ -5288,7 +5288,7 @@ mod routine_0146 {
                             continue 'dispatch;
                         }
                     }
-                    routine_0168(engine, r);
+                    dispatch_projected_tile_actions(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 5;
@@ -5759,39 +5759,43 @@ mod defeat_active_room_actors {
     }
 }
 
-mod routine_0164 {
+mod check_top_boundary_exit_clear {
     use super::*;
-    pub fn routine_0164(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.mem(0x86) | engine.mem(0x4F)) != 0) {
+
+    /// Returns carry set when the tile above the top screen edge is empty and
+    /// the player can wrap to the room above.
+    pub fn check_top_boundary_exit_clear(engine: &mut Engine, r: &mut RoutineContext) {
+        if engine.mem(0x86) != 0 || engine.mem(0x4F) != 0 {
             return;
         }
-        if cbool(engine.mem(0x0E) != 0) {
+        if engine.mem(0x0E) != 0 {
             return;
         }
         engine.set_mem(0x0C, engine.mem(0x0F));
         engine.set_mem(0x0D, 0x00);
         resolve_room_tile_pointer(engine, r);
-        {
-            let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-            let mut v: i32 = engine.mem(ptr) & 0x3F;
-            r.carry = u8v((if cbool(v == 0) { 1 } else { 0 }));
-        }
+        let tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tile = engine.mem(tile_ptr) & 0x3F;
+        r.carry = u8v(tile == 0);
     }
 }
 
-mod routine_0165 {
+mod apply_hazard_tile_contact {
     use super::*;
-    pub fn routine_0165(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        let mut v: i32 = u8v(engine.mem(u16v(ptr + r.offset)) & 0x3F);
-        if cbool(v != 0x30) {
+
+    /// Applies tile `0x30` hazard contact at `tile_ptr + r.offset`, including
+    /// the short recoil timer and one-hit invulnerability latch.
+    pub fn apply_hazard_tile_contact(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tile = engine.mem(u16v(tile_ptr + r.offset)) & 0x3F;
+        if tile != 0x30 {
             r.carry = 0;
             return;
         }
-        if cbool(engine.mem(0x4F) == 0) {
+        if engine.mem(0x4F) == 0 {
             engine.set_mem(0x4F, 0x0A);
         }
-        if cbool(engine.mem(0x85) == 0) {
+        if engine.mem(0x85) == 0 {
             consume_health_point(engine, r);
             engine.set_mem(0x8F, 0x0A);
             engine.set_mem(0x85, 0x01);
@@ -5800,233 +5804,146 @@ mod routine_0165 {
     }
 }
 
-mod routine_0166 {
+mod probe_player_solid_tile {
     use super::*;
-    pub fn routine_0166(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-        let mut x: i32 = u8v(engine.mem(u16v(ptr + r.offset)) & 0x3F);
-        if cbool(x == 0) {
-            if cbool(engine.mem(0x43) == 0) {
+
+    /// Reports whether a player footprint sample collides with terrain.
+    /// Empty tiles only count as contact when the player is tile-aligned.
+    pub fn probe_player_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
+        let tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        let tile = engine.mem(u16v(tile_ptr + r.offset)) & 0x3F;
+        if tile == 0 {
+            if engine.mem(0x43) == 0 {
                 r.carry = 1;
             } else {
                 r.carry = 0;
             }
-        } else if cbool(x == 0x02) {
+        } else if tile == 0x02 {
             r.carry = 1;
         } else {
-            r.carry = u8v(u8v(x >= 0x30));
+            r.carry = u8v(tile >= 0x30);
         }
     }
 }
 
-mod routine_0167 {
+mod dispatch_overhead_tile_action {
     use super::*;
-    pub fn routine_0167(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0;
-        let mut ptr: i32 = 0;
-        let mut x: i32 = engine.mem(0x45);
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    if cbool(x == 0) {
-                        return;
-                    }
-                    x = u8v(x - 1);
-                    engine.set_mem(0x0D, x);
-                    x = engine.mem(0x44);
-                    engine.set_mem(0x0C, x);
-                    resolve_room_tile_pointer(engine, r);
-                    ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-                    r.offset = 0x00;
-                    a = engine.mem(u16v(ptr + r.offset)) & 0x3F;
-                    if cbool(a == 0x05) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(a == 0x04) {
-                        {
-                            state = 2;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(a == 0x03) {
-                        {
-                            state = 3;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x43) == 0) {
-                        return;
-                    }
-                    r.offset = 0x0C;
-                    a = engine.mem(u16v(ptr + r.offset)) & 0x3F;
-                    if cbool(a == 0x05) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(a == 0x04) {
-                        {
-                            state = 2;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(a == 0x03) {
-                        {
-                            state = 3;
-                            continue 'dispatch;
-                        }
-                    }
-                    return;
-                    state = 1;
-                    continue 'dispatch;
-                }
-                1 => {
-                    routine_0175(engine, r);
-                    engine.lotw_nonlocal_handoff = 1;
-                    return;
-                    state = 2;
-                    continue 'dispatch;
-                }
-                2 => {
-                    routine_0187(engine, r);
-                    engine.lotw_nonlocal_handoff = 1;
-                    return;
-                    state = 3;
-                    continue 'dispatch;
-                }
-                3 => {
-                    {
-                        let mut ei: i32 = engine.mem(0x55);
-                        if cbool(engine.mem(u16v(0x51 + ei)) != 0x0E) {
-                            return;
-                        }
-                        {
-                            let mut cnt: i32 = engine.mem(0x6E);
-                            let mut idx: i32 = 0;
-                            {
-                                idx = 2;
-                                while cbool(idx >= 0) {
-                                    if cbool(engine.mem(u16v(0x51 + idx)) == 0x0E) {
-                                        cnt = u8v(cnt + 1);
-                                    }
-                                    {
-                                        let __old = idx;
-                                        idx -= 1;
-                                        __old
-                                    };
-                                }
-                            }
-                            if cbool(cnt != 0x04) {
-                                return;
-                            }
-                        }
-                        routine_0137(engine, r);
-                        engine.lotw_nonlocal_handoff = 1;
-                        return;
-                    }
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
+
+    /// Handles Up-button interactions with the tile directly above the player.
+    /// Tile `0x05` and `0x04` jump to their dedicated scripts; tile `0x03`
+    /// requires the selected `0x0E` item and all four matching fragments.
+    pub fn dispatch_overhead_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
+        let player_y = engine.mem(0x45);
+        if player_y == 0 {
+            return;
+        }
+
+        engine.set_mem(0x0D, u8v(player_y - 1));
+        engine.set_mem(0x0C, engine.mem(0x44));
+        resolve_room_tile_pointer(engine, r);
+
+        let tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
+        if dispatch_overhead_tile_at_offset(engine, r, tile_ptr, 0x00) {
+            return;
+        }
+        if engine.mem(0x43) != 0 {
+            dispatch_overhead_tile_at_offset(engine, r, tile_ptr, 0x0C);
+        }
+    }
+
+    fn dispatch_overhead_tile_at_offset(
+        engine: &mut Engine,
+        r: &mut RoutineContext,
+        tile_ptr: i32,
+        offset: i32,
+    ) -> bool {
+        r.offset = offset;
+        match engine.mem(u16v(tile_ptr + r.offset)) & 0x3F {
+            0x05 => {
+                routine_0175(engine, r);
+                engine.lotw_nonlocal_handoff = 1;
+                true
+            }
+            0x04 => {
+                routine_0187(engine, r);
+                engine.lotw_nonlocal_handoff = 1;
+                true
+            }
+            0x03 => {
+                dispatch_four_fragment_overhead_tile(engine, r);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn dispatch_four_fragment_overhead_tile(engine: &mut Engine, r: &mut RoutineContext) -> bool {
+        let selected_slot = engine.mem(0x55);
+        if engine.mem(u16v(0x51 + selected_slot)) != 0x0E {
+            return false;
+        }
+
+        let mut fragment_count = engine.mem(0x6E);
+        for slot in 0..=2 {
+            if engine.mem(u16v(0x51 + slot)) == 0x0E {
+                fragment_count = u8v(fragment_count + 1);
             }
         }
+        if fragment_count != 0x04 {
+            return false;
+        }
+
+        routine_0137(engine, r);
+        engine.lotw_nonlocal_handoff = 1;
+        true
     }
 }
 
-mod routine_0168 {
+mod dispatch_projected_tile_actions {
     use super::*;
-    pub fn routine_0168(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut s_0E: i32 = 0;
-        let mut s_0F: i32 = 0;
-        let mut s_0A: i32 = 0;
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    engine.set_mem(0xE5, 0x90);
-                    engine.set_mem(0xE6, 0x04);
-                    s_0E = engine.mem(0x0E);
-                    s_0F = engine.mem(0x0F);
-                    s_0A = engine.mem(0x0A);
-                    engine.set_mem(0x0C, engine.mem(0x0F));
-                    engine.set_mem(0x0D, engine.mem(0x0A));
-                    resolve_room_tile_pointer(engine, r);
-                    r.offset = 0x00;
-                    routine_0169(engine, r);
-                    if cbool(r.carry) {
-                        {
-                            state = 2;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x0E) != 0) {
-                        r.offset = 0x0C;
-                        routine_0169(engine, r);
-                        if cbool(r.carry) {
-                            {
-                                state = 2;
-                                continue 'dispatch;
-                            }
-                        }
-                    }
-                    {
-                        let mut a: i32 = engine.mem(0x0A);
-                        if cbool(a >= 0xB0) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        if cbool((a & 0x0F) == 0) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        r.offset = 0x01;
-                        routine_0169(engine, r);
-                        if cbool(r.carry) {
-                            {
-                                state = 2;
-                                continue 'dispatch;
-                            }
-                        }
-                        if cbool(engine.mem(0x0E) == 0) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        r.offset = 0x0D;
-                        routine_0169(engine, r);
-                        if cbool(r.carry) {
-                            {
-                                state = 2;
-                                continue 'dispatch;
-                            }
-                        }
-                    }
-                    state = 1;
-                    continue 'dispatch;
-                }
-                1 => {
-                    r.carry = 0;
-                    state = 2;
-                    continue 'dispatch;
-                }
-                2 => {
-                    engine.set_mem(0x0A, s_0A);
-                    engine.set_mem(0x0F, s_0F);
-                    engine.set_mem(0x0E, s_0E);
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
+
+    /// Checks the projected player footprint for room tile actions. The
+    /// original projection scratch is restored before returning so callers can
+    /// continue collision resolution with the same candidate position.
+    pub fn dispatch_projected_tile_actions(engine: &mut Engine, r: &mut RoutineContext) {
+        engine.set_mem(0xE5, 0x90);
+        engine.set_mem(0xE6, 0x04);
+
+        let saved_subtile_x = engine.mem(0x0E);
+        let saved_tile_x = engine.mem(0x0F);
+        let saved_pixel_y = engine.mem(0x0A);
+
+        engine.set_mem(0x0C, engine.mem(0x0F));
+        engine.set_mem(0x0D, engine.mem(0x0A));
+        resolve_room_tile_pointer(engine, r);
+
+        let mut handled = dispatch_projected_tile_action_at_offset(engine, r, 0x00);
+        if !handled && engine.mem(0x0E) != 0 {
+            handled = dispatch_projected_tile_action_at_offset(engine, r, 0x0C);
+        }
+
+        let projected_y = engine.mem(0x0A);
+        if !handled && projected_y < 0xB0 && (projected_y & 0x0F) != 0 {
+            handled = dispatch_projected_tile_action_at_offset(engine, r, 0x01);
+            if !handled && engine.mem(0x0E) != 0 {
+                handled = dispatch_projected_tile_action_at_offset(engine, r, 0x0D);
             }
         }
+
+        r.carry = u8v(handled);
+        engine.set_mem(0x0A, saved_pixel_y);
+        engine.set_mem(0x0F, saved_tile_x);
+        engine.set_mem(0x0E, saved_subtile_x);
+    }
+
+    fn dispatch_projected_tile_action_at_offset(
+        engine: &mut Engine,
+        r: &mut RoutineContext,
+        offset: i32,
+    ) -> bool {
+        r.offset = offset;
+        routine_0169(engine, r);
+        cbool(r.carry)
     }
 }
 

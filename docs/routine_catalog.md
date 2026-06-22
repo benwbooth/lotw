@@ -100,8 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 | `game` | `0135..0147` | inferred | item action dispatch, item pickup/collection, actor contact, and room-interaction checks |
 | `native` | `0148` | inferred | consume secondary counter/resource for an action |
-| `native` | `0163` | inferred | player movement collision commit and contact feedback |
-| `game` | `0164..0168` | cluster | tile collision probes, item-use gating, and family/item interaction helpers |
 | `native` | `0169` | inferred | tile action dispatch, including item use and special projectile spawn |
 | `game` | `0170..0173` | inferred | object spawn coordinate setup, room tile readback, and movement intent resolution |
 | `native` | `0174..0177` | inferred | character swap/inventory selection flow |
@@ -136,6 +134,7 @@ surface when touching nearby code:
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `apply_event_collectible_reward` | apply a reward from an event/shop path where no room object slot is cleared |
+| `apply_hazard_tile_contact` | apply floor hazard contact damage, recoil, and invulnerability latch for tile `0x30` |
 | `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
 | `audio_cmd_set_duty_instrument` | audio bytecode command 0: set pulse duty bits and choose the envelope/instrument table offset |
 | `audio_cmd_set_pitch_offset` | audio bytecode command 3: set the selected channel's fine pitch offset |
@@ -157,6 +156,7 @@ surface when touching nearby code:
 | `check_player_x_overlap` | horizontal half of the player hitbox test |
 | `check_player_y_overlap` | vertical half of the player hitbox test |
 | `check_position_out_of_bounds` | test projected position against the general playfield bounds |
+| `check_top_boundary_exit_clear` | report whether the top-edge room transition is clear for the player to wrap upward |
 | `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
@@ -176,6 +176,8 @@ surface when touching nearby code:
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
 | `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
+| `dispatch_overhead_tile_action` | handle Up-button interactions with the tile above the player |
+| `dispatch_projected_tile_actions` | probe the projected player footprint for room tile-action triggers |
 | `defeat_active_room_actors` | mark active room actors as defeated and run the palette flash reward effect |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
@@ -202,6 +204,7 @@ surface when touching nearby code:
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
 | `probe_actor_overhead_step` | probe the projected tile row above an actor when it is tile-aligned |
 | `probe_projected_solid_tile` | test a tile in the projected movement footprint for solidity |
+| `probe_player_solid_tile` | test a player-footprint tile sample, including the tile-aligned empty-floor case |
 | `project_actor_position` | project actor scratch position through actor velocity into movement scratch |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
@@ -265,6 +268,7 @@ surface when touching nearby code:
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
 | `update_large_actor_facing_from_velocity` | update the large actor facing bit from horizontal velocity |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
+| `update_player_terrain_contact` | update player floor, fall, hazard, and post-move contact state |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
@@ -281,7 +285,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Item action and movement collision helpers: `routine_0135..0148`, `routine_0163..0168`.
+1. Item action helpers: `routine_0135..0148`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

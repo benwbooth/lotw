@@ -1503,80 +1503,91 @@ pub fn routine_0110(engine: &mut Engine, r: &mut RoutineContext) {
     r.carry = 0;
 }
 
-pub fn routine_0163(engine: &mut Engine, r: &mut RoutineContext) {
-    if engine.mem(0x86) == 0 && engine.mem(0x4f) == 0 {
-        engine.set_mem(0x0c, engine.mem(0x44));
-        engine.set_mem(0x0f, engine.mem(0x44));
-        engine.set_mem(0x0e, engine.mem(0x43));
-        engine.set_mem(0x0d, engine.mem(0x45));
-        engine.set_mem(0x0a, u8v(engine.mem(0x45) + 1));
-        crate::game::resolve_room_tile_pointer(engine, r);
-        if engine.mem(0x43) == 0 {
-            engine.set_mem(0x50, 0x01);
-            r.offset = 0x00;
-            let ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
-            if (engine.mem(u16v(ptr + r.offset)) & 0x3f) == 0 {
-                return routine_0163_dc4d(engine, r);
-            }
-        }
+/// Tracks the player's floor/contact state after movement has either committed
+/// or failed. `0x4E` is the falling/contact frame counter; a nonzero recoil
+/// timer (`0x4F`) or scripted lock (`0x86`) suppresses this probe.
+pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext) {
+    if engine.mem(0x86) != 0 || engine.mem(0x4f) != 0 {
         engine.set_mem(0x50, 0x00);
-        if engine.mem(0x45) >= 0xb0 {
-            engine.inc_mem(0x4e);
-            return;
+        engine.set_mem(0x4e, 0x00);
+        return;
+    }
+
+    engine.set_mem(0x0c, engine.mem(0x44));
+    engine.set_mem(0x0f, engine.mem(0x44));
+    engine.set_mem(0x0e, engine.mem(0x43));
+    engine.set_mem(0x0d, engine.mem(0x45));
+    engine.set_mem(0x0a, u8v(engine.mem(0x45) + 1));
+    crate::game::resolve_room_tile_pointer(engine, r);
+
+    if engine.mem(0x43) == 0 {
+        engine.set_mem(0x50, 0x01);
+        r.offset = 0x00;
+        let tile_ptr = u16v(engine.mem(0x0c) | (engine.mem(0x0d) << 8));
+        if (engine.mem(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
+            return resolve_player_landing_or_hazard_contact(engine, r);
         }
-        routine_0109(engine, r);
-        if cbool(r.carry) {
-            if engine.mem(0x2d) >= 0x30 {
-                return routine_0163_dc4d(engine, r);
-            }
-            let y = engine.mem(0x55);
-            let x = engine.mem(u16v(0x0051 + y));
-            if x != 0x05 || engine.mem(0x4e) == 0 {
-                return routine_0163_dc4d(engine, r);
-            }
-            let hit_x = engine.mem(0x09);
-            engine.set_mem(u16v(0x0401 + hit_x), 0x80);
-        }
-        r.offset = 0x01;
-        crate::game::routine_0166(engine, r);
-        if cbool(r.carry) {
-            return routine_0163_dc4d(engine, r);
-        }
-        if engine.mem(0x43) == 0 {
-            engine.inc_mem(0x4e);
-            return;
-        }
-        r.offset = 0x0d;
-        crate::game::routine_0166(engine, r);
-        if cbool(r.carry) {
-            return routine_0163_dc4d(engine, r);
-        }
+    }
+
+    engine.set_mem(0x50, 0x00);
+    if engine.mem(0x45) >= 0xb0 {
         engine.inc_mem(0x4e);
         return;
     }
-    engine.set_mem(0x50, 0x00);
-    engine.set_mem(0x4e, 0x00);
+
+    routine_0109(engine, r);
+    if cbool(r.carry) {
+        if engine.mem(0x2d) >= 0x30 {
+            return resolve_player_landing_or_hazard_contact(engine, r);
+        }
+        let selected_slot = engine.mem(0x55);
+        let selected_item = engine.mem(u16v(0x0051 + selected_slot));
+        if selected_item != 0x05 || engine.mem(0x4e) == 0 {
+            return resolve_player_landing_or_hazard_contact(engine, r);
+        }
+        let hit_slot = engine.mem(0x09);
+        engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
+    }
+
+    r.offset = 0x01;
+    crate::game::probe_player_solid_tile(engine, r);
+    if cbool(r.carry) {
+        return resolve_player_landing_or_hazard_contact(engine, r);
+    }
+    if engine.mem(0x43) == 0 {
+        engine.inc_mem(0x4e);
+        return;
+    }
+
+    r.offset = 0x0d;
+    crate::game::probe_player_solid_tile(engine, r);
+    if cbool(r.carry) {
+        return resolve_player_landing_or_hazard_contact(engine, r);
+    }
+    engine.inc_mem(0x4e);
 }
 
-fn routine_0163_dc4d(engine: &mut Engine, r: &mut RoutineContext) {
-    let mut v = engine.mem(0x4e);
-    if v >= engine.mem(0x5c) {
-        v = u8v(v - 0x07);
-        if v >= engine.mem(0x5c) {
-            v = engine.mem(0x5c);
+/// Converts a just-detected floor/object/hazard contact into damage, recoil,
+/// hazard invulnerability, or a reset of the fall counter.
+fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut RoutineContext) {
+    let mut fall_frames = engine.mem(0x4e);
+    if fall_frames >= engine.mem(0x5c) {
+        fall_frames = u8v(fall_frames - 0x07);
+        if fall_frames >= engine.mem(0x5c) {
+            fall_frames = engine.mem(0x5c);
         }
-        v = u8v(v - 0x01);
-        engine.set_mem(0x4f, v);
-        engine.set_mem(0x46, u8v(v + 0x0a));
+        fall_frames = u8v(fall_frames - 0x01);
+        engine.set_mem(0x4f, fall_frames);
+        engine.set_mem(0x46, u8v(fall_frames + 0x0a));
         engine.set_mem(0x8f, 0x0a);
         crate::game::consume_health_point(engine, r);
     }
     if engine.mem(0x4e) == 0 {
         r.offset = 0x01;
-        crate::game::routine_0165(engine, r);
+        crate::game::apply_hazard_tile_contact(engine, r);
         if !cbool(r.carry) && engine.mem(0x43) != 0 {
             r.offset = 0x0d;
-            crate::game::routine_0165(engine, r);
+            crate::game::apply_hazard_tile_contact(engine, r);
         }
     }
     engine.set_mem(0x4e, 0x00);
