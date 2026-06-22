@@ -16,6 +16,7 @@ pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
 pub use advance_envelope_phase::advance_envelope_phase;
 pub use advance_intro_text_scroll::advance_intro_text_scroll;
+pub use advance_scripted_scroll_slice::advance_scripted_scroll_slice;
 pub use aim_actor_from_player_overlap::aim_actor_from_player_overlap;
 pub use aim_actor_toward_player::aim_actor_toward_player;
 pub use animate_actor_cycle_tiles::animate_actor_cycle_tiles;
@@ -35,6 +36,7 @@ pub use audio_cmd_set_volume_scale::audio_cmd_set_volume_scale;
 pub use blink_demo_oam_sprites::blink_demo_oam_sprites;
 pub use build_decimal_digit_tiles::build_decimal_digit_tiles;
 pub use build_direction_velocity::build_direction_velocity;
+pub use build_final_exit_projectile_velocity::build_final_exit_projectile_velocity;
 pub use build_health_meter_sprites::build_health_meter_sprites;
 pub use build_input_movement_delta::build_input_movement_delta;
 pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles;
@@ -46,6 +48,7 @@ pub use build_staged_room_column::build_staged_room_column;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_direction_contact::check_actor_direction_contact;
 pub use check_actor_position_out_of_bounds::check_actor_position_out_of_bounds;
+pub use check_final_exit_projectile_bounds::check_final_exit_projectile_bounds;
 pub use check_final_exit_trigger::check_final_exit_trigger;
 pub use check_player_overlap::check_player_overlap;
 pub use check_player_overlap_wide::check_player_overlap_wide;
@@ -90,6 +93,8 @@ pub use dispatch_overhead_tile_action::dispatch_overhead_tile_action;
 pub use dispatch_projected_tile_actions::dispatch_projected_tile_actions;
 pub use draw_carried_item_sprites::draw_carried_item_sprites;
 pub use draw_coin_cost_sprites::draw_coin_cost_sprites;
+pub use draw_final_exit_projectile_slot_sprites::draw_final_exit_projectile_slot_sprites;
+pub use draw_final_exit_projectile_sprites::draw_final_exit_projectile_sprites;
 pub use draw_object_slot_sprites::draw_object_slot_sprites;
 pub use draw_player_sprites::draw_player_sprites;
 pub use draw_room_object_sprites::draw_room_object_sprites;
@@ -119,7 +124,10 @@ pub use load_effective_jump_duration::load_effective_jump_duration;
 pub use load_effective_projectile_damage::load_effective_projectile_damage;
 pub use load_effective_projectile_lifetime::load_effective_projectile_lifetime;
 pub use load_family_item_permission_bits::load_family_item_permission_bits;
+pub use load_final_exit_object_oam_template::load_final_exit_object_oam_template;
+pub use load_final_exit_player_oam_template::load_final_exit_player_oam_template;
 pub use load_intro_text_palette::load_intro_text_palette;
+pub use load_large_actor_oam_template::load_large_actor_oam_template;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use load_title_oam_template::load_title_oam_template;
@@ -139,6 +147,8 @@ pub use probe_object_solid_tile::probe_object_solid_tile;
 pub use probe_player_solid_tile::probe_player_solid_tile;
 pub use probe_projected_solid_tile::probe_projected_solid_tile;
 pub use project_actor_position::project_actor_position;
+pub use project_final_exit_projectile_motion::project_final_exit_projectile_motion;
+pub use project_final_exit_projectile_spawn::project_final_exit_projectile_spawn;
 pub use project_player_position::project_player_position;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use project_scripted_player_position::project_scripted_player_position;
@@ -160,22 +170,7 @@ pub use restore_status_sprite_template::restore_status_sprite_template;
 pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
-pub use routine_0003::routine_0003;
-pub use routine_0005::routine_0005;
-pub use routine_0006::routine_0006;
-pub use routine_0007::routine_0007;
-pub use routine_0008::routine_0008;
-pub use routine_0009::routine_0009;
-pub use routine_0010::routine_0010;
-pub use routine_0011::routine_0011;
-pub use routine_0012::routine_0012;
-pub use routine_0013::routine_0013;
-pub use routine_0014::routine_0014;
-pub use routine_0015::routine_0015;
-pub use routine_0016::routine_0016;
-pub use routine_0017::routine_0017;
-pub use routine_0018::routine_0018;
-pub use routine_0019::routine_0019;
+pub use rotate_sprite_zero_from_scripted_oam::rotate_sprite_zero_from_scripted_oam;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -192,6 +187,7 @@ pub use sound_restore_game_banks::sound_restore_game_banks;
 pub use sound_set_default_banks::sound_set_default_banks;
 pub use sound_set_song_banks::sound_set_song_banks;
 pub use sound_tick::sound_tick;
+pub use spawn_final_exit_projectile::spawn_final_exit_projectile;
 pub use spawn_player_projectile::spawn_player_projectile;
 pub use spend_coins::spend_coins;
 pub use split_meter_value::split_meter_value;
@@ -206,6 +202,7 @@ pub use subtract_health_points::subtract_health_points;
 pub use subtract_scripted_player_health::subtract_scripted_player_health;
 pub use switch_song_if_needed::switch_song_if_needed;
 pub use sync_coin_hud::sync_coin_hud;
+pub use sync_final_exit_body_slots_from_player::sync_final_exit_body_slots_from_player;
 pub use sync_health_hud::sync_health_hud;
 pub use sync_key_hud::sync_key_hud;
 pub use sync_magic_hud::sync_magic_hud;
@@ -248,6 +245,9 @@ pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
 pub use update_actor_animation::update_actor_animation;
 pub use update_camera_scroll_from_player::update_camera_scroll_from_player;
+pub use update_final_exit_projectile_animation_bits::update_final_exit_projectile_animation_bits;
+pub use update_final_exit_projectile_slot::update_final_exit_projectile_slot;
+pub use update_final_exit_projectiles::update_final_exit_projectiles;
 pub use update_inventory_grid_cursor_sprites::update_inventory_grid_cursor_sprites;
 pub use update_inventory_list_cursor_sprites::update_inventory_list_cursor_sprites;
 pub use update_large_actor_facing_from_velocity::update_large_actor_facing_from_velocity;
@@ -901,9 +901,13 @@ mod rng_update {
     }
 }
 
-mod routine_0003 {
+mod advance_scripted_scroll_slice {
     use super::*;
-    pub fn routine_0003(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Builds one bank-9 metasprite/room-column slice for the scripted scrolling
+    /// sequence. `0xF9` is the source column, `0xFA` counts the remaining slices,
+    /// and `0x1D` flips between nametable halves after each 9-slice run.
+    pub fn advance_scripted_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xFA) == 0) {
             engine.set_mem(0x16, 0x0E);
             engine.set_mem(0x17, 0x20);
@@ -929,18 +933,21 @@ mod routine_0003 {
     }
 }
 
-mod routine_0005 {
+mod update_final_exit_projectiles {
     use super::*;
-    pub fn routine_0005(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Updates the three final-exit projectile slots at `0x0410..0x043F`,
+    /// spawning a new shot on the action-button edge when a slot is empty.
+    pub fn update_final_exit_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xE3, 0x01);
         engine.set_mem(0xE5, 0x10);
         engine.set_mem(0xE6, 0x04);
         loop {
             let mut p: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
             if cbool(engine.mem(u16v(p + 1)) != 0) {
-                routine_0007(engine, r);
+                update_final_exit_projectile_slot(engine, r);
             } else if (cbool(engine.mem(0x20) & 0x40) && !cbool(engine.mem(0xFD) & 0x40)) {
-                routine_0006(engine, r);
+                spawn_final_exit_projectile(engine, r);
             }
             engine.set_mem(0xE3, u8v(engine.mem(0xE3) + 1));
             {
@@ -952,20 +959,23 @@ mod routine_0005 {
                 break;
             }
         }
-        routine_0012(engine, r);
+        draw_final_exit_projectile_sprites(engine, r);
     }
 }
 
-mod routine_0006 {
+mod spawn_final_exit_projectile {
     use super::*;
-    pub fn routine_0006(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Initializes one final-exit projectile slot from the player's current
+    /// position and action direction.
+    pub fn spawn_final_exit_projectile(engine: &mut Engine, r: &mut RoutineContext) {
         load_object_slot_scratch(engine, r);
         engine.set_mem(0xFD, u8v((engine.mem(0x20) & 0x40) | engine.mem(0xFD)));
         r.value = engine.mem(0xFD);
         r.offset = 0x02;
-        routine_0015(engine, r);
-        routine_0008(engine, r);
-        routine_0010(engine, r);
+        build_final_exit_projectile_velocity(engine, r);
+        project_final_exit_projectile_spawn(engine, r);
+        check_final_exit_projectile_bounds(engine, r);
         if !cbool(r.carry) {
             engine.set_mem(0xF9, engine.mem(0x0E));
             engine.set_mem(0xFB, engine.mem(0x0A));
@@ -975,20 +985,23 @@ mod routine_0006 {
             engine.set_mem(0x8F, 0x19);
         }
         if cbool(engine.mem(0xEE) != 0) {
-            routine_0009(engine, r);
+            update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
     }
 }
 
-mod routine_0007 {
+mod update_final_exit_projectile_slot {
     use super::*;
-    pub fn routine_0007(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Ticks one active final-exit projectile slot, clearing it when its
+    /// lifetime expires or the projected position trips the bounds check.
+    pub fn update_final_exit_projectile_slot(engine: &mut Engine, r: &mut RoutineContext) {
         load_object_slot_scratch(engine, r);
         engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
         if cbool(engine.mem(0xEE) != 0) {
-            routine_0011(engine, r);
-            routine_0010(engine, r);
+            project_final_exit_projectile_motion(engine, r);
+            check_final_exit_projectile_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
             } else {
@@ -997,15 +1010,18 @@ mod routine_0007 {
             }
         }
         if cbool(engine.mem(0xEE) != 0) {
-            routine_0009(engine, r);
+            update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
     }
 }
 
-mod routine_0008 {
+mod project_final_exit_projectile_spawn {
     use super::*;
-    pub fn routine_0008(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Projects the spawn point from the player position using velocity scaled
+    /// by four pixels so new shots start ahead of the player.
+    pub fn project_final_exit_projectile_spawn(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0A, engine.mem(0x45));
         if cbool(engine.mem(0xF7) != 0) {
@@ -1019,17 +1035,27 @@ mod routine_0008 {
     }
 }
 
-mod routine_0009 {
+mod update_final_exit_projectile_animation_bits {
     use super::*;
-    pub fn routine_0009(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Folds the projectile lifetime phase into the slot state bits used by the
+    /// final-exit projectile sprite animation.
+    pub fn update_final_exit_projectile_animation_bits(
+        engine: &mut Engine,
+        r: &mut RoutineContext,
+    ) {
         engine.set_mem(0x08, u8v(engine.mem(0xEE) & 0x0C));
         engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | engine.mem(0x08)));
     }
 }
 
-mod routine_0010 {
+mod check_final_exit_projectile_bounds {
     use super::*;
-    pub fn routine_0010(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Raises carry when the projected projectile has crossed the right edge
+    /// while still in the scripted vertical range. Other paths intentionally
+    /// leave carry untouched to preserve the original branch contract.
+    pub fn check_final_exit_projectile_bounds(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x0A) >= 0xA1) {
             return;
         }
@@ -1043,9 +1069,12 @@ mod routine_0010 {
     }
 }
 
-mod routine_0011 {
+mod project_final_exit_projectile_motion {
     use super::*;
-    pub fn routine_0011(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Projects one active final-exit projectile from its saved slot position
+    /// and per-frame velocity.
+    pub fn project_final_exit_projectile_motion(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0xF9));
         engine.set_mem(0x0A, engine.mem(0xFB));
         if cbool(engine.mem(0xF7) != 0) {
@@ -1057,15 +1086,17 @@ mod routine_0011 {
     }
 }
 
-mod routine_0012 {
+mod draw_final_exit_projectile_sprites {
     use super::*;
-    pub fn routine_0012(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws all three final-exit projectile slots into their fixed OAM ranges.
+    pub fn draw_final_exit_projectile_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut count: i32 = 0;
         engine.set_mem(0x0F, 0x88);
         engine.set_mem(0x0E, 0x10);
         count = 0x03;
         loop {
-            routine_0013(engine, r);
+            draw_final_exit_projectile_slot_sprites(engine, r);
             engine.set_mem(0x0F, u8v(engine.mem(0x0F) + 0x08));
             engine.set_mem(0x0E, u8v(engine.mem(0x0E) + 0x10));
             count = u8v(count - 0x01);
@@ -1076,9 +1107,12 @@ mod routine_0012 {
     }
 }
 
-mod routine_0013 {
+mod draw_final_exit_projectile_slot_sprites {
     use super::*;
-    pub fn routine_0013(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws one final-exit projectile as a two-sprite pair or hides it when the
+    /// slot is inactive/offscreen.
+    pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = engine.mem(0x0F);
         let mut y: i32 = engine.mem(0x0E);
         let mut state: i32 = 0;
@@ -1136,9 +1170,12 @@ mod routine_0013 {
     }
 }
 
-mod routine_0014 {
+mod rotate_sprite_zero_from_scripted_oam {
     use super::*;
-    pub fn routine_0014(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Rotates one scripted OAM entry into sprite zero and hides the source
+    /// sprite. The sequence cycles through player/projectile sprites via `0x3E`.
+    pub fn rotate_sprite_zero_from_scripted_oam(engine: &mut Engine, r: &mut RoutineContext) {
         let mut c: i32 = u8v(engine.mem(0x3E) - 1);
         if cbool(c & 0x80) {
             c = 0x07;
@@ -1154,9 +1191,12 @@ mod routine_0014 {
     }
 }
 
-mod routine_0015 {
+mod build_final_exit_projectile_velocity {
     use super::*;
-    pub fn routine_0015(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Converts the latched action direction into final-exit projectile velocity
+    /// by accumulating the movement table for `r.offset` steps.
+    pub fn build_final_exit_projectile_velocity(engine: &mut Engine, r: &mut RoutineContext) {
         let mut y: i32 = 0;
         let mut x: i32 = 0;
         let mut a: i32 = 0;
@@ -1194,9 +1234,12 @@ mod routine_0015 {
     }
 }
 
-mod routine_0016 {
+mod load_final_exit_object_oam_template {
     use super::*;
-    pub fn routine_0016(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Loads the final-exit object OAM template and rebuilds the standard object
+    /// health meter.
+    pub fn load_final_exit_object_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         {
             x = 0x3F;
@@ -1213,9 +1256,12 @@ mod routine_0016 {
     }
 }
 
-mod routine_0017 {
+mod load_large_actor_oam_template {
     use super::*;
-    pub fn routine_0017(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Loads the large-actor OAM template and rebuilds the alternate object
+    /// health meter.
+    pub fn load_large_actor_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         {
             x = 0x3F;
@@ -1232,9 +1278,12 @@ mod routine_0017 {
     }
 }
 
-mod routine_0018 {
+mod load_final_exit_player_oam_template {
     use super::*;
-    pub fn routine_0018(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Loads the final-exit player-side OAM template and rebuilds the player
+    /// health meter.
+    pub fn load_final_exit_player_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         {
             x = 0x3F;
@@ -1251,9 +1300,12 @@ mod routine_0018 {
     }
 }
 
-mod routine_0019 {
+mod sync_final_exit_body_slots_from_player {
     use super::*;
-    pub fn routine_0019(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Mirrors the player pose and position into the three linked final-exit
+    /// body slots used by the scripted cutscene.
+    pub fn sync_final_exit_body_slots_from_player(engine: &mut Engine, r: &mut RoutineContext) {
         let mut v: i32 = u8v(engine.mem(0x56) & 0x1F);
         engine.set_mem(0x08, v);
         engine.set_mem(0x0410, u8v((engine.mem(0x0410) & 0xE0) | v));
@@ -8802,7 +8854,7 @@ mod initialize_large_actor_slot {
         }
         engine.set_mem(0x0E, 0xE1);
         engine.set_mem(0x0F, 0xA7);
-        with_large_actor_asset_banks(engine, r, routine_0017);
+        with_large_actor_asset_banks(engine, r, load_large_actor_oam_template);
         engine.set_mem(0x0E, 0x53);
         engine.set_mem(0x0F, 0xCB);
         with_large_actor_asset_banks(engine, r, build_object_health_meter_alt_tiles);

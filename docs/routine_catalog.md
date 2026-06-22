@@ -1,7 +1,7 @@
 # Routine Catalog
 
-This catalog is the working map for the numbered `routine_####` functions that
-remain in `src/game.rs`.
+This catalog is the working map for the port routines that originally carried
+numbered `routine_####` names.
 
 The numbers are stable port labels, not good semantic names. A routine should
 only be renamed or given a public semantic alias when its dataflow and call
@@ -83,13 +83,8 @@ Rust dataflow and should be preferred in comments and future renames.
 
 ## Complete Numbered Routine Coverage
 
-The following ranges cover every numbered routine currently present. A range is
-used when the routines form one tightly-coupled subsystem and individual names
-would currently be weaker than the cluster name.
-
-| Module | Routines | Status | Current role |
-|---|---:|---|---|
-| `game` | `0003`, `0005..0019` | cluster | opening/title scripted helpers, timed waits, cutscene sprite setup, and startup scene setup |
+No numbered `routine_####` functions currently remain in `src/game.rs` or
+`src/native.rs`.
 
 ## Named Non-Numbered Routines
 
@@ -114,6 +109,7 @@ surface when touching nearby code:
 | `animate_magic_refill_to_cap` | count magic up to the reward cap while updating HUD and prompt animation |
 | `advance_intro_text_scroll` | advance intro text scroll to the next 8-pixel boundary, flushing partial slices |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
+| `advance_scripted_scroll_slice` | build one bank-9 scroll/metasprite slice for the scripted final-exit sequence |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `apply_event_collectible_reward` | apply a reward from an event/shop path where no room object slot is cleared |
 | `apply_hazard_tile_contact` | apply floor hazard contact damage, recoil, and invulnerability latch for tile `0x30` |
@@ -129,6 +125,7 @@ surface when touching nearby code:
 | `build_object_health_meter_alt_tiles` | build object health with the alternate `0xA5/0xAB` sprite tile pair |
 | `build_object_health_meter_standard_tiles` | build object health with the standard `0x65/0x6B` sprite tile pair |
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
+| `build_final_exit_projectile_velocity` | convert the latched action direction into final-exit projectile velocity |
 | `build_room_palette_buffer` | copy room palette/attribute bytes into the palette buffer and apply active family palette |
 | `build_scripted_player_input_delta` | convert controller bits into scripted-player movement deltas |
 | `build_staged_room_column` | build one staged room column from the current room tile pointer and tileset metadata |
@@ -136,6 +133,7 @@ surface when touching nearby code:
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
 | `check_actor_direction_contact` | project one actor direction and report whether it contacts the player |
 | `check_final_exit_trigger` | set the final-exit flag when selected item `0x0F` is used at the exact required room position |
+| `check_final_exit_projectile_bounds` | raise carry when a final-exit projectile crosses the scripted right edge |
 | `check_projected_terrain_collision` | test the projected one-tile-wide object footprint against terrain |
 | `check_projected_wide_terrain_collision` | test the projected wide object footprint against terrain |
 | `check_player_overlap` | test projected object position against the player hitbox |
@@ -181,6 +179,8 @@ surface when touching nearby code:
 | `dispatch_room_tile_action` | dispatch the sampled projected room tile, including costs, object spawns, and tile projectiles |
 | `draw_carried_item_sprites` | draw the three carried-item slots for temporary room item selection |
 | `draw_coin_cost_sprites` | draw the two-sprite coin/cost marker shared by shop and refill rooms |
+| `draw_final_exit_projectile_sprites` | draw all three final-exit projectile slots into their fixed OAM ranges |
+| `draw_final_exit_projectile_slot_sprites` | draw one final-exit projectile two-sprite pair or hide it when inactive |
 | `draw_object_slot_sprites` | project one 16-byte room object slot into its two-sprite OAM entry |
 | `draw_player_sprites` | project the two player sprites into OAM using the current camera scroll |
 | `draw_room_object_sprites` | project the rolling set of room object slots into OAM |
@@ -223,6 +223,9 @@ surface when touching nearby code:
 | `load_effective_projectile_lifetime` | load projectile lifetime/state, applying the selected range-item boost when magic is available |
 | `load_family_item_permission_bits` | load shifted family/item permission bits and return the final shifted-out bit in carry |
 | `load_demo_oam_template` | copy the smaller demo-mode OAM template into sprite staging |
+| `load_final_exit_object_oam_template` | load the final-exit object OAM template and rebuild its health meter |
+| `load_final_exit_player_oam_template` | load the final-exit player-side OAM template and rebuild player health sprites |
+| `load_large_actor_oam_template` | load the large-actor OAM template and rebuild the alternate object health meter |
 | `load_intro_text_palette` | load the intro/text palette and queue it for upload |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
@@ -241,6 +244,8 @@ surface when touching nearby code:
 | `prepare_room_metadata_and_palette` | select room data pointers, derive room metadata, and build the active room palette buffer |
 | `push_room_checkpoint` | save gameplay room position, scroll, room identity, and current song before temporary room flows |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
+| `project_final_exit_projectile_motion` | project an active final-exit projectile from saved slot position and velocity |
+| `project_final_exit_projectile_spawn` | project a final-exit projectile spawn point ahead of the player |
 | `project_scripted_player_position` | project scripted-player X/Y into movement scratch from the active deltas |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
 | `probe_actor_overhead_step` | probe the projected tile row above an actor when it is tile-aligned |
@@ -263,6 +268,7 @@ surface when touching nearby code:
 | `restore_room_from_checkpoint` | pop a temporary-room checkpoint and rebuild the gameplay room, saved song, sprites, and player pose |
 | `restore_status_sprite_template` | restore the fixed status/menu sprite template and its PPU bank shadows |
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
+| `rotate_sprite_zero_from_scripted_oam` | rotate one scripted OAM entry into sprite zero and hide the source sprite |
 | `rng_update` | update random source bounded by `r.value` |
 | `run_carried_item_loadout_flow` | refill the active family member's carried-item queue from inventory |
 | `run_character_select_overlay` | open the in-game character-select overlay, wait for select-button release, and restore the room |
@@ -286,6 +292,7 @@ surface when touching nearby code:
 | `setup_final_exit_sequence` | seed the scripted room, player, and object state for the final exit sequence |
 | `show_inventory_item_list_screen` | show the read-only inventory item-list page until the player presses a button |
 | `show_player_pose_for_eight_frames` | show the player sprite pose in `r.index/r.offset` for eight frames |
+| `spawn_final_exit_projectile` | initialize one final-exit projectile from player position and action direction |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -305,6 +312,7 @@ surface when touching nearby code:
 | `subtract_scripted_player_health` | subtract scripted contact damage from health and saturate at zero |
 | `switch_song_if_needed` | start a new song only when the requested song id differs from `0x8E` |
 | `sync_coin_hud` | clamp coins and queue their HUD digits for redraw |
+| `sync_final_exit_body_slots_from_player` | mirror player pose and position into the final-exit linked body slots |
 | `sync_health_hud` | clamp health and queue its HUD digits for redraw |
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
@@ -350,6 +358,9 @@ surface when touching nearby code:
 | `try_trigger_magic_contact_actor` | mark a contacted actor for high-bit behavior when the magic-contact timer is active |
 | `unlock_door_with_key` | spend a key and run the door-unlock prompt/music sequence |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
+| `update_final_exit_projectile_animation_bits` | fold final-exit projectile lifetime phase into slot animation bits |
+| `update_final_exit_projectile_slot` | tick one final-exit projectile slot and clear it on expiry/bounds |
+| `update_final_exit_projectiles` | update the three final-exit projectile slots and spawn on action edge |
 | `update_inventory_grid_cursor_sprites` | position the 2x2 cursor around the active inventory grid cell |
 | `update_inventory_list_cursor_sprites` | position the arrow sprites for the scrolling selected item-list slot |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
@@ -393,10 +404,7 @@ surface when touching nearby code:
 
 ## Next Renaming Targets
 
-The safest remaining concrete rename/alias batches are:
-
-The isolated frame render/object sprite helpers, menu visual helpers, native
-flow entry points, and scripted-player final-exit helpers have been renamed and
-covered by existing or focused tests. The remaining numbered work is in the
-larger startup/title scripted helper cluster listed above; split it only after
-tracing its caller state and adding narrow regression coverage.
+All `routine_####` functions have been renamed. The next documentation pass
+should target remaining raw scratch addresses and short local names inside the
+larger state machines, replacing them with scoped helper names only where the
+dataflow is trace-backed.

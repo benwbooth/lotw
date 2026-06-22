@@ -202,8 +202,20 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
                     0xab,
                     crate::game::tick_scripted_player_motion,
                 );
-                farcall_0c0d(engine, r, 0xe6, 0xa5, crate::game::routine_0005);
-                farcall_0c0d(engine, r, 0x5d, 0xa7, crate::game::routine_0014);
+                farcall_0c0d(
+                    engine,
+                    r,
+                    0xe6,
+                    0xa5,
+                    crate::game::update_final_exit_projectiles,
+                );
+                farcall_0c0d(
+                    engine,
+                    r,
+                    0x5d,
+                    0xa7,
+                    crate::game::rotate_sprite_zero_from_scripted_oam,
+                );
                 farcall_0c0d(engine, r, 0xe3, 0xa3, tick_final_exit_sequence);
                 if player_health(engine) != 0 {
                     break;
@@ -319,8 +331,8 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::draw_scripted_player_sprites(engine, r);
     engine.set_mem(0x0210, 0xef);
     engine.set_mem(0x0214, 0xef);
-    crate::game::routine_0016(engine, r);
-    crate::game::routine_0018(engine, r);
+    crate::game::load_final_exit_object_oam_template(engine, r);
+    crate::game::load_final_exit_player_oam_template(engine, r);
 }
 
 /// Runs the one-shot final-exit cutscene path that is entered before the special
@@ -334,7 +346,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     set_sprite_blink_timer(engine, 0x00);
     engine.set_mem(0x88, 0x00);
     crate::game::draw_scripted_player_sprites(engine, r);
-    crate::game::routine_0012(engine, r);
+    crate::game::draw_final_exit_projectile_sprites(engine, r);
     engine.set_mem(0x0200, 0xef);
 
     while engine.mem(0x45) < 0xa0 {
@@ -355,13 +367,13 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7a, 0xb6);
 
     loop {
-        crate::game::routine_0003(engine, r);
+        crate::game::advance_scripted_scroll_slice(engine, r);
         if engine.mem(0xfa) == 0 {
             break;
         }
     }
     loop {
-        crate::game::routine_0003(engine, r);
+        crate::game::advance_scripted_scroll_slice(engine, r);
         if engine.mem(0xfa) == 0 {
             break;
         }
@@ -371,13 +383,13 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     set_prompt_argument(engine, 0x80);
     engine.set_mem(0x7a, 0xb7);
     loop {
-        crate::game::routine_0003(engine, r);
+        crate::game::advance_scripted_scroll_slice(engine, r);
         if engine.mem(0xfa) == 0 {
             break;
         }
     }
     loop {
-        crate::game::routine_0003(engine, r);
+        crate::game::advance_scripted_scroll_slice(engine, r);
         if engine.mem(0xfa) == 0 {
             break;
         }
@@ -404,7 +416,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
 
         crate::game::draw_scripted_player_sprites(engine, r);
-        crate::game::routine_0014(engine, r);
+        crate::game::rotate_sprite_zero_from_scripted_oam(engine, r);
         engine.dec_mem(0x10);
         if engine.mem(0x10) == 0 {
             break;
@@ -468,7 +480,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x043e, 0xa0);
     engine.set_mem(0x044e, 0x70);
     engine.set_mem(0x044d, 0x33);
-    crate::game::routine_0019(engine, r);
+    crate::game::sync_final_exit_body_slots_from_player(engine, r);
     let mut v = 0x2d;
     engine.set_mem(0x0410, v);
     v = u8v(v + 0x20);
@@ -536,7 +548,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
             0xc1,
             crate::game::update_camera_scroll_from_player,
         );
-        crate::game::routine_0019(engine, r);
+        crate::game::sync_final_exit_body_slots_from_player(engine, r);
         crate::game::draw_player_sprites(engine, r);
         crate::game::draw_room_object_sprites(engine, r);
         if engine.mem(0x7e) != engine.mem(0x7c) {
@@ -736,7 +748,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         }
     }
 
-    crate::game::routine_0003(engine, r);
+    crate::game::advance_scripted_scroll_slice(engine, r);
     crate::game::store_object_slot_scratch(engine, r);
 }
 
