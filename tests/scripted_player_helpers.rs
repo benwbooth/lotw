@@ -17,6 +17,22 @@ fn scripted_player_projection_applies_x_and_y_deltas() {
 }
 
 #[test]
+fn scripted_player_input_delta_uses_controller_direction_table() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x20, 0x01);
+    engine.set_mem(0xFE8D, 0x05);
+    engine.set_mem(0xFE8E, 0xFD);
+
+    game::build_scripted_player_input_delta(&mut engine, &mut r);
+
+    assert_eq!(r.index, 0x02);
+    assert_eq!(engine.mem(0x49), 0x05);
+    assert_eq!(engine.mem(0x4B), 0xFD);
+}
+
+#[test]
 fn scripted_player_bounds_reject_bottom_and_right_edges() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
@@ -35,6 +51,23 @@ fn scripted_player_bounds_reject_bottom_and_right_edges() {
     engine.set_mem(0x0E, 0xF1);
     game::check_scripted_player_bounds(&mut engine, &mut r);
     assert_eq!(r.carry, 1);
+}
+
+#[test]
+fn scripted_player_move_retries_vertical_delta_toward_bounds() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x43, 0x20);
+    engine.set_mem(0x45, 0x9F);
+    engine.set_mem(0x49, 0x00);
+    engine.set_mem(0x4B, 0x02);
+
+    game::try_move_scripted_player_in_bounds(&mut engine, &mut r);
+
+    assert_eq!(r.carry, 0);
+    assert_eq!(engine.mem(0x0A), 0xA0);
+    assert_eq!(engine.mem(0x4B), 0x02);
 }
 
 #[test]

@@ -1406,8 +1406,8 @@ mod tick_scripted_player_jump_action {
     /// `0x22` blocks held-button retriggers, matching the normal player jump
     /// helper without item/magic extensions.
     pub fn tick_scripted_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x4F);
-        if cbool(x == 0) {
+        let jump_timer = engine.mem(0x4F);
+        if cbool(jump_timer == 0) {
             if cbool(engine.mem(0x22) != 0) {
                 return;
             }
@@ -1416,7 +1416,7 @@ mod tick_scripted_player_jump_action {
         }
         engine.set_mem(0x22, 0x01);
         engine.set_mem(0x4F, u8v(engine.mem(0x4F) - 1));
-        engine.set_mem(0x4B, u8v((u8v(x >> 2) ^ 0xFF) + 1));
+        engine.set_mem(0x4B, u8v((u8v(jump_timer >> 2) ^ 0xFF) + 1));
         try_move_scripted_player_in_bounds(engine, r);
         if cbool(r.carry) {
             engine.set_mem(0x49, 0x00);
@@ -1562,13 +1562,13 @@ mod tick_scripted_player_walk_animation {
     /// eight moving frames when not jumping or falling.
     pub fn tick_scripted_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x56) < 0x20) {
-            let mut a: i32 = engine.mem(0x56);
+            let mut pose = engine.mem(0x56);
             if cbool(engine.mem(0x20) & 0x40) {
-                a = u8v(a | 0x10);
+                pose = u8v(pose | 0x10);
             } else {
-                a = u8v(a & 0xEF);
+                pose = u8v(pose & 0xEF);
             }
-            engine.set_mem(0x56, a);
+            engine.set_mem(0x56, pose);
         }
         if cbool((engine.mem(0x20) & 0x0F) == 0) {
             return;
@@ -1627,7 +1627,7 @@ mod try_move_scripted_player_in_bounds {
     /// Projects scripted player motion and retries vertical movement toward zero
     /// until the screen-bounds check succeeds or the delta is exhausted.
     pub fn try_move_scripted_player_in_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved: i32 = engine.mem(0x4B);
+        let saved_y_delta = engine.mem(0x4B);
         loop {
             project_scripted_player_position(engine, r);
             check_scripted_player_bounds(engine, r);
@@ -1635,25 +1635,25 @@ mod try_move_scripted_player_in_bounds {
                 break;
             }
             {
-                let mut x: i32 = engine.mem(0x4B);
-                if cbool(x == 0) {
+                let mut adjusted_y_delta = engine.mem(0x4B);
+                if cbool(adjusted_y_delta == 0) {
                     r.carry = 1;
                     break;
                 }
-                if !cbool(x & 0x80) {
-                    x = u8v(x - 1);
-                    x = u8v(x - 1);
+                if !cbool(adjusted_y_delta & 0x80) {
+                    adjusted_y_delta = u8v(adjusted_y_delta - 1);
+                    adjusted_y_delta = u8v(adjusted_y_delta - 1);
                 }
-                x = u8v(x + 1);
-                engine.set_mem(0x4B, x);
-                if cbool(x != 0) {
+                adjusted_y_delta = u8v(adjusted_y_delta + 1);
+                engine.set_mem(0x4B, adjusted_y_delta);
+                if cbool(adjusted_y_delta != 0) {
                     continue;
                 }
                 r.carry = 1;
                 break;
             }
         }
-        engine.set_mem(0x4B, saved);
+        engine.set_mem(0x4B, saved_y_delta);
     }
 }
 
@@ -1673,14 +1673,14 @@ mod update_scripted_player_fall_state {
             return;
         }
         {
-            let mut a: i32 = engine.mem(0x4E);
-            if cbool(a >= engine.mem(0x5C)) {
-                a = u8v(a - 0x07);
-                if cbool(a >= engine.mem(0x5C)) {
-                    a = engine.mem(0x5C);
+            let mut fall_frames = engine.mem(0x4E);
+            if cbool(fall_frames >= engine.mem(0x5C)) {
+                fall_frames = u8v(fall_frames - 0x07);
+                if cbool(fall_frames >= engine.mem(0x5C)) {
+                    fall_frames = engine.mem(0x5C);
                 }
-                a = u8v(a - 0x01);
-                engine.set_mem(0x4F, a);
+                fall_frames = u8v(fall_frames - 0x01);
+                engine.set_mem(0x4F, fall_frames);
                 engine.set_mem(0x8F, 0x0A);
             }
         }
@@ -1694,18 +1694,16 @@ mod subtract_scripted_player_health {
     /// Subtracts scripted contact damage from health and saturates underflow at
     /// zero while preserving the 6502-style flags in `RoutineContext`.
     pub fn subtract_scripted_player_health(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut lhs: i32 = 0;
-        let mut res: i32 = 0;
         engine.set_mem(0x08, r.value);
-        lhs = engine.mem(0x58);
+        let current_health = engine.mem(0x58);
         {
-            let mut t: i32 = u16v(lhs) - u16v(engine.mem(0x08));
-            res = u8v(t);
-            r.carry = (if cbool(t & 0x100) { 0 } else { 1 });
-            r.zero = u8v((if cbool(res == 0) { 1 } else { 0 }));
-            r.negative = (res >> 7) & 1;
+            let difference = u16v(current_health) - u16v(engine.mem(0x08));
+            let result = u8v(difference);
+            r.carry = if cbool(difference & 0x100) { 0 } else { 1 };
+            r.zero = if cbool(result == 0) { 1 } else { 0 };
+            r.negative = (result >> 7) & 1;
+            engine.set_mem(0x58, result);
         }
-        engine.set_mem(0x58, res);
         if !cbool(r.carry) {
             engine.set_mem(0x58, 0x00);
         }
