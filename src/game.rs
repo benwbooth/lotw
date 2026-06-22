@@ -6484,19 +6484,11 @@ mod load_object_slot_scratch {
     /// `0xED..0xFC`.
     pub fn load_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
         let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-        let mut slot_offset: i32 = 0;
-        {
-            slot_offset = 0x0F;
-            while cbool(slot_offset >= 0) {
-                engine.set_mem(
-                    u16v(0x00ED + slot_offset),
-                    engine.mem(u16v(slot_ptr + slot_offset)),
-                );
-                {
-                    slot_offset -= 1;
-                    slot_offset
-                };
-            }
+        for slot_offset in (0..=0x0F).rev() {
+            engine.set_mem(
+                0x00ED + slot_offset,
+                engine.mem(u16v(slot_ptr + slot_offset)),
+            );
         }
         r.offset = 0xFF;
     }
@@ -6509,19 +6501,11 @@ mod store_object_slot_scratch {
     /// `0xE5..0xE6`.
     pub fn store_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
         let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-        let mut slot_offset: i32 = 0;
-        {
-            slot_offset = 0x0F;
-            while cbool(slot_offset >= 0) {
-                engine.set_mem(
-                    u16v(slot_ptr + slot_offset),
-                    engine.mem(u16v(0x00ED + slot_offset)),
-                );
-                {
-                    slot_offset -= 1;
-                    slot_offset
-                };
-            }
+        for slot_offset in (0..=0x0F).rev() {
+            engine.set_mem(
+                u16v(slot_ptr + slot_offset),
+                engine.mem(0x00ED + slot_offset),
+            );
         }
         r.offset = 0xFF;
     }
