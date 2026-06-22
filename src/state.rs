@@ -1101,6 +1101,27 @@ impl GameState {
         self.set_byte(0x40, value);
     }
 
+    /// Equipped item slot `i` (`$51 + i`), selected by the inventory cursor
+    /// ([`Self::selected_item_slot`]).
+    #[inline]
+    pub fn item_slot(&self, i: i32) -> i32 {
+        self.byte(0x51 + i)
+    }
+    #[inline]
+    pub fn set_item_slot(&mut self, i: i32, value: i32) {
+        self.set_byte(0x51 + i, value);
+    }
+
+    /// Inventory item byte `i` in the 16-entry inventory table (`$0060 + i`).
+    #[inline]
+    pub fn inventory_item(&self, i: i32) -> i32 {
+        self.byte(0x0060 + i)
+    }
+    #[inline]
+    pub fn set_inventory_item(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0060 + i, value);
+    }
+
     /// Selected inventory/menu item slot (cursor index) (`$55`).
     #[inline]
     pub fn selected_item_slot(&self) -> i32 {

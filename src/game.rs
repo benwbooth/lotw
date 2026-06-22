@@ -2400,7 +2400,7 @@ mod draw_status_item_sprites {
 
         for item_slot in (0..=0x02).rev() {
             let oam_offset: i32 = item_slot << 3;
-            let item_id: i32 = engine.mem(u16v(0x0051 + item_slot));
+            let item_id: i32 = engine.state.item_slot(item_slot);
             let sprite_y: i32 = if cbool(item_id & 0x80) {
                 0xEF
             } else {
@@ -3901,7 +3901,7 @@ mod upload_inventory_count_tiles {
             x = 0x0F;
             while cbool(x >= 0) {
                 r.index = u8v(x);
-                r.offset = engine.mem(u16v(0x0060 + x));
+                r.offset = engine.state.inventory_item(x);
                 upload_inventory_item_count_tiles(engine, r);
                 r.index = u8v(x);
                 {
@@ -4111,7 +4111,7 @@ mod load_effective_jump_duration {
     /// selected jump item is present and magic can pay for the boosted value.
     pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
-        let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
+        let selected_item: i32 = engine.state.item_slot(selected_item_slot);
         r.index = selected_item_slot;
         if cbool(selected_item == 0x06) && cbool(engine.state.player_magic() != 0) {
             let base_jump_duration: i32 = engine.state.jump_strength();
@@ -4131,7 +4131,7 @@ mod load_effective_projectile_damage {
     /// projectile-power item is active and magic can pay for the boosted shot.
     pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
-        let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
+        let selected_item: i32 = engine.state.item_slot(selected_item_slot);
         if cbool(selected_item == 0x08) && cbool(engine.state.player_magic() != 0) {
             r.value = u8v(engine.mem(0x5D) << 2);
             r.carry = 0;
@@ -4150,7 +4150,7 @@ mod load_effective_projectile_lifetime {
     pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
         r.index = selected_item_slot;
-        if cbool(engine.mem((0x51 + selected_item_slot) & 0xFF) == 0x09)
+        if cbool(engine.state.item_slot(selected_item_slot) == 0x09)
             && cbool(engine.state.player_magic() != 0)
         {
             r.value = u8v(engine.mem(0x5F) << 1);
@@ -4222,7 +4222,7 @@ mod snapshot_inventory_state {
         for inventory_offset in (0..16).rev() {
             engine.set_mem(
                 0x0310 + inventory_offset,
-                engine.mem(0x0060 + inventory_offset),
+                engine.state.inventory_item(inventory_offset),
             );
         }
         engine.set_mem(0x0321, engine.state.coins());
@@ -4339,7 +4339,7 @@ mod tick_player_jump_action {
                     engine.state.set_jump_timer(engine.state.jump_strength());
                     {
                         let selected_slot: i32 = engine.state.selected_item_slot();
-                        if cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x06) {
+                        if cbool(engine.state.item_slot(selected_slot) == 0x06) {
                             consume_magic_point(engine, r);
                             if !cbool(r.carry) {
                                 let jump_timer: i32 = engine.state.jump_timer();
@@ -4613,7 +4613,7 @@ mod check_final_exit_trigger {
     /// room/scroll/player position expected by the original game.
     pub fn check_final_exit_trigger(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_slot: i32 = engine.state.selected_item_slot();
-        if (cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x0F)
+        if (cbool(engine.state.item_slot(selected_slot) == 0x0F)
             && cbool(engine.state.map_screen_x() == 0x01)
             && cbool(engine.state.map_screen_y() == 0x05)
             && cbool(engine.state.scroll_tile_x() == 0x10)
@@ -5334,11 +5334,14 @@ mod apply_event_collectible_reward {
         }
         {
             let inventory_item_id: i32 = u8v(reward_id - 0x08);
-            if cbool(engine.mem(u16v(0x60 + inventory_item_id)) >= 0x0B) {
+            if cbool(engine.state.inventory_item(inventory_item_id) >= 0x0B) {
                 engine.state.set_prompt_state(0x1D);
                 return;
             }
-            engine.inc_mem(u16v(0x60 + inventory_item_id));
+            engine.state.set_inventory_item(
+                inventory_item_id,
+                (engine.state.inventory_item(inventory_item_id) + 1) & 0xFF,
+            );
             engine.state.set_prompt_state(0x13);
             if cbool(inventory_item_id == 0x0E) {
                 clear_room_persistent_flag(engine, r);
@@ -5411,11 +5414,14 @@ mod collect_room_pickup_object {
         }
         {
             let inventory_item_id: i32 = u8v(reward_id - 0x08);
-            if cbool(engine.mem(u16v(0x60 + inventory_item_id)) >= 0x0B) {
+            if cbool(engine.state.inventory_item(inventory_item_id) >= 0x0B) {
                 engine.state.set_prompt_state(0x1D);
                 return;
             }
-            engine.inc_mem(u16v(0x60 + inventory_item_id));
+            engine.state.set_inventory_item(
+                inventory_item_id,
+                (engine.state.inventory_item(inventory_item_id) + 1) & 0xFF,
+            );
             engine.state.set_prompt_state(0x13);
             if cbool(inventory_item_id == 0x0E) {
                 clear_room_persistent_flag(engine, r);
@@ -5710,13 +5716,13 @@ mod dispatch_overhead_tile_action {
 
     fn dispatch_four_fragment_overhead_tile(engine: &mut Engine, r: &mut RoutineContext) -> bool {
         let selected_slot = engine.state.selected_item_slot();
-        if engine.mem(u16v(0x51 + selected_slot)) != 0x0E {
+        if engine.state.item_slot(selected_slot) != 0x0E {
             return false;
         }
 
         let mut fragment_count = engine.mem(0x6E);
         for slot in 0..=2 {
-            if engine.mem(u16v(0x51 + slot)) == 0x0E {
+            if engine.state.item_slot(slot) == 0x0E {
                 fragment_count = u8v(fragment_count + 1);
             }
         }
@@ -6281,7 +6287,7 @@ mod draw_carried_item_sprites {
         {
             x = 2;
             while cbool(x >= 0) {
-                let mut item: i32 = engine.mem(u16v(0x0051 + x));
+                let mut item: i32 = engine.state.item_slot(x);
                 if cbool(item & 0x80) {
                     a = 0xEF;
                 } else {
@@ -6331,7 +6337,7 @@ mod draw_shop_item_sprites {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(u16v(0x0060 + x)) >= 0x0B) {
+                    if cbool(engine.state.inventory_item(x) >= 0x0B) {
                         engine.set_mem(0x80, 0xEF);
                         a = 0xEF;
                         {
@@ -6363,7 +6369,7 @@ mod draw_shop_item_sprites {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(u16v(0x0060 + x)) >= 0x0B) {
+                    if cbool(engine.state.inventory_item(x) >= 0x0B) {
                         engine.set_mem(0x82, 0xEF);
                         a = 0xEF;
                         {
@@ -8344,7 +8350,7 @@ mod apply_actor_player_contact_damage {
         if cbool(engine.state.chr_bank(3) >= 0x30) {
             if cbool(engine.mem(0xE3) != 0) {
                 let mut selected_item_slot: i32 = engine.state.selected_item_slot();
-                if cbool(engine.mem(u16v(0x0051 + selected_item_slot)) == 0x0A) {
+                if cbool(engine.state.item_slot(selected_item_slot) == 0x0A) {
                     engine.state.set_prompt_state(0x01);
                     return;
                 }

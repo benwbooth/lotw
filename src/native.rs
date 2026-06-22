@@ -1221,8 +1221,8 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     if !use_game_over_screen {
         if (engine.state.continue_timer() & 0x80) != 0 {
             let x = engine.state.selected_item_slot();
-            if engine.mem(u16v(0x51 + x)) == 0x0c {
-                engine.set_mem(u16v(0x51 + x), 0xff);
+            if engine.state.item_slot(x) == 0x0c {
+                engine.state.set_item_slot(x, 0xff);
                 crate::game::draw_status_item_sprites(engine, r);
             } else {
                 use_game_over_screen = true;
@@ -1650,7 +1650,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
         let selected_slot = engine.state.selected_item_slot();
-        let selected_item = engine.mem(u16v(0x0051 + selected_slot));
+        let selected_item = engine.state.item_slot(selected_slot);
         if selected_item != 0x05 || engine.state.fall_frames() == 0 {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
@@ -1734,7 +1734,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         if engine.mem(0x0491) == 0 {
             engine.state.set_scratch3(tile_offset);
             r.index = engine.state.selected_item_slot();
-            let item = engine.mem(u16v(0x0051 + r.index));
+            let item = engine.state.item_slot(r.index);
             r.value = item;
             if item == 0x07 {
                 r.index = engine.state.selected_item_slot();
@@ -1767,7 +1767,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_scratch3(tile_offset);
             engine.state.set_obj_move_state(0x01);
             r.offset = engine.state.selected_item_slot();
-            r.index = engine.mem(u16v(0x0051 + r.offset));
+            r.index = engine.state.item_slot(r.offset);
             let idx = r.index;
             if idx == 1 {
                 if engine.state.player_magic() != 0 {
@@ -2298,11 +2298,13 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     engine.state.set_player_magic(0x00);
     if engine.state.character_index() < 0x06 {
         for y in (0..=2).rev() {
-            let x = engine.mem(u16v(0x51 + y));
+            let x = engine.state.item_slot(y);
             if (x & 0x80) == 0 {
-                engine.inc_mem(u16v(0x60 + x));
+                engine
+                    .state
+                    .set_inventory_item(x, (engine.state.inventory_item(x) + 1) & 0xFF);
             }
-            engine.set_mem(u16v(0x51 + y), 0xff);
+            engine.state.set_item_slot(y, 0xff);
         }
         crate::game::snapshot_inventory_state(engine, r);
     }
@@ -2337,7 +2339,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 crate::game::song_init(engine, r);
                 if (engine.state.continue_timer() & 0x80) != 0 && engine.state.buttons() == 0xc3 {
                     for x in (0..=0x0d).rev() {
-                        engine.set_mem(u16v(0x60 + x), 0x10);
+                        engine.state.set_inventory_item(x, 0x10);
                     }
                     engine.state.set_continue_timer(0x80);
                     engine.state.set_coins(0x80);
@@ -2489,7 +2491,9 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
             if cbool(r.carry) {
                 engine.set_mem(u16v(0x80 + x), 0xff);
                 crate::game::draw_shop_item_sprites(engine, r);
-                engine.inc_mem(u16v(0x60 + item));
+                engine
+                    .state
+                    .set_inventory_item(item, (engine.state.inventory_item(item) + 1) & 0xFF);
                 engine.state.set_prompt_state(0x10);
             } else {
                 if item == 0x0d && engine.state.continue_timer() != 0 {
@@ -2728,7 +2732,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         walk_loadout_room_until_action_or_exit(engine, r);
         if cbool(r.carry) {
             let e = engine.state.selected_item_slot();
-            if engine.mem(u16v(0x51 + e)) == 0x0d {
+            if engine.state.item_slot(e) == 0x0d {
                 engine.state.set_selected_item_slot(0x03);
                 crate::game::draw_status_item_sprites(engine, r);
             }
@@ -2742,11 +2746,13 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             x = if py < 0x38 { 0x00 } else { 0x08 };
             engine.state.set_scratch0(x);
             x = u8v((engine.state.player_x_tile() >> 1) | engine.state.scratch0());
-            if engine.mem(u16v(0x60 + x)) != 0 {
+            if engine.state.inventory_item(x) != 0 {
                 r.value = x;
                 crate::game::load_family_item_permission_bits(engine, r);
                 if cbool(r.carry) {
-                    engine.dec_mem(u16v(0x60 + x));
+                    engine
+                        .state
+                        .set_inventory_item(x, (engine.state.inventory_item(x) - 1) & 0xFF);
                     true
                 } else {
                     false
@@ -2762,7 +2768,9 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         engine.state.set_scratch0(x);
         let ci0 = engine.mem(0x51);
         if (ci0 & 0x80) == 0 {
-            engine.inc_mem(u16v(0x60 + ci0));
+            engine
+                .state
+                .set_inventory_item(ci0, (engine.state.inventory_item(ci0) + 1) & 0xFF);
         }
         engine.set_mem(0x51, engine.mem(0x52));
         engine.set_mem(0x52, engine.mem(0x53));
