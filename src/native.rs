@@ -1109,7 +1109,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     frame::wait_for_frame_counter(engine, r);
 
     r.value = 0x08;
-    crate::game::routine_0123(engine, r);
+    crate::game::switch_song_if_needed(engine, r);
     engine.dec_mem(0x8d);
 
     engine.set_mem(0x0a, 0x05);
@@ -1157,7 +1157,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0x56, 0x19);
             crate::game::read_debounced_buttons(engine, r);
             r.value = saved_song;
-            crate::game::routine_0123(engine, r);
+            crate::game::switch_song_if_needed(engine, r);
             r.index = 0x00;
             return;
         }
@@ -1990,8 +1990,8 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         r.value = 0x08;
         crate::game::enter_temporary_room_page(engine, r);
         crate::game::draw_carried_item_sprites(engine, r);
-        crate::game::routine_0117(engine, r);
-        crate::game::routine_0119(engine, r);
+        crate::game::upload_inventory_count_tiles(engine, r);
+        crate::game::upload_equipped_item_stat_tiles(engine, r);
         engine.set_mem(0x7b, 0x08);
         crate::game::routine_0060(engine, r);
         crate::game::routine_0061(engine, r);
@@ -2024,7 +2024,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         fade_room_palette_out_reset_audio(engine, r);
         crate::game::clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xfe);
-        crate::game::routine_0123(engine, r);
+        crate::game::switch_song_if_needed(engine, r);
         crate::game::prepare_room_metadata_and_palette(engine, r);
         crate::game::upload_current_room_view(engine, r);
         crate::game::routine_0061(engine, r);
@@ -2173,8 +2173,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             r.value = 0x08;
             crate::game::refresh_temporary_room_page(engine, r);
             crate::game::draw_carried_item_sprites(engine, r);
-            crate::game::routine_0117(engine, r);
-            crate::game::routine_0119(engine, r);
+            crate::game::upload_inventory_count_tiles(engine, r);
+            crate::game::upload_equipped_item_stat_tiles(engine, r);
             engine.set_mem(0x7b, 0x08);
             crate::game::routine_0060(engine, r);
             crate::game::routine_0061(engine, r);
@@ -2317,8 +2317,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         r.value = 0x08;
         crate::game::enter_temporary_room_page(engine, r);
         crate::game::draw_carried_item_sprites(engine, r);
-        crate::game::routine_0117(engine, r);
-        crate::game::routine_0119(engine, r);
+        crate::game::upload_inventory_count_tiles(engine, r);
+        crate::game::upload_equipped_item_stat_tiles(engine, r);
         engine.set_mem(0x7b, 0x08);
         crate::game::routine_0060(engine, r);
         crate::game::routine_0061(engine, r);
@@ -2347,7 +2347,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x80, s80);
 
     crate::game::draw_shop_item_sprites(engine, r);
-    crate::game::routine_0120(engine, r);
+    crate::game::upload_shop_price_tiles(engine, r);
     crate::game::draw_coin_cost_sprites(engine, r);
     fade_room_palette_in(engine, r);
 
@@ -2615,7 +2615,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             x = u8v((engine.mem(0x44) >> 1) | engine.mem(0x08));
             if engine.mem(u16v(0x60 + x)) != 0 {
                 r.value = x;
-                crate::game::routine_0122(engine, r);
+                crate::game::load_family_item_permission_bits(engine, r);
                 if cbool(r.carry) {
                     engine.dec_mem(u16v(0x60 + x));
                     true
@@ -2641,8 +2641,8 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         engine.set_mem(0x8f, 0x12);
         crate::game::draw_carried_item_sprites(engine, r);
         crate::game::routine_0062(engine, r);
-        crate::game::routine_0117(engine, r);
-        crate::game::routine_0119(engine, r);
+        crate::game::upload_inventory_count_tiles(engine, r);
+        crate::game::upload_equipped_item_stat_tiles(engine, r);
     }
 }
 

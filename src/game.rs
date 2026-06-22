@@ -31,6 +31,7 @@ pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
 pub use audio_cmd_set_pitch_offset::audio_cmd_set_pitch_offset;
 pub use audio_cmd_set_sweep_value::audio_cmd_set_sweep_value;
 pub use audio_cmd_set_volume_scale::audio_cmd_set_volume_scale;
+pub use build_decimal_digit_tiles::build_decimal_digit_tiles;
 pub use build_direction_velocity::build_direction_velocity;
 pub use build_health_meter_sprites::build_health_meter_sprites;
 pub use build_input_movement_delta::build_input_movement_delta;
@@ -100,6 +101,7 @@ pub use initialize_large_actor_slot::initialize_large_actor_slot;
 pub use load_effective_jump_duration::load_effective_jump_duration;
 pub use load_effective_projectile_damage::load_effective_projectile_damage;
 pub use load_effective_projectile_lifetime::load_effective_projectile_lifetime;
+pub use load_family_item_permission_bits::load_family_item_permission_bits;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
@@ -188,13 +190,6 @@ pub use routine_0063::routine_0063;
 pub use routine_0064::routine_0064;
 pub use routine_0065::routine_0065;
 pub use routine_0066::routine_0066;
-pub use routine_0117::routine_0117;
-pub use routine_0118::routine_0118;
-pub use routine_0119::routine_0119;
-pub use routine_0120::routine_0120;
-pub use routine_0121::routine_0121;
-pub use routine_0122::routine_0122;
-pub use routine_0123::routine_0123;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -219,6 +214,7 @@ pub use statusbar_split::statusbar_split;
 pub use stop_actor_motion::stop_actor_motion;
 pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use subtract_health_points::subtract_health_points;
+pub use switch_song_if_needed::switch_song_if_needed;
 pub use sync_coin_hud::sync_coin_hud;
 pub use sync_health_hud::sync_health_hud;
 pub use sync_key_hud::sync_key_hud;
@@ -269,12 +265,16 @@ pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
 pub use upload_current_room_view::upload_current_room_view;
+pub use upload_equipped_item_stat_tiles::upload_equipped_item_stat_tiles;
+pub use upload_inventory_count_tiles::upload_inventory_count_tiles;
+pub use upload_inventory_item_count_tiles::upload_inventory_item_count_tiles;
 pub use upload_inventory_item_list::upload_inventory_item_list;
 pub use upload_palette_buffer::upload_palette_buffer;
 pub use upload_resource_hud::upload_resource_hud;
 pub use upload_room_columns_from_bank9::upload_room_columns_from_bank9;
 pub use upload_room_view_from_tile_pointer::upload_room_view_from_tile_pointer;
 pub use upload_scroll_edge_room_column::upload_scroll_edge_room_column;
+pub use upload_shop_price_tiles::upload_shop_price_tiles;
 pub use upload_staged_room_columns::upload_staged_room_columns;
 pub use upload_staged_room_view::upload_staged_room_view;
 pub use upload_status_panel_template::upload_status_panel_template;
@@ -4198,16 +4198,18 @@ mod check_actor_position_out_of_bounds {
     }
 }
 
-mod routine_0117 {
+mod upload_inventory_count_tiles {
     use super::*;
-    pub fn routine_0117(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads every inventory item count to the item/status screen.
+    pub fn upload_inventory_count_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         {
             x = 0x0F;
             while cbool(x >= 0) {
                 r.index = u8v(x);
                 r.offset = engine.mem(u16v(0x0060 + x));
-                routine_0118(engine, r);
+                upload_inventory_item_count_tiles(engine, r);
                 r.index = u8v(x);
                 {
                     x -= 1;
@@ -4219,9 +4221,12 @@ mod routine_0117 {
     }
 }
 
-mod routine_0118 {
+mod upload_inventory_item_count_tiles {
     use super::*;
-    pub fn routine_0118(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads one inventory item count and applies the active family-member
+    /// availability palette adjustment for that item.
+    pub fn upload_inventory_item_count_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(r.index);
         let mut lo: i32 = 0;
         let mut hi: i32 = 0;
@@ -4233,7 +4238,7 @@ mod routine_0118 {
         engine.set_mem(0x16, u8v(s));
         engine.set_mem(0x17, u8v(0x20 + hi + (s >> 8)));
         r.value = r.offset;
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         {
             let mut in_: i32 = x;
             let mut dx: i32 = u8v(engine.mem(0x40) << 1);
@@ -4265,7 +4270,7 @@ mod routine_0118 {
             r.carry = carry;
         }
         r.value = x;
-        routine_0122(engine, r);
+        load_family_item_permission_bits(engine, r);
         if !cbool(r.carry) {
             engine.set_mem(0x18, u8v(engine.mem(0x18) - 0x40));
             engine.set_mem(0x19, u8v(engine.mem(0x19) - 0x40));
@@ -4275,33 +4280,38 @@ mod routine_0118 {
     }
 }
 
-mod routine_0119 {
+mod upload_equipped_item_stat_tiles {
     use super::*;
-    pub fn routine_0119(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the effective projectile damage, jump duration, and projectile
+    /// lifetime values for the selected loadout.
+    pub fn upload_equipped_item_stat_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x16, 0xDE);
         engine.set_mem(0x17, 0x21);
         load_effective_projectile_damage(engine, r);
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
         engine.set_mem(0x16, 0x1E);
         engine.set_mem(0x17, 0x22);
         load_effective_jump_duration(engine, r);
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
         engine.set_mem(0x16, 0x5E);
         engine.set_mem(0x17, 0x22);
         load_effective_projectile_lifetime(engine, r);
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
     }
 }
 
-mod routine_0120 {
+mod upload_shop_price_tiles {
     use super::*;
-    pub fn routine_0120(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Uploads the two visible shop item prices.
+    pub fn upload_shop_price_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut lo: i32 = 0;
         let mut hi: i32 = 0;
         let mut c: i32 = 0;
@@ -4313,7 +4323,7 @@ mod routine_0120 {
             engine.set_mem(0x17, u8v(0x04 + engine.mem(0x17) + (s >> 8)));
         }
         r.value = engine.mem(0x81);
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
         lo = engine.mem(0x16);
@@ -4322,15 +4332,17 @@ mod routine_0120 {
         hi = engine.mem(0x17);
         engine.set_mem(0x17, u8v(0x00 + hi + c));
         r.value = engine.mem(0x83);
-        routine_0121(engine, r);
+        build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
     }
 }
 
-mod routine_0121 {
+mod build_decimal_digit_tiles {
     use super::*;
-    pub fn routine_0121(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Converts `r.value` into two decimal digit tile ids in `0x18/0x19`.
+    pub fn build_decimal_digit_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
         let mut hi: i32 = 0xD0;
         while cbool(a >= 0x0A) {
@@ -4349,9 +4361,12 @@ mod routine_0121 {
     }
 }
 
-mod routine_0122 {
+mod load_family_item_permission_bits {
     use super::*;
-    pub fn routine_0122(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Loads the shifted family/item permission bits for `r.value`. Carry is
+    /// the bit shifted out by the final shift.
+    pub fn load_family_item_permission_bits(engine: &mut Engine, r: &mut RoutineContext) {
         let mut in_: i32 = u8v(r.value);
         let mut x: i32 = u8v(engine.mem(0x40) << 1);
         if cbool(in_ >= 0x08) {
@@ -4363,7 +4378,9 @@ mod routine_0122 {
         }
         let mut y: i32 = u8v((in_ & 0x07) + 1);
         let mut a: i32 = engine.mem(u16v(0xFFBB + x));
+        let mut carry: i32 = 0;
         loop {
+            carry = u8v(a >> 7);
             a = u8v(a << 1);
             if !cbool(
                 {
@@ -4374,13 +4391,16 @@ mod routine_0122 {
                 break;
             }
         }
+        r.carry = carry;
         r.value = a;
     }
 }
 
-mod routine_0123 {
+mod switch_song_if_needed {
     use super::*;
-    pub fn routine_0123(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Starts `r.value` as the current song only when it differs from `0x8E`.
+    pub fn switch_song_if_needed(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(r.value == engine.mem(0x8E)) {
             return;
         }
@@ -6411,7 +6431,7 @@ mod restore_room_from_checkpoint {
         fade_room_palette_out_reset_audio(engine, r);
         clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xFE);
-        routine_0123(engine, r);
+        switch_song_if_needed(engine, r);
         prepare_room_metadata_and_palette(engine, r);
         upload_current_room_view(engine, r);
         routine_0061(engine, r);
@@ -10683,7 +10703,7 @@ mod text_attr_build {
             }
             if cbool(do_d02e) {
                 r.value = engine.mem(u16v(p + 0x0B));
-                routine_0123(engine, r);
+                switch_song_if_needed(engine, r);
             }
         }
         engine.set_mem(0x80, engine.mem(u16v(p + 0x10)));

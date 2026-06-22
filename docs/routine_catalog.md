@@ -95,7 +95,6 @@ would currently be weaker than the cluster name.
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 | `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
-| `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 
 ## Named Non-Numbered Routines
 
@@ -128,6 +127,7 @@ surface when touching nearby code:
 | `audio_cmd_set_sweep_value` | audio bytecode command 4: set the selected channel's sweep/noise-period shadow byte |
 | `audio_cmd_set_volume_scale` | audio bytecode command 1: set the per-channel envelope volume scale |
 | `build_direction_velocity` | convert direction bits and speed into object velocity scratch `0xF5..0xF7` |
+| `build_decimal_digit_tiles` | convert a value into two decimal digit tile ids in `0x18/0x19` |
 | `build_health_meter_sprites` | build a two-row OAM health meter from full/empty tile ids |
 | `build_input_movement_delta` | convert current input and speed into player movement scratch `0x49..0x4B` |
 | `build_object_health_meter_alt_tiles` | build object health with the alternate `0xA5/0xAB` sprite tile pair |
@@ -207,6 +207,7 @@ surface when touching nearby code:
 | `load_effective_jump_duration` | load jump duration, applying the selected jump-item boost when magic is available |
 | `load_effective_projectile_damage` | load projectile damage, applying the selected power-item boost when magic is available |
 | `load_effective_projectile_lifetime` | load projectile lifetime/state, applying the selected range-item boost when magic is available |
+| `load_family_item_permission_bits` | load shifted family/item permission bits and return the final shifted-out bit in carry |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
@@ -271,6 +272,7 @@ surface when touching nearby code:
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
 | `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
 | `subtract_health_points` | subtract damage from health and saturate underflow at zero |
+| `switch_song_if_needed` | start a new song only when the requested song id differs from `0x8E` |
 | `sync_coin_hud` | clamp coins and queue their HUD digits for redraw |
 | `sync_health_hud` | clamp health and queue its HUD digits for redraw |
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
@@ -324,12 +326,16 @@ surface when touching nearby code:
 | `update_player_projectiles` | pooled player projectile slot scheduler |
 | `update_tile_projectile` | special tile-removal projectile scheduler |
 | `update_tile_projectile_motion` | special projectile movement, collision, bounce, and tile replacement |
+| `upload_equipped_item_stat_tiles` | upload effective projectile damage, jump duration, and projectile lifetime values |
+| `upload_inventory_count_tiles` | upload every inventory item count to the item/status screen |
+| `upload_inventory_item_count_tiles` | upload one inventory item count with active family availability palette adjustment |
 | `upload_inventory_item_list` | stage and upload the two visible rows of the inventory item-list buffer |
 | `upload_current_room_view` | resolve the current scroll column and upload the full room view |
 | `upload_palette_buffer` | queue a PPU upload of the palette buffer to `$3F00` |
 | `upload_room_view_from_tile_pointer` | upload room tiles and attributes from the tile pointer in `0x0C/0x0D` |
 | `upload_room_columns_from_bank9` | upload the 16 visible room columns using the bank-9 room-column builder |
 | `upload_scroll_edge_room_column` | upload the room column that is about to scroll into view |
+| `upload_shop_price_tiles` | upload the two visible shop item prices |
 | `upload_staged_room_view` | upload the full room view from the staged room tile pages |
 | `upload_staged_room_columns` | upload the 16 visible room columns using the current staged room data |
 | `upload_status_panel_template` | upload the fixed status-panel nametable template and clear its attribute bytes |
@@ -347,7 +353,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Persistent room flag and tile mutation helpers: `routine_0117..0123`.
+1. Game frame render and object sprite helpers: `routine_0059..0066`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

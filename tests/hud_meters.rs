@@ -21,6 +21,26 @@ fn split_meter_value_returns_full_blocks_and_partial_block() {
 }
 
 #[test]
+fn decimal_digit_tiles_encode_ones_and_tens() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext {
+        value: 0x0E,
+        ..RoutineContext::default()
+    };
+
+    game::build_decimal_digit_tiles(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x18), 0xD4);
+    assert_eq!(engine.mem(0x19), 0xD1);
+
+    r.value = 0x09;
+    game::build_decimal_digit_tiles(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x18), 0xD9);
+    assert_eq!(engine.mem(0x19), 0xC0);
+}
+
+#[test]
 fn build_health_meter_sprites_initializes_full_and_empty_tiles() {
     let mut engine = Engine::new();
     let mut r = RoutineContext {
