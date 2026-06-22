@@ -1231,115 +1231,84 @@ mod tick_scripted_player_motion {
     /// scenes. It mirrors the normal gameplay movement path but only checks the
     /// scripted screen bounds, not room tiles or object contacts.
     pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    r.value = engine.mem(0x20);
-                    if cbool(r.value & 0x10) {
-                        wait_for_start_button_prompt(engine, r);
-                        return;
-                    }
-                    if !cbool(engine.mem(0x20) & 0x40) {
-                        engine.set_mem(0xFD, u8v(engine.mem(0xFD) & 0x0F));
-                    }
-                    r.value = u8v(engine.mem(0x20) & 0x0F);
-                    if cbool(r.value != 0) {
-                        engine.set_mem(0x08, r.value);
-                        engine.set_mem(0xFD, u8v((engine.mem(0xFD) & 0xF0) | engine.mem(0x08)));
-                    }
-                    if cbool(engine.mem(0x85) == 0) {
-                        if cbool((engine.mem(0x26) & 0x40) == 0) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        r.index = u8v(engine.mem(0x3E) + 1);
-                        if cbool(((r.index) & 0x06) != 0) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                        {
-                            let mut sum: i32 =
-                                u8v(u8v(engine.mem(0x1C) + engine.mem(u16v(0x040C + r.index))));
-                            r.value = u8v((if cbool(sum < 0xB0) { 0x0A } else { 0x05 }));
-                        }
-                        subtract_scripted_player_health(engine, r);
-                        engine.set_mem(0x4F, 0x0A);
-                        engine.set_mem(0x8F, 0x21);
-                        engine.set_mem(0x90, 0x02);
-                        engine.set_mem(0x85, 0x01);
-                        build_player_health_meter_sprites(engine, r);
-                    }
-                    if (cbool(engine.mem(0x4F) == 0) && cbool(engine.mem(0x4E) == 0)) {
-                        engine.set_mem(0x85, 0x00);
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    engine.set_mem(0x20, u8v((engine.mem(0x20) & 0xF0) | 0x02));
-                    state = 1;
-                    continue 'dispatch;
+        r.value = engine.mem(0x20);
+        if cbool(r.value & 0x10) {
+            wait_for_start_button_prompt(engine, r);
+            return;
+        }
+
+        if !cbool(engine.mem(0x20) & 0x40) {
+            engine.set_mem(0xFD, u8v(engine.mem(0xFD) & 0x0F));
+        }
+        let directional_buttons = u8v(engine.mem(0x20) & 0x0F);
+        r.value = directional_buttons;
+        if cbool(directional_buttons != 0) {
+            engine.set_mem(0x08, directional_buttons);
+            engine.set_mem(0xFD, u8v((engine.mem(0xFD) & 0xF0) | engine.mem(0x08)));
+        }
+
+        if cbool(engine.mem(0x85) == 0) {
+            if cbool(engine.mem(0x26) & 0x40) {
+                r.index = u8v(engine.mem(0x3E) + 1);
+                if !cbool(r.index & 0x06) {
+                    let collision_screen_x =
+                        u8v(u8v(engine.mem(0x1C) + engine.mem(u16v(0x040C + r.index))));
+                    r.value = u8v(if cbool(collision_screen_x < 0xB0) {
+                        0x0A
+                    } else {
+                        0x05
+                    });
+                    subtract_scripted_player_health(engine, r);
+                    engine.set_mem(0x4F, 0x0A);
+                    engine.set_mem(0x8F, 0x21);
+                    engine.set_mem(0x90, 0x02);
+                    engine.set_mem(0x85, 0x01);
+                    build_player_health_meter_sprites(engine, r);
                 }
-                1 => {
-                    build_scripted_player_input_delta(engine, r);
-                    if cbool(engine.mem(0x4E) != 0) {
-                        r.value = u8v(engine.mem(0x4E) >> 2);
-                        r.value = u8v(r.value + 1);
-                        engine.set_mem(0x4B, r.value);
-                        try_move_scripted_player_in_bounds(engine, r);
-                        if !cbool(r.carry) {
-                            commit_scripted_player_position(engine, r);
-                            return;
-                        }
-                        engine.set_mem(0x49, 0x00);
-                        try_move_scripted_player_in_bounds(engine, r);
-                        if !cbool(r.carry) {
-                            return;
-                        }
-                        cancel_scripted_player_motion(engine, r);
-                        return;
-                    }
-                    if cbool(engine.mem(0x4F) != 0) {
-                        {
-                            state = 2;
-                            continue 'dispatch;
-                        }
-                    }
-                    if !cbool(engine.mem(0x20) & 0x80) {
-                        engine.set_mem(0x22, 0x00);
-                        r.value = 0x00;
-                        {
-                            state = 3;
-                            continue 'dispatch;
-                        }
-                    }
-                    state = 2;
-                    continue 'dispatch;
-                }
-                2 => {
-                    tick_scripted_player_jump_action(engine, r);
-                    r.value = 0x00;
-                    state = 3;
-                    continue 'dispatch;
-                }
-                3 => {
-                    engine.set_mem(0x4F, r.value);
-                    try_move_scripted_player_in_bounds(engine, r);
-                    if cbool(r.carry) {
-                        cancel_scripted_player_motion(engine, r);
-                        return;
-                    }
-                    commit_scripted_player_position(engine, r);
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
             }
         }
+
+        if cbool(engine.mem(0x4F) == 0) && cbool(engine.mem(0x4E) == 0) {
+            engine.set_mem(0x85, 0x00);
+        } else {
+            engine.set_mem(0x20, u8v((engine.mem(0x20) & 0xF0) | 0x02));
+        }
+
+        build_scripted_player_input_delta(engine, r);
+        if cbool(engine.mem(0x4E) != 0) {
+            r.value = u8v((engine.mem(0x4E) >> 2) + 1);
+            engine.set_mem(0x4B, r.value);
+            try_move_scripted_player_in_bounds(engine, r);
+            if !cbool(r.carry) {
+                commit_scripted_player_position(engine, r);
+                return;
+            }
+
+            engine.set_mem(0x49, 0x00);
+            try_move_scripted_player_in_bounds(engine, r);
+            if !cbool(r.carry) {
+                return;
+            }
+
+            cancel_scripted_player_motion(engine, r);
+            return;
+        }
+
+        if cbool(engine.mem(0x4F) != 0) || cbool(engine.mem(0x20) & 0x80) {
+            tick_scripted_player_jump_action(engine, r);
+            r.value = 0x00;
+        } else {
+            engine.set_mem(0x22, 0x00);
+            r.value = 0x00;
+        }
+
+        engine.set_mem(0x4F, r.value);
+        try_move_scripted_player_in_bounds(engine, r);
+        if cbool(r.carry) {
+            cancel_scripted_player_motion(engine, r);
+            return;
+        }
+        commit_scripted_player_position(engine, r);
     }
 }
 
