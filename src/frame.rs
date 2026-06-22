@@ -246,7 +246,7 @@ pub fn wait_for_frame_counter(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_ppu_job_idle(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.mem(0x28) != 0 {
+    while engine.state.nmi_vram_req() != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;

@@ -77,7 +77,7 @@ fn item_spawn_setup(engine: &mut Engine, r: &mut RoutineContext, x: i32) {
 /// consumed it.
 pub fn queue_ppu_job_and_wait(engine: &mut Engine, r: &mut RoutineContext) {
     frame::wait_for_ppu_job_idle(engine, r);
-    engine.set_mem(0x28, r.value);
+    engine.state.set_nmi_vram_req(r.value);
     frame::wait_for_ppu_job_idle(engine, r);
 }
 

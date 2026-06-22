@@ -1261,7 +1261,41 @@ impl GameState {
         self.set_byte(0x0352 + i, value);
     }
 
+    // ---- NMI VRAM request -------------------------------------------------
+
+    /// Pending NMI VRAM upload request id (`$28`); foreground code sets it and
+    /// spins until the NMI handler drains the queued transfer back to zero.
+    #[inline]
+    pub fn nmi_vram_req(&self) -> i32 {
+        self.byte(0x28)
+    }
+    #[inline]
+    pub fn set_nmi_vram_req(&mut self, value: i32) {
+        self.set_byte(0x28, value);
+    }
+
     // ---- More player / render / sound scalars -----------------------------
+
+    /// Player horizontal velocity, packed sub-tile delta + sign (`$4A`).
+    #[inline]
+    pub fn player_x_velocity(&self) -> i32 {
+        self.byte(0x4A)
+    }
+    #[inline]
+    pub fn set_player_x_velocity(&mut self, value: i32) {
+        self.set_byte(0x4A, value);
+    }
+
+    /// Player walk-animation step counter (`$4D`); low 3 bits set the frame
+    /// cadence.
+    #[inline]
+    pub fn anim_step_counter(&self) -> i32 {
+        self.byte(0x4D)
+    }
+    #[inline]
+    pub fn set_anim_step_counter(&mut self, value: i32) {
+        self.set_byte(0x4D, value);
+    }
 
     /// Player animation pose/frame selector (`$56`).
     #[inline]

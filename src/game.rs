@@ -479,7 +479,7 @@ mod game_update {
                             }
                         }
                         engine.state.set_horizontal_subtile_delta(0x00);
-                        engine.set_mem(0x4A, 0x00);
+                        engine.state.set_player_x_velocity(0x00);
                         try_move_player_with_collision(engine, r);
                         if !cbool(r.carry) {
                             {
@@ -1597,8 +1597,10 @@ mod tick_scripted_player_walk_animation {
         if cbool((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
             return;
         }
-        engine.set_mem(0x4D, u8v(engine.mem(0x4D) + 1));
-        if cbool((engine.mem(0x4D) & 0x07) != 0) {
+        engine
+            .state
+            .set_anim_step_counter(u8v(engine.state.anim_step_counter() + 1));
+        if cbool((engine.state.anim_step_counter() & 0x07) != 0) {
             return;
         }
         if cbool(engine.state.player_pose() & 0x08) {
@@ -3730,7 +3732,7 @@ mod clear_pending_vram_job {
 
     /// Clears the deferred VRAM job selector at `0x28`.
     pub fn clear_pending_vram_job(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x28, 0);
+        engine.state.set_nmi_vram_req(0);
     }
 }
 
@@ -3744,7 +3746,7 @@ mod build_input_movement_delta {
         engine.state.set_scratch1(speed);
         if cbool(speed == 0) {
             engine.state.set_horizontal_subtile_delta(0);
-            engine.set_mem(0x4A, 0);
+            engine.state.set_player_x_velocity(0);
             engine.state.set_vertical_delta(0);
             return;
         }
@@ -3770,7 +3772,9 @@ mod build_input_movement_delta {
             0x00
         });
         engine.state.set_scratch0(sign_fill);
-        engine.set_mem(0x4A, u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
+        engine
+            .state
+            .set_player_x_velocity(u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
         let mut vertical_delta: i32 = 0;
         {
             let mut steps = speed;
@@ -4507,7 +4511,7 @@ mod tick_player_jump_action {
                         }
                     }
                     engine.state.set_horizontal_subtile_delta(0x00);
-                    engine.set_mem(0x4A, 0x00);
+                    engine.state.set_player_x_velocity(0x00);
                     try_move_player_with_collision(engine, r);
                     if !cbool(r.carry) {
                         {
@@ -5070,7 +5074,7 @@ mod project_player_position {
             engine
                 .state
                 .set_indirect_ptr_hi(u8v(engine.state.indirect_ptr_hi()
-                    + engine.mem(0x4A)
+                    + engine.state.player_x_velocity()
                     + carry));
         }
     }
@@ -5145,7 +5149,7 @@ mod update_player_pose_from_motion {
                 2 => {
                     x = 0x01;
                     y = 0x00;
-                    if cbool(engine.mem(0x4A) & 0x80) {
+                    if cbool(engine.state.player_x_velocity() & 0x80) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -5171,7 +5175,7 @@ mod update_player_pose_from_motion {
                 4 => {
                     x = 0x39;
                     y = 0x00;
-                    a = engine.mem(0x4A) | engine.state.horizontal_subtile_delta();
+                    a = engine.state.player_x_velocity() | engine.state.horizontal_subtile_delta();
                     if cbool(a & 0x80) {
                         {
                             state = 6;
@@ -5232,8 +5236,10 @@ mod tick_player_walk_animation {
         if cbool((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
             return;
         }
-        engine.set_mem(0x4D, u8v(engine.mem(0x4D) + 1));
-        if cbool((engine.mem(0x4D) & 0x07) != 0) {
+        engine
+            .state
+            .set_anim_step_counter(u8v(engine.state.anim_step_counter() + 1));
+        if cbool((engine.state.anim_step_counter() & 0x07) != 0) {
             return;
         }
         if cbool(engine.state.player_pose() & 0x08) {
@@ -6036,7 +6042,7 @@ mod try_nudge_player_to_tile_boundary {
             match state {
                 0 => {
                     engine.state.set_horizontal_subtile_delta(0x00);
-                    engine.set_mem(0x4A, 0x00);
+                    engine.state.set_player_x_velocity(0x00);
                     if cbool(horizontal_delta == 0) {
                         {
                             state = 1;
@@ -6113,7 +6119,7 @@ mod try_nudge_player_to_tile_boundary {
                                 }
                             }
                             engine.state.set_horizontal_subtile_delta(0x0F);
-                            engine.set_mem(0x4A, 0xFF);
+                            engine.state.set_player_x_velocity(0xFF);
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -6127,7 +6133,7 @@ mod try_nudge_player_to_tile_boundary {
                                 }
                             }
                             engine.state.set_horizontal_subtile_delta(0x01);
-                            engine.set_mem(0x4A, 0x00);
+                            engine.state.set_player_x_velocity(0x00);
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -10911,7 +10917,7 @@ mod vblank_commit {
         }
         engine.device_write(0x2003, 0x00);
         engine.device_write(0x4014, 0x02);
-        let mut req: i32 = engine.mem(0x28);
+        let mut req: i32 = engine.state.nmi_vram_req();
         if cbool(req == 0) {
             vblank_commit_tail(engine, r);
             {
@@ -10919,7 +10925,7 @@ mod vblank_commit {
                 return;
             }
         }
-        engine.set_mem(0x28, 0x00);
+        engine.state.set_nmi_vram_req(0x00);
         if cbool(req >= 0x07) {
             vblank_commit_tail(engine, r);
             {
