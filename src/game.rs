@@ -21,6 +21,7 @@ pub use animate_actor_cycle_tiles::animate_actor_cycle_tiles;
 pub use animate_actor_directional_walk::animate_actor_directional_walk;
 pub use animate_actor_flip_toggle::animate_actor_flip_toggle;
 pub use animate_actor_walk_toggle::animate_actor_walk_toggle;
+pub use animate_large_actor_body_tiles::animate_large_actor_body_tiles;
 pub use apply_actor_player_contact_damage::apply_actor_player_contact_damage;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use audio_cmd_set_channel_flags::audio_cmd_set_channel_flags;
@@ -48,6 +49,7 @@ pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
 pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use commit_actor_projected_position::commit_actor_projected_position;
+pub use compose_large_actor_body_slots::compose_large_actor_body_slots;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
@@ -59,6 +61,7 @@ pub use farcall_return_home::farcall_return_home;
 pub use frame_counters::frame_counters;
 pub use game_update::game_update;
 pub use inc16_95::inc16_95;
+pub use initialize_large_actor_slot::initialize_large_actor_slot;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
@@ -217,14 +220,6 @@ pub use routine_0198::routine_0198;
 pub use routine_0199::routine_0199;
 pub use routine_0200::routine_0200;
 pub use routine_0201::routine_0201;
-pub use routine_0257::routine_0257;
-pub use routine_0258::routine_0258;
-pub use routine_0260::routine_0260;
-pub use routine_0261::routine_0261;
-pub use routine_0262::routine_0262;
-pub use routine_0263::routine_0263;
-pub use routine_0264::routine_0264;
-pub use routine_0265::routine_0265;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
@@ -253,6 +248,7 @@ pub use tick_chasing_jump_actor::tick_chasing_jump_actor;
 pub use tick_contact_recoil_actor::tick_contact_recoil_actor;
 pub use tick_contact_trigger_actor::tick_contact_trigger_actor;
 pub use tick_inactive_actor_slot::tick_inactive_actor_slot;
+pub use tick_large_chasing_actor::tick_large_chasing_actor;
 pub use tick_ledge_walking_actor::tick_ledge_walking_actor;
 pub use tick_noise_channel::tick_noise_channel;
 pub use tick_overhead_probe_actor::tick_overhead_probe_actor;
@@ -266,10 +262,14 @@ pub use tick_triangle_channel::tick_triangle_channel;
 pub use tick_wandering_jump_actor::tick_wandering_jump_actor;
 pub use try_actor_gravity_motion::try_actor_gravity_motion;
 pub use try_actor_jump_arc_motion::try_actor_jump_arc_motion;
+pub use try_large_actor_gravity_motion::try_large_actor_gravity_motion;
+pub use try_large_actor_jump_arc_motion::try_large_actor_jump_arc_motion;
 pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
 pub use try_move_actor_without_terrain::try_move_actor_without_terrain;
+pub use try_move_large_actor_with_terrain::try_move_large_actor_with_terrain;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use update_actor_animation::update_actor_animation;
+pub use update_large_actor_facing_from_velocity::update_large_actor_facing_from_velocity;
 pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
@@ -286,6 +286,25 @@ pub use vram_fill_run::vram_fill_run;
 pub use vram_poke2::vram_poke2;
 pub use vram_upload_hud::vram_upload_hud;
 pub use vram_upload_palette::vram_upload_palette;
+
+fn with_large_actor_asset_banks<F>(engine: &mut Engine, r: &mut RoutineContext, action: F)
+where
+    F: FnOnce(&mut Engine, &mut RoutineContext),
+{
+    let saved_bank6: i32 = engine.mem(0x30);
+    let saved_bank7: i32 = engine.mem(0x31);
+    engine.set_mem(0x32, saved_bank6);
+    engine.set_mem(0x33, saved_bank7);
+    engine.set_mem(0x30, 0x0C);
+    engine.set_mem(0x31, 0x0D);
+    engine.set_mem(0x25, 0x07);
+    engine.prg_map_shadow();
+    action(engine, r);
+    engine.set_mem(0x31, saved_bank7);
+    engine.set_mem(0x30, saved_bank6);
+    engine.set_mem(0x25, 0x06);
+    engine.prg_map_shadow();
+}
 
 mod farcall_bank_09_r7 {
     use super::*;
@@ -6875,16 +6894,16 @@ mod update_room_actors {
                     {
                         let mut actor_state: i32 = engine.mem(0xEE);
                         if cbool(actor_state == 0) {
-                            routine_0257(engine, r);
+                            initialize_large_actor_slot(engine, r);
                         } else if cbool(actor_state & 0x80) {
-                            routine_0263(engine, r);
-                            routine_0264(engine, r);
+                            update_large_actor_facing_from_velocity(engine, r);
+                            animate_large_actor_body_tiles(engine, r);
                         } else {
-                            routine_0258(engine, r);
+                            tick_large_chasing_actor(engine, r);
                         }
                     }
                     store_object_slot_scratch(engine, r);
-                    routine_0265(engine, r);
+                    compose_large_actor_body_slots(engine, r);
                     {
                         state = 3;
                         continue 'dispatch;
@@ -8789,29 +8808,20 @@ mod try_reflect_object_velocity {
     }
 }
 
-mod routine_0257 {
+mod initialize_large_actor_slot {
     use super::*;
-    fn farcall_0C0D(engine: &mut Engine, r: &mut RoutineContext, target: RoutineFn) {
-        let mut old6: i32 = engine.mem(0x30);
-        let mut old7: i32 = engine.mem(0x31);
-        engine.set_mem(0x32, old6);
-        engine.set_mem(0x33, old7);
-        engine.set_mem(0x30, 0x0C);
-        engine.set_mem(0x31, 0x0D);
-        engine.set_mem(0x25, 0x07);
-        engine.prg_map_shadow();
-        target(engine, r);
-        engine.set_mem(0x31, old7);
-        engine.set_mem(0x30, old6);
-        engine.set_mem(0x25, 0x06);
-        engine.prg_map_shadow();
-    }
 
-    pub fn routine_0257(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut e7: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+    /// Initializes the special large actor slot from room actor data.
+    ///
+    /// Large actors use slot `0x0400` as their logical state and slots
+    /// `0x0410..0x043F` as linked body pieces. This routine rejects blocked
+    /// spawn positions before seeding the logical slot and initial health
+    /// state for the body pieces.
+    pub fn initialize_large_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
+        let actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
         engine.set_mem(0x2E, 0x3D);
-        engine.set_mem(0x0A, engine.mem(u16v(e7 + 3)));
-        engine.set_mem(0x0F, engine.mem(u16v(e7 + 2)));
+        engine.set_mem(0x0A, engine.mem(u16v(actor_data_ptr + 3)));
+        engine.set_mem(0x0F, engine.mem(u16v(actor_data_ptr + 2)));
         engine.set_mem(0x0E, 0x00);
         engine.set_mem(0x0B, 0x00);
         check_projected_wide_terrain_collision(engine, r);
@@ -8827,27 +8837,30 @@ mod routine_0257 {
         engine.set_mem(0xEE, 0x01);
         engine.set_mem(0xED, 0x81);
         engine.set_mem(0xEF, 0x02);
-        engine.set_mem(0xF8, engine.mem(u16v(e7 + 5)));
+        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
         {
-            let mut bl: i32 = engine.mem(u16v(e7 + 4));
-            engine.set_mem(0xF2, bl);
-            engine.set_mem(0x0415, bl);
-            engine.set_mem(0x0425, bl);
-            engine.set_mem(0x0435, bl);
+            let actor_health: i32 = engine.mem(u16v(actor_data_ptr + 4));
+            engine.set_mem(0xF2, actor_health);
+            engine.set_mem(0x0415, actor_health);
+            engine.set_mem(0x0425, actor_health);
+            engine.set_mem(0x0435, actor_health);
         }
         engine.set_mem(0x0E, 0xE1);
         engine.set_mem(0x0F, 0xA7);
-        farcall_0C0D(engine, r, routine_0017);
+        with_large_actor_asset_banks(engine, r, routine_0017);
         engine.set_mem(0x0E, 0x53);
         engine.set_mem(0x0F, 0xCB);
-        farcall_0C0D(engine, r, build_object_health_meter_alt_tiles);
+        with_large_actor_asset_banks(engine, r, build_object_health_meter_alt_tiles);
     }
 }
 
-mod routine_0258 {
+mod tick_large_chasing_actor {
     use super::*;
-    pub fn routine_0258(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0;
+
+    /// Updates the active large actor: aim toward the player, run the wide
+    /// jump/gravity movement path, then advance facing and animation state.
+    pub fn tick_large_chasing_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut horizontal_direction: i32 = 0;
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -8858,13 +8871,13 @@ mod routine_0258 {
                             engine.set_mem(0xF4, 0x01);
                         }
                         {
-                            let mut x: i32 = engine.mem(0xF3);
+                            let mut turn_timer: i32 = engine.mem(0xF3);
                             engine.set_mem(0xF3, 0x00);
-                            x = u8v(x - 1);
-                            if cbool(x == 0) {
-                                a = engine.mem(0xF4) & 0x03;
-                                if cbool(a != 0) {
-                                    engine.set_mem(0xF4, u8v(a ^ 0x03));
+                            turn_timer = u8v(turn_timer - 1);
+                            if cbool(turn_timer == 0) {
+                                horizontal_direction = engine.mem(0xF4) & 0x03;
+                                if cbool(horizontal_direction != 0) {
+                                    engine.set_mem(0xF4, u8v(horizontal_direction ^ 0x03));
                                     {
                                         state = 2;
                                         continue 'dispatch;
@@ -8904,7 +8917,7 @@ mod routine_0258 {
                     r.offset = 0x02;
                     build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
-                        routine_0260(engine, r);
+                        try_large_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
                                 state = 6;
@@ -8932,7 +8945,7 @@ mod routine_0258 {
                     continue 'dispatch;
                 }
                 3 => {
-                    routine_0261(engine, r);
+                    try_large_actor_jump_arc_motion(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 5;
@@ -8944,7 +8957,7 @@ mod routine_0258 {
                 }
                 4 => {
                     engine.set_mem(0xF1, 0x00);
-                    routine_0262(engine, r);
+                    try_move_large_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 5;
@@ -8966,8 +8979,8 @@ mod routine_0258 {
                 }
                 6 => {
                     update_wide_object_terrain_probe(engine, r);
-                    routine_0263(engine, r);
-                    routine_0264(engine, r);
+                    update_large_actor_facing_from_velocity(engine, r);
+                    animate_large_actor_body_tiles(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -8976,14 +8989,16 @@ mod routine_0258 {
     }
 }
 
-mod routine_0260 {
+mod try_large_actor_gravity_motion {
     use super::*;
-    pub fn routine_0260(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = u8v(engine.mem(0xF0) >> 2);
-        a = u8v(a + 1);
-        engine.set_mem(0xF7, a);
-        r.value = a;
-        routine_0262(engine, r);
+
+    /// Applies the large actor's falling motion. If wide movement is blocked,
+    /// it retries without horizontal velocity before cancelling vertical speed.
+    pub fn try_large_actor_gravity_motion(engine: &mut Engine, r: &mut RoutineContext) {
+        let fall_velocity: i32 = u8v((engine.mem(0xF0) >> 2) + 1);
+        engine.set_mem(0xF7, fall_velocity);
+        r.value = fall_velocity;
+        try_move_large_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
@@ -8999,39 +9014,45 @@ mod routine_0260 {
     }
 }
 
-mod routine_0261 {
+mod try_large_actor_jump_arc_motion {
     use super::*;
-    pub fn routine_0261(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0xF1);
-        if cbool(x == 0) {
-            x = 0x19;
+
+    /// Advances the large actor's jump arc and retries straight-up movement
+    /// when horizontal motion collides with terrain.
+    pub fn try_large_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut jump_counter: i32 = engine.mem(0xF1);
+        if cbool(jump_counter == 0) {
+            jump_counter = 0x19;
         }
-        x = u8v(x - 1);
-        engine.set_mem(0xF1, x);
-        r.index = x;
-        engine.set_mem(0xF7, u8v(((x >> 2) ^ 0xFF) + 1));
-        routine_0262(engine, r);
+        jump_counter = u8v(jump_counter - 1);
+        engine.set_mem(0xF1, jump_counter);
+        r.index = jump_counter;
+        engine.set_mem(0xF7, u8v(((jump_counter >> 2) ^ 0xFF) + 1));
+        try_move_large_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
         engine.set_mem(0xF5, 0x00);
         engine.set_mem(0xF6, 0x00);
-        routine_0262(engine, r);
+        try_move_large_actor_with_terrain(engine, r);
     }
 }
 
-mod routine_0262 {
+mod try_move_large_actor_with_terrain {
     use super::*;
-    pub fn routine_0262(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_f7: i32 = engine.mem(0xF7);
-        let mut cflag: i32 = 0;
+
+    /// Projects wide actor motion, applies player contact damage, and rejects
+    /// terrain using the three-tile-wide footprint. Carry is set when blocked.
+    pub fn try_move_large_actor_with_terrain(engine: &mut Engine, r: &mut RoutineContext) {
+        let saved_vertical_velocity: i32 = engine.mem(0xF7);
+        let mut blocked: i32 = 0;
         loop {
             project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
                 engine.set_mem(0xF3, 0xF0);
-                cflag = 1;
+                blocked = 1;
                 break;
             }
             check_player_overlap_wide(engine, r);
@@ -9040,149 +9061,146 @@ mod routine_0262 {
             }
             check_projected_wide_terrain_collision(engine, r);
             if cbool(r.carry == 0) {
-                cflag = 0;
+                blocked = 0;
                 break;
             }
             {
-                let mut x: i32 = engine.mem(0xF7);
-                if cbool(x == 0) {
-                    cflag = 1;
+                let mut adjusted_vertical_velocity: i32 = engine.mem(0xF7);
+                if cbool(adjusted_vertical_velocity == 0) {
+                    blocked = 1;
                     break;
                 }
-                if !cbool(x & 0x80) {
-                    x = u8v(x - 2);
+                if !cbool(adjusted_vertical_velocity & 0x80) {
+                    adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
-                x = u8v(x + 1);
-                engine.set_mem(0xF7, x);
-                if cbool(x == 0) {
-                    cflag = 1;
+                adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
+                engine.set_mem(0xF7, adjusted_vertical_velocity);
+                if cbool(adjusted_vertical_velocity == 0) {
+                    blocked = 1;
                     break;
                 }
             }
         }
-        engine.set_mem(0xF7, saved_f7);
-        r.carry = cflag;
+        engine.set_mem(0xF7, saved_vertical_velocity);
+        r.carry = blocked;
     }
 }
 
-mod routine_0263 {
+mod update_large_actor_facing_from_velocity {
     use super::*;
-    pub fn routine_0263(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = 0x00;
+
+    /// Updates the large actor's facing bit from horizontal velocity.
+    pub fn update_large_actor_facing_from_velocity(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut facing_bit: i32 = 0x00;
         if cbool(engine.mem(0xF6) & 0x80) {
         } else if cbool(engine.mem(0xF5) == 0) {
             return;
         } else {
-            y = 0x40;
+            facing_bit = 0x40;
         }
-        engine.set_mem(0x08, y);
-        engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | y));
+        engine.set_mem(0x08, facing_bit);
+        engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
     }
 }
 
-mod routine_0264 {
+mod animate_large_actor_body_tiles {
     use super::*;
-    pub fn routine_0264(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0;
-        a = engine.inc_mem(0xF3);
-        a = u8v(((a & 0x0C) << 1) | 0x41);
-        engine.set_mem(0xED, a);
-        r.value = a;
+
+    /// Advances the large actor's animation timer and stores the base body
+    /// tile id for the linked sprite slots.
+    pub fn animate_large_actor_body_tiles(engine: &mut Engine, r: &mut RoutineContext) {
+        let animation_timer: i32 = engine.inc_mem(0xF3);
+        let body_tile_id: i32 = u8v(((animation_timer & 0x0C) << 1) | 0x41);
+        engine.set_mem(0xED, body_tile_id);
+        r.value = body_tile_id;
     }
 }
 
-mod routine_0265 {
+mod compose_large_actor_body_slots {
     use super::*;
-    fn swap(engine: &mut Engine, mut a: i32, mut b: i32) {
-        let mut t: i32 = engine.mem(a);
+    fn swap_slot_sprite_id(engine: &mut Engine, a: i32, b: i32) {
+        let slot_sprite_id: i32 = engine.mem(a);
         engine.set_mem(a, engine.mem(b));
-        engine.set_mem(b, t);
+        engine.set_mem(b, slot_sprite_id);
     }
 
-    pub fn routine_0265(engine: &mut Engine, r: &mut RoutineContext) {
+    /// Mirrors the large actor's logical slot into the three linked body slots.
+    ///
+    /// Slot `0x0400` remains the damage/state anchor. Slots `0x0410`,
+    /// `0x0420`, and `0x0430` are arranged as the visible 2x2 body, then their
+    /// sprite ids are swapped by facing/flip bits so draw order stays correct.
+    pub fn compose_large_actor_body_slots(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x041F, engine.mem(0xFC));
         engine.set_mem(0x042F, engine.mem(0xFC));
         engine.set_mem(0x043F, engine.mem(0xFC));
         {
-            let mut fb: i32 = engine.mem(0xFB);
-            engine.set_mem(0x041E, fb);
-            engine.set_mem(0x042E, u8v(fb + 0x10));
-            engine.set_mem(0x043E, u8v(fb + 0x10));
+            let tile_y: i32 = engine.mem(0xFB);
+            engine.set_mem(0x041E, tile_y);
+            engine.set_mem(0x042E, u8v(tile_y + 0x10));
+            engine.set_mem(0x043E, u8v(tile_y + 0x10));
         }
         engine.set_mem(0x041C, engine.mem(0xF9));
         engine.set_mem(0x042C, engine.mem(0xF9));
         engine.set_mem(0x043C, engine.mem(0xF9));
         {
-            let mut fa: i32 = engine.mem(0xFA);
-            engine.set_mem(0x042D, fa);
-            engine.set_mem(0x041D, u8v(fa + 1));
-            engine.set_mem(0x043D, u8v(fa + 1));
+            let tile_x: i32 = engine.mem(0xFA);
+            engine.set_mem(0x042D, tile_x);
+            engine.set_mem(0x041D, u8v(tile_x + 1));
+            engine.set_mem(0x043D, u8v(tile_x + 1));
         }
         {
-            let mut xv: i32 = engine.mem(0xEE);
-            if !cbool(xv & 0x80) {
+            let mut actor_state: i32 = engine.mem(0xEE);
+            if !cbool(actor_state & 0x80) {
                 if cbool((engine.mem(0x0411) | engine.mem(0x0421) | engine.mem(0x0431)) & 0x80) {
-                    xv = 0x80;
+                    actor_state = 0x80;
                 }
             }
-            engine.set_mem(0x0401, xv);
-            engine.set_mem(0x0411, xv);
-            engine.set_mem(0x0421, xv);
-            engine.set_mem(0x0431, xv);
+            engine.set_mem(0x0401, actor_state);
+            engine.set_mem(0x0411, actor_state);
+            engine.set_mem(0x0421, actor_state);
+            engine.set_mem(0x0431, actor_state);
         }
         {
-            let mut a: i32 = engine.mem(0xF2);
-            if cbool(a >= engine.mem(0x0415)) {
-                a = engine.mem(0x0415);
+            let mut minimum_health: i32 = engine.mem(0xF2);
+            if cbool(minimum_health >= engine.mem(0x0415)) {
+                minimum_health = engine.mem(0x0415);
             }
-            if cbool(a >= engine.mem(0x0425)) {
-                a = engine.mem(0x0425);
+            if cbool(minimum_health >= engine.mem(0x0425)) {
+                minimum_health = engine.mem(0x0425);
             }
-            if cbool(a >= engine.mem(0x0435)) {
-                a = engine.mem(0x0435);
+            if cbool(minimum_health >= engine.mem(0x0435)) {
+                minimum_health = engine.mem(0x0435);
             }
-            engine.set_mem(0x0405, a);
+            engine.set_mem(0x0405, minimum_health);
         }
         {
-            let mut ed: i32 = engine.mem(0xED);
-            let mut a: i32 = u8v(ed | 0x04);
-            engine.set_mem(0x0410, a);
-            a = u8v(a | 0x20);
-            engine.set_mem(0x0430, a);
-            a = u8v(a & 0xFB);
-            engine.set_mem(0x0420, a);
+            let body_tile_id: i32 = engine.mem(0xED);
+            let upper_right_tile: i32 = u8v(body_tile_id | 0x04);
+            engine.set_mem(0x0410, upper_right_tile);
+            let lower_right_tile: i32 = u8v(upper_right_tile | 0x20);
+            engine.set_mem(0x0430, lower_right_tile);
+            let lower_left_tile: i32 = u8v(lower_right_tile & 0xFB);
+            engine.set_mem(0x0420, lower_left_tile);
         }
         {
-            let mut ef: i32 = engine.mem(0xEF);
-            engine.set_mem(0x0412, ef);
-            engine.set_mem(0x0422, ef);
-            engine.set_mem(0x0432, ef);
-            if cbool(ef & 0x40) {
-                swap(engine, 0x0400, 0x0410);
-                swap(engine, 0x0420, 0x0430);
+            let sprite_attrs: i32 = engine.mem(0xEF);
+            engine.set_mem(0x0412, sprite_attrs);
+            engine.set_mem(0x0422, sprite_attrs);
+            engine.set_mem(0x0432, sprite_attrs);
+            if cbool(sprite_attrs & 0x40) {
+                swap_slot_sprite_id(engine, 0x0400, 0x0410);
+                swap_slot_sprite_id(engine, 0x0420, 0x0430);
             }
-            if cbool(ef & 0x80) {
-                swap(engine, 0x0400, 0x0420);
-                swap(engine, 0x0410, 0x0430);
+            if cbool(sprite_attrs & 0x80) {
+                swap_slot_sprite_id(engine, 0x0400, 0x0420);
+                swap_slot_sprite_id(engine, 0x0410, 0x0430);
             }
         }
-        {
-            let mut old6: i32 = engine.mem(0x30);
-            let mut old7: i32 = engine.mem(0x31);
-            engine.set_mem(0x32, old6);
-            engine.set_mem(0x33, old7);
-            engine.set_mem(0x30, 0x0C);
-            engine.set_mem(0x31, 0x0D);
-            engine.set_mem(0x25, 0x07);
-            engine.prg_map_shadow();
+        with_large_actor_asset_banks(engine, r, |engine, r| {
             engine.set_mem(0x0E, 0x53);
             engine.set_mem(0x0F, 0xCB);
             build_object_health_meter_alt_tiles(engine, r);
-            engine.set_mem(0x31, old7);
-            engine.set_mem(0x30, old6);
-            engine.set_mem(0x25, 0x06);
-            engine.prg_map_shadow();
-        }
+        });
     }
 }
 

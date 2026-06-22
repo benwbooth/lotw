@@ -114,7 +114,6 @@ would currently be weaker than the cluster name.
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `native` | `0240` | inferred | high-bit/special actor update path |
-| `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
 
 ## Named Non-Numbered Routines
@@ -135,6 +134,7 @@ surface when touching nearby code:
 | `animate_actor_directional_walk` | update actor facing and horizontal/vertical walk animation bits |
 | `animate_actor_flip_toggle` | periodically toggle the actor sprite flip bit |
 | `animate_actor_walk_toggle` | update actor facing and toggle a walking sprite tile bit |
+| `animate_large_actor_body_tiles` | advance the large actor animation timer and derive linked body-slot tile ids |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
 | `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
@@ -162,6 +162,7 @@ surface when touching nearby code:
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
 | `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
+| `compose_large_actor_body_slots` | mirror the large actor logical slot into the three linked 2x2 body sprite slots and refresh its health meter |
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
@@ -173,6 +174,7 @@ surface when touching nearby code:
 | `frame_counters` | tick coarse frame timers once per second |
 | `game_update` | foreground input/player/item update |
 | `inc16_95` | increment the music stream pointer for the selected channel |
+| `initialize_large_actor_slot` | spawn the special large actor slot from room actor data after checking its wide footprint |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
@@ -218,6 +220,7 @@ surface when touching nearby code:
 | `tick_contact_recoil_actor` | actor behavior that switches to a high-bit recoil state when player contact blocks movement |
 | `tick_contact_trigger_actor` | actor behavior that wakes into chasing movement after one-step player contact |
 | `tick_inactive_actor_slot` | initialize an inactive actor scratch slot from room actor data and spawn timing |
+| `tick_large_chasing_actor` | large actor behavior that aims toward the player and uses the wide jump/gravity movement path |
 | `tick_ledge_walking_actor` | actor behavior that walks along supported ledges and falls when unsupported |
 | `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
 | `tick_overhead_probe_actor` | actor behavior that alternates overhead probes, falling, and jump arcs |
@@ -232,11 +235,15 @@ surface when touching nearby code:
 | `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
 | `try_actor_gravity_motion` | try a falling actor move, dropping horizontal velocity if the first projection is blocked |
 | `try_actor_jump_arc_motion` | convert the actor jump countdown into upward velocity and try the projected move |
+| `try_large_actor_gravity_motion` | apply large actor falling motion with the wide movement probe before the horizontal fallback |
+| `try_large_actor_jump_arc_motion` | advance the large actor jump arc and retry straight-up movement on terrain collision |
 | `try_move_actor_with_terrain` | project an actor move, check bounds/player/terrain, and report whether movement was blocked |
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
+| `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
+| `update_large_actor_facing_from_velocity` | update the large actor facing bit from horizontal velocity |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
@@ -253,8 +260,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Large-actor helpers: `routine_0257..0265`.
-2. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

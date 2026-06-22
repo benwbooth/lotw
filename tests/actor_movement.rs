@@ -101,3 +101,80 @@ fn apply_actor_player_contact_damage_updates_health_and_hit_state() {
     assert_eq!(engine.mem(0x90), 0x01);
     assert_eq!(engine.mem(0xEF) & 0x20, 0x00);
 }
+
+#[test]
+fn try_move_large_actor_with_terrain_uses_wide_probe_and_restores_vertical_velocity() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x43, 0x00);
+    engine.set_mem(0x44, 0x80);
+    engine.set_mem(0x45, 0xC0);
+    engine.set_mem(0xEE, 0x01);
+    engine.set_mem(0xF5, 0x02);
+    engine.set_mem(0xF6, 0x00);
+    engine.set_mem(0xF7, 0x04);
+    engine.set_mem(0xF9, 0x00);
+    engine.set_mem(0xFA, 0x20);
+    engine.set_mem(0xFB, 0x50);
+
+    game::try_move_large_actor_with_terrain(&mut engine, &mut r);
+
+    assert_eq!(r.carry, 0);
+    assert_eq!(engine.mem(0xF7), 0x04);
+    assert_eq!(engine.mem(0x0E), 0x02);
+    assert_eq!(engine.mem(0x0F), 0x20);
+    assert_eq!(engine.mem(0x0A), 0x54);
+}
+
+#[test]
+fn compose_large_actor_body_slots_syncs_linked_sprite_state() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x30, 0xAA);
+    engine.set_mem(0x31, 0xBB);
+    engine.set_mem(0xEE, 0x01);
+    engine.set_mem(0xED, 0x41);
+    engine.set_mem(0xEF, 0x02);
+    engine.set_mem(0xF2, 0x09);
+    engine.set_mem(0xF9, 0x03);
+    engine.set_mem(0xFA, 0x20);
+    engine.set_mem(0xFB, 0x50);
+    engine.set_mem(0xFC, 0x77);
+    engine.set_mem(0x0411, 0x80);
+    engine.set_mem(0x0415, 0x08);
+    engine.set_mem(0x0425, 0x06);
+    engine.set_mem(0x0435, 0x07);
+
+    game::compose_large_actor_body_slots(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x041C), 0x03);
+    assert_eq!(engine.mem(0x042C), 0x03);
+    assert_eq!(engine.mem(0x043C), 0x03);
+    assert_eq!(engine.mem(0x042D), 0x20);
+    assert_eq!(engine.mem(0x041D), 0x21);
+    assert_eq!(engine.mem(0x043D), 0x21);
+    assert_eq!(engine.mem(0x041E), 0x50);
+    assert_eq!(engine.mem(0x042E), 0x60);
+    assert_eq!(engine.mem(0x043E), 0x60);
+    assert_eq!(engine.mem(0x041F), 0x77);
+    assert_eq!(engine.mem(0x042F), 0x77);
+    assert_eq!(engine.mem(0x043F), 0x77);
+
+    assert_eq!(engine.mem(0x0401), 0x80);
+    assert_eq!(engine.mem(0x0411), 0x80);
+    assert_eq!(engine.mem(0x0421), 0x80);
+    assert_eq!(engine.mem(0x0431), 0x80);
+    assert_eq!(engine.mem(0x0405), 0x06);
+
+    assert_eq!(engine.mem(0x0410), 0x45);
+    assert_eq!(engine.mem(0x0420), 0x61);
+    assert_eq!(engine.mem(0x0430), 0x65);
+    assert_eq!(engine.mem(0x0412), 0x02);
+    assert_eq!(engine.mem(0x0422), 0x02);
+    assert_eq!(engine.mem(0x0432), 0x02);
+
+    assert_eq!(engine.mem(0x30), 0xAA);
+    assert_eq!(engine.mem(0x31), 0xBB);
+}
