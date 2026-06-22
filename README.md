@@ -17,11 +17,11 @@ The source ROM is a runtime input only.
 | Mirroring | horizontal · no battery |
 | sha256 | `079f648d669966357fe4414a986573eacd7ecadf5c4f289c288427b8c5f491f1` |
 
-Pinned in `config/rom.sha256`. ROMs are never committed.
+ROMs are never committed; verify local copies against the checksum above.
 
 ## Layout
 
-- `rom/`      — the source ROM (gitignored, sha-pinned in `config/`).
+- `rom/`      — the source ROM (gitignored).
 - `src/`      — Rust runtime, generated game routines, shims, bins, and player.
 - `tests/`    — Rust contract and gameplay checks.
 - `fixtures/` — replay fixtures for smoke and gameplay checks.
