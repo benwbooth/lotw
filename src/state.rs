@@ -761,4 +761,94 @@ impl GameState {
     pub fn set_scroll_tile_x(&mut self, value: i32) {
         self.set_byte(0x7C, value);
     }
+
+    // ---- VRAM upload address ($16/$17) ------------------------------------
+    //
+    // Target address for the next PPU VRAM transfer. The high and low bytes
+    // are written separately to PPUADDR ($2006), so the byte accessors are the
+    // primary form; `vram_addr` folds the pair when a full address is handy.
+
+    /// VRAM upload address, low byte (`$16`).
+    #[inline]
+    pub fn vram_addr_lo(&self) -> i32 {
+        self.byte(0x16)
+    }
+    #[inline]
+    pub fn set_vram_addr_lo(&mut self, value: i32) {
+        self.set_byte(0x16, value);
+    }
+    /// VRAM upload address, high byte (`$17`).
+    #[inline]
+    pub fn vram_addr_hi(&self) -> i32 {
+        self.byte(0x17)
+    }
+    #[inline]
+    pub fn set_vram_addr_hi(&mut self, value: i32) {
+        self.set_byte(0x17, value);
+    }
+    /// VRAM upload address as a 16-bit value (`$16` low, `$17` high).
+    #[inline]
+    pub fn vram_addr(&self) -> i32 {
+        self.byte(0x16) | (self.byte(0x17) << 8)
+    }
+    #[inline]
+    pub fn set_vram_addr(&mut self, value: i32) {
+        self.set_byte(0x16, value & 0xFF);
+        self.set_byte(0x17, (value >> 8) & 0xFF);
+    }
+
+    // ---- Resource counters / character params -----------------------------
+
+    /// Gold/coin count (`$5A`).
+    #[inline]
+    pub fn coins(&self) -> i32 {
+        self.byte(0x5A)
+    }
+    #[inline]
+    pub fn set_coins(&mut self, value: i32) {
+        self.set_byte(0x5A, value);
+    }
+
+    /// Key count (`$5B`).
+    #[inline]
+    pub fn keys(&self) -> i32 {
+        self.byte(0x5B)
+    }
+    #[inline]
+    pub fn set_keys(&mut self, value: i32) {
+        self.set_byte(0x5B, value);
+    }
+
+    /// Current character's jump strength / fall-duration parameter (`$5C`):
+    /// seeds the jump timer and caps accumulated fall frames.
+    #[inline]
+    pub fn jump_strength(&self) -> i32 {
+        self.byte(0x5C)
+    }
+    #[inline]
+    pub fn set_jump_strength(&mut self, value: i32) {
+        self.set_byte(0x5C, value);
+    }
+
+    // ---- Audio / scheduler ------------------------------------------------
+
+    /// Music volume override flag (`$92`).
+    #[inline]
+    pub fn music_volume_override(&self) -> i32 {
+        self.byte(0x92)
+    }
+    #[inline]
+    pub fn set_music_volume_override(&mut self, value: i32) {
+        self.set_byte(0x92, value);
+    }
+
+    /// Actor scheduler phase counter (`$E9`).
+    #[inline]
+    pub fn scheduler_phase(&self) -> i32 {
+        self.byte(0xE9)
+    }
+    #[inline]
+    pub fn set_scheduler_phase(&mut self, value: i32) {
+        self.set_byte(0xE9, value);
+    }
 }

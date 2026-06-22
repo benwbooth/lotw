@@ -708,8 +708,8 @@ mod queue_room_column_vram_upload {
             engine.add_mem(0x0B, 1);
         }
 
-        engine.set_mem(0x19, u8v(engine.mem(0x17) + 0x03));
-        let destination_low_byte: i32 = engine.mem(0x16);
+        engine.set_mem(0x19, u8v(engine.state.vram_addr_hi() + 0x03));
+        let destination_low_byte: i32 = engine.state.vram_addr_lo();
         engine.set_mem(0x0B, u8v((destination_low_byte >> 2) + 0xC0));
 
         let attribute_side_mask: i32 = u8v(destination_low_byte & 0x02);
@@ -883,11 +883,11 @@ mod advance_scripted_scroll_slice {
     /// and `0x1D` flips between nametable halves after each 9-slice run.
     pub fn advance_scripted_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.state.obj_x_tile() == 0) {
-            engine.set_mem(0x16, 0x0E);
-            engine.set_mem(0x17, 0x20);
+            engine.state.set_vram_addr_lo(0x0E);
+            engine.state.set_vram_addr_hi(0x20);
             engine.set_mem(
                 0x17,
-                u8v((u8v((engine.mem(0x1D) ^ 0x01) << 2)) | engine.mem(0x17)),
+                u8v((u8v((engine.mem(0x1D) ^ 0x01) << 2)) | engine.state.vram_addr_hi()),
             );
             engine.set_mem(
                 0xF9,
@@ -897,8 +897,12 @@ mod advance_scripted_scroll_slice {
         }
         engine.set_mem(0x0C, engine.state.obj_x_sub());
         farcall_bank_09_r7(engine, r);
-        engine.set_mem(0x16, u8v(engine.mem(0x16) + 1));
-        engine.set_mem(0x16, u8v(engine.mem(0x16) + 1));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 1));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 1));
         engine
             .state
             .set_obj_x_sub(u8v(engine.state.obj_x_sub() + 1));
@@ -1370,7 +1374,7 @@ mod tick_scripted_player_jump_action {
                 return;
             }
             engine.state.set_prompt_state(0x1B);
-            engine.state.set_jump_timer(engine.mem(0x5C));
+            engine.state.set_jump_timer(engine.state.jump_strength());
         }
         engine.set_mem(0x22, 0x01);
         engine
@@ -1603,10 +1607,10 @@ mod update_scripted_player_fall_state {
         }
         {
             let mut fall_frames = engine.state.fall_frames();
-            if cbool(fall_frames >= engine.mem(0x5C)) {
+            if cbool(fall_frames >= engine.state.jump_strength()) {
                 fall_frames = u8v(fall_frames - 0x07);
-                if cbool(fall_frames >= engine.mem(0x5C)) {
-                    fall_frames = engine.mem(0x5C);
+                if cbool(fall_frames >= engine.state.jump_strength()) {
+                    fall_frames = engine.state.jump_strength();
                 }
                 fall_frames = u8v(fall_frames - 0x01);
                 engine.state.set_jump_timer(fall_frames);
@@ -1819,8 +1823,8 @@ mod set_intro_text_vram_address {
     /// Converts intro text scroll offset `0x0A` into a nametable address.
     pub fn set_intro_text_vram_address(engine: &mut Engine, r: &mut RoutineContext) {
         let address: i32 = 0x2000 + (engine.mem(0x0A) << 2);
-        engine.set_mem(0x17, u8v(address >> 8));
-        engine.set_mem(0x16, u8v(address));
+        engine.state.set_vram_addr_hi(u8v(address >> 8));
+        engine.state.set_vram_addr_lo(u8v(address));
         r.value = u8v(address);
     }
 }
@@ -2548,8 +2552,8 @@ mod upload_palette_buffer {
     /// Queues a PPU upload of the palette buffer to `$3F00`.
     pub fn upload_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         clear_pending_vram_job(engine, r);
-        engine.set_mem(0x16, 0x00);
-        engine.set_mem(0x17, 0x3F);
+        engine.state.set_vram_addr_lo(0x00);
+        engine.state.set_vram_addr_hi(0x3F);
         r.value = 0x02;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -2650,8 +2654,8 @@ mod upload_room_view_from_tile_pointer {
             let mut lo: i32 = u8v((sx << 1) & 0x1C);
             let mut hi: i32 = u8v((sx & 0x10) >> 2);
             let mut t: i32 = u16v(0x00 + lo);
-            engine.set_mem(0x16, u8v(t));
-            engine.set_mem(0x17, u8v(0x20 + hi + (t >> 8)));
+            engine.state.set_vram_addr_lo(u8v(t));
+            engine.state.set_vram_addr_hi(u8v(0x20 + hi + (t >> 8)));
         }
         engine.set_mem(0x0A, 0x12);
         p0C = u16v(c0c_save | (c0d_save << 8));
@@ -2660,8 +2664,8 @@ mod upload_room_view_from_tile_pointer {
             while cbool(outer < 0x12) {
                 let mut inner: i32 = 0;
                 engine.set_mem(0x0B, 0x0C);
-                engine.device_write(0x2006, engine.mem(0x17));
-                engine.device_write(0x2006, engine.mem(0x16));
+                engine.device_write(0x2006, engine.state.vram_addr_hi());
+                engine.device_write(0x2006, engine.state.vram_addr_lo());
                 engine.set_mem(0x08, 0x00);
                 loop {
                     let mut idx: i32 = engine.mem(u16v(p0C + engine.mem(0x08)));
@@ -2675,8 +2679,8 @@ mod upload_room_view_from_tile_pointer {
                     }
                 }
                 engine.set_mem(0x0B, 0x0C);
-                engine.device_write(0x2006, engine.mem(0x17));
-                inner = u8v(engine.mem(0x16) + 1);
+                engine.device_write(0x2006, engine.state.vram_addr_hi());
+                inner = u8v(engine.state.vram_addr_lo() + 1);
                 engine.device_write(0x2006, inner);
                 engine.set_mem(0x08, 0x00);
                 loop {
@@ -2690,10 +2694,14 @@ mod upload_room_view_from_tile_pointer {
                         break;
                     }
                 }
-                engine.add_mem(0x16, 2);
-                if cbool(engine.mem(0x16) & 0x20) {
-                    engine.set_mem(0x16, 0x00);
-                    engine.xor_mem(0x17, 0x04);
+                engine
+                    .state
+                    .set_vram_addr_lo((engine.state.vram_addr_lo() + 2) & 0xFF);
+                if cbool(engine.state.vram_addr_lo() & 0x20) {
+                    engine.state.set_vram_addr_lo(0x00);
+                    engine
+                        .state
+                        .set_vram_addr_hi(engine.state.vram_addr_hi() ^ 0x04);
                 }
                 {
                     let mut t: i32 = u16v(0x0C + engine.mem(0x0C));
@@ -2717,8 +2725,8 @@ mod upload_room_view_from_tile_pointer {
             let mut lo: i32 = u8v((sx >> 1) & 0x07);
             let mut hi: i32 = u8v((sx & 0x10) >> 2);
             let mut t: i32 = u16v(0xC0 + lo);
-            engine.set_mem(0x16, u8v(t));
-            engine.set_mem(0x17, u8v(0x23 + hi + (t >> 8)));
+            engine.state.set_vram_addr_lo(u8v(t));
+            engine.state.set_vram_addr_hi(u8v(0x23 + hi + (t >> 8)));
         }
         engine.set_mem(0x0A, 0x09);
         loop {
@@ -2771,8 +2779,8 @@ mod upload_room_view_from_tile_pointer {
                         a = u8v(a << 1);
                         engine.set_mem(0x08, u8v((engine.mem(0x08) << 1) | c1));
                     }
-                    engine.device_write(0x2006, engine.mem(0x17));
-                    engine.device_write(0x2006, engine.mem(0x16));
+                    engine.device_write(0x2006, engine.state.vram_addr_hi());
+                    engine.device_write(0x2006, engine.state.vram_addr_lo());
                     engine.device_write(0x2007, engine.mem(0x08));
                     {
                         let mut t: i32 = u16v(0x02 + engine.mem(0x0C));
@@ -2780,9 +2788,11 @@ mod upload_room_view_from_tile_pointer {
                         engine.set_mem(0x0D, u8v(engine.mem(0x0D) + (t >> 8)));
                     }
                     {
-                        let mut t: i32 = u16v(0x08 + engine.mem(0x16));
-                        engine.set_mem(0x16, u8v(t));
-                        engine.set_mem(0x17, u8v(engine.mem(0x17) + (t >> 8)));
+                        let mut t: i32 = u16v(0x08 + engine.state.vram_addr_lo());
+                        engine.state.set_vram_addr_lo(u8v(t));
+                        engine
+                            .state
+                            .set_vram_addr_hi(u8v(engine.state.vram_addr_hi() + (t >> 8)));
                     }
                     p0C = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
                     {
@@ -2798,14 +2808,18 @@ mod upload_room_view_from_tile_pointer {
                 engine.set_mem(0x0D, u8v(engine.mem(0x0D) + (t >> 8)));
             }
             {
-                let mut t: i32 = u16v(0xD1 + engine.mem(0x16));
-                engine.set_mem(0x16, u8v(t));
-                engine.set_mem(0x17, u8v(engine.mem(0x17) + 0xFF + (t >> 8)));
+                let mut t: i32 = u16v(0xD1 + engine.state.vram_addr_lo());
+                engine.state.set_vram_addr_lo(u8v(t));
+                engine
+                    .state
+                    .set_vram_addr_hi(u8v(engine.state.vram_addr_hi() + 0xFF + (t >> 8)));
             }
             p0C = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-            if cbool(engine.mem(0x16) & 0x08) {
-                engine.set_mem(0x16, 0xC0);
-                engine.xor_mem(0x17, 0x04);
+            if cbool(engine.state.vram_addr_lo() & 0x08) {
+                engine.state.set_vram_addr_lo(0xC0);
+                engine
+                    .state
+                    .set_vram_addr_hi(engine.state.vram_addr_hi() ^ 0x04);
             }
             engine.dec_mem(0x0A);
             if cbool(engine.mem(0x0A) == 0) {
@@ -2829,19 +2843,27 @@ mod upload_room_columns_from_bank9 {
         let mut sx: i32 = 0;
         clear_pending_vram_job(engine, r);
         sx = engine.state.scroll_tile_x();
-        engine.set_mem(0x16, u8v((sx << 1) & 0x1F));
-        engine.set_mem(0x17, u8v((sx & 0x10) >> 2));
-        engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-        engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+        engine.state.set_vram_addr_lo(u8v((sx << 1) & 0x1F));
+        engine.state.set_vram_addr_hi(u8v((sx & 0x10) >> 2));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+        engine
+            .state
+            .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
         engine.set_mem(0x08, sx);
         engine.set_mem(0x09, 0x10);
         loop {
             engine.set_mem(0x0C, engine.mem(0x08));
             farcall_bank_09_r7(engine, r);
-            engine.set_mem(0x16, u8v(engine.mem(0x16) + 2));
-            if cbool(engine.mem(0x16) & 0x20) {
-                engine.set_mem(0x16, 0x00);
-                engine.xor_mem(0x17, 0x04);
+            engine
+                .state
+                .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 2));
+            if cbool(engine.state.vram_addr_lo() & 0x20) {
+                engine.state.set_vram_addr_lo(0x00);
+                engine
+                    .state
+                    .set_vram_addr_hi(engine.state.vram_addr_hi() ^ 0x04);
             }
             engine.set_mem(0x08, u8v(engine.mem(0x08) + 1));
             engine.set_mem(0x09, u8v(engine.mem(0x09) - 1));
@@ -2860,19 +2882,27 @@ mod upload_staged_room_columns {
         let mut sx: i32 = 0;
         clear_pending_vram_job(engine, r);
         sx = engine.state.scroll_tile_x();
-        engine.set_mem(0x16, u8v((sx << 1) & 0x1F));
-        engine.set_mem(0x17, u8v((sx & 0x10) >> 2));
-        engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-        engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+        engine.state.set_vram_addr_lo(u8v((sx << 1) & 0x1F));
+        engine.state.set_vram_addr_hi(u8v((sx & 0x10) >> 2));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+        engine
+            .state
+            .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
         engine.set_mem(0x08, sx);
         engine.set_mem(0x09, 0x10);
         loop {
             engine.set_mem(0x0C, engine.mem(0x08));
             build_staged_room_column(engine, r);
-            engine.set_mem(0x16, u8v(engine.mem(0x16) + 2));
-            if cbool(engine.mem(0x16) & 0x20) {
-                engine.set_mem(0x16, 0x00);
-                engine.xor_mem(0x17, 0x04);
+            engine
+                .state
+                .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 2));
+            if cbool(engine.state.vram_addr_lo() & 0x20) {
+                engine.state.set_vram_addr_lo(0x00);
+                engine
+                    .state
+                    .set_vram_addr_hi(engine.state.vram_addr_hi() ^ 0x04);
             }
             engine.set_mem(0x08, u8v(engine.mem(0x08) + 1));
             engine.set_mem(0x09, u8v(engine.mem(0x09) - 1));
@@ -2896,10 +2926,14 @@ mod upload_scroll_edge_room_column {
             col = u8v(engine.state.scroll_tile_x() + 0x10);
         }
         engine.set_mem(0x0C, col);
-        engine.set_mem(0x16, u8v((col << 1) & 0x1F));
-        engine.set_mem(0x17, u8v((col & 0x10) >> 2));
-        engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-        engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+        engine.state.set_vram_addr_lo(u8v((col << 1) & 0x1F));
+        engine.state.set_vram_addr_hi(u8v((col & 0x10) >> 2));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+        engine
+            .state
+            .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
         farcall_bank_09_r7(engine, r);
     }
 }
@@ -3105,8 +3139,8 @@ mod upload_resource_hud {
     /// Queues the resource HUD VRAM upload after resource counters changed.
     pub fn upload_resource_hud(engine: &mut Engine, r: &mut RoutineContext) {
         clear_pending_vram_job(engine, r);
-        engine.set_mem(0x16, 0x60);
-        engine.set_mem(0x17, 0x23);
+        engine.state.set_vram_addr_lo(0x60);
+        engine.state.set_vram_addr_hi(0x23);
         r.value = 0x04;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -3155,11 +3189,11 @@ mod sync_key_hud {
 
     /// Clamps the key counter and queues the key HUD digits for redraw.
     pub fn sync_key_hud(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut keys: i32 = engine.mem(0x5B);
+        let mut keys: i32 = engine.state.keys();
         if cbool(keys >= 0x6D) {
             keys = 0x6D;
         }
-        engine.set_mem(0x5B, keys);
+        engine.state.set_keys(keys);
         engine.set_mem(0x08, keys);
         r.value = keys;
         r.index = 0x0C;
@@ -3174,11 +3208,11 @@ mod sync_coin_hud {
 
     /// Clamps the coin counter and queues the coin HUD digits for redraw.
     pub fn sync_coin_hud(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut coins: i32 = engine.mem(0x5A);
+        let mut coins: i32 = engine.state.coins();
         if cbool(coins >= 0x6D) {
             coins = 0x6D;
         }
-        engine.set_mem(0x5A, coins);
+        engine.state.set_coins(coins);
         engine.set_mem(0x08, coins);
         r.value = coins;
         r.index = 0x12;
@@ -3785,8 +3819,8 @@ mod upload_inventory_item_count_tiles {
         lo = u8v(((x & 0x08) << 4) | lo);
         hi = 0x00;
         s = u16v(0xC2 + lo);
-        engine.set_mem(0x16, u8v(s));
-        engine.set_mem(0x17, u8v(0x20 + hi + (s >> 8)));
+        engine.state.set_vram_addr_lo(u8v(s));
+        engine.state.set_vram_addr_hi(u8v(0x20 + hi + (s >> 8)));
         r.value = r.offset;
         build_decimal_digit_tiles(engine, r);
         {
@@ -3836,20 +3870,20 @@ mod upload_equipped_item_stat_tiles {
     /// Uploads the effective projectile damage, jump duration, and projectile
     /// lifetime values for the selected loadout.
     pub fn upload_equipped_item_stat_tiles(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x16, 0xDE);
-        engine.set_mem(0x17, 0x21);
+        engine.state.set_vram_addr_lo(0xDE);
+        engine.state.set_vram_addr_hi(0x21);
         load_effective_projectile_damage(engine, r);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
-        engine.set_mem(0x16, 0x1E);
-        engine.set_mem(0x17, 0x22);
+        engine.state.set_vram_addr_lo(0x1E);
+        engine.state.set_vram_addr_hi(0x22);
         load_effective_jump_duration(engine, r);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
-        engine.set_mem(0x16, 0x5E);
-        engine.set_mem(0x17, 0x22);
+        engine.state.set_vram_addr_lo(0x5E);
+        engine.state.set_vram_addr_hi(0x22);
         load_effective_projectile_lifetime(engine, r);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
@@ -3865,22 +3899,24 @@ mod upload_shop_price_tiles {
         let mut lo: i32 = 0;
         let mut hi: i32 = 0;
         let mut c: i32 = 0;
-        engine.set_mem(0x16, 0x47);
-        engine.set_mem(0x17, 0x22);
+        engine.state.set_vram_addr_lo(0x47);
+        engine.state.set_vram_addr_hi(0x22);
         if cbool(engine.state.scroll_tile_x() & 0x10) {
-            let mut s: i32 = u16v(0x00 + engine.mem(0x16));
-            engine.set_mem(0x16, u8v(s));
-            engine.set_mem(0x17, u8v(0x04 + engine.mem(0x17) + (s >> 8)));
+            let mut s: i32 = u16v(0x00 + engine.state.vram_addr_lo());
+            engine.state.set_vram_addr_lo(u8v(s));
+            engine
+                .state
+                .set_vram_addr_hi(u8v(0x04 + engine.state.vram_addr_hi() + (s >> 8)));
         }
         r.value = engine.mem(0x81);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
-        lo = engine.mem(0x16);
+        lo = engine.state.vram_addr_lo();
         c = u8v((0x0E + lo) >> 8);
-        engine.set_mem(0x16, u8v(0x0E + lo));
-        hi = engine.mem(0x17);
-        engine.set_mem(0x17, u8v(0x00 + hi + c));
+        engine.state.set_vram_addr_lo(u8v(0x0E + lo));
+        hi = engine.state.vram_addr_hi();
+        engine.state.set_vram_addr_hi(u8v(0x00 + hi + c));
         r.value = engine.mem(0x83);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
@@ -3969,11 +4005,11 @@ mod load_effective_jump_duration {
         let selected_item: i32 = engine.mem((0x51 + selected_item_slot) & 0xFF);
         r.index = selected_item_slot;
         if cbool(selected_item == 0x06) && cbool(engine.state.player_magic() != 0) {
-            let base_jump_duration: i32 = engine.mem(0x5C);
+            let base_jump_duration: i32 = engine.state.jump_strength();
             r.value = u8v((base_jump_duration >> 2) + base_jump_duration);
             r.carry = 0;
         } else {
-            r.value = engine.mem(0x5C);
+            r.value = engine.state.jump_strength();
             r.carry = 1;
         }
     }
@@ -4055,7 +4091,7 @@ mod reset_room_object_slots {
                 break;
             }
         }
-        engine.set_mem(0xE9, 0x00);
+        engine.state.set_scheduler_phase(0x00);
         r.value = 0x00;
         r.index = slot_offset;
         r.offset = 0x00;
@@ -4080,8 +4116,8 @@ mod snapshot_inventory_state {
                 engine.mem(0x0060 + inventory_offset),
             );
         }
-        engine.set_mem(0x0321, engine.mem(0x5A));
-        engine.set_mem(0x0320, engine.mem(0x5B));
+        engine.set_mem(0x0321, engine.state.coins());
+        engine.set_mem(0x0320, engine.state.keys());
         r.index = 0xFF;
     }
 }
@@ -4104,8 +4140,8 @@ mod restore_inventory_state_snapshot {
                 engine.mem(0x0310 + inventory_offset),
             );
         }
-        engine.set_mem(0x5A, engine.mem(0x0321));
-        engine.set_mem(0x5B, engine.mem(0x0320));
+        engine.state.set_coins(engine.mem(0x0321));
+        engine.state.set_keys(engine.mem(0x0320));
         r.index = 0xFF;
     }
 }
@@ -4142,14 +4178,14 @@ mod upload_inventory_item_list {
         }
         engine.set_mem(0x1A, 0x13);
         engine.set_mem(0x1B, 0x00);
-        engine.set_mem(0x16, 0xE6);
-        engine.set_mem(0x17, 0x24);
+        engine.state.set_vram_addr_lo(0xE6);
+        engine.state.set_vram_addr_hi(0x24);
         engine.set_mem(0x18, 0x62);
         engine.set_mem(0x19, 0x03);
         r.value = 0x05;
         queue_ppu_job_and_wait(engine, r);
-        engine.set_mem(0x16, 0x06);
-        engine.set_mem(0x17, 0x25);
+        engine.state.set_vram_addr_lo(0x06);
+        engine.state.set_vram_addr_hi(0x25);
         engine.set_mem(0x18, 0x76);
         engine.set_mem(0x19, 0x03);
         r.value = 0x05;
@@ -4191,7 +4227,7 @@ mod tick_player_jump_action {
                         return;
                     }
                     engine.state.set_prompt_state(0x1B);
-                    engine.state.set_jump_timer(engine.mem(0x5C));
+                    engine.state.set_jump_timer(engine.state.jump_strength());
                     {
                         let selected_slot: i32 = engine.mem(0x55);
                         if cbool(engine.mem(u16v(0x51 + selected_slot)) == 0x06) {
@@ -5627,10 +5663,16 @@ mod redraw_room_tile_column {
     pub fn redraw_room_tile_column(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_x: i32 = engine.state.obj_x_tile();
         engine.set_mem(0x0C, tile_x);
-        engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-        engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
-        engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-        engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+        engine.state.set_vram_addr_lo(u8v((tile_x << 1) & 0x1F));
+        engine
+            .state
+            .set_vram_addr_hi(u8v((engine.state.obj_x_tile() & 0x10) >> 2));
+        engine
+            .state
+            .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+        engine
+            .state
+            .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
         farcall_bank_09_r7(engine, r);
     }
 }
@@ -6361,7 +6403,7 @@ mod add_coins {
 
     /// Adds `r.value` coins and clamps them to the HUD/resource maximum.
     pub fn add_coins(engine: &mut Engine, r: &mut RoutineContext) {
-        let total: i32 = u8v(u16v(r.value) + engine.mem(0x5A));
+        let total: i32 = u8v(u16v(r.value) + engine.state.coins());
         let capped_total: i32 = if cbool(total > 0xFF) {
             0x6D
         } else if cbool(u8v(total) >= 0x6E) {
@@ -6369,7 +6411,7 @@ mod add_coins {
         } else {
             u8v(total)
         };
-        engine.set_mem(0x5A, capped_total);
+        engine.state.set_coins(capped_total);
         sync_coin_hud(engine, r);
     }
 }
@@ -6381,13 +6423,13 @@ mod spend_coins {
     /// player cannot afford the cost.
     pub fn spend_coins(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x08, r.value);
-        let remaining_coins: i32 = u16v(engine.mem(0x5A)) - u16v(engine.mem(0x08));
+        let remaining_coins: i32 = u16v(engine.state.coins()) - u16v(engine.mem(0x08));
         r.value = u8v(remaining_coins);
         if cbool(remaining_coins & 0x100) {
             r.carry = 0;
             return;
         }
-        engine.set_mem(0x5A, r.value);
+        engine.state.set_coins(r.value);
         sync_coin_hud(engine, r);
         r.carry = 1;
     }
@@ -6398,7 +6440,7 @@ mod add_key {
 
     /// Adds one key and refreshes the key HUD digits.
     pub fn add_key(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x5B, u8v(engine.mem(0x5B) + 1));
+        engine.state.set_keys(u8v(engine.state.keys() + 1));
         sync_key_hud(engine, r);
         r.carry = 0;
     }
@@ -6409,7 +6451,7 @@ mod add_keys {
 
     /// Adds `r.value` keys and clamps them to the HUD/resource maximum.
     pub fn add_keys(engine: &mut Engine, r: &mut RoutineContext) {
-        let total: i32 = u8v(u16v(r.value) + engine.mem(0x5B));
+        let total: i32 = u8v(u16v(r.value) + engine.state.keys());
         let capped_total: i32 = if cbool(total > 0xFF) {
             0x6D
         } else if cbool(u8v(total) >= 0x6E) {
@@ -6417,7 +6459,7 @@ mod add_keys {
         } else {
             u8v(total)
         };
-        engine.set_mem(0x5B, capped_total);
+        engine.state.set_keys(capped_total);
         sync_key_hud(engine, r);
     }
 }
@@ -6427,12 +6469,12 @@ mod consume_key {
 
     /// Spends one key, returning carry set when no key was available.
     pub fn consume_key(engine: &mut Engine, r: &mut RoutineContext) {
-        r.value = engine.mem(0x5B);
+        r.value = engine.state.keys();
         if cbool(r.value == 0) {
             r.carry = 1;
             return;
         }
-        engine.set_mem(0x5B, u8v(engine.mem(0x5B) - 1));
+        engine.state.set_keys(u8v(engine.state.keys() - 1));
         sync_key_hud(engine, r);
         r.carry = 0;
     }
@@ -6458,7 +6500,7 @@ mod update_room_actors {
                         }
                     }
                     {
-                        let mut scheduler_phase: i32 = engine.mem(0xE9);
+                        let mut scheduler_phase: i32 = engine.state.scheduler_phase();
                         let mut first_actor_slot: i32 =
                             u8v((scheduler_phase << 1) + scheduler_phase);
                         engine.set_mem(0xE3, first_actor_slot);
@@ -6503,7 +6545,7 @@ mod update_room_actors {
                         }
                     }
                     {
-                        let mut next_scheduler_phase: i32 = u8v(engine.mem(0xE9) + 1);
+                        let mut next_scheduler_phase: i32 = u8v(engine.state.scheduler_phase() + 1);
                         engine.set_mem(
                             0xE9,
                             (if cbool(next_scheduler_phase >= 0x03) {
@@ -6518,7 +6560,7 @@ mod update_room_actors {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.mem(0xE9) & 0x01) {
+                    if cbool(engine.state.scheduler_phase() & 0x01) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -6588,7 +6630,9 @@ mod update_room_actors {
                     continue 'dispatch;
                 }
                 3 => {
-                    engine.xor_mem(0xE9, 0x01);
+                    engine
+                        .state
+                        .set_scheduler_phase(engine.state.scheduler_phase() ^ 0x01);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -9200,10 +9244,16 @@ mod update_tile_projectile {
             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
                 let tile_x: i32 = engine.state.obj_x_tile();
                 engine.set_mem(0x0C, tile_x);
-                engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-                engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
-                engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-                engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+                engine.state.set_vram_addr_lo(u8v((tile_x << 1) & 0x1F));
+                engine
+                    .state
+                    .set_vram_addr_hi(u8v((engine.state.obj_x_tile() & 0x10) >> 2));
+                engine
+                    .state
+                    .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+                engine
+                    .state
+                    .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
                 farcall_bank_09_r7(engine, r);
             }
         }
@@ -9357,10 +9407,16 @@ mod update_tile_projectile_motion {
                             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
                                 let tile_x: i32 = engine.state.obj_x_tile();
                                 engine.set_mem(0x0C, tile_x);
-                                engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-                                engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
-                                engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
-                                engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
+                                engine.state.set_vram_addr_lo(u8v((tile_x << 1) & 0x1F));
+                                engine
+                                    .state
+                                    .set_vram_addr_hi(u8v((engine.state.obj_x_tile() & 0x10) >> 2));
+                                engine
+                                    .state
+                                    .set_vram_addr_lo(u8v(0x00 + engine.state.vram_addr_lo()));
+                                engine
+                                    .state
+                                    .set_vram_addr_hi(u8v(0x20 + engine.state.vram_addr_hi()));
                                 farcall_bank_09_r7(engine, r);
                             }
                         }
@@ -9748,7 +9804,7 @@ mod audio_cmd_set_volume_scale {
     pub fn audio_cmd_set_volume_scale(engine: &mut Engine, r: &mut RoutineContext) {
         let mut channel_offset: i32 = u8v(r.index);
         if !cbool(engine.mem(0x02) == 0x40) {
-            let mut music_volume_override: i32 = engine.mem(0x92);
+            let mut music_volume_override: i32 = engine.state.music_volume_override();
             if cbool(music_volume_override != 0) {
                 r.value = music_volume_override;
                 r.index = channel_offset;
@@ -10130,7 +10186,7 @@ mod song_init {
         engine.set_mem(0x34, x);
         engine.set_mem(0x35, u8v(x + 1));
         sound_set_song_banks(engine, r);
-        engine.set_mem(0x92, 0x00);
+        engine.state.set_music_volume_override(0x00);
         engine.state.set_prompt_state(0x00);
         idx = u8v((if cbool(song < 0x0A) {
             song
@@ -10451,8 +10507,8 @@ mod vblank_commit {
             engine.set_mem(0x07, jt_hi[req as usize]);
         }
         let _ = engine.device_read(0x2002);
-        engine.device_write(0x2006, engine.mem(0x17));
-        engine.device_write(0x2006, engine.mem(0x16));
+        engine.device_write(0x2006, engine.state.vram_addr_hi());
+        engine.device_write(0x2006, engine.state.vram_addr_lo());
         engine.device_write(0x2000, u8v(engine.mem(0x23) & 0x04));
         match req {
             1 => {
@@ -10583,8 +10639,8 @@ mod vram_upload_hud {
                 };
             }
         }
-        engine.device_write(0x2006, engine.mem(0x17));
-        engine.device_write(0x2006, u8v(engine.mem(0x16) + 1));
+        engine.device_write(0x2006, engine.state.vram_addr_hi());
+        engine.device_write(0x2006, u8v(engine.state.vram_addr_lo() + 1));
         {
             x = 0x17;
             while cbool(x >= 0) {

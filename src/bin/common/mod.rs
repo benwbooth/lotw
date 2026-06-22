@@ -184,7 +184,9 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_map_screen_y(0x05);
     engine.set_mem(0x40, 0x00);
     for i in 0..4 {
-        engine.set_mem(0x5c + i, engine.mem(0xffa7 + i));
+        engine
+            .state
+            .set_byte(0x5c + i, engine.state.byte(0xffa7 + i));
     }
     engine.set_mem(0x51, engine.mem(0xb0ac));
     engine.set_mem(0x55, 0);

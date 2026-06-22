@@ -53,8 +53,8 @@ fn vram_blit(
     shi: i32,
     len: i32,
 ) {
-    engine.set_mem(0x16, dlo);
-    engine.set_mem(0x17, dhi);
+    engine.state.set_vram_addr_lo(dlo);
+    engine.state.set_vram_addr_hi(dhi);
     engine.set_mem(0x18, slo);
     engine.set_mem(0x19, shi);
     engine.set_mem(0x1a, len);
@@ -270,7 +270,7 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x040c, 0x00);
     engine.set_mem(0x040d, 0x00);
     engine.set_mem(0x0406, 0x00);
-    engine.set_mem(0xe9, 0x00);
+    engine.state.set_scheduler_phase(0x00);
     engine.state.set_scroll_fine_x(0x00);
     engine.state.set_scroll_tile_x(0x00);
     engine.set_mem(0x0405, 0x64);
@@ -572,9 +572,11 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.state.obj_x_tile() == 0 {
         match engine.state.obj_timer() {
             4 => {
-                engine.dec_mem(0xe9);
-                if engine.mem(0xe9) != 0 {
-                    if engine.mem(0xe9) == 0x04 {
+                engine
+                    .state
+                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                if engine.state.scheduler_phase() != 0 {
+                    if engine.state.scheduler_phase() == 0x04 {
                         engine.state.set_prompt_state(0x20);
                     }
                     engine.state.set_tile_table_ptr_hi(0xb5);
@@ -585,8 +587,10 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             3 => {
-                engine.dec_mem(0xe9);
-                if engine.mem(0xe9) != 0 {
+                engine
+                    .state
+                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                if engine.state.scheduler_phase() != 0 {
                     engine.state.set_tile_table_ptr_hi(0xb2);
                     if engine.mem(0x1c) != 0 {
                         let v = if engine.mem(0x1c) < 0x04 {
@@ -612,12 +616,14 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 } else {
                     engine.state.set_tile_table_ptr_hi(0xb0);
                     engine.inc_mem(0xf3);
-                    engine.set_mem(0xe9, 0x04);
+                    engine.state.set_scheduler_phase(0x04);
                 }
             }
             2 => {
-                engine.dec_mem(0xe9);
-                if engine.mem(0xe9) != 0 {
+                engine
+                    .state
+                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                if engine.state.scheduler_phase() != 0 {
                     engine.state.set_tile_table_ptr_hi(0xb4);
                     if engine.mem(0x1e) >= 0xc3 {
                         engine.sub_mem(0x1e, 0x04);
@@ -628,11 +634,13 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             1 => {
-                engine.dec_mem(0xe9);
-                if engine.mem(0xe9) == 0 {
+                engine
+                    .state
+                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                if engine.state.scheduler_phase() == 0 {
                     engine.state.set_obj_timer(0x00);
                 } else {
-                    let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
+                    let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
                     engine.state.set_tile_table_ptr_hi(a);
                     engine.add_mem(0x1c, 0x04);
                     if engine.mem(0x1c) >= 0x40 {
@@ -649,9 +657,11 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 let delayed_grow = sum < 0x80 || sum >= 0xa0;
                 if close || (delayed_grow && engine.mem(0x1e) >= 0xc3) {
                     engine.state.set_obj_timer(0x03);
-                    engine.set_mem(0xe9, 0x02);
-                    engine.dec_mem(0xe9);
-                    if engine.mem(0xe9) != 0 {
+                    engine.state.set_scheduler_phase(0x02);
+                    engine
+                        .state
+                        .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                    if engine.state.scheduler_phase() != 0 {
                         engine.state.set_tile_table_ptr_hi(0xb2);
                         if engine.mem(0x1c) != 0 {
                             let v = if engine.mem(0x1c) < 0x04 {
@@ -677,20 +687,22 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     } else {
                         engine.state.set_tile_table_ptr_hi(0xb0);
                         engine.inc_mem(0xf3);
-                        engine.set_mem(0xe9, 0x04);
+                        engine.state.set_scheduler_phase(0x04);
                     }
                 } else if !delayed_grow {
                     engine.state.set_obj_timer(0x02);
-                    engine.set_mem(0xe9, 0x08);
+                    engine.state.set_scheduler_phase(0x08);
                     engine.state.set_tile_table_ptr_hi(0xb3);
                 } else {
                     engine.state.set_obj_timer(0x01);
-                    engine.set_mem(0xe9, 0x04);
-                    engine.dec_mem(0xe9);
-                    if engine.mem(0xe9) == 0 {
+                    engine.state.set_scheduler_phase(0x04);
+                    engine
+                        .state
+                        .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                    if engine.state.scheduler_phase() == 0 {
                         engine.state.set_obj_timer(0x00);
                     } else {
-                        let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
+                        let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
                         engine.state.set_tile_table_ptr_hi(a);
                         engine.add_mem(0x1c, 0x04);
                         if engine.mem(0x1c) >= 0x40 {
@@ -773,7 +785,9 @@ pub fn clear_title_screen_for_new_game(engine: &mut Engine, r: &mut RoutineConte
 /// Runs the scrolling story-text sequence shared by the title-screen chord and
 /// the final-exit cutscene.
 pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.inc_mem(0x92);
+    engine
+        .state
+        .set_music_volume_override((engine.state.music_volume_override() + 1) & 0xFF);
     drain_audio_timers_with_object_frames(engine, r);
     fade_palette_buffer_out(engine, r);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
@@ -1630,10 +1644,10 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
 /// hazard invulnerability, or a reset of the fall counter.
 fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut RoutineContext) {
     let mut fall_frames = engine.state.fall_frames();
-    if fall_frames >= engine.mem(0x5c) {
+    if fall_frames >= engine.state.jump_strength() {
         fall_frames = u8v(fall_frames - 0x07);
-        if fall_frames >= engine.mem(0x5c) {
-            fall_frames = engine.mem(0x5c);
+        if fall_frames >= engine.state.jump_strength() {
+            fall_frames = engine.state.jump_strength();
         }
         fall_frames = u8v(fall_frames - 0x01);
         engine.state.set_jump_timer(fall_frames);
@@ -1826,7 +1840,9 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades the room palette out and resets active audio channel state.
 pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.inc_mem(0x92);
+    engine
+        .state
+        .set_music_volume_override((engine.state.music_volume_override() + 1) & 0xFF);
     let mut y = 0x04;
     loop {
         engine.state.set_frame_counter(0x05);
@@ -1859,7 +1875,7 @@ pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineCon
     engine.set_mem(0x94, 0);
     engine.set_mem(0xa4, 0);
     engine.set_mem(0xc4, 0);
-    engine.set_mem(0x92, 0);
+    engine.state.set_music_volume_override(0);
 }
 
 /// Fades the room palette out while preserving active audio channel state.
@@ -2199,14 +2215,14 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 crate::game::restore_room_from_checkpoint(engine, r);
                 return;
             }
-            if engine.mem(0x5a) < 0x0a {
+            if engine.state.coins() < 0x0a {
                 engine.state.set_prompt_state(0x06);
                 continue;
             }
 
             let mut x = 0x0a;
             loop {
-                engine.dec_mem(0x5a);
+                engine.state.set_coins((engine.state.coins() - 1) & 0xFF);
                 crate::game::sync_coin_hud(engine, r);
                 engine.state.set_prompt_state(0x0c);
                 engine.state.set_frame_counter(0x0a);
@@ -2283,8 +2299,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                         engine.set_mem(u16v(0x60 + x), 0x10);
                     }
                     engine.set_mem(0x37, 0x80);
-                    engine.set_mem(0x5a, 0x80);
-                    engine.set_mem(0x5b, 0x80);
+                    engine.state.set_coins(0x80);
+                    engine.state.set_keys(0x80);
                     engine.state.set_prompt_state(0x1a);
                 }
             }
@@ -2789,7 +2805,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         return;
     }
     x = 0x04;
-    if engine.mem(0x5b) < 0x02 {
+    if engine.state.keys() < 0x02 {
         item_spawn_setup(engine, r, x);
         return;
     }
@@ -2798,7 +2814,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
     if r.value >= 0x09 {
         x = 0x00;
         if engine.state.player_health() < engine.state.player_magic() {
-            if engine.state.player_health() < engine.mem(0x5a) {
+            if engine.state.player_health() < engine.state.coins() {
                 item_spawn_setup(engine, r, x);
                 return;
             }
@@ -2807,7 +2823,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
             return;
         }
         x = 0x01;
-        if engine.state.player_magic() < engine.mem(0x5a) {
+        if engine.state.player_magic() < engine.state.coins() {
             item_spawn_setup(engine, r, x);
             return;
         }
