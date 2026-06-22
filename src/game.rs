@@ -858,31 +858,31 @@ mod rng_update {
     /// is below the limit supplied in `r.value`.
     pub fn rng_update(engine: &mut Engine, r: &mut RoutineContext) {
         let limit: i32 = u8v(r.value);
-        engine.set_mem(0x38, limit);
+        engine.state.set_rng_limit(limit);
         if cbool(limit == 0) {
-            r.value = engine.mem(0x3B);
+            r.value = engine.state.rng_high();
             return;
         }
-        let mut rng_high: i32 = engine.mem(0x3B);
-        let mut rng_low: i32 = engine.mem(0x3A);
+        let mut rng_high: i32 = engine.state.rng_high();
+        let mut rng_low: i32 = engine.state.rng_low();
         loop {
-            engine.set_mem(0x39, rng_low);
+            engine.state.set_rng_seed_scratch(rng_low);
 
             let shifted_seed: i32 = u16v((u16v((rng_high << 8) | rng_low) << 1) + 1);
             rng_high = u8v(shifted_seed >> 8);
             rng_low = u8v(shifted_seed);
 
-            let low_sum: i32 = u16v(rng_low + engine.mem(0x3A));
+            let low_sum: i32 = u16v(rng_low + engine.state.rng_low());
             rng_low = u8v(low_sum);
             let carry: i32 = u8v(low_sum >> 8);
 
-            let mut candidate: i32 = u8v(rng_high + engine.mem(0x3B) + carry);
-            candidate = u8v(candidate + engine.mem(0x39));
+            let mut candidate: i32 = u8v(rng_high + engine.state.rng_high() + carry);
+            candidate = u8v(candidate + engine.state.rng_seed_scratch());
             candidate &= 0x7F;
 
             rng_high = candidate;
-            engine.set_mem(0x3B, candidate);
-            engine.set_mem(0x3A, rng_low);
+            engine.state.set_rng_high(candidate);
+            engine.state.set_rng_low(rng_low);
             if !cbool(candidate >= limit) {
                 break;
             }
@@ -2045,8 +2045,8 @@ mod encode_inventory_snapshot_item_list {
         }
         // Entries at offsets 0x0F and 0x1F seed the RNG and are intentionally
         // not scrambled.
-        engine.set_mem(0x3A, engine.mem(0x0331));
-        engine.set_mem(0x3B, engine.mem(0x0341));
+        engine.state.set_rng_low(engine.mem(0x0331));
+        engine.state.set_rng_high(engine.mem(0x0341));
         let mut scramble_offset: i32 = 0x0E;
         while cbool(scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));
@@ -2085,8 +2085,8 @@ mod decode_inventory_item_list_snapshot {
 
         // Unscramble every non-seed entry with the same RNG stream used by the
         // encoder.
-        engine.set_mem(0x3A, engine.mem(0x0351));
-        engine.set_mem(0x3B, engine.mem(0x0361));
+        engine.state.set_rng_low(engine.mem(0x0351));
+        engine.state.set_rng_high(engine.mem(0x0361));
         let mut scramble_offset: i32 = 0x0E;
         while cbool(scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));

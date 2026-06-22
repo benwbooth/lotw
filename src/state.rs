@@ -1007,6 +1007,52 @@ impl GameState {
         self.set_byte(0x0B, value);
     }
 
+    // ---- RNG state ($38..$3B) ---------------------------------------------
+    //
+    // `rng_update` advances a 16-bit LFSR-style seed ($3A low, $3B high) mixed
+    // with a saved previous low byte ($39), and rejection-samples below a
+    // requested limit ($38). $3B is also the returned random byte.
+
+    /// Requested RNG range/limit for the current draw (`$38`).
+    #[inline]
+    pub fn rng_limit(&self) -> i32 {
+        self.byte(0x38)
+    }
+    #[inline]
+    pub fn set_rng_limit(&mut self, value: i32) {
+        self.set_byte(0x38, value);
+    }
+
+    /// Saved previous seed low byte mixed into the next draw (`$39`).
+    #[inline]
+    pub fn rng_seed_scratch(&self) -> i32 {
+        self.byte(0x39)
+    }
+    #[inline]
+    pub fn set_rng_seed_scratch(&mut self, value: i32) {
+        self.set_byte(0x39, value);
+    }
+
+    /// RNG seed, low byte (`$3A`).
+    #[inline]
+    pub fn rng_low(&self) -> i32 {
+        self.byte(0x3A)
+    }
+    #[inline]
+    pub fn set_rng_low(&mut self, value: i32) {
+        self.set_byte(0x3A, value);
+    }
+
+    /// RNG seed, high byte; also the value returned by a draw (`$3B`).
+    #[inline]
+    pub fn rng_high(&self) -> i32 {
+        self.byte(0x3B)
+    }
+    #[inline]
+    pub fn set_rng_high(&mut self, value: i32) {
+        self.set_byte(0x3B, value);
+    }
+
     // ---- Misc player / UI / frame state -----------------------------------
 
     /// Current character index (which Drasle family member is active) (`$40`).

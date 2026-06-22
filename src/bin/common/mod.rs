@@ -177,9 +177,9 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     game::farcall_bank_0C0D_seed(engine, r);
     engine.state.set_song(0x09);
     engine.set_mem(0x41, 0xff);
-    engine.set_mem(0x39, 0xc5);
-    engine.set_mem(0x3a, 0x17);
-    engine.set_mem(0x3b, 0x42);
+    engine.state.set_rng_seed_scratch(0xc5);
+    engine.state.set_rng_low(0x17);
+    engine.state.set_rng_high(0x42);
     engine.state.set_map_screen_x(0x01);
     engine.state.set_map_screen_y(0x05);
     engine.state.set_character_index(0x00);
