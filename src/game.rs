@@ -40,6 +40,7 @@ pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
+pub use dispatch_actor_behavior::dispatch_actor_behavior;
 pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
@@ -50,6 +51,7 @@ pub use inc16_95::inc16_95;
 pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
+pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
 pub use metasprite_build::metasprite_build;
 pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
@@ -201,12 +203,6 @@ pub use routine_0198::routine_0198;
 pub use routine_0199::routine_0199;
 pub use routine_0200::routine_0200;
 pub use routine_0201::routine_0201;
-pub use routine_0212::routine_0212;
-pub use routine_0215::routine_0215;
-pub use routine_0216::routine_0216;
-pub use routine_0217::routine_0217;
-pub use routine_0218::routine_0218;
-pub use routine_0219::routine_0219;
 pub use routine_0220::routine_0220;
 pub use routine_0221::routine_0221;
 pub use routine_0222::routine_0222;
@@ -266,14 +262,18 @@ pub use sync_health_hud::sync_health_hud;
 pub use sync_key_hud::sync_key_hud;
 pub use sync_magic_hud::sync_magic_hud;
 pub use text_attr_build::text_attr_build;
+pub use tick_actor_materialize_delay::tick_actor_materialize_delay;
+pub use tick_inactive_actor_slot::tick_inactive_actor_slot;
 pub use tick_noise_channel::tick_noise_channel;
 pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
+pub use tick_standard_actor::tick_standard_actor;
 pub use tick_triangle_channel::tick_triangle_channel;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
+pub use update_room_actors::update_room_actors;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
@@ -6790,9 +6790,12 @@ mod consume_key {
     }
 }
 
-mod routine_0212 {
+mod update_room_actors {
     use super::*;
-    pub fn routine_0212(engine: &mut Engine, r: &mut RoutineContext) {
+    // Updates live room objects by copying each 16-byte object slot into
+    // scratch RAM `0xED..0xFC`, running the correct actor state path, then
+    // copying the scratch state back to the slot.
+    pub fn update_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -6807,30 +6810,31 @@ mod routine_0212 {
                         }
                     }
                     {
-                        let mut e9: i32 = engine.mem(0xE9);
-                        let mut v: i32 = u8v((e9 << 1) + e9);
-                        engine.set_mem(0xE3, v);
-                        engine.set_mem(0xE4, u8v(v + 3));
-                        let mut e5: i32 = u8v(engine.mem(0xE3) << 4);
-                        engine.set_mem(0xE5, e5);
-                        engine.set_mem(0xE7, u8v(e5 + 0x20));
+                        let mut scheduler_phase: i32 = engine.mem(0xE9);
+                        let mut first_actor_slot: i32 =
+                            u8v((scheduler_phase << 1) + scheduler_phase);
+                        engine.set_mem(0xE3, first_actor_slot);
+                        engine.set_mem(0xE4, u8v(first_actor_slot + 3));
+                        let mut object_slot_lo: i32 = u8v(engine.mem(0xE3) << 4);
+                        engine.set_mem(0xE5, object_slot_lo);
+                        engine.set_mem(0xE7, u8v(object_slot_lo + 0x20));
                         engine.set_mem(0xE6, 0x04);
                         engine.set_mem(0xE8, engine.mem(0x78));
                     }
                     loop {
-                        let mut ee: i32 = 0;
+                        let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
-                        ee = engine.mem(0xEE);
-                        if cbool(ee == 0) {
-                            routine_0215(engine, r);
-                        } else if cbool(ee & 0x80) {
+                        actor_state = engine.mem(0xEE);
+                        if cbool(actor_state == 0) {
+                            tick_inactive_actor_slot(engine, r);
+                        } else if cbool(actor_state & 0x80) {
                             routine_0240(engine, r);
-                        } else if cbool(ee == 0x01) {
-                            routine_0218(engine, r);
-                        } else if cbool(ee >= 0x18) {
-                            routine_0216(engine, r);
+                        } else if cbool(actor_state == 0x01) {
+                            dispatch_actor_behavior(engine, r);
+                        } else if cbool(actor_state >= 0x18) {
+                            tick_actor_materialize_delay(engine, r);
                         } else {
-                            routine_0219(engine, r);
+                            tick_standard_actor(engine, r);
                         }
                         store_object_slot_scratch(engine, r);
                         engine.inc_mem(0xE3);
@@ -6841,8 +6845,15 @@ mod routine_0212 {
                         }
                     }
                     {
-                        let mut e9: i32 = u8v(engine.mem(0xE9) + 1);
-                        engine.set_mem(0xE9, (if cbool(e9 >= 0x03) { 0x00 } else { e9 }));
+                        let mut next_scheduler_phase: i32 = u8v(engine.mem(0xE9) + 1);
+                        engine.set_mem(
+                            0xE9,
+                            (if cbool(next_scheduler_phase >= 0x03) {
+                                0x00
+                            } else {
+                                next_scheduler_phase
+                            }),
+                        );
                     }
                     return;
                     state = 1;
@@ -6862,10 +6873,10 @@ mod routine_0212 {
                     engine.set_mem(0xE8, engine.mem(0x78));
                     load_object_slot_scratch(engine, r);
                     {
-                        let mut ee: i32 = engine.mem(0xEE);
-                        if cbool(ee == 0) {
+                        let mut actor_state: i32 = engine.mem(0xEE);
+                        if cbool(actor_state == 0) {
                             routine_0257(engine, r);
-                        } else if cbool(ee & 0x80) {
+                        } else if cbool(actor_state & 0x80) {
                             routine_0263(engine, r);
                             routine_0264(engine, r);
                         } else {
@@ -6888,14 +6899,14 @@ mod routine_0212 {
                     engine.set_mem(0xE7, 0x60);
                     engine.set_mem(0xE8, engine.mem(0x78));
                     loop {
-                        let mut ee: i32 = 0;
+                        let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
-                        ee = engine.mem(0xEE);
-                        if (cbool(ee == 0) || cbool(ee & 0x80)) {
+                        actor_state = engine.mem(0xEE);
+                        if (cbool(actor_state == 0) || cbool(actor_state & 0x80)) {
                             engine.set_mem(0xEE, 0x00);
-                            routine_0217(engine, r);
+                            maybe_spawn_pursuer_actor(engine, r);
                         } else {
-                            routine_0218(engine, r);
+                            dispatch_actor_behavior(engine, r);
                         }
                         store_object_slot_scratch(engine, r);
                         engine.inc_mem(0xE3);
@@ -6968,17 +6979,17 @@ mod store_object_slot_scratch {
     }
 }
 
-mod routine_0215 {
+mod tick_inactive_actor_slot {
     use super::*;
-    pub fn routine_0215(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut t: i32 = 0;
-        let mut e7: i32 = 0;
+    // Initializes an inactive scratch slot from the room actor record at
+    // `0xE7..0xE8`. A nonzero timer leaves the actor materializing; a zero
+    // timer promotes it to the normal active state.
+    pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF3, u8v(engine.mem(0xF3) - 1));
-        x = engine.mem(0xF3);
-        if cbool(x >= 0x3C) {}
-        e7 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-        if cbool((engine.mem(u16v(e7 + 2)) | engine.mem(u16v(e7 + 3))) == 0) {
+        let actor_timer: i32 = engine.mem(0xF3);
+        let actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+        if cbool((engine.mem(u16v(actor_data_ptr + 2)) | engine.mem(u16v(actor_data_ptr + 3))) == 0)
+        {
             r.value = 0x0C;
             rng_update(engine, r);
             engine.set_mem(0x0A, u8v(r.value << 4));
@@ -6986,8 +6997,8 @@ mod routine_0215 {
             rng_update(engine, r);
             engine.set_mem(0x0F, r.value);
         } else {
-            engine.set_mem(0x0A, engine.mem(u16v(e7 + 3)));
-            engine.set_mem(0x0F, engine.mem(u16v(e7 + 2)));
+            engine.set_mem(0x0A, engine.mem(u16v(actor_data_ptr + 3)));
+            engine.set_mem(0x0F, engine.mem(u16v(actor_data_ptr + 2)));
         }
         engine.set_mem(0x0E, 0x00);
         engine.set_mem(0x0B, 0x00);
@@ -7002,27 +7013,27 @@ mod routine_0215 {
         engine.set_mem(0xF0, 0x00);
         engine.set_mem(0xF4, 0x00);
         engine.set_mem(0xFC, 0x00);
-        engine.set_mem(0xF2, engine.mem(u16v(e7 + 4)));
-        engine.set_mem(0xF8, engine.mem(u16v(e7 + 5)));
+        engine.set_mem(0xF2, engine.mem(u16v(actor_data_ptr + 4)));
+        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
         {
-            let mut a: i32 = 0x00;
-            let mut c: i32 = 1;
-            let mut xi: i32 = engine.mem(0x40);
+            let mut current_member_bit: i32 = 0x00;
+            let mut carry_bit: i32 = 1;
+            let mut member_index: i32 = engine.mem(0x40);
             loop {
-                let mut nc: i32 = u8v((a >> 7) & 1);
-                a = u8v((a << 1) | c);
-                c = nc;
-                xi = u8v(xi - 1);
-                if !cbool((xi & 0x80) == 0) {
+                let mut next_carry_bit: i32 = u8v((current_member_bit >> 7) & 1);
+                current_member_bit = u8v((current_member_bit << 1) | carry_bit);
+                carry_bit = next_carry_bit;
+                member_index = u8v(member_index - 1);
+                if !cbool((member_index & 0x80) == 0) {
                     break;
                 }
             }
-            a = u8v(a & engine.mem(0x41));
-            if cbool(a == 0) {
-                let mut f8: i32 = engine.mem(0xF8);
-                let mut carry: i32 = u8v((f8 >> 7) & 1);
-                engine.set_mem(0xF8, u8v(f8 << 1));
-                if cbool(carry) {
+            current_member_bit = u8v(current_member_bit & engine.mem(0x41));
+            if cbool(current_member_bit == 0) {
+                let mut contact_damage: i32 = engine.mem(0xF8);
+                let mut damage_overflow: i32 = u8v((contact_damage >> 7) & 1);
+                engine.set_mem(0xF8, u8v(contact_damage << 1));
+                if cbool(damage_overflow) {
                     engine.set_mem(0xF8, 0xFF);
                 }
             }
@@ -7030,11 +7041,10 @@ mod routine_0215 {
         engine.set_mem(0xEE, 0x7F);
         engine.set_mem(0xED, 0xF9);
         engine.set_mem(0xEF, 0x01);
-        t = engine.mem(0xF3);
-        if cbool(t == 0) {
+        if cbool(actor_timer == 0) {
             engine.set_mem(0xEE, 0x01);
-            engine.set_mem(0xED, engine.mem(u16v(e7 + 0)));
-            engine.set_mem(0xEF, engine.mem(u16v(e7 + 1)));
+            engine.set_mem(0xED, engine.mem(u16v(actor_data_ptr + 0)));
+            engine.set_mem(0xEF, engine.mem(u16v(actor_data_ptr + 1)));
         } else {
             if cbool((engine.mem(0xF3) & 0x03) == 0) {
                 engine.set_mem(0xEF, u8v(engine.mem(0xEF) ^ 0x40));
@@ -7043,28 +7053,29 @@ mod routine_0215 {
     }
 }
 
-mod routine_0216 {
+mod tick_actor_materialize_delay {
     use super::*;
-    pub fn routine_0216(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut t: i32 = u8v(engine.mem(0xF3) - 1);
-        engine.set_mem(0xF3, t);
-        if cbool(t == 0) {
-            let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+    // Counts down a materializing actor. When the timer reaches zero, the slot
+    // becomes behavior-dispatched state `0x01` with sprite bytes from room data.
+    pub fn tick_actor_materialize_delay(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut actor_timer: i32 = u8v(engine.mem(0xF3) - 1);
+        engine.set_mem(0xF3, actor_timer);
+        if cbool(actor_timer == 0) {
+            let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             engine.set_mem(0xEE, 0x01);
-            engine.set_mem(0xED, engine.mem(ptr));
-            engine.set_mem(0xEF, engine.mem(u16v(ptr + 1)));
-        } else if cbool((t & 0x03) == 0) {
+            engine.set_mem(0xED, engine.mem(actor_data_ptr));
+            engine.set_mem(0xEF, engine.mem(u16v(actor_data_ptr + 1)));
+        } else if cbool((actor_timer & 0x03) == 0) {
             engine.xor_mem(0xEF, 0x40);
         }
     }
 }
 
-mod routine_0217 {
+mod maybe_spawn_pursuer_actor {
     use super::*;
-    pub fn routine_0217(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        let mut e7: i32 = 0;
+    // Some late-game rooms periodically seed extra actors from the player slot.
+    // The 1-in-30 roll keeps empty secondary slots from respawning every frame.
+    pub fn maybe_spawn_pursuer_actor(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x1E;
         rng_update(engine, r);
         if cbool(r.value != 0) {
@@ -7072,18 +7083,21 @@ mod routine_0217 {
             return;
         }
         r.index = 0;
-        x = 0x03;
-        y = 0x03;
+        let mut scratch_offset: i32 = 0x03;
+        let mut source_slot_offset: i32 = 0x03;
         if cbool(engine.mem(0x0402) & 0x40) {
-            y = 0x13;
+            source_slot_offset = 0x13;
         }
         loop {
-            engine.set_mem(u16v(0x00F9 + x), engine.mem(u16v(0x040C + y)));
-            y = u8v(y - 1);
+            engine.set_mem(
+                u16v(0x00F9 + scratch_offset),
+                engine.mem(u16v(0x040C + source_slot_offset)),
+            );
+            source_slot_offset = u8v(source_slot_offset - 1);
             if cbool(
                 ({
-                    let __old = x;
-                    x -= 1;
+                    let __old = scratch_offset;
+                    scratch_offset -= 1;
                     __old
                 }) == 0,
             ) {
@@ -7093,35 +7107,43 @@ mod routine_0217 {
         engine.set_mem(0xF1, 0x00);
         engine.set_mem(0xF0, 0x00);
         engine.set_mem(0xF4, 0x00);
-        e7 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-        engine.set_mem(0xF2, engine.mem(u16v(e7 + 4)));
-        engine.set_mem(0xF8, engine.mem(u16v(e7 + 5)));
+        let actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+        engine.set_mem(0xF2, engine.mem(u16v(actor_data_ptr + 4)));
+        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
         engine.set_mem(0xEE, 0x01);
         engine.set_mem(0xED, 0x81);
         r.value = 0x04;
         rng_update(engine, r);
         engine.set_mem(0xEF, r.value);
         engine.set_mem(0xF1, 0x80);
-        r.offset = y;
-        r.index = x;
+        r.offset = source_slot_offset;
+        r.index = scratch_offset;
     }
 }
 
-mod routine_0218 {
+mod dispatch_actor_behavior {
     use super::*;
-    const boss_state_table: [i32; 9] = [
+    const ACTOR_BEHAVIOR_HANDLERS: [i32; 9] = [
         0xEAFD, 0xEB69, 0xEB90, 0xEBD8, 0xEC76, 0xECA8, 0xED2A, 0xED6F, 0xED9F,
     ];
 
-    pub fn routine_0218(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-        let mut idx: i32 = engine.mem(u16v(ptr + 8));
-        if cbool(idx >= 0x09) {
-            idx = 0x00;
+    // Dispatches the behavior id stored at room actor data byte 8. The original
+    // handler address is mirrored into 0x0E/0x0F for trace-compatible scratch.
+    pub fn dispatch_actor_behavior(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+        let mut behavior_id: i32 = engine.mem(u16v(actor_data_ptr + 8));
+        if cbool(behavior_id >= 0x09) {
+            behavior_id = 0x00;
         }
-        engine.set_mem(0x0E, u8v(boss_state_table[idx as usize as usize] & 0xFF));
-        engine.set_mem(0x0F, u8v(boss_state_table[idx as usize as usize] >> 8));
-        match idx {
+        engine.set_mem(
+            0x0E,
+            u8v(ACTOR_BEHAVIOR_HANDLERS[behavior_id as usize] & 0xFF),
+        );
+        engine.set_mem(
+            0x0F,
+            u8v(ACTOR_BEHAVIOR_HANDLERS[behavior_id as usize] >> 8),
+        );
+        match behavior_id {
             0 => {
                 routine_0220(engine, r);
             }
@@ -7154,11 +7176,14 @@ mod routine_0218 {
     }
 }
 
-mod routine_0219 {
+mod tick_standard_actor {
     use super::*;
-    pub fn routine_0219(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut a: i32 = 0;
+    // Generic non-boss actor tick: keep existing movement going, try terrain
+    // response, expire the actor when its timer reaches zero, then update the
+    // terrain probe for the next frame.
+    pub fn tick_standard_actor(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut actor_timer: i32 = 0;
+        let mut saved_tile_y: i32 = 0;
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -7191,22 +7216,22 @@ mod routine_0219 {
                     continue 'dispatch;
                 }
                 1 => {
-                    x = u8v(engine.mem(0xF3) - 1);
-                    if cbool(x == 0) {
+                    actor_timer = u8v(engine.mem(0xF3) - 1);
+                    if cbool(actor_timer == 0) {
                         engine.set_mem(0xEE, 0x00);
                         engine.set_mem(0xF3, 0xF0);
-                        r.index = x;
+                        r.index = actor_timer;
                         return;
                     }
-                    engine.set_mem(0xF3, x);
-                    if cbool(x < 0x3C) {
-                        x = 0xEF;
-                        a = engine.mem(0xFB);
-                        if cbool(a == 0xEF) {
-                            x = engine.mem(0xFC);
+                    engine.set_mem(0xF3, actor_timer);
+                    if cbool(actor_timer < 0x3C) {
+                        actor_timer = 0xEF;
+                        saved_tile_y = engine.mem(0xFB);
+                        if cbool(saved_tile_y == 0xEF) {
+                            actor_timer = engine.mem(0xFC);
                         }
-                        engine.set_mem(0xFB, x);
-                        engine.set_mem(0xFC, a);
+                        engine.set_mem(0xFB, actor_timer);
+                        engine.set_mem(0xFC, saved_tile_y);
                     }
                     update_object_terrain_probe(engine, r);
                     break 'dispatch;

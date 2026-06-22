@@ -29,7 +29,7 @@ The native executable runs these major phases:
    interrupted context.
 5. `game_update` processes live input, movement, item actions, character swaps,
    room collisions, and follow-up state changes for one foreground tick.
-6. `update_player_projectiles`, `routine_0212`, and `update_tile_projectile`
+6. `update_player_projectiles`, `update_room_actors`, and `update_tile_projectile`
    update player shots, room actors, and the special tile-removal projectile
    before the render pass.
 
@@ -113,8 +113,6 @@ would currently be weaker than the cluster name.
 | `game` | `0178..0186` | cluster | inventory/menu cursor, item list, and status draw helpers |
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
-| `game` | `0212` | inferred | main room actor scheduler |
-| `game` | `0215..0219` | inferred | inactive actor spawn, respawn delay, boss dispatch, and normal actor tick |
 | `game` | `0220..0229` | cluster | per-actor behavior handlers selected by room actor data |
 | `game` | `0230..0239` | inferred | actor movement helper routines, velocity reset, and collision response |
 | `native` | `0240` | inferred | high-bit/special actor update path |
@@ -159,6 +157,7 @@ surface when touching nearby code:
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
+| `dispatch_actor_behavior` | route an active room actor to the behavior handler selected by room actor data byte 8 |
 | `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
@@ -169,6 +168,7 @@ surface when touching nearby code:
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
 | `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
+| `maybe_spawn_pursuer_actor` | one-in-30 secondary actor spawn path that seeds scratch position from the player slot |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
 | `next_envelope_volume` | update the selected audio channel's envelope accumulator and compose the APU volume byte |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
@@ -201,12 +201,16 @@ surface when touching nearby code:
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
+| `tick_actor_materialize_delay` | count down a materializing actor and promote it to behavior-dispatched state when ready |
+| `tick_inactive_actor_slot` | initialize an inactive actor scratch slot from room actor data and spawn timing |
 | `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
 | `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
 | `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
+| `tick_standard_actor` | generic non-boss actor tick for motion continuation, collision response, expiry, and terrain probing |
 | `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
 | `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
+| `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
@@ -223,7 +227,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+1. Actor behavior/movement helpers: `routine_0220..0265`.
 2. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke

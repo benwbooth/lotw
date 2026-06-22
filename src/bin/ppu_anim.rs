@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         game::read_controllers(&mut engine, &mut r);
         game::game_update(&mut engine, &mut r);
         game::update_player_projectiles(&mut engine, &mut r);
-        game::routine_0212(&mut engine, &mut r);
+        game::update_room_actors(&mut engine, &mut r);
         game::update_tile_projectile(&mut engine, &mut r);
         game::routine_0059(&mut engine, &mut r);
         game::routine_0061(&mut engine, &mut r);

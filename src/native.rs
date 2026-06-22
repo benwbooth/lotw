@@ -210,7 +210,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         }
 
         crate::game::update_player_projectiles(engine, r);
-        crate::game::routine_0212(engine, r);
+        crate::game::update_room_actors(engine, r);
         crate::game::update_tile_projectile(engine, r);
         crate::game::routine_0059(engine, r);
         let saved_c = r.carry;
@@ -1035,7 +1035,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
                 0xf6,
                 crate::game::update_player_projectiles,
             );
-            farcall_cce4(engine, r, 0x7c, 0xe8, crate::game::routine_0212);
+            farcall_cce4(engine, r, 0x7c, 0xe8, crate::game::update_room_actors);
             farcall_cce4(engine, r, 0x82, 0xf7, crate::game::update_tile_projectile);
             farcall_cce4(engine, r, 0x5d, 0xc1, crate::game::routine_0059);
             crate::game::routine_0061(engine, r);
