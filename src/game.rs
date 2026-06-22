@@ -54,6 +54,7 @@ pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_dir
 pub use clear_gameplay_object_sprites::clear_gameplay_object_sprites;
 pub use clear_inventory_item_list_buffer::clear_inventory_item_list_buffer;
 pub use clear_pending_vram_job::clear_pending_vram_job;
+pub use close_inventory_item_menu::close_inventory_item_menu;
 pub use collect_key_bundle_reward::collect_key_bundle_reward;
 pub use collect_large_coin_reward::collect_large_coin_reward;
 pub use collect_room_pickup_object::collect_room_pickup_object;
@@ -94,6 +95,10 @@ pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
 pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
 pub use metasprite_build::metasprite_build;
+pub use move_inventory_cursor_down::move_inventory_cursor_down;
+pub use move_inventory_cursor_left::move_inventory_cursor_left;
+pub use move_inventory_cursor_right::move_inventory_cursor_right;
+pub use move_inventory_cursor_up::move_inventory_cursor_up;
 pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
 pub use probe_actor_overhead_step::probe_actor_overhead_step;
@@ -191,15 +196,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0178::routine_0178;
-pub use routine_0179::routine_0179;
-pub use routine_0180::routine_0180;
-pub use routine_0181::routine_0181;
-pub use routine_0182::routine_0182;
-pub use routine_0183::routine_0183;
-pub use routine_0184::routine_0184;
-pub use routine_0185::routine_0185;
-pub use routine_0186::routine_0186;
 pub use routine_0192::routine_0192;
 pub use routine_0195::routine_0195;
 pub use routine_0196::routine_0196;
@@ -213,6 +209,8 @@ pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
 pub use seed_object_position_from_tile_offset::seed_object_position_from_tile_offset;
+pub use select_inventory_grid_entry::select_inventory_grid_entry;
+pub use set_inventory_list_buffer_index::set_inventory_list_buffer_index;
 pub use sfx_overlay_voice::sfx_overlay_voice;
 pub use snapshot_inventory_state::snapshot_inventory_state;
 pub use song_init::song_init;
@@ -267,6 +265,8 @@ pub use try_nudge_player_to_tile_boundary::try_nudge_player_to_tile_boundary;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
 pub use update_actor_animation::update_actor_animation;
+pub use update_inventory_grid_cursor_sprites::update_inventory_grid_cursor_sprites;
+pub use update_inventory_list_cursor_sprites::update_inventory_list_cursor_sprites;
 pub use update_large_actor_facing_from_velocity::update_large_actor_facing_from_velocity;
 pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_pose_from_motion::update_player_pose_from_motion;
@@ -6164,9 +6164,12 @@ mod try_nudge_player_to_tile_boundary {
     }
 }
 
-mod routine_0178 {
+mod close_inventory_item_menu {
     use super::*;
-    pub fn routine_0178(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Attempts to close the item menu, restore the pre-menu gameplay snapshot,
+    /// and redraw the HUD. Carry from the text/prompt helper aborts the close.
+    pub fn close_inventory_item_menu(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, 0x77);
         engine.set_mem(0x0F, 0xB5);
         routine_0052(engine, r);
@@ -6184,37 +6187,40 @@ mod routine_0178 {
     }
 }
 
-mod routine_0179 {
+mod select_inventory_grid_entry {
     use super::*;
-    pub fn routine_0179(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut f5: i32 = engine.mem(0xF5);
-        let mut a: i32 = u8v(u8v(f5 << 2) + f5);
+
+    /// Selects the current 7x5 item-grid entry. Values `0x20..0x22` are menu
+    /// controls; normal values are copied into the scrolling item-list buffer.
+    pub fn select_inventory_grid_entry(engine: &mut Engine, r: &mut RoutineContext) {
+        let grid_column: i32 = engine.mem(0xF5);
+        let mut grid_value: i32 = u8v(u8v(grid_column << 2) + grid_column);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    a = u8v(a + engine.mem(0xF7));
-                    if cbool(a == 0x20) {
+                    grid_value = u8v(grid_value + engine.mem(0xF7));
+                    if cbool(grid_value == 0x20) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(a == 0x21) {
+                    if cbool(grid_value == 0x21) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(a == 0x22) {
-                        routine_0178(engine, r);
+                    if cbool(grid_value == 0x22) {
+                        close_inventory_item_menu(engine, r);
                         return;
                     }
-                    r.value = a;
-                    routine_0186(engine, r);
-                    engine.set_mem(u16v(0x0322 + r.index), a);
+                    r.value = grid_value;
+                    set_inventory_list_buffer_index(engine, r);
+                    engine.set_mem(u16v(0x0322 + r.index), grid_value);
                     if cbool(r.index == 0x1F) {
-                        routine_0178(engine, r);
+                        close_inventory_item_menu(engine, r);
                         return;
                     }
                     state = 1;
@@ -6222,14 +6228,14 @@ mod routine_0179 {
                 }
                 1 => {
                     engine.inc_mem(0xF9);
-                    routine_0184(engine, r);
+                    update_inventory_list_cursor_sprites(engine, r);
                     return;
                     state = 2;
                     continue 'dispatch;
                 }
                 2 => {
                     engine.dec_mem(0xF9);
-                    routine_0184(engine, r);
+                    update_inventory_list_cursor_sprites(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -6238,123 +6244,121 @@ mod routine_0179 {
     }
 }
 
-mod routine_0180 {
+mod move_inventory_cursor_right {
     use super::*;
-    pub fn routine_0180(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Moves the inventory grid cursor right across seven columns, wrapping to
+    /// column zero.
+    pub fn move_inventory_cursor_right(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.mem(0xF5) + 1);
         if cbool(x >= 0x07) {
             x = 0x00;
         }
         engine.set_mem(0xF5, x);
-        routine_0185(engine, r);
+        update_inventory_grid_cursor_sprites(engine, r);
     }
 }
 
-mod routine_0181 {
+mod move_inventory_cursor_left {
     use super::*;
-    pub fn routine_0181(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Moves the inventory grid cursor left across seven columns, wrapping to
+    /// column six.
+    pub fn move_inventory_cursor_left(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.mem(0xF5) - 1);
         if cbool(x & 0x80) {
             x = 0x06;
         }
         engine.set_mem(0xF5, x);
-        routine_0185(engine, r);
+        update_inventory_grid_cursor_sprites(engine, r);
     }
 }
 
-mod routine_0182 {
+mod move_inventory_cursor_up {
     use super::*;
-    pub fn routine_0182(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Moves the inventory grid cursor up across five rows, wrapping to row
+    /// four.
+    pub fn move_inventory_cursor_up(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.mem(0xF7) - 1);
         if cbool(x & 0x80) {
             x = 0x04;
         }
         engine.set_mem(0xF7, x);
-        routine_0185(engine, r);
+        update_inventory_grid_cursor_sprites(engine, r);
     }
 }
 
-mod routine_0183 {
+mod move_inventory_cursor_down {
     use super::*;
-    pub fn routine_0183(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Moves the inventory grid cursor down across five rows, wrapping to row
+    /// zero.
+    pub fn move_inventory_cursor_down(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.mem(0xF7) + 1);
         if cbool(x >= 0x05) {
             x = 0x00;
         }
         engine.set_mem(0xF7, x);
-        routine_0185(engine, r);
+        update_inventory_grid_cursor_sprites(engine, r);
     }
 }
 
-mod routine_0184 {
+mod update_inventory_list_cursor_sprites {
     use super::*;
-    pub fn routine_0184(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0xF9) & 0x1F;
-        let mut x: i32 = 0x61;
-        let mut base: i32 = 0;
-        let mut v: i32 = 0;
-        let mut carry: i32 = 0;
-        let mut res: i32 = 0;
-        if cbool(a >= 0x10) {
-            a = u8v(a - 0x10);
-            x = 0x69;
+
+    /// Positions the two arrow sprites that point at the scrolling selected
+    /// item-list slot `0xF9 & 0x1F`.
+    pub fn update_inventory_list_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut list_slot: i32 = engine.mem(0xF9) & 0x1F;
+        let mut cursor_tile: i32 = 0x61;
+        if cbool(list_slot >= 0x10) {
+            list_slot = u8v(list_slot - 0x10);
+            cursor_tile = 0x69;
         }
-        engine.set_mem(0x0280, x);
-        engine.set_mem(0x0284, x);
-        engine.set_mem(0x08, a);
-        base = u8v((a >> 2) + a);
-        v = u8v(base << 3);
-        carry = u8v((base >> 5) & 1);
-        res = u8v(u8v(v) + 0x36 + carry);
-        engine.set_mem(0x0287, res);
-        res = u8v(res - 0x08);
-        engine.set_mem(0x0283, res);
-        r.index = x;
-        r.value = res;
+        engine.set_mem(0x0280, cursor_tile);
+        engine.set_mem(0x0284, cursor_tile);
+        engine.set_mem(0x08, list_slot);
+
+        let scaled_slot: i32 = u8v((list_slot >> 2) + list_slot);
+        let carry: i32 = u8v((scaled_slot >> 5) & 1);
+        let right_x: i32 = u8v(u8v(scaled_slot << 3) + 0x36 + carry);
+        engine.set_mem(0x0287, right_x);
+        let left_x: i32 = u8v(right_x - 0x08);
+        engine.set_mem(0x0283, left_x);
+        r.index = cursor_tile;
+        r.value = left_x;
     }
 }
 
-mod routine_0185 {
+mod update_inventory_grid_cursor_sprites {
     use super::*;
-    fn asl3(engine: &mut Engine, mut v: i32, carry_out: &mut i32) -> i32 {
-        let mut c: i32 = 0;
-        let mut i: i32 = 0;
-        {
-            i = 0;
-            while cbool(i < 3) {
-                c = (v >> 7) & 1;
-                v = u8v(v << 1);
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        *carry_out = c;
-        return v;
+
+    fn scale_grid_coordinate(value: i32) -> (i32, i32) {
+        (u8v(value << 3), u8v((value >> 5) & 1))
     }
 
-    pub fn routine_0185(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut c: i32 = 0;
-        let mut a: i32 = 0;
-        let mut t: i32 = 0;
-        t = asl3(engine, engine.mem(0xF5), &mut c);
-        a = u8v(t + 0x36 + c);
-        engine.set_mem(0x0297, a);
-        a = u8v(a - 0x08);
-        engine.set_mem(0x0293, a);
-        t = asl3(engine, engine.mem(0xF7), &mut c);
-        a = u8v(t + 0x81 + c);
-        engine.set_mem(0x0290, a);
-        engine.set_mem(0x0294, a);
-        r.value = a;
+    /// Positions the 2x2 cursor around the active inventory grid cell.
+    pub fn update_inventory_grid_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
+        let (column_pixels, column_carry) = scale_grid_coordinate(engine.mem(0xF5));
+        let right_x: i32 = u8v(column_pixels + 0x36 + column_carry);
+        engine.set_mem(0x0297, right_x);
+        let left_x: i32 = u8v(right_x - 0x08);
+        engine.set_mem(0x0293, left_x);
+
+        let (row_pixels, row_carry) = scale_grid_coordinate(engine.mem(0xF7));
+        let y: i32 = u8v(row_pixels + 0x81 + row_carry);
+        engine.set_mem(0x0290, y);
+        engine.set_mem(0x0294, y);
+        r.value = y;
     }
 }
 
-mod routine_0186 {
+mod set_inventory_list_buffer_index {
     use super::*;
-    pub fn routine_0186(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Converts the scrolling item-list cursor into a 32-byte buffer index.
+    pub fn set_inventory_list_buffer_index(engine: &mut Engine, r: &mut RoutineContext) {
         r.index = engine.mem(0xF9) & 0x1F;
     }
 }

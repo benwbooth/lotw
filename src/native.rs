@@ -2065,8 +2065,8 @@ pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0286, 0x00);
     engine.set_mem(0x0292, 0x00);
     engine.set_mem(0x0296, 0x00);
-    crate::game::routine_0184(engine, r);
-    crate::game::routine_0185(engine, r);
+    crate::game::update_inventory_list_cursor_sprites(engine, r);
+    crate::game::update_inventory_grid_cursor_sprites(engine, r);
 
     loop {
         set_frame_counter(engine, 0x01);
@@ -2074,20 +2074,20 @@ pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = b;
 
         if (b & 0x80) != 0 {
-            crate::game::routine_0179(engine, r);
+            crate::game::select_inventory_grid_entry(engine, r);
             crate::game::upload_inventory_item_list(engine, r);
         } else if (b & 0x40) != 0 {
         } else if (b & 0x01) != 0 {
-            crate::game::routine_0180(engine, r);
+            crate::game::move_inventory_cursor_right(engine, r);
         } else if (b & 0x02) != 0 {
-            crate::game::routine_0181(engine, r);
+            crate::game::move_inventory_cursor_left(engine, r);
         } else if (b & 0x04) != 0 {
-            crate::game::routine_0183(engine, r);
+            crate::game::move_inventory_cursor_down(engine, r);
         } else if (b & 0x08) != 0 {
-            crate::game::routine_0182(engine, r);
+            crate::game::move_inventory_cursor_up(engine, r);
             crate::game::upload_inventory_item_list(engine, r);
         } else if (b & 0x10) != 0 {
-            crate::game::routine_0178(engine, r);
+            crate::game::close_inventory_item_menu(engine, r);
         } else if (b & 0x20) != 0 {
             engine.set_mem(0x7c, 0x20);
             crate::game::routine_0081(engine, r);

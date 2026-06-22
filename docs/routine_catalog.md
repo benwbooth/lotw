@@ -102,7 +102,6 @@ would currently be weaker than the cluster name.
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 | `native` | `0174..0177` | inferred | character swap/inventory selection flow |
 | `native` | `0175` | inferred | inventory item compaction and carried-item reordering |
-| `game` | `0178..0186` | cluster | inventory/menu cursor, item list, and status draw helpers |
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `native` | `0240` | inferred | high-bit/special actor update path |
@@ -161,6 +160,7 @@ surface when touching nearby code:
 | `clear_gameplay_object_sprites` | hide the gameplay-object half of OAM while leaving HUD sprites untouched |
 | `clear_inventory_item_list_buffer` | fill the inventory item-list source buffer with blank tile ids |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
+| `close_inventory_item_menu` | close the item menu, restore the gameplay snapshot, and redraw HUD state |
 | `collect_key_bundle_reward` | add the large key bundle reward and play its pickup sound |
 | `collect_large_coin_reward` | add the large coin reward and play its pickup sound |
 | `collect_room_pickup_object` | clear the touched room object/OAM entry and apply its collectible reward |
@@ -202,6 +202,10 @@ surface when touching nearby code:
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `maybe_spawn_pursuer_actor` | one-in-30 secondary actor spawn path that seeds scratch position from the player slot |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
+| `move_inventory_cursor_down` | move the inventory grid cursor down, wrapping across five rows |
+| `move_inventory_cursor_left` | move the inventory grid cursor left, wrapping across seven columns |
+| `move_inventory_cursor_right` | move the inventory grid cursor right, wrapping across seven columns |
+| `move_inventory_cursor_up` | move the inventory grid cursor up, wrapping across five rows |
 | `next_envelope_volume` | update the selected audio channel's envelope accumulator and compose the APU volume byte |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
@@ -228,6 +232,8 @@ surface when touching nearby code:
 | `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
 | `seed_object_position_from_tile_offset` | convert a tile sample offset and projected coordinates into object scratch position |
+| `select_inventory_grid_entry` | copy the active inventory grid entry into the scrolling item-list buffer or handle menu controls |
+| `set_inventory_list_buffer_index` | convert the scrolling item-list cursor into a 32-byte buffer index |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -280,6 +286,8 @@ surface when touching nearby code:
 | `try_trigger_magic_contact_actor` | mark a contacted actor for high-bit behavior when the magic-contact timer is active |
 | `unlock_door_with_key` | spend a key and run the door-unlock prompt/music sequence |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
+| `update_inventory_grid_cursor_sprites` | position the 2x2 cursor around the active inventory grid cell |
+| `update_inventory_list_cursor_sprites` | position the arrow sprites for the scrolling selected item-list slot |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_player_pose_from_motion` | update player pose and horizontal flip from movement, jump/fall, and lockout state |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
@@ -302,7 +310,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Inventory selection/menu helpers: `routine_0174..0186`.
+1. Native inventory/selection flows: `routine_0174..0177`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
