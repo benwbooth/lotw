@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use lotw::{PPU_H, PPU_W, game};
+use lotw::{PPU_H, PPU_W};
 use sdl3::{
     audio::{AudioFormat, AudioSpec},
     event::Event,
@@ -185,7 +185,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             break;
         }
 
-        runner.with_engine_regs(game::sound_tick);
         runner.engine_mut().apu.frame();
         runner.engine_mut().apu.generate(&mut audio_buf);
         if let Some(stream) = &audio_stream {
