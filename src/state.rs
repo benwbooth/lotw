@@ -522,4 +522,120 @@ impl GameState {
     pub fn set_obj_y_extra(&mut self, value: i32) {
         self.set_byte(0xFC, value);
     }
+
+    // ---- Zero-page pointer pairs ------------------------------------------
+    //
+    // Each is a 16-bit little-endian pointer split across two zero-page bytes
+    // (low byte first). The combined `*_ptr` accessors fold the pair into one
+    // address; the `*_ptr_lo`/`*_ptr_hi` accessors expose the individual bytes
+    // for code that loads or stores them separately. Reads through these
+    // pointers use `byte()`/`set_byte()` with the (now-named) pointer value.
+
+    /// Pointer to the object slot currently being processed (`$E5`/`$E6`).
+    #[inline]
+    pub fn obj_slot_ptr(&self) -> i32 {
+        self.byte(0xE5) | (self.byte(0xE6) << 8)
+    }
+    #[inline]
+    pub fn set_obj_slot_ptr(&mut self, value: i32) {
+        self.set_byte(0xE5, value & 0xFF);
+        self.set_byte(0xE6, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn obj_slot_ptr_lo(&self) -> i32 {
+        self.byte(0xE5)
+    }
+    #[inline]
+    pub fn set_obj_slot_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0xE5, value);
+    }
+    #[inline]
+    pub fn obj_slot_ptr_hi(&self) -> i32 {
+        self.byte(0xE6)
+    }
+    #[inline]
+    pub fn set_obj_slot_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0xE6, value);
+    }
+
+    /// Pointer to the room actor record feeding the current slot (`$E7`/`$E8`).
+    #[inline]
+    pub fn actor_record_ptr(&self) -> i32 {
+        self.byte(0xE7) | (self.byte(0xE8) << 8)
+    }
+    #[inline]
+    pub fn set_actor_record_ptr(&mut self, value: i32) {
+        self.set_byte(0xE7, value & 0xFF);
+        self.set_byte(0xE8, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn actor_record_ptr_lo(&self) -> i32 {
+        self.byte(0xE7)
+    }
+    #[inline]
+    pub fn set_actor_record_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0xE7, value);
+    }
+    #[inline]
+    pub fn actor_record_ptr_hi(&self) -> i32 {
+        self.byte(0xE8)
+    }
+    #[inline]
+    pub fn set_actor_record_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0xE8, value);
+    }
+
+    /// Pointer to the active palette source data (`$77`/`$78`).
+    #[inline]
+    pub fn palette_src_ptr(&self) -> i32 {
+        self.byte(0x77) | (self.byte(0x78) << 8)
+    }
+    #[inline]
+    pub fn set_palette_src_ptr(&mut self, value: i32) {
+        self.set_byte(0x77, value & 0xFF);
+        self.set_byte(0x78, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn palette_src_ptr_lo(&self) -> i32 {
+        self.byte(0x77)
+    }
+    #[inline]
+    pub fn set_palette_src_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x77, value);
+    }
+    #[inline]
+    pub fn palette_src_ptr_hi(&self) -> i32 {
+        self.byte(0x78)
+    }
+    #[inline]
+    pub fn set_palette_src_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x78, value);
+    }
+
+    /// Pointer to the current room's metatile table (`$79`/`$7A`).
+    #[inline]
+    pub fn tile_table_ptr(&self) -> i32 {
+        self.byte(0x79) | (self.byte(0x7A) << 8)
+    }
+    #[inline]
+    pub fn set_tile_table_ptr(&mut self, value: i32) {
+        self.set_byte(0x79, value & 0xFF);
+        self.set_byte(0x7A, (value >> 8) & 0xFF);
+    }
+    #[inline]
+    pub fn tile_table_ptr_lo(&self) -> i32 {
+        self.byte(0x79)
+    }
+    #[inline]
+    pub fn set_tile_table_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x79, value);
+    }
+    #[inline]
+    pub fn tile_table_ptr_hi(&self) -> i32 {
+        self.byte(0x7A)
+    }
+    #[inline]
+    pub fn set_tile_table_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x7A, value);
+    }
 }

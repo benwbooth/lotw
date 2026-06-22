@@ -308,7 +308,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x1d, 0x01);
     engine.state.set_prompt_state(0x20);
     engine.state.set_prompt_argument(0x80);
-    engine.set_mem(0x7a, 0xb6);
+    engine.state.set_tile_table_ptr_hi(0xb6);
 
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
@@ -325,7 +325,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 
     engine.state.set_prompt_state(0x20);
     engine.state.set_prompt_argument(0x80);
-    engine.set_mem(0x7a, 0xb7);
+    engine.state.set_tile_table_ptr_hi(0xb7);
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
         if engine.state.obj_x_tile() == 0 {
@@ -530,7 +530,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 /// scratch slot back into the active object slot.
 pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0xe5, 0x00);
-    engine.set_mem(0xe6, 0x04);
+    engine.state.set_obj_slot_ptr_hi(0x04);
     crate::game::load_object_slot_scratch(engine, r);
     if engine.mem(0x00f2) == 0 {
         run_final_exit_cutscene(engine, r);
@@ -565,17 +565,17 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     if engine.mem(0xe9) == 0x04 {
                         engine.state.set_prompt_state(0x20);
                     }
-                    engine.set_mem(0x7a, 0xb5);
+                    engine.state.set_tile_table_ptr_hi(0xb5);
                     engine.set_mem(0x1e, 0xc2);
                 } else {
-                    engine.set_mem(0x7a, 0xb3);
+                    engine.state.set_tile_table_ptr_hi(0xb3);
                     engine.state.set_obj_timer(0x00);
                 }
             }
             3 => {
                 engine.dec_mem(0xe9);
                 if engine.mem(0xe9) != 0 {
-                    engine.set_mem(0x7a, 0xb2);
+                    engine.state.set_tile_table_ptr_hi(0xb2);
                     if engine.mem(0x1c) != 0 {
                         let v = if engine.mem(0x1c) < 0x04 {
                             0x00
@@ -598,7 +598,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 } else if engine.mem(0x1c) != 0 {
                     engine.state.set_obj_timer(0x00);
                 } else {
-                    engine.set_mem(0x7a, 0xb0);
+                    engine.state.set_tile_table_ptr_hi(0xb0);
                     engine.inc_mem(0xf3);
                     engine.set_mem(0xe9, 0x04);
                 }
@@ -606,12 +606,12 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
             2 => {
                 engine.dec_mem(0xe9);
                 if engine.mem(0xe9) != 0 {
-                    engine.set_mem(0x7a, 0xb4);
+                    engine.state.set_tile_table_ptr_hi(0xb4);
                     if engine.mem(0x1e) >= 0xc3 {
                         engine.sub_mem(0x1e, 0x04);
                     }
                 } else {
-                    engine.set_mem(0x7a, 0xb3);
+                    engine.state.set_tile_table_ptr_hi(0xb3);
                     engine.state.set_obj_timer(0x00);
                 }
             }
@@ -621,7 +621,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.state.set_obj_timer(0x00);
                 } else {
                     let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
-                    engine.set_mem(0x7a, a);
+                    engine.state.set_tile_table_ptr_hi(a);
                     engine.add_mem(0x1c, 0x04);
                     if engine.mem(0x1c) >= 0x40 {
                         engine.state.set_obj_timer(0x00);
@@ -640,7 +640,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.set_mem(0xe9, 0x02);
                     engine.dec_mem(0xe9);
                     if engine.mem(0xe9) != 0 {
-                        engine.set_mem(0x7a, 0xb2);
+                        engine.state.set_tile_table_ptr_hi(0xb2);
                         if engine.mem(0x1c) != 0 {
                             let v = if engine.mem(0x1c) < 0x04 {
                                 0x00
@@ -663,14 +663,14 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     } else if engine.mem(0x1c) != 0 {
                         engine.state.set_obj_timer(0x00);
                     } else {
-                        engine.set_mem(0x7a, 0xb0);
+                        engine.state.set_tile_table_ptr_hi(0xb0);
                         engine.inc_mem(0xf3);
                         engine.set_mem(0xe9, 0x04);
                     }
                 } else if !delayed_grow {
                     engine.state.set_obj_timer(0x02);
                     engine.set_mem(0xe9, 0x08);
-                    engine.set_mem(0x7a, 0xb3);
+                    engine.state.set_tile_table_ptr_hi(0xb3);
                 } else {
                     engine.state.set_obj_timer(0x01);
                     engine.set_mem(0xe9, 0x04);
@@ -679,7 +679,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.state.set_obj_timer(0x00);
                     } else {
                         let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
-                        engine.set_mem(0x7a, a);
+                        engine.state.set_tile_table_ptr_hi(a);
                         engine.add_mem(0x1c, 0x04);
                         if engine.mem(0x1c) >= 0x40 {
                             engine.state.set_obj_timer(0x00);
@@ -1332,7 +1332,7 @@ pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades in the first room palette row from the active room data pointer.
 pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
-    let ptr = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
+    let ptr = u16v(engine.state.palette_src_ptr());
     let mut v = 0x40;
     engine.set_mem(0x09, v);
     loop {
@@ -1356,7 +1356,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades in the first two room palette rows from the active room data pointer.
 pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext) {
-    let ptr = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
+    let ptr = u16v(engine.state.palette_src_ptr());
     let mut v = 0x40;
     engine.set_mem(0x09, v);
     loop {
@@ -1735,7 +1735,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     r.offset = 0x01;
                     crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
-                    let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
+                    let p79 = u16v(engine.state.tile_table_ptr());
                     engine
                         .state
                         .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
@@ -1766,7 +1766,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         r.offset = 0x08;
                         crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;
-                        let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
+                        let p79 = u16v(engine.state.tile_table_ptr());
                         engine
                             .state
                             .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
@@ -1980,7 +1980,7 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
 
-    let ptr = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
+    let ptr = u16v(engine.state.palette_src_ptr());
     let door = engine.mem(u16v(ptr + 0x0a));
     if door < 0x08 {
         engine.set_mem(0x04a2, 0x00);
@@ -2729,7 +2729,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         engine.state.set_obj_x_vel_hi(0x00);
         engine.state.set_obj_move_scratch(0x00);
         engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
-        let ptr = u16v(engine.mem(0xe7) | (engine.mem(0xe8) << 8));
+        let ptr = u16v(engine.mem(0xe7) | (engine.state.actor_record_ptr_hi() << 8));
         engine.state.set_obj_tile(engine.mem(u16v(ptr + 6)));
         engine.and_mem(0xef, 0x03);
     }
