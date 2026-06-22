@@ -878,7 +878,7 @@ mod advance_scripted_scroll_slice {
     /// sequence. `0xF9` is the source column, `0xFA` counts the remaining slices,
     /// and `0x1D` flips between nametable halves after each 9-slice run.
     pub fn advance_scripted_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xFA) == 0) {
+        if cbool(engine.state.obj_x_tile() == 0) {
             engine.set_mem(0x16, 0x0E);
             engine.set_mem(0x17, 0x20);
             engine.set_mem(
@@ -889,15 +889,19 @@ mod advance_scripted_scroll_slice {
                 0xF9,
                 u8v((u8v((((engine.mem(0x1D) ^ 0x01) << 4) + 0x07))) | engine.mem(0x7C)),
             );
-            engine.set_mem(0xFA, 0x09);
+            engine.state.set_obj_x_tile(0x09);
         }
-        engine.set_mem(0x0C, engine.mem(0xF9));
+        engine.set_mem(0x0C, engine.state.obj_x_sub());
         farcall_bank_09_r7(engine, r);
         engine.set_mem(0x16, u8v(engine.mem(0x16) + 1));
         engine.set_mem(0x16, u8v(engine.mem(0x16) + 1));
-        engine.set_mem(0xF9, u8v(engine.mem(0xF9) + 1));
-        engine.set_mem(0xFA, u8v(engine.mem(0xFA) - 1));
-        if cbool(engine.mem(0xFA) == 0) {
+        engine
+            .state
+            .set_obj_x_sub(u8v(engine.state.obj_x_sub() + 1));
+        engine
+            .state
+            .set_obj_x_tile(u8v(engine.state.obj_x_tile() - 1));
+        if cbool(engine.state.obj_x_tile() == 0) {
             engine.xor_mem(0x1D, 0x01);
         }
     }
@@ -950,14 +954,14 @@ mod spawn_final_exit_projectile {
         project_final_exit_projectile_spawn(engine, r);
         check_final_exit_projectile_bounds(engine, r);
         if !cbool(r.carry) {
-            engine.set_mem(0xF9, engine.mem(0x0E));
-            engine.set_mem(0xFB, engine.mem(0x0A));
-            engine.set_mem(0xEE, 0x18);
-            engine.set_mem(0xEF, 0x00);
-            engine.set_mem(0xED, 0x21);
+            engine.state.set_obj_x_sub(engine.mem(0x0E));
+            engine.state.set_obj_y_pixel(engine.mem(0x0A));
+            engine.state.set_obj_state(0x18);
+            engine.state.set_obj_attr(0x00);
+            engine.state.set_obj_tile(0x21);
             engine.state.set_prompt_state(0x19);
         }
-        if cbool(engine.mem(0xEE) != 0) {
+        if cbool(engine.state.obj_state() != 0) {
             update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -971,18 +975,20 @@ mod update_final_exit_projectile_slot {
     /// lifetime expires or the projected position trips the bounds check.
     pub fn update_final_exit_projectile_slot(engine: &mut Engine, r: &mut RoutineContext) {
         load_object_slot_scratch(engine, r);
-        engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
-        if cbool(engine.mem(0xEE) != 0) {
+        engine
+            .state
+            .set_obj_state(u8v(engine.state.obj_state() - 1));
+        if cbool(engine.state.obj_state() != 0) {
             project_final_exit_projectile_motion(engine, r);
             check_final_exit_projectile_bounds(engine, r);
             if cbool(r.carry) {
-                engine.set_mem(0xEE, 0x00);
+                engine.state.set_obj_state(0x00);
             } else {
-                engine.set_mem(0xF9, engine.mem(0x0E));
-                engine.set_mem(0xFB, engine.mem(0x0A));
+                engine.state.set_obj_x_sub(engine.mem(0x0E));
+                engine.state.set_obj_y_pixel(engine.mem(0x0A));
             }
         }
-        if cbool(engine.mem(0xEE) != 0) {
+        if cbool(engine.state.obj_state() != 0) {
             update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -997,12 +1003,12 @@ mod project_final_exit_projectile_spawn {
     pub fn project_final_exit_projectile_spawn(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0A, engine.mem(0x45));
-        if cbool(engine.mem(0xF7) != 0) {
-            let scaled_y_delta = u8v(engine.mem(0xF7) << 2);
+        if cbool(engine.state.obj_y_vel() != 0) {
+            let scaled_y_delta = u8v(engine.state.obj_y_vel() << 2);
             engine.set_mem(0x0A, u8v(scaled_y_delta + engine.mem(0x0A)));
         }
-        if cbool(engine.mem(0xF5) != 0) {
-            let scaled_x_delta = u8v(engine.mem(0xF5) << 2);
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
+            let scaled_x_delta = u8v(engine.state.obj_x_vel_lo() << 2);
             engine.set_mem(0x0E, u8v(scaled_x_delta + engine.mem(0x0E)));
         }
     }
@@ -1017,8 +1023,10 @@ mod update_final_exit_projectile_animation_bits {
         engine: &mut Engine,
         r: &mut RoutineContext,
     ) {
-        engine.set_mem(0x08, u8v(engine.mem(0xEE) & 0x0C));
-        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | engine.mem(0x08)));
+        engine.set_mem(0x08, u8v(engine.state.obj_state() & 0x0C));
+        engine
+            .state
+            .set_obj_tile(u8v((engine.state.obj_tile() & 0xF3) | engine.mem(0x08)));
     }
 }
 
@@ -1048,13 +1056,13 @@ mod project_final_exit_projectile_motion {
     /// Projects one active final-exit projectile from its saved slot position
     /// and per-frame velocity.
     pub fn project_final_exit_projectile_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x0E, engine.mem(0xF9));
-        engine.set_mem(0x0A, engine.mem(0xFB));
-        if cbool(engine.mem(0xF7) != 0) {
-            engine.set_mem(0x0A, u8v(engine.mem(0xF7) + engine.mem(0x0A)));
+        engine.set_mem(0x0E, engine.state.obj_x_sub());
+        engine.set_mem(0x0A, engine.state.obj_y_pixel());
+        if cbool(engine.state.obj_y_vel() != 0) {
+            engine.set_mem(0x0A, u8v(engine.state.obj_y_vel() + engine.mem(0x0A)));
         }
-        if cbool(engine.mem(0xF5) != 0) {
-            engine.set_mem(0x0E, u8v(engine.mem(0xF5) + engine.mem(0x0E)));
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
+            engine.set_mem(0x0E, u8v(engine.state.obj_x_vel_lo() + engine.mem(0x0E)));
         }
     }
 }
@@ -1155,7 +1163,7 @@ mod build_final_exit_projectile_velocity {
                 break;
             }
         }
-        engine.set_mem(0xF5, x_velocity);
+        engine.state.set_obj_x_vel_lo(x_velocity);
 
         let mut y_velocity = 0x00;
         remaining_steps = step_count;
@@ -1166,7 +1174,7 @@ mod build_final_exit_projectile_velocity {
                 break;
             }
         }
-        engine.set_mem(0xF7, y_velocity);
+        engine.state.set_obj_y_vel(y_velocity);
     }
 }
 
@@ -3487,9 +3495,9 @@ mod build_direction_velocity {
         let speed: i32 = u8v(r.offset);
         engine.set_mem(0x09, speed);
         if cbool(speed == 0) {
-            engine.set_mem(0xF5, 0);
-            engine.set_mem(0xF6, 0);
-            engine.set_mem(0xF7, 0);
+            engine.state.set_obj_x_vel_lo(0);
+            engine.state.set_obj_x_vel_hi(0);
+            engine.state.set_obj_y_vel(0);
             return;
         }
         let direction_index: i32 = u8v((r.value & 0x0F) << 1);
@@ -3505,14 +3513,16 @@ mod build_direction_velocity {
                 };
             }
         }
-        engine.set_mem(0xF5, horizontal_delta & 0x0F);
+        engine.state.set_obj_x_vel_lo(horizontal_delta & 0x0F);
         let sign_fill: i32 = (if cbool(horizontal_delta & 0x80) {
             0xF0
         } else {
             0x00
         });
         engine.set_mem(0x08, sign_fill);
-        engine.set_mem(0xF6, u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
+        engine
+            .state
+            .set_obj_x_vel_hi(u8v(((horizontal_delta & 0xF0) >> 4) | sign_fill));
         let mut vertical_delta: i32 = 0;
         {
             let mut steps = speed;
@@ -3525,7 +3535,7 @@ mod build_direction_velocity {
                 };
             }
         }
-        engine.set_mem(0xF7, vertical_delta);
+        engine.state.set_obj_y_vel(vertical_delta);
     }
 }
 
@@ -5555,10 +5565,10 @@ mod seed_object_position_from_tile_offset {
         if cbool(tile_offset != 0) {
             engine.set_mem(0x0A, u8v(engine.mem(0x0A) + 0x10));
         }
-        engine.set_mem(0xFB, engine.mem(0x0A) & 0xF0);
-        engine.set_mem(0xFC, 0x00);
-        engine.set_mem(0xFA, engine.mem(0x0F));
-        engine.set_mem(0xF9, 0x00);
+        engine.state.set_obj_y_pixel(engine.mem(0x0A) & 0xF0);
+        engine.state.set_obj_y_extra(0x00);
+        engine.state.set_obj_x_tile(engine.mem(0x0F));
+        engine.state.set_obj_x_sub(0x00);
         r.value = 0x00;
         r.offset = tile_offset;
     }
@@ -5569,10 +5579,10 @@ mod redraw_room_tile_column {
 
     /// Rebuilds the background column containing object scratch tile-x `0xFA`.
     pub fn redraw_room_tile_column(engine: &mut Engine, r: &mut RoutineContext) {
-        let tile_x: i32 = engine.mem(0xFA);
+        let tile_x: i32 = engine.state.obj_x_tile();
         engine.set_mem(0x0C, tile_x);
         engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-        engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
+        engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
         engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
         engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
         farcall_bank_09_r7(engine, r);
@@ -5761,13 +5771,13 @@ mod select_inventory_grid_entry {
     /// Selects the current 7x5 item-grid entry. Values `0x20..0x22` are menu
     /// controls; normal values are copied into the scrolling item-list buffer.
     pub fn select_inventory_grid_entry(engine: &mut Engine, r: &mut RoutineContext) {
-        let grid_column: i32 = engine.mem(0xF5);
+        let grid_column: i32 = engine.state.obj_x_vel_lo();
         let mut grid_value: i32 = u8v(u8v(grid_column << 2) + grid_column);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    grid_value = u8v(grid_value + engine.mem(0xF7));
+                    grid_value = u8v(grid_value + engine.state.obj_y_vel());
                     if cbool(grid_value == 0x20) {
                         {
                             state = 1;
@@ -5795,14 +5805,18 @@ mod select_inventory_grid_entry {
                     continue 'dispatch;
                 }
                 1 => {
-                    engine.inc_mem(0xF9);
+                    engine
+                        .state
+                        .set_obj_x_sub((engine.state.obj_x_sub() + 1) & 0xFF);
                     update_inventory_list_cursor_sprites(engine, r);
                     return;
                     state = 2;
                     continue 'dispatch;
                 }
                 2 => {
-                    engine.dec_mem(0xF9);
+                    engine
+                        .state
+                        .set_obj_x_sub((engine.state.obj_x_sub() - 1) & 0xFF);
                     update_inventory_list_cursor_sprites(engine, r);
                     break 'dispatch;
                 }
@@ -5818,11 +5832,11 @@ mod move_inventory_cursor_right {
     /// Moves the inventory grid cursor right across seven columns, wrapping to
     /// column zero.
     pub fn move_inventory_cursor_right(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(engine.mem(0xF5) + 1);
+        let mut x: i32 = u8v(engine.state.obj_x_vel_lo() + 1);
         if cbool(x >= 0x07) {
             x = 0x00;
         }
-        engine.set_mem(0xF5, x);
+        engine.state.set_obj_x_vel_lo(x);
         update_inventory_grid_cursor_sprites(engine, r);
     }
 }
@@ -5833,11 +5847,11 @@ mod move_inventory_cursor_left {
     /// Moves the inventory grid cursor left across seven columns, wrapping to
     /// column six.
     pub fn move_inventory_cursor_left(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(engine.mem(0xF5) - 1);
+        let mut x: i32 = u8v(engine.state.obj_x_vel_lo() - 1);
         if cbool(x & 0x80) {
             x = 0x06;
         }
-        engine.set_mem(0xF5, x);
+        engine.state.set_obj_x_vel_lo(x);
         update_inventory_grid_cursor_sprites(engine, r);
     }
 }
@@ -5848,11 +5862,11 @@ mod move_inventory_cursor_up {
     /// Moves the inventory grid cursor up across five rows, wrapping to row
     /// four.
     pub fn move_inventory_cursor_up(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(engine.mem(0xF7) - 1);
+        let mut x: i32 = u8v(engine.state.obj_y_vel() - 1);
         if cbool(x & 0x80) {
             x = 0x04;
         }
-        engine.set_mem(0xF7, x);
+        engine.state.set_obj_y_vel(x);
         update_inventory_grid_cursor_sprites(engine, r);
     }
 }
@@ -5863,11 +5877,11 @@ mod move_inventory_cursor_down {
     /// Moves the inventory grid cursor down across five rows, wrapping to row
     /// zero.
     pub fn move_inventory_cursor_down(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(engine.mem(0xF7) + 1);
+        let mut x: i32 = u8v(engine.state.obj_y_vel() + 1);
         if cbool(x >= 0x05) {
             x = 0x00;
         }
-        engine.set_mem(0xF7, x);
+        engine.state.set_obj_y_vel(x);
         update_inventory_grid_cursor_sprites(engine, r);
     }
 }
@@ -5878,7 +5892,7 @@ mod update_inventory_list_cursor_sprites {
     /// Positions the two arrow sprites that point at the scrolling selected
     /// item-list slot `0xF9 & 0x1F`.
     pub fn update_inventory_list_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut list_slot: i32 = engine.mem(0xF9) & 0x1F;
+        let mut list_slot: i32 = engine.state.obj_x_sub() & 0x1F;
         let mut cursor_tile: i32 = 0x61;
         if cbool(list_slot >= 0x10) {
             list_slot = u8v(list_slot - 0x10);
@@ -5908,13 +5922,13 @@ mod update_inventory_grid_cursor_sprites {
 
     /// Positions the 2x2 cursor around the active inventory grid cell.
     pub fn update_inventory_grid_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        let (column_pixels, column_carry) = scale_grid_coordinate(engine.mem(0xF5));
+        let (column_pixels, column_carry) = scale_grid_coordinate(engine.state.obj_x_vel_lo());
         let right_x: i32 = u8v(column_pixels + 0x36 + column_carry);
         engine.set_mem(0x0297, right_x);
         let left_x: i32 = u8v(right_x - 0x08);
         engine.set_mem(0x0293, left_x);
 
-        let (row_pixels, row_carry) = scale_grid_coordinate(engine.mem(0xF7));
+        let (row_pixels, row_carry) = scale_grid_coordinate(engine.state.obj_y_vel());
         let y: i32 = u8v(row_pixels + 0x81 + row_carry);
         engine.set_mem(0x0290, y);
         engine.set_mem(0x0294, y);
@@ -5927,7 +5941,7 @@ mod set_inventory_list_buffer_index {
 
     /// Converts the scrolling item-list cursor into a 32-byte buffer index.
     pub fn set_inventory_list_buffer_index(engine: &mut Engine, r: &mut RoutineContext) {
-        r.index = engine.mem(0xF9) & 0x1F;
+        r.index = engine.state.obj_x_sub() & 0x1F;
     }
 }
 
@@ -6408,7 +6422,7 @@ mod update_room_actors {
                     loop {
                         let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
-                        actor_state = engine.mem(0xEE);
+                        actor_state = engine.state.obj_state();
                         if cbool(actor_state == 0) {
                             tick_inactive_actor_slot(engine, r);
                         } else if cbool(actor_state & 0x80) {
@@ -6457,7 +6471,7 @@ mod update_room_actors {
                     engine.set_mem(0xE8, engine.mem(0x78));
                     load_object_slot_scratch(engine, r);
                     {
-                        let mut actor_state: i32 = engine.mem(0xEE);
+                        let mut actor_state: i32 = engine.state.obj_state();
                         if cbool(actor_state == 0) {
                             initialize_large_actor_slot(engine, r);
                         } else if cbool(actor_state & 0x80) {
@@ -6485,9 +6499,9 @@ mod update_room_actors {
                     loop {
                         let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
-                        actor_state = engine.mem(0xEE);
+                        actor_state = engine.state.obj_state();
                         if (cbool(actor_state == 0) || cbool(actor_state & 0x80)) {
-                            engine.set_mem(0xEE, 0x00);
+                            engine.state.set_obj_state(0x00);
                             maybe_spawn_pursuer_actor(engine, r);
                         } else {
                             dispatch_actor_behavior(engine, r);
@@ -6521,10 +6535,9 @@ mod load_object_slot_scratch {
     pub fn load_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
         let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
         for slot_offset in (0..=0x0F).rev() {
-            engine.set_mem(
-                0x00ED + slot_offset,
-                engine.mem(u16v(slot_ptr + slot_offset)),
-            );
+            engine
+                .state
+                .set_obj_scratch_byte(slot_offset, engine.state.byte(u16v(slot_ptr + slot_offset)));
         }
         r.offset = 0xFF;
     }
@@ -6538,9 +6551,9 @@ mod store_object_slot_scratch {
     pub fn store_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
         let slot_ptr: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
         for slot_offset in (0..=0x0F).rev() {
-            engine.set_mem(
+            engine.state.set_byte(
                 u16v(slot_ptr + slot_offset),
-                engine.mem(0x00ED + slot_offset),
+                engine.state.obj_scratch_byte(slot_offset),
             );
         }
         r.offset = 0xFF;
@@ -6553,8 +6566,10 @@ mod tick_inactive_actor_slot {
     // `0xE7..0xE8`. A nonzero timer leaves the actor materializing; a zero
     // timer promotes it to the normal active state.
     pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF3, u8v(engine.mem(0xF3) - 1));
-        let actor_timer: i32 = engine.mem(0xF3);
+        engine
+            .state
+            .set_obj_timer(u8v(engine.state.obj_timer() - 1));
+        let actor_timer: i32 = engine.state.obj_timer();
         let actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
         if cbool((engine.mem(u16v(actor_data_ptr + 2)) | engine.mem(u16v(actor_data_ptr + 3))) == 0)
         {
@@ -6574,15 +6589,19 @@ mod tick_inactive_actor_slot {
         if cbool(r.carry) {}
         check_projected_terrain_collision(engine, r);
         if cbool(r.carry) {}
-        engine.set_mem(0xF9, engine.mem(0x0E));
-        engine.set_mem(0xFA, engine.mem(0x0F));
-        engine.set_mem(0xFB, engine.mem(0x0A));
-        engine.set_mem(0xF1, 0x00);
-        engine.set_mem(0xF0, 0x00);
-        engine.set_mem(0xF4, 0x00);
-        engine.set_mem(0xFC, 0x00);
-        engine.set_mem(0xF2, engine.mem(u16v(actor_data_ptr + 4)));
-        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
+        engine.state.set_obj_x_sub(engine.mem(0x0E));
+        engine.state.set_obj_x_tile(engine.mem(0x0F));
+        engine.state.set_obj_y_pixel(engine.mem(0x0A));
+        engine.state.set_obj_cooldown(0x00);
+        engine.state.set_obj_move_scratch(0x00);
+        engine.state.set_obj_move_state(0x00);
+        engine.state.set_obj_y_extra(0x00);
+        engine
+            .state
+            .set_obj_health(engine.mem(u16v(actor_data_ptr + 4)));
+        engine
+            .state
+            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
         {
             let mut current_member_bit: i32 = 0x00;
             let mut carry_bit: i32 = 1;
@@ -6598,24 +6617,30 @@ mod tick_inactive_actor_slot {
             }
             current_member_bit = u8v(current_member_bit & engine.mem(0x41));
             if cbool(current_member_bit == 0) {
-                let mut contact_damage: i32 = engine.mem(0xF8);
+                let mut contact_damage: i32 = engine.state.obj_damage();
                 let mut damage_overflow: i32 = u8v((contact_damage >> 7) & 1);
-                engine.set_mem(0xF8, u8v(contact_damage << 1));
+                engine.state.set_obj_damage(u8v(contact_damage << 1));
                 if cbool(damage_overflow) {
-                    engine.set_mem(0xF8, 0xFF);
+                    engine.state.set_obj_damage(0xFF);
                 }
             }
         }
-        engine.set_mem(0xEE, 0x7F);
-        engine.set_mem(0xED, 0xF9);
-        engine.set_mem(0xEF, 0x01);
+        engine.state.set_obj_state(0x7F);
+        engine.state.set_obj_tile(0xF9);
+        engine.state.set_obj_attr(0x01);
         if cbool(actor_timer == 0) {
-            engine.set_mem(0xEE, 0x01);
-            engine.set_mem(0xED, engine.mem(u16v(actor_data_ptr + 0)));
-            engine.set_mem(0xEF, engine.mem(u16v(actor_data_ptr + 1)));
+            engine.state.set_obj_state(0x01);
+            engine
+                .state
+                .set_obj_tile(engine.mem(u16v(actor_data_ptr + 0)));
+            engine
+                .state
+                .set_obj_attr(engine.mem(u16v(actor_data_ptr + 1)));
         } else {
-            if cbool((engine.mem(0xF3) & 0x03) == 0) {
-                engine.set_mem(0xEF, u8v(engine.mem(0xEF) ^ 0x40));
+            if cbool((engine.state.obj_timer() & 0x03) == 0) {
+                engine
+                    .state
+                    .set_obj_attr(u8v(engine.state.obj_attr() ^ 0x40));
             }
         }
     }
@@ -6626,15 +6651,17 @@ mod tick_actor_materialize_delay {
     // Counts down a materializing actor. When the timer reaches zero, the slot
     // becomes behavior-dispatched state `0x01` with sprite bytes from room data.
     pub fn tick_actor_materialize_delay(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut actor_timer: i32 = u8v(engine.mem(0xF3) - 1);
-        engine.set_mem(0xF3, actor_timer);
+        let mut actor_timer: i32 = u8v(engine.state.obj_timer() - 1);
+        engine.state.set_obj_timer(actor_timer);
         if cbool(actor_timer == 0) {
             let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-            engine.set_mem(0xEE, 0x01);
-            engine.set_mem(0xED, engine.mem(actor_data_ptr));
-            engine.set_mem(0xEF, engine.mem(u16v(actor_data_ptr + 1)));
+            engine.state.set_obj_state(0x01);
+            engine.state.set_obj_tile(engine.mem(actor_data_ptr));
+            engine
+                .state
+                .set_obj_attr(engine.mem(u16v(actor_data_ptr + 1)));
         } else if cbool((actor_timer & 0x03) == 0) {
-            engine.xor_mem(0xEF, 0x40);
+            engine.state.set_obj_attr(engine.state.obj_attr() ^ 0x40);
         }
     }
 }
@@ -6672,18 +6699,22 @@ mod maybe_spawn_pursuer_actor {
                 break;
             }
         }
-        engine.set_mem(0xF1, 0x00);
-        engine.set_mem(0xF0, 0x00);
-        engine.set_mem(0xF4, 0x00);
+        engine.state.set_obj_cooldown(0x00);
+        engine.state.set_obj_move_scratch(0x00);
+        engine.state.set_obj_move_state(0x00);
         let actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-        engine.set_mem(0xF2, engine.mem(u16v(actor_data_ptr + 4)));
-        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
-        engine.set_mem(0xEE, 0x01);
-        engine.set_mem(0xED, 0x81);
+        engine
+            .state
+            .set_obj_health(engine.mem(u16v(actor_data_ptr + 4)));
+        engine
+            .state
+            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
+        engine.state.set_obj_state(0x01);
+        engine.state.set_obj_tile(0x81);
         r.value = 0x04;
         rng_update(engine, r);
-        engine.set_mem(0xEF, r.value);
-        engine.set_mem(0xF1, 0x80);
+        engine.state.set_obj_attr(r.value);
+        engine.state.set_obj_cooldown(0x80);
         r.offset = source_slot_offset;
         r.index = scratch_offset;
     }
@@ -6756,8 +6787,8 @@ mod tick_standard_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.mem(0xF0) == 0) {
-                        if cbool(engine.mem(0xF1) == 0) {
+                    if cbool(engine.state.obj_move_scratch() == 0) {
+                        if cbool(engine.state.obj_cooldown() == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -6784,22 +6815,22 @@ mod tick_standard_actor {
                     continue 'dispatch;
                 }
                 1 => {
-                    actor_timer = u8v(engine.mem(0xF3) - 1);
+                    actor_timer = u8v(engine.state.obj_timer() - 1);
                     if cbool(actor_timer == 0) {
-                        engine.set_mem(0xEE, 0x00);
-                        engine.set_mem(0xF3, 0xF0);
+                        engine.state.set_obj_state(0x00);
+                        engine.state.set_obj_timer(0xF0);
                         r.index = actor_timer;
                         return;
                     }
-                    engine.set_mem(0xF3, actor_timer);
+                    engine.state.set_obj_timer(actor_timer);
                     if cbool(actor_timer < 0x3C) {
                         actor_timer = 0xEF;
-                        saved_tile_y = engine.mem(0xFB);
+                        saved_tile_y = engine.state.obj_y_pixel();
                         if cbool(saved_tile_y == 0xEF) {
-                            actor_timer = engine.mem(0xFC);
+                            actor_timer = engine.state.obj_y_extra();
                         }
-                        engine.set_mem(0xFB, actor_timer);
-                        engine.set_mem(0xFC, saved_tile_y);
+                        engine.state.set_obj_y_pixel(actor_timer);
+                        engine.state.set_obj_y_extra(saved_tile_y);
                     }
                     update_object_terrain_probe(engine, r);
                     break 'dispatch;
@@ -6821,30 +6852,32 @@ mod tick_wandering_jump_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.mem(0xF3) >= 0x20) {
-                    } else if cbool(engine.mem(0xF1) != 0) {
+                    if cbool(engine.state.obj_timer() >= 0x20) {
+                    } else if cbool(engine.state.obj_cooldown() != 0) {
                         keep_existing_motion = 1;
-                    } else if cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0) {
+                    } else if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
                         keep_existing_motion = 1;
                     }
                     if !cbool(keep_existing_motion) {
-                        engine.set_mem(0xF3, 0x00);
+                        engine.state.set_obj_timer(0x00);
                         choose_random_cardinal_actor_direction(engine, r);
                         r.value = 0x06;
                         rng_update(engine, r);
-                        engine.set_mem(0xF6, u8v(r.value + 1));
+                        engine.state.set_obj_x_vel_hi(u8v(r.value + 1));
                         r.value = 0x04;
                         rng_update(engine, r);
                         r.index = r.value;
                         if cbool(r.value == 0) {
-                            engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
+                            engine
+                                .state
+                                .set_obj_move_state(u8v(0x80 | engine.state.obj_move_state()));
                         }
                     }
-                    saved_tile_dx = engine.mem(0xF6);
-                    r.offset = engine.mem(0xF6);
-                    r.value = engine.mem(0xF4);
+                    saved_tile_dx = engine.state.obj_x_vel_hi();
+                    r.offset = engine.state.obj_x_vel_hi();
+                    r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
-                    if cbool(engine.mem(0xF0) != 0) {
+                    if cbool(engine.state.obj_move_scratch() != 0) {
                         try_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
@@ -6857,13 +6890,13 @@ mod tick_wandering_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF1) != 0) {
+                    if cbool(engine.state.obj_cooldown() != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.mem(0xF4) & 0x80) {
+                    if !cbool(engine.state.obj_move_state() & 0x80) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -6884,7 +6917,7 @@ mod tick_wandering_jump_actor {
                     continue 'dispatch;
                 }
                 2 => {
-                    engine.set_mem(0xF1, 0x00);
+                    engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
@@ -6908,7 +6941,7 @@ mod tick_wandering_jump_actor {
                 4 => {
                     update_object_terrain_probe(engine, r);
                     update_actor_animation(engine, r);
-                    engine.set_mem(0xF6, saved_tile_dx);
+                    engine.state.set_obj_x_vel_hi(saved_tile_dx);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -6922,14 +6955,14 @@ mod tick_random_floating_actor {
     // Chooses a random direction when stationary, then moves without terrain
     // collision. Bounds/player contact can stop the motion.
     pub fn tick_random_floating_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
+        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             let mut speed: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
             r.offset = speed;
-            r.value = engine.mem(0xF4);
+            r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
@@ -6950,10 +6983,10 @@ mod tick_ledge_walking_actor {
         let mut should_commit_position: i32 = 0;
         let mut should_stop_motion: i32 = 0;
         let mut skip_resolution: i32 = 0;
-        if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
+        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             reverse_actor_horizontal_direction(engine, r);
         }
-        if cbool(engine.mem(0xF0) != 0) {
+        if cbool(engine.state.obj_move_scratch() != 0) {
             try_actor_gravity_motion(engine, r);
             if cbool(r.carry == 0) {
                 should_commit_position = 1;
@@ -6963,7 +6996,7 @@ mod tick_ledge_walking_actor {
         } else {
             let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(actor_data_ptr + 9));
-            r.value = engine.mem(0xF4);
+            r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
             try_move_actor_with_terrain(engine, r);
             if cbool(r.carry) {
@@ -7007,9 +7040,11 @@ mod tick_chasing_jump_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xF4, engine.mem(0xF4) & 0x0F);
-                    if cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0) {
-                        if cbool(engine.mem(0xF3) < 0x10) {
+                    engine
+                        .state
+                        .set_obj_move_state(engine.state.obj_move_state() & 0x0F);
+                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
+                        if cbool(engine.state.obj_timer() < 0x10) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -7020,10 +7055,10 @@ mod tick_chasing_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF9) == 0) {
+                    if cbool(engine.state.obj_x_sub() == 0) {
                         let mut room_tile_ptr: i32 = 0;
-                        engine.set_mem(0x0C, engine.mem(0xFA));
-                        engine.set_mem(0x0D, engine.mem(0xFB));
+                        engine.set_mem(0x0C, engine.state.obj_x_tile());
+                        engine.set_mem(0x0D, engine.state.obj_y_pixel());
                         resolve_room_tile_pointer(engine, r);
                         room_tile_ptr = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
                         if cbool((engine.mem(room_tile_ptr) & 0x3F) == 0) {
@@ -7039,20 +7074,22 @@ mod tick_chasing_jump_actor {
                             }
                         }
                     }
-                    if cbool((engine.mem(0xF4) & 0x03) == 0) {
-                        engine.set_mem(0xF4, 0x01);
+                    if cbool((engine.state.obj_move_state() & 0x03) == 0) {
+                        engine.state.set_obj_move_state(0x01);
                     }
                     {
-                        let mut turn_timer: i32 = u8v(engine.mem(0xF3) - 1);
-                        engine.set_mem(0xF3, 0x00);
+                        let mut turn_timer: i32 = u8v(engine.state.obj_timer() - 1);
+                        engine.state.set_obj_timer(0x00);
                         if cbool(turn_timer == 0) {
-                            if cbool((engine.mem(0xF4) & 0x03) == 0) {
+                            if cbool((engine.state.obj_move_state() & 0x03) == 0) {
                                 {
                                     state = 1;
                                     continue 'dispatch;
                                 }
                             }
-                            engine.set_mem(0xF4, u8v(engine.mem(0xF4) ^ 0x03));
+                            engine
+                                .state
+                                .set_obj_move_state(u8v(engine.state.obj_move_state() ^ 0x03));
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -7060,7 +7097,9 @@ mod tick_chasing_jump_actor {
                         }
                     }
                     aim_actor_toward_player(engine, r);
-                    engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
+                    engine
+                        .state
+                        .set_obj_move_state(u8v(0x80 | engine.state.obj_move_state()));
                     {
                         state = 2;
                         continue 'dispatch;
@@ -7069,7 +7108,7 @@ mod tick_chasing_jump_actor {
                     continue 'dispatch;
                 }
                 1 => {
-                    engine.set_mem(0xF3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                     aim_actor_toward_player(engine, r);
                     state = 2;
                     continue 'dispatch;
@@ -7080,9 +7119,9 @@ mod tick_chasing_jump_actor {
                             u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                         r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
                     }
-                    r.value = engine.mem(0xF4);
+                    r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
-                    if cbool(engine.mem(0xF0) != 0) {
+                    if cbool(engine.state.obj_move_scratch() != 0) {
                         try_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
@@ -7095,13 +7134,13 @@ mod tick_chasing_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF1) != 0) {
+                    if cbool(engine.state.obj_cooldown() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.mem(0xF4) & 0x80) {
+                    if !cbool(engine.state.obj_move_state() & 0x80) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -7122,7 +7161,7 @@ mod tick_chasing_jump_actor {
                     continue 'dispatch;
                 }
                 4 => {
-                    engine.set_mem(0xF1, 0x00);
+                    engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
@@ -7159,16 +7198,16 @@ mod tick_reflecting_chase_actor {
     // Aims from player overlap, moves without terrain, and asks the velocity
     // reflection helper to bounce away when blocked.
     pub fn tick_reflecting_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut keep_current_direction: i32 =
-            u8v((cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0)
-                && cbool(engine.mem(0xF3) < 0x20)));
+        let mut keep_current_direction: i32 = u8v((cbool(
+            (engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0,
+        ) && cbool(engine.state.obj_timer() < 0x20)));
         if !cbool(keep_current_direction) {
             aim_actor_from_player_overlap(engine, r);
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
-            r.value = engine.mem(0xF4);
+            r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
@@ -7194,21 +7233,21 @@ mod tick_overhead_probe_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.mem(0xF0) != 0) {
+                    if cbool(engine.state.obj_move_scratch() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF1) != 0) {
+                    if cbool(engine.state.obj_cooldown() != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0x0F, engine.mem(0xFA));
-                    engine.set_mem(0x0E, engine.mem(0xF9));
-                    engine.set_mem(0x0A, engine.mem(0xFB));
+                    engine.set_mem(0x0F, engine.state.obj_x_tile());
+                    engine.set_mem(0x0E, engine.state.obj_x_sub());
+                    engine.set_mem(0x0A, engine.state.obj_y_pixel());
                     probe_actor_overhead_step(engine, r);
                     if cbool(r.carry) {
                         {
@@ -7216,8 +7255,12 @@ mod tick_overhead_probe_actor {
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
-                    engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
+                    engine
+                        .state
+                        .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
+                    engine
+                        .state
+                        .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
                     {
                         state = 3;
                         continue 'dispatch;
@@ -7226,7 +7269,7 @@ mod tick_overhead_probe_actor {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
+                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
                         reverse_actor_horizontal_direction(engine, r);
                     }
                     check_player_x_overlap(engine, r);
@@ -7241,7 +7284,7 @@ mod tick_overhead_probe_actor {
                             u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                         r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
                     }
-                    r.value = engine.mem(0xF4);
+                    r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
                     try_move_actor_with_terrain(engine, r);
                     if cbool(r.carry) {
@@ -7265,8 +7308,8 @@ mod tick_overhead_probe_actor {
                     continue 'dispatch;
                 }
                 2 => {
-                    engine.set_mem(0xF5, 0x00);
-                    engine.set_mem(0xF6, 0x00);
+                    engine.state.set_obj_x_vel_lo(0x00);
+                    engine.state.set_obj_x_vel_hi(0x00);
                     update_object_terrain_probe(engine, r);
                     if cbool(r.carry) {
                         {
@@ -7281,7 +7324,7 @@ mod tick_overhead_probe_actor {
                     try_actor_gravity_motion(engine, r);
                     commit_actor_projected_position(engine, r);
                     {
-                        let mut saved_fall_counter: i32 = engine.mem(0xF0);
+                        let mut saved_fall_counter: i32 = engine.state.obj_move_scratch();
                         update_object_terrain_probe(engine, r);
                         if !cbool(r.carry) {
                             {
@@ -7289,7 +7332,9 @@ mod tick_overhead_probe_actor {
                                 continue 'dispatch;
                             }
                         }
-                        engine.set_mem(0xF1, u8v(saved_fall_counter + 0x05 + 1));
+                        engine
+                            .state
+                            .set_obj_cooldown(u8v(saved_fall_counter + 0x05 + 1));
                         {
                             state = 7;
                             continue 'dispatch;
@@ -7347,7 +7392,7 @@ mod tick_contact_trigger_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.mem(0xF4) != 0) {
+                    if cbool(engine.state.obj_move_state() != 0) {
                         tick_chasing_jump_actor(engine, r);
                         return;
                     }
@@ -7387,9 +7432,9 @@ mod tick_contact_trigger_actor {
                         let mut actor_data_ptr: i32 =
                             u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                         let mut actor_type: i32 = engine.mem(u16v(actor_data_ptr + 4));
-                        engine.set_mem(0x00F2, actor_type);
+                        engine.state.set_obj_health(actor_type);
                         r.value = 0x00;
-                        engine.set_mem(0xFC, 0x00);
+                        engine.state.set_obj_y_extra(0x00);
                     }
                     return;
                     state = 1;
@@ -7397,7 +7442,7 @@ mod tick_contact_trigger_actor {
                 }
                 1 => {
                     r.value = 0x01;
-                    engine.set_mem(0xF4, 0x01);
+                    engine.state.set_obj_move_state(0x01);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7427,20 +7472,20 @@ mod tick_contact_recoil_actor {
     // Random floating behavior that turns into a high-bit/contact recoil state
     // when movement was blocked specifically by player overlap.
     pub fn tick_contact_recoil_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
+        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
             r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
-            r.value = engine.mem(0xF4);
+            r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
         if cbool(r.carry) {
             if cbool(engine.mem(0xEA) != 0) {
                 r.value = 0x80;
-                engine.set_mem(0xEE, 0x80);
+                engine.state.set_obj_state(0x80);
                 return;
             }
             stop_actor_motion(engine, r);
@@ -7456,28 +7501,28 @@ mod tick_timed_chase_actor {
     // Chases for `0xF1` ticks. Once it has a direction, abrupt multi-axis
     // changes are rejected unless the timer has settled for several frames.
     pub fn tick_timed_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut chase_timer: i32 = u8v(engine.mem(0xF1) - 1);
+        let mut chase_timer: i32 = u8v(engine.state.obj_cooldown() - 1);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xF1, chase_timer);
+                    engine.state.set_obj_cooldown(chase_timer);
                     if cbool(chase_timer == 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF4) == 0) {
+                    if cbool(engine.state.obj_move_state() == 0) {
                         aim_actor_from_player_overlap(engine, r);
                     } else {
-                        if cbool(engine.mem(0xF3) >= 0x08) {
+                        if cbool(engine.state.obj_timer() >= 0x08) {
                             let mut direction_diff: i32 = 0;
                             let mut bit_count: i32 = 0;
                             let mut changed_bits: i32 = 0;
-                            engine.set_mem(0x08, engine.mem(0xF4));
+                            engine.set_mem(0x08, engine.state.obj_move_state());
                             aim_actor_from_player_overlap(engine, r);
-                            direction_diff = u8v(engine.mem(0xF4) ^ engine.mem(0x08));
+                            direction_diff = u8v(engine.state.obj_move_state() ^ engine.mem(0x08));
                             changed_bits = 0x00;
                             bit_count = 0x04;
                             loop {
@@ -7505,7 +7550,7 @@ mod tick_timed_chase_actor {
                                 __old
                             };
                             if cbool(changed_bits != 0) {
-                                engine.set_mem(0xF4, engine.mem(0x08));
+                                engine.state.set_obj_move_state(engine.mem(0x08));
                             }
                         }
                     }
@@ -7513,7 +7558,7 @@ mod tick_timed_chase_actor {
                         let mut actor_data_ptr: i32 =
                             u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                         r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
-                        r.value = engine.mem(0xF4);
+                        r.value = engine.state.obj_move_state();
                         build_direction_velocity(engine, r);
                     }
                     try_move_actor_without_terrain(engine, r);
@@ -7531,7 +7576,7 @@ mod tick_timed_chase_actor {
                 }
                 1 => {
                     r.value = 0x00;
-                    engine.set_mem(0xEE, 0x00);
+                    engine.state.set_obj_state(0x00);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7573,7 +7618,7 @@ mod aim_actor_toward_player {
     // actor data byte 9 allows occasional upward bias when the actor is below.
     pub fn aim_actor_toward_player(engine: &mut Engine, r: &mut RoutineContext) {
         let mut direction_bits: i32 = 0x00;
-        let mut dx: i32 = u16v(u16v(engine.mem(0xFA)) - engine.mem(0x0044));
+        let mut dx: i32 = u16v(u16v(engine.state.obj_x_tile()) - engine.mem(0x0044));
         if cbool(u8v(dx) != 0) {
             {
                 direction_bits += 1;
@@ -7586,9 +7631,9 @@ mod aim_actor_toward_player {
                 };
             }
         }
-        engine.set_mem(0xF4, direction_bits);
+        engine.state.set_obj_move_state(direction_bits);
         {
-            let mut dy: i32 = u16v(u16v(engine.mem(0xFB)) - engine.mem(0x0045));
+            let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.mem(0x0045));
             if !cbool(dy & 0x100) {
                 let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
                 let mut vertical_bias_enabled: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
@@ -7597,7 +7642,9 @@ mod aim_actor_toward_player {
                     rng_update(engine, r);
                     r.index = r.value;
                     if cbool(r.index == 0) {
-                        engine.set_mem(0xF4, u8v(engine.mem(0xF4) | 0x80));
+                        engine
+                            .state
+                            .set_obj_move_state(u8v(engine.state.obj_move_state() | 0x80));
                     }
                 }
             } else {
@@ -7605,7 +7652,7 @@ mod aim_actor_toward_player {
                 rng_update(engine, r);
                 r.index = r.value;
                 if cbool(r.index == 0) {
-                    engine.set_mem(0xF4, 0x04);
+                    engine.state.set_obj_move_state(0x04);
                 }
             }
         }
@@ -7618,14 +7665,14 @@ mod aim_actor_from_player_overlap {
     // player on each axis.
     pub fn aim_actor_from_player_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         let mut direction_bits: i32 = 0;
-        engine.set_mem(0x0F, engine.mem(0xFA));
-        engine.set_mem(0x0E, engine.mem(0xF9));
-        engine.set_mem(0x0A, engine.mem(0xFB));
+        engine.set_mem(0x0F, engine.state.obj_x_tile());
+        engine.set_mem(0x0E, engine.state.obj_x_sub());
+        engine.set_mem(0x0A, engine.state.obj_y_pixel());
         check_player_x_overlap(engine, r);
         direction_bits = 0x00;
         if cbool(r.carry == 0) {
             let mut actor_is_right_of_player: i32 =
-                u8v((if cbool(engine.mem(0xFA) >= engine.mem(0x44)) {
+                u8v((if cbool(engine.state.obj_x_tile() >= engine.mem(0x44)) {
                     1
                 } else {
                     0
@@ -7635,12 +7682,12 @@ mod aim_actor_from_player_overlap {
                 direction_bits = 0x02;
             }
         }
-        engine.set_mem(0xF4, direction_bits);
+        engine.state.set_obj_move_state(direction_bits);
         check_player_y_overlap(engine, r);
         direction_bits = 0x00;
         if cbool(r.carry == 0) {
             let mut actor_is_below_player: i32 =
-                u8v((if cbool(engine.mem(0xFB) >= engine.mem(0x45)) {
+                u8v((if cbool(engine.state.obj_y_pixel() >= engine.mem(0x45)) {
                     1
                 } else {
                     0
@@ -7650,20 +7697,22 @@ mod aim_actor_from_player_overlap {
                 direction_bits = 0x08;
             }
         }
-        engine.set_mem(0xF4, u8v(direction_bits | engine.mem(0xF4)));
-        engine.set_mem(0xF3, 0x00);
+        engine
+            .state
+            .set_obj_move_state(u8v(direction_bits | engine.state.obj_move_state()));
+        engine.state.set_obj_timer(0x00);
     }
 }
 
 mod reverse_actor_horizontal_direction {
     use super::*;
     pub fn reverse_actor_horizontal_direction(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut direction_bits: i32 = engine.mem(0xF4) & 0x03;
+        let mut direction_bits: i32 = engine.state.obj_move_state() & 0x03;
         if cbool(direction_bits == 0) {
             direction_bits = 0x01;
         }
         direction_bits ^= 0x03;
-        engine.set_mem(0xF4, direction_bits);
+        engine.state.set_obj_move_state(direction_bits);
         r.value = direction_bits;
     }
 }
@@ -7675,7 +7724,9 @@ mod choose_random_actor_direction {
         r.value = 0x08;
         rng_update(engine, r);
         r.index = r.value;
-        engine.set_mem(0xF4, engine.mem(u16v(0xEEB3 + r.index)));
+        engine
+            .state
+            .set_obj_move_state(engine.mem(u16v(0xEEB3 + r.index)));
     }
 }
 
@@ -7689,7 +7740,9 @@ mod choose_random_cardinal_actor_direction {
         r.value = 0x03;
         rng_update(engine, r);
         let direction_index: i32 = u8v(r.value << 1);
-        engine.set_mem(0xF4, DIRECTION_LOOKUP[direction_index as usize]);
+        engine
+            .state
+            .set_obj_move_state(DIRECTION_LOOKUP[direction_index as usize]);
     }
 }
 
@@ -7698,18 +7751,20 @@ mod try_actor_gravity_motion {
     // Advances a falling actor. If the projected move is blocked, horizontal
     // velocity is dropped and the move is retried before vertical motion stops.
     pub fn try_actor_gravity_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF7, u8v((engine.mem(0xF0) >> 1) + 0x02));
+        engine
+            .state
+            .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 0x02));
         try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF5, 0x00);
-        engine.set_mem(0xF6, 0x00);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF7, 0x00);
+        engine.state.set_obj_y_vel(0x00);
     }
 }
 
@@ -7717,25 +7772,29 @@ mod try_actor_jump_arc_motion {
     use super::*;
     // Uses `0xF1` as a jump-arc countdown and converts it into upward velocity.
     pub fn try_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut jump_counter: i32 = engine.mem(0xF1);
+        let mut jump_counter: i32 = engine.state.obj_cooldown();
         if cbool(jump_counter == 0) {
             jump_counter = 0x0F;
         }
         jump_counter = u8v(jump_counter - 1);
-        engine.set_mem(0xF1, jump_counter);
+        engine.state.set_obj_cooldown(jump_counter);
         r.index = jump_counter;
-        engine.set_mem(0xF7, u8v(((jump_counter >> 1) ^ 0xFF) + 1));
+        engine
+            .state
+            .set_obj_y_vel(u8v(((jump_counter >> 1) ^ 0xFF) + 1));
         try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF5, 0x00);
-        engine.set_mem(0xF6, 0x00);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF1, u8v(engine.mem(0xF1) + 1));
+        engine
+            .state
+            .set_obj_cooldown(u8v(engine.state.obj_cooldown() + 1));
         try_reflect_object_velocity(engine, r);
     }
 }
@@ -7744,9 +7803,9 @@ mod commit_actor_projected_position {
     use super::*;
     // Commits projected actor position `0x0E/0x0F/0x0A` back to actor scratch.
     pub fn commit_actor_projected_position(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF9, engine.mem(0x0E));
-        engine.set_mem(0xFA, engine.mem(0x0F));
-        engine.set_mem(0xFB, engine.mem(0x0A));
+        engine.state.set_obj_x_sub(engine.mem(0x0E));
+        engine.state.set_obj_x_tile(engine.mem(0x0F));
+        engine.state.set_obj_y_pixel(engine.mem(0x0A));
         r.value = engine.mem(0x0A);
     }
 }
@@ -7755,10 +7814,10 @@ mod stop_actor_motion {
     use super::*;
     // Clears actor velocity and arc/probe counters.
     pub fn stop_actor_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF5, 0);
-        engine.set_mem(0xF7, 0);
-        engine.set_mem(0xF1, 0);
-        engine.set_mem(0xF0, 0);
+        engine.state.set_obj_x_vel_lo(0);
+        engine.state.set_obj_y_vel(0);
+        engine.state.set_obj_cooldown(0);
+        engine.state.set_obj_move_scratch(0);
     }
 }
 
@@ -7770,18 +7829,21 @@ mod project_actor_position {
         let mut subtile_dx: i32 = 0;
         let mut subtile_sum: i32 = 0;
         let mut tile_carry: i32 = 0;
-        engine.set_mem(0x0E, engine.mem(0xF9));
-        engine.set_mem(0x0F, engine.mem(0xFA));
-        engine.set_mem(0x0A, engine.mem(0xFB));
-        if cbool(engine.mem(0xF7) != 0) {
-            engine.set_mem(0x0A, u8v(engine.mem(0xF7) + engine.mem(0x0A)));
+        engine.set_mem(0x0E, engine.state.obj_x_sub());
+        engine.set_mem(0x0F, engine.state.obj_x_tile());
+        engine.set_mem(0x0A, engine.state.obj_y_pixel());
+        if cbool(engine.state.obj_y_vel() != 0) {
+            engine.set_mem(0x0A, u8v(engine.state.obj_y_vel() + engine.mem(0x0A)));
         }
-        subtile_dx = engine.mem(0xF5);
+        subtile_dx = engine.state.obj_x_vel_lo();
         if cbool(subtile_dx != 0) {
             subtile_sum = u8v(subtile_dx + engine.mem(0x0E));
             engine.set_mem(0x0E, u8v(subtile_sum & 0x0F));
             tile_carry = u8v((subtile_sum >> 4) & 1);
-            engine.set_mem(0x0F, u8v(engine.mem(0x0F) + engine.mem(0xF6) + tile_carry));
+            engine.set_mem(
+                0x0F,
+                u8v(engine.mem(0x0F) + engine.state.obj_x_vel_hi() + tile_carry),
+            );
         }
     }
 }
@@ -7822,11 +7884,13 @@ mod animate_actor_flip_toggle {
     use super::*;
     pub fn animate_actor_flip_toggle(engine: &mut Engine, r: &mut RoutineContext) {
         let mut animation_phase: i32 = 0;
-        engine.inc_mem(0xF3);
-        animation_phase = engine.mem(0xF3) & 0x03;
+        engine
+            .state
+            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+        animation_phase = engine.state.obj_timer() & 0x03;
         if cbool(animation_phase == 0) {
-            animation_phase = engine.mem(0xEF) ^ 0x40;
-            engine.set_mem(0xEF, animation_phase);
+            animation_phase = engine.state.obj_attr() ^ 0x40;
+            engine.state.set_obj_attr(animation_phase);
         }
         r.value = animation_phase;
     }
@@ -7837,18 +7901,22 @@ mod animate_actor_walk_toggle {
     // Faces the actor from horizontal velocity and toggles the sprite tile bit
     // every four animation ticks.
     pub fn animate_actor_walk_toggle(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF5) != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
                 0x00
             } else {
                 0x40
             });
             engine.set_mem(0x08, facing_bit);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
+            engine
+                .state
+                .set_obj_attr(u8v((engine.state.obj_attr() & 0x3F) | facing_bit));
         }
-        engine.inc_mem(0xF3);
-        if cbool((engine.mem(0xF3) & 0x03) == 0) {
-            engine.xor_mem(0xED, 0x04);
+        engine
+            .state
+            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+        if cbool((engine.state.obj_timer() & 0x03) == 0) {
+            engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
         }
     }
 }
@@ -7858,26 +7926,34 @@ mod animate_actor_directional_walk {
     // Similar to `animate_actor_walk_toggle`, with a separate vertical-motion
     // tile bit so climbing/falling frames differ from horizontal frames.
     pub fn animate_actor_directional_walk(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF5) != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
                 0x00
             } else {
                 0x40
             });
             engine.set_mem(0x08, facing_bit);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
-            engine.set_mem(0xED, u8v(engine.mem(0xED) & 0xF7));
+            engine
+                .state
+                .set_obj_attr(u8v((engine.state.obj_attr() & 0x3F) | facing_bit));
+            engine
+                .state
+                .set_obj_tile(u8v(engine.state.obj_tile() & 0xF7));
         } else {
-            if cbool(engine.mem(0xF7) != 0) {
-                engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | 0x08));
+            if cbool(engine.state.obj_y_vel() != 0) {
+                engine
+                    .state
+                    .set_obj_tile(u8v((engine.state.obj_tile() & 0xF3) | 0x08));
             }
         }
-        engine.inc_mem(0xF3);
-        if cbool((engine.mem(0xF3) & 0x03) == 0) {
-            if cbool((engine.mem(0xED) & 0x08) != 0) {
-                engine.xor_mem(0xEF, 0x40);
+        engine
+            .state
+            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+        if cbool((engine.state.obj_timer() & 0x03) == 0) {
+            if cbool((engine.state.obj_tile() & 0x08) != 0) {
+                engine.state.set_obj_attr(engine.state.obj_attr() ^ 0x40);
             } else {
-                engine.xor_mem(0xED, 0x04);
+                engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
             }
         }
     }
@@ -7887,19 +7963,25 @@ mod animate_actor_cycle_tiles {
     use super::*;
     // Cycles the two sprite-tile animation bits from the frame timer.
     pub fn animate_actor_cycle_tiles(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF5) != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
                 0x00
             } else {
                 0x40
             });
             engine.set_mem(0x08, facing_bit);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
+            engine
+                .state
+                .set_obj_attr(u8v((engine.state.obj_attr() & 0x3F) | facing_bit));
         }
-        engine.inc_mem(0xF3);
-        let animation_tile_bits: i32 = u8v((engine.mem(0xF3) & 0x06) << 1);
+        engine
+            .state
+            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+        let animation_tile_bits: i32 = u8v((engine.state.obj_timer() & 0x06) << 1);
         engine.set_mem(0x08, animation_tile_bits);
-        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | animation_tile_bits));
+        engine
+            .state
+            .set_obj_tile(u8v((engine.state.obj_tile() & 0xF3) | animation_tile_bits));
     }
 }
 
@@ -7909,18 +7991,18 @@ mod try_move_actor_with_terrain {
     // contact damage, and restores the original vertical velocity before
     // returning carry set when movement was blocked.
     pub fn try_move_actor_with_terrain(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_vertical_velocity: i32 = engine.mem(0xF7);
+        let mut saved_vertical_velocity: i32 = engine.state.obj_y_vel();
         let mut blocked: i32 = 0;
         loop {
             project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
-                engine.set_mem(0xEE, 0x00);
-                engine.set_mem(0xF3, 0xF0);
+                engine.state.set_obj_state(0x00);
+                engine.state.set_obj_timer(0xF0);
                 blocked = 1;
                 break;
             }
-            if cbool(u8v(engine.mem(0xEE) - 1) == 0) {
+            if cbool(u8v(engine.state.obj_state() - 1) == 0) {
                 check_player_overlap(engine, r);
                 if cbool(r.carry) {
                     apply_actor_player_contact_damage(engine, r);
@@ -7932,7 +8014,7 @@ mod try_move_actor_with_terrain {
                 break;
             }
             {
-                let mut adjusted_vertical_velocity: i32 = engine.mem(0xF7);
+                let mut adjusted_vertical_velocity: i32 = engine.state.obj_y_vel();
                 if cbool(adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
@@ -7941,14 +8023,14 @@ mod try_move_actor_with_terrain {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
-                engine.set_mem(0xF7, adjusted_vertical_velocity);
+                engine.state.set_obj_y_vel(adjusted_vertical_velocity);
                 if cbool(adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
             }
         }
-        engine.set_mem(0xF7, saved_vertical_velocity);
+        engine.state.set_obj_y_vel(saved_vertical_velocity);
         r.carry = blocked;
     }
 }
@@ -7969,8 +8051,8 @@ mod try_move_actor_without_terrain {
         if cbool(r.carry == 0) {
             return;
         }
-        engine.set_mem(0xEE, 0x00);
-        engine.set_mem(0xF3, 0xF0);
+        engine.state.set_obj_state(0x00);
+        engine.state.set_obj_timer(0xF0);
     }
 }
 
@@ -7982,7 +8064,7 @@ mod apply_actor_player_contact_damage {
         if cbool(engine.state.sprite_blink_timer() != 0) {
             return;
         }
-        if cbool(u8v(engine.mem(0xEE) - 1) != 0) {
+        if cbool(u8v(engine.state.obj_state() - 1) != 0) {
             return;
         }
         if cbool(engine.mem(0x2D) >= 0x30) {
@@ -7998,19 +8080,23 @@ mod apply_actor_player_contact_damage {
                 return;
             }
         }
-        r.value = engine.mem(0xF8);
+        r.value = engine.state.obj_damage();
         subtract_health_points(engine, r);
         engine.state.set_prompt_state(0x21);
         engine.state.set_prompt_argument(0x01);
         engine.state.set_sprite_blink_timer(0x01);
-        engine.set_mem(0xEF, u8v(engine.mem(0xEF) & 0xDF));
+        engine
+            .state
+            .set_obj_attr(u8v(engine.state.obj_attr() & 0xDF));
     }
 }
 
 mod update_object_terrain_probe {
     use super::*;
     fn mark_probe_clear(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
+        engine
+            .state
+            .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
         r.carry = 0;
     }
 
@@ -8018,14 +8104,14 @@ mod update_object_terrain_probe {
     /// When the checked footprint stays clear, the object terrain counter
     /// `0xF0` advances and carry is clear.
     pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF1) != 0) {
+        if cbool(engine.state.obj_cooldown() != 0) {
             return;
         }
-        engine.set_mem(0x0C, engine.mem(0xFA));
-        engine.set_mem(0x0F, engine.mem(0xFA));
-        engine.set_mem(0x0E, engine.mem(0xF9));
-        let mut tile_y: i32 = engine.mem(0xFB);
-        let active_state: i32 = u8v(engine.mem(0xEE) - 1);
+        engine.set_mem(0x0C, engine.state.obj_x_tile());
+        engine.set_mem(0x0F, engine.state.obj_x_tile());
+        engine.set_mem(0x0E, engine.state.obj_x_sub());
+        let mut tile_y: i32 = engine.state.obj_y_pixel();
+        let active_state: i32 = u8v(engine.state.obj_state() - 1);
         if cbool(active_state == 0) {
             if cbool(tile_y >= 0xB0) {
                 return;
@@ -8039,12 +8125,12 @@ mod update_object_terrain_probe {
             }
         } else {
             if cbool(tile_y == 0xEF) {
-                tile_y = engine.mem(0xFC);
+                tile_y = engine.state.obj_y_extra();
             }
             engine.set_mem(0x0D, tile_y);
         }
         resolve_room_tile_pointer(engine, r);
-        if cbool(engine.mem(0xF9) == 0) {
+        if cbool(engine.state.obj_x_sub() == 0) {
             let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
             if cbool((engine.mem(tile_ptr) & 0x3F) == 0) {
                 return;
@@ -8058,7 +8144,7 @@ mod update_object_terrain_probe {
         if cbool(r.carry) {
             return;
         }
-        if cbool(engine.mem(0xF9) == 0) {
+        if cbool(engine.state.obj_x_sub() == 0) {
             return;
         }
         r.offset = 0x0D;
@@ -8077,17 +8163,19 @@ mod update_wide_object_terrain_probe {
     /// lower footprint and advances `0xF0` when no solid tile or player overlap
     /// blocks movement.
     pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xF1) != 0) {
+        if cbool(engine.state.obj_cooldown() != 0) {
             return;
         }
-        engine.set_mem(0x0C, engine.mem(0xFA));
-        engine.set_mem(0x0F, engine.mem(0xFA));
-        engine.set_mem(0x0E, engine.mem(0xF9));
-        engine.set_mem(0x0D, engine.mem(0xFB));
-        engine.set_mem(0x0A, u8v(engine.mem(0xFB) + 1));
+        engine.set_mem(0x0C, engine.state.obj_x_tile());
+        engine.set_mem(0x0F, engine.state.obj_x_tile());
+        engine.set_mem(0x0E, engine.state.obj_x_sub());
+        engine.set_mem(0x0D, engine.state.obj_y_pixel());
+        engine.set_mem(0x0A, u8v(engine.state.obj_y_pixel() + 1));
         resolve_room_tile_pointer(engine, r);
-        if cbool(engine.mem(0xFB) >= 0xA0) {
-            engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
+        if cbool(engine.state.obj_y_pixel() >= 0xA0) {
+            engine
+                .state
+                .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
             return;
         }
         check_player_overlap_wide(engine, r);
@@ -8104,14 +8192,16 @@ mod update_wide_object_terrain_probe {
         if cbool(r.carry) {
             return;
         }
-        if cbool(engine.mem(0xF9) != 0) {
+        if cbool(engine.state.obj_x_sub() != 0) {
             r.offset = 0x1A;
             probe_object_solid_tile(engine, r);
             if cbool(r.carry) {
                 return;
             }
         }
-        engine.set_mem(0xF0, u8v(engine.mem(0xF0) + 1));
+        engine
+            .state
+            .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
     }
 }
 
@@ -8251,10 +8341,10 @@ mod try_reflect_object_velocity {
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xF6, 0x00);
-                    if cbool(engine.mem(0xF5) != 0) {
-                        engine.set_mem(0xF5, 0x00);
-                        edge_nibble = engine.mem(0xFB) & 0x0F;
+                    engine.state.set_obj_x_vel_hi(0x00);
+                    if cbool(engine.state.obj_x_vel_lo() != 0) {
+                        engine.state.set_obj_x_vel_lo(0x00);
+                        edge_nibble = engine.state.obj_y_pixel() & 0x0F;
                         if cbool(edge_nibble == 0) {
                             {
                                 state = 2;
@@ -8262,26 +8352,26 @@ mod try_reflect_object_velocity {
                             }
                         }
                         if cbool(edge_nibble < 0x06) {
-                            if cbool(engine.mem(0xF4) & 0x04) {
+                            if cbool(engine.state.obj_move_state() & 0x04) {
                                 {
                                     state = 2;
                                     continue 'dispatch;
                                 }
                             }
-                            engine.set_mem(0xF7, 0xFF);
+                            engine.state.set_obj_y_vel(0xFF);
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
                         if cbool(edge_nibble >= 0x0B) {
-                            if cbool(engine.mem(0xF4) & 0x08) {
+                            if cbool(engine.state.obj_move_state() & 0x08) {
                                 {
                                     state = 2;
                                     continue 'dispatch;
                                 }
                             }
-                            engine.set_mem(0xF7, 0x01);
+                            engine.state.set_obj_y_vel(0x01);
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -8292,14 +8382,14 @@ mod try_reflect_object_velocity {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF7) == 0) {
+                    if cbool(engine.state.obj_y_vel() == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0xF7, 0x00);
-                    edge_nibble = engine.mem(0xF9);
+                    engine.state.set_obj_y_vel(0x00);
+                    edge_nibble = engine.state.obj_x_sub();
                     if cbool(edge_nibble == 0) {
                         {
                             state = 2;
@@ -8307,28 +8397,28 @@ mod try_reflect_object_velocity {
                         }
                     }
                     if cbool(edge_nibble < 0x06) {
-                        if cbool(engine.mem(0xF4) & 0x01) {
+                        if cbool(engine.state.obj_move_state() & 0x01) {
                             {
                                 state = 2;
                                 continue 'dispatch;
                             }
                         }
-                        engine.set_mem(0xF5, 0x0F);
-                        engine.set_mem(0xF6, 0xFF);
+                        engine.state.set_obj_x_vel_lo(0x0F);
+                        engine.state.set_obj_x_vel_hi(0xFF);
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     if cbool(edge_nibble >= 0x0B) {
-                        if cbool(engine.mem(0xF4) & 0x02) {
+                        if cbool(engine.state.obj_move_state() & 0x02) {
                             {
                                 state = 2;
                                 continue 'dispatch;
                             }
                         }
-                        engine.set_mem(0xF5, 0x01);
-                        engine.set_mem(0xF6, 0x00);
+                        engine.state.set_obj_x_vel_lo(0x01);
+                        engine.state.set_obj_x_vel_hi(0x00);
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8377,19 +8467,21 @@ mod initialize_large_actor_slot {
         if cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF9, engine.mem(0x0E));
-        engine.set_mem(0xFA, engine.mem(0x0F));
-        engine.set_mem(0xFB, engine.mem(0x0A));
-        engine.set_mem(0xF1, 0x00);
-        engine.set_mem(0xF0, 0x00);
-        engine.set_mem(0xF4, 0x00);
-        engine.set_mem(0xEE, 0x01);
-        engine.set_mem(0xED, 0x81);
-        engine.set_mem(0xEF, 0x02);
-        engine.set_mem(0xF8, engine.mem(u16v(actor_data_ptr + 5)));
+        engine.state.set_obj_x_sub(engine.mem(0x0E));
+        engine.state.set_obj_x_tile(engine.mem(0x0F));
+        engine.state.set_obj_y_pixel(engine.mem(0x0A));
+        engine.state.set_obj_cooldown(0x00);
+        engine.state.set_obj_move_scratch(0x00);
+        engine.state.set_obj_move_state(0x00);
+        engine.state.set_obj_state(0x01);
+        engine.state.set_obj_tile(0x81);
+        engine.state.set_obj_attr(0x02);
+        engine
+            .state
+            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
         {
             let actor_health: i32 = engine.mem(u16v(actor_data_ptr + 4));
-            engine.set_mem(0xF2, actor_health);
+            engine.state.set_obj_health(actor_health);
             engine.set_mem(0x0415, actor_health);
             engine.set_mem(0x0425, actor_health);
             engine.set_mem(0x0435, actor_health);
@@ -8414,19 +8506,23 @@ mod tick_large_chasing_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xF4, engine.mem(0xF4) & 0x0F);
-                    if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
-                        if cbool((engine.mem(0xF4) & 0x03) == 0) {
-                            engine.set_mem(0xF4, 0x01);
+                    engine
+                        .state
+                        .set_obj_move_state(engine.state.obj_move_state() & 0x0F);
+                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+                        if cbool((engine.state.obj_move_state() & 0x03) == 0) {
+                            engine.state.set_obj_move_state(0x01);
                         }
                         {
-                            let mut turn_timer: i32 = engine.mem(0xF3);
-                            engine.set_mem(0xF3, 0x00);
+                            let mut turn_timer: i32 = engine.state.obj_timer();
+                            engine.state.set_obj_timer(0x00);
                             turn_timer = u8v(turn_timer - 1);
                             if cbool(turn_timer == 0) {
-                                horizontal_direction = engine.mem(0xF4) & 0x03;
+                                horizontal_direction = engine.state.obj_move_state() & 0x03;
                                 if cbool(horizontal_direction != 0) {
-                                    engine.set_mem(0xF4, u8v(horizontal_direction ^ 0x03));
+                                    engine
+                                        .state
+                                        .set_obj_move_state(u8v(horizontal_direction ^ 0x03));
                                     {
                                         state = 2;
                                         continue 'dispatch;
@@ -8438,14 +8534,16 @@ mod tick_large_chasing_actor {
                                 }
                             }
                             aim_actor_toward_player(engine, r);
-                            engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
+                            engine
+                                .state
+                                .set_obj_move_state(u8v(0x80 | engine.state.obj_move_state()));
                             {
                                 state = 2;
                                 continue 'dispatch;
                             }
                         }
                     } else {
-                        if cbool(engine.mem(0xF3) < 0x32) {
+                        if cbool(engine.state.obj_timer() < 0x32) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -8456,16 +8554,16 @@ mod tick_large_chasing_actor {
                     continue 'dispatch;
                 }
                 1 => {
-                    engine.set_mem(0xF3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                     aim_actor_toward_player(engine, r);
                     state = 2;
                     continue 'dispatch;
                 }
                 2 => {
-                    r.value = engine.mem(0xF4);
+                    r.value = engine.state.obj_move_state();
                     r.offset = 0x02;
                     build_direction_velocity(engine, r);
-                    if cbool(engine.mem(0xF0) != 0) {
+                    if cbool(engine.state.obj_move_scratch() != 0) {
                         try_large_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
@@ -8478,13 +8576,13 @@ mod tick_large_chasing_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.mem(0xF1) != 0) {
+                    if cbool(engine.state.obj_cooldown() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.mem(0xF4) & 0x80) {
+                    if !cbool(engine.state.obj_move_state() & 0x80) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -8505,7 +8603,7 @@ mod tick_large_chasing_actor {
                     continue 'dispatch;
                 }
                 4 => {
-                    engine.set_mem(0xF1, 0x00);
+                    engine.state.set_obj_cooldown(0x00);
                     try_move_large_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
@@ -8544,21 +8642,21 @@ mod try_large_actor_gravity_motion {
     /// Applies the large actor's falling motion. If wide movement is blocked,
     /// it retries without horizontal velocity before cancelling vertical speed.
     pub fn try_large_actor_gravity_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        let fall_velocity: i32 = u8v((engine.mem(0xF0) >> 2) + 1);
-        engine.set_mem(0xF7, fall_velocity);
+        let fall_velocity: i32 = u8v((engine.state.obj_move_scratch() >> 2) + 1);
+        engine.state.set_obj_y_vel(fall_velocity);
         r.value = fall_velocity;
         try_move_large_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF5, 0x00);
-        engine.set_mem(0xF6, 0x00);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
         r.value = 0x00;
         try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF7, 0x00);
+        engine.state.set_obj_y_vel(0x00);
         r.value = 0x00;
     }
 }
@@ -8569,20 +8667,22 @@ mod try_large_actor_jump_arc_motion {
     /// Advances the large actor's jump arc and retries straight-up movement
     /// when horizontal motion collides with terrain.
     pub fn try_large_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut jump_counter: i32 = engine.mem(0xF1);
+        let mut jump_counter: i32 = engine.state.obj_cooldown();
         if cbool(jump_counter == 0) {
             jump_counter = 0x19;
         }
         jump_counter = u8v(jump_counter - 1);
-        engine.set_mem(0xF1, jump_counter);
+        engine.state.set_obj_cooldown(jump_counter);
         r.index = jump_counter;
-        engine.set_mem(0xF7, u8v(((jump_counter >> 2) ^ 0xFF) + 1));
+        engine
+            .state
+            .set_obj_y_vel(u8v(((jump_counter >> 2) ^ 0xFF) + 1));
         try_move_large_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
-        engine.set_mem(0xF5, 0x00);
-        engine.set_mem(0xF6, 0x00);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
         try_move_large_actor_with_terrain(engine, r);
     }
 }
@@ -8593,14 +8693,14 @@ mod try_move_large_actor_with_terrain {
     /// Projects wide actor motion, applies player contact damage, and rejects
     /// terrain using the three-tile-wide footprint. Carry is set when blocked.
     pub fn try_move_large_actor_with_terrain(engine: &mut Engine, r: &mut RoutineContext) {
-        let saved_vertical_velocity: i32 = engine.mem(0xF7);
+        let saved_vertical_velocity: i32 = engine.state.obj_y_vel();
         let mut blocked: i32 = 0;
         loop {
             project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
-                engine.set_mem(0xEE, 0x00);
-                engine.set_mem(0xF3, 0xF0);
+                engine.state.set_obj_state(0x00);
+                engine.state.set_obj_timer(0xF0);
                 blocked = 1;
                 break;
             }
@@ -8614,7 +8714,7 @@ mod try_move_large_actor_with_terrain {
                 break;
             }
             {
-                let mut adjusted_vertical_velocity: i32 = engine.mem(0xF7);
+                let mut adjusted_vertical_velocity: i32 = engine.state.obj_y_vel();
                 if cbool(adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
@@ -8623,14 +8723,14 @@ mod try_move_large_actor_with_terrain {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
-                engine.set_mem(0xF7, adjusted_vertical_velocity);
+                engine.state.set_obj_y_vel(adjusted_vertical_velocity);
                 if cbool(adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
             }
         }
-        engine.set_mem(0xF7, saved_vertical_velocity);
+        engine.state.set_obj_y_vel(saved_vertical_velocity);
         r.carry = blocked;
     }
 }
@@ -8641,14 +8741,16 @@ mod update_large_actor_facing_from_velocity {
     /// Updates the large actor's facing bit from horizontal velocity.
     pub fn update_large_actor_facing_from_velocity(engine: &mut Engine, r: &mut RoutineContext) {
         let mut facing_bit: i32 = 0x00;
-        if cbool(engine.mem(0xF6) & 0x80) {
-        } else if cbool(engine.mem(0xF5) == 0) {
+        if cbool(engine.state.obj_x_vel_hi() & 0x80) {
+        } else if cbool(engine.state.obj_x_vel_lo() == 0) {
             return;
         } else {
             facing_bit = 0x40;
         }
         engine.set_mem(0x08, facing_bit);
-        engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
+        engine
+            .state
+            .set_obj_attr(u8v((engine.state.obj_attr() & 0x3F) | facing_bit));
     }
 }
 
@@ -8658,9 +8760,10 @@ mod animate_large_actor_body_tiles {
     /// Advances the large actor's animation timer and stores the base body
     /// tile id for the linked sprite slots.
     pub fn animate_large_actor_body_tiles(engine: &mut Engine, r: &mut RoutineContext) {
-        let animation_timer: i32 = engine.inc_mem(0xF3);
+        let animation_timer: i32 = (engine.state.obj_timer() + 1) & 0xFF;
+        engine.state.set_obj_timer(animation_timer);
         let body_tile_id: i32 = u8v(((animation_timer & 0x0C) << 1) | 0x41);
-        engine.set_mem(0xED, body_tile_id);
+        engine.state.set_obj_tile(body_tile_id);
         r.value = body_tile_id;
     }
 }
@@ -8679,26 +8782,26 @@ mod compose_large_actor_body_slots {
     /// `0x0420`, and `0x0430` are arranged as the visible 2x2 body, then their
     /// sprite ids are swapped by facing/flip bits so draw order stays correct.
     pub fn compose_large_actor_body_slots(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x041F, engine.mem(0xFC));
-        engine.set_mem(0x042F, engine.mem(0xFC));
-        engine.set_mem(0x043F, engine.mem(0xFC));
+        engine.set_mem(0x041F, engine.state.obj_y_extra());
+        engine.set_mem(0x042F, engine.state.obj_y_extra());
+        engine.set_mem(0x043F, engine.state.obj_y_extra());
         {
-            let tile_y: i32 = engine.mem(0xFB);
+            let tile_y: i32 = engine.state.obj_y_pixel();
             engine.set_mem(0x041E, tile_y);
             engine.set_mem(0x042E, u8v(tile_y + 0x10));
             engine.set_mem(0x043E, u8v(tile_y + 0x10));
         }
-        engine.set_mem(0x041C, engine.mem(0xF9));
-        engine.set_mem(0x042C, engine.mem(0xF9));
-        engine.set_mem(0x043C, engine.mem(0xF9));
+        engine.set_mem(0x041C, engine.state.obj_x_sub());
+        engine.set_mem(0x042C, engine.state.obj_x_sub());
+        engine.set_mem(0x043C, engine.state.obj_x_sub());
         {
-            let tile_x: i32 = engine.mem(0xFA);
+            let tile_x: i32 = engine.state.obj_x_tile();
             engine.set_mem(0x042D, tile_x);
             engine.set_mem(0x041D, u8v(tile_x + 1));
             engine.set_mem(0x043D, u8v(tile_x + 1));
         }
         {
-            let mut actor_state: i32 = engine.mem(0xEE);
+            let mut actor_state: i32 = engine.state.obj_state();
             if !cbool(actor_state & 0x80) {
                 if cbool((engine.mem(0x0411) | engine.mem(0x0421) | engine.mem(0x0431)) & 0x80) {
                     actor_state = 0x80;
@@ -8710,7 +8813,7 @@ mod compose_large_actor_body_slots {
             engine.set_mem(0x0431, actor_state);
         }
         {
-            let mut minimum_health: i32 = engine.mem(0xF2);
+            let mut minimum_health: i32 = engine.state.obj_health();
             if cbool(minimum_health >= engine.mem(0x0415)) {
                 minimum_health = engine.mem(0x0415);
             }
@@ -8723,7 +8826,7 @@ mod compose_large_actor_body_slots {
             engine.set_mem(0x0405, minimum_health);
         }
         {
-            let body_tile_id: i32 = engine.mem(0xED);
+            let body_tile_id: i32 = engine.state.obj_tile();
             let upper_right_tile: i32 = u8v(body_tile_id | 0x04);
             engine.set_mem(0x0410, upper_right_tile);
             let lower_right_tile: i32 = u8v(upper_right_tile | 0x20);
@@ -8732,7 +8835,7 @@ mod compose_large_actor_body_slots {
             engine.set_mem(0x0420, lower_left_tile);
         }
         {
-            let sprite_attrs: i32 = engine.mem(0xEF);
+            let sprite_attrs: i32 = engine.state.obj_attr();
             engine.set_mem(0x0412, sprite_attrs);
             engine.set_mem(0x0422, sprite_attrs);
             engine.set_mem(0x0432, sprite_attrs);
@@ -8828,27 +8931,27 @@ mod spawn_player_projectile {
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0xF9, engine.mem(0x0E));
-                    engine.set_mem(0xFA, engine.mem(0x0F));
-                    engine.set_mem(0xFB, engine.mem(0x0A));
+                    engine.state.set_obj_x_sub(engine.mem(0x0E));
+                    engine.state.set_obj_x_tile(engine.mem(0x0F));
+                    engine.state.set_obj_y_pixel(engine.mem(0x0A));
                     load_effective_projectile_lifetime(engine, r);
-                    engine.set_mem(0xEE, r.value);
+                    engine.state.set_obj_state(r.value);
                     if cbool(r.carry == 0) {
                         consume_magic_point(engine, r);
                     }
                     load_effective_projectile_damage(engine, r);
-                    engine.set_mem(0xF8, r.value);
+                    engine.state.set_obj_damage(r.value);
                     if cbool(r.carry == 0) {
                         consume_magic_point(engine, r);
                     }
-                    engine.set_mem(0xEF, 0x00);
-                    engine.set_mem(0xED, 0x21);
+                    engine.state.set_obj_attr(0x00);
+                    engine.state.set_obj_tile(0x21);
                     engine.state.set_prompt_state(u8v(0x22 + engine.mem(0x40)));
                     state = 1;
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.mem(0xEE) != 0) {
+                    if cbool(engine.state.obj_state() != 0) {
                         apply_projectile_direction_bits(engine, r);
                     }
                     store_object_slot_scratch(engine, r);
@@ -8864,13 +8967,13 @@ mod update_player_projectile_slot {
     use super::*;
 
     fn store_projectile_position(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xF9, engine.mem(0x0E));
-        engine.set_mem(0xFA, engine.mem(0x0F));
-        engine.set_mem(0xFB, engine.mem(0x0A));
+        engine.state.set_obj_x_sub(engine.mem(0x0E));
+        engine.state.set_obj_x_tile(engine.mem(0x0F));
+        engine.state.set_obj_y_pixel(engine.mem(0x0A));
     }
 
     fn finish_projectile_slot_update(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0xEE) != 0) {
+        if cbool(engine.state.obj_state() != 0) {
             apply_projectile_direction_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -8880,15 +8983,17 @@ mod update_player_projectile_slot {
     /// actor hits, damage, and expiry back into the object slot.
     pub fn update_player_projectile_slot(engine: &mut Engine, r: &mut RoutineContext) {
         load_object_slot_scratch(engine, r);
-        engine.set_mem(0xEE, u8v(engine.mem(0xEE) - 1));
-        if cbool(engine.mem(0xEE) == 0) {
+        engine
+            .state
+            .set_obj_state(u8v(engine.state.obj_state() - 1));
+        if cbool(engine.state.obj_state() == 0) {
             finish_projectile_slot_update(engine, r);
             return;
         }
         project_actor_position(engine, r);
         check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
-            engine.set_mem(0xEE, 0x00);
+            engine.state.set_obj_state(0x00);
             finish_projectile_slot_update(engine, r);
             return;
         }
@@ -8901,7 +9006,7 @@ mod update_player_projectile_slot {
         if (cbool(engine.mem(0x2D) >= 0x30) && cbool(engine.mem(0x08) >= 0x04)) {
             let hit_slot: i32 = engine.mem(0x09);
             engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
-            engine.set_mem(0xEE, 0x01);
+            engine.state.set_obj_state(0x01);
             engine.state.set_prompt_state(0x0C);
             store_projectile_position(engine, r);
             finish_projectile_slot_update(engine, r);
@@ -8916,7 +9021,7 @@ mod update_player_projectile_slot {
             }
             hit_slot = engine.mem(0x09);
             {
-                let knockback: i32 = (if cbool(engine.mem(0xEE) & 0x01) {
+                let knockback: i32 = (if cbool(engine.state.obj_state() & 0x01) {
                     0x02
                 } else {
                     0xFE
@@ -8925,7 +9030,7 @@ mod update_player_projectile_slot {
             }
             {
                 let target_health: i32 = engine.mem(u16v(0x0405 + hit_slot));
-                let projectile_damage: i32 = engine.mem(0xF8);
+                let projectile_damage: i32 = engine.state.obj_damage();
                 engine.set_mem(
                     u16v(0x0405 + hit_slot),
                     u8v(target_health - projectile_damage),
@@ -8952,18 +9057,20 @@ mod project_player_projectile_position {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0F, engine.mem(0x44));
         engine.set_mem(0x0A, engine.mem(0x45));
-        if cbool(engine.mem(0xF7) != 0) {
-            let mut a: i32 = u8v(engine.mem(0xF7) << 2);
+        if cbool(engine.state.obj_y_vel() != 0) {
+            let mut a: i32 = u8v(engine.state.obj_y_vel() << 2);
             a = u8v(a + engine.mem(0x0A));
             engine.set_mem(0x0A, a);
         }
-        if cbool(engine.mem(0xF5) != 0) {
+        if cbool(engine.state.obj_x_vel_lo() != 0) {
             let projected_subtile: i32 =
-                u8v(u8v((engine.mem(0xF5) << 2) & 0x0F) + engine.mem(0x0E));
+                u8v(u8v((engine.state.obj_x_vel_lo() << 2) & 0x0F) + engine.mem(0x0E));
             engine.set_mem(0x0E, projected_subtile & 0x0F);
             engine.set_mem(
                 0x0F,
-                u8v(engine.mem(0x0F) + engine.mem(0xF6) + ((projected_subtile >> 4) & 1)),
+                u8v(engine.mem(0x0F)
+                    + engine.state.obj_x_vel_hi()
+                    + ((projected_subtile >> 4) & 1)),
             );
         }
     }
@@ -8975,10 +9082,12 @@ mod apply_projectile_direction_bits {
     /// Copies the projectile direction bits from its lifetime/state byte into
     /// the sprite/object descriptor used by later render and collision code.
     pub fn apply_projectile_direction_bits(engine: &mut Engine, r: &mut RoutineContext) {
-        let direction_bits: i32 = engine.mem(0xEE) & 0x0C;
+        let direction_bits: i32 = engine.state.obj_state() & 0x0C;
         engine.set_mem(0x08, direction_bits);
-        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | direction_bits));
-        r.value = engine.mem(0xED);
+        engine
+            .state
+            .set_obj_tile(u8v((engine.state.obj_tile() & 0xF3) | direction_bits));
+        r.value = engine.state.obj_tile();
     }
 }
 
@@ -8994,31 +9103,35 @@ mod update_tile_projectile {
         engine.set_mem(0xE5, 0x90);
         engine.set_mem(0xE6, 0x04);
         load_object_slot_scratch(engine, r);
-        engine.set_mem(0xF3, u8v(engine.mem(0xF3) - 1));
-        if cbool(engine.mem(0xF3) != 0) {
+        engine
+            .state
+            .set_obj_timer(u8v(engine.state.obj_timer() - 1));
+        if cbool(engine.state.obj_timer() != 0) {
             update_tile_projectile_motion(engine, r);
             return;
         }
-        if cbool((engine.mem(0xED) & 0x01) == 0) {
-            if cbool(u8v((engine.mem(0xFB) & 0x0F) | engine.mem(0xF9)) != 0) {
-                engine.set_mem(0xF3, u8v(engine.mem(0xF3) + 1));
+        if cbool((engine.state.obj_tile() & 0x01) == 0) {
+            if cbool(u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0) {
+                engine
+                    .state
+                    .set_obj_timer(u8v(engine.state.obj_timer() + 1));
                 update_tile_projectile_motion(engine, r);
                 return;
             }
         }
-        engine.set_mem(0xEE, 0x00);
-        if cbool(engine.mem(0xF0) != 0) {
-            engine.set_mem(0x0C, engine.mem(0xFA));
-            engine.set_mem(0x0D, engine.mem(0xFB));
+        engine.state.set_obj_state(0x00);
+        if cbool(engine.state.obj_move_scratch() != 0) {
+            engine.set_mem(0x0C, engine.state.obj_x_tile());
+            engine.set_mem(0x0D, engine.state.obj_y_pixel());
             resolve_room_tile_pointer(engine, r);
             let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-            engine.set_mem(tile_ptr, engine.mem(0xF0));
-            let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));
+            engine.set_mem(tile_ptr, engine.state.obj_move_scratch());
+            let screen_diff: i32 = u8v(engine.state.obj_x_tile() - engine.mem(0x7C));
             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
-                let tile_x: i32 = engine.mem(0xFA);
+                let tile_x: i32 = engine.state.obj_x_tile();
                 engine.set_mem(0x0C, tile_x);
                 engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-                engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
+                engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
                 engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
                 engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
                 farcall_bank_09_r7(engine, r);
@@ -9051,9 +9164,9 @@ mod update_tile_projectile_motion {
                             }
                         }
                     }
-                    if cbool(engine.mem(0xED) & 0x01) {
-                        if cbool((engine.mem(0xF3) & 0x03) == 0) {
-                            engine.xor_mem(0xED, 0x04);
+                    if cbool(engine.state.obj_tile() & 0x01) {
+                        if cbool((engine.state.obj_timer() & 0x03) == 0) {
+                            engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
                         }
                         {
                             state = 4;
@@ -9088,10 +9201,10 @@ mod update_tile_projectile_motion {
                         let hit_slot: i32 = engine.mem(0x09);
                         engine.set_mem(u16v(0x0401 + hit_slot), 0x80);
                     }
-                    engine.set_mem(0xF9, engine.mem(0x0E));
-                    engine.set_mem(0xFA, engine.mem(0x0F));
-                    engine.set_mem(0xFB, engine.mem(0x0A));
-                    engine.set_mem(0xF4, 0x00);
+                    engine.state.set_obj_x_sub(engine.mem(0x0E));
+                    engine.state.set_obj_x_tile(engine.mem(0x0F));
+                    engine.state.set_obj_y_pixel(engine.mem(0x0A));
+                    engine.state.set_obj_move_state(0x00);
                     {
                         state = 4;
                         continue 'dispatch;
@@ -9100,7 +9213,7 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.mem(0xF4) != 0) {
+                    if cbool(engine.state.obj_move_state() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -9119,18 +9232,26 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 2 => {
-                    if cbool(engine.mem(0xF4) != 0) {
+                    if cbool(engine.state.obj_move_state() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0xF4, u8v(engine.mem(0xF4) + 1));
-                    if cbool(engine.mem(0xF5) != 0) {
-                        engine.set_mem(0xF5, u8v((0 - engine.mem(0xF5)) & 0x0F));
-                        engine.xor_mem(0xF6, 0xFF);
+                    engine
+                        .state
+                        .set_obj_move_state(u8v(engine.state.obj_move_state() + 1));
+                    if cbool(engine.state.obj_x_vel_lo() != 0) {
+                        engine
+                            .state
+                            .set_obj_x_vel_lo(u8v((0 - engine.state.obj_x_vel_lo()) & 0x0F));
+                        engine
+                            .state
+                            .set_obj_x_vel_hi(engine.state.obj_x_vel_hi() ^ 0xFF);
                     }
-                    engine.set_mem(0xF7, u8v(u8v(!engine.mem(0xF7)) + 1));
+                    engine
+                        .state
+                        .set_obj_y_vel(u8v(u8v(!engine.state.obj_y_vel()) + 1));
                     if cbool(engine.state.prompt_state() == 0) {
                         engine.state.set_prompt_state(0x06);
                     }
@@ -9142,27 +9263,32 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 3 => {
-                    if cbool(u8v((engine.mem(0xFB) & 0x0F) | engine.mem(0xF9)) != 0) {
-                        engine.set_mem(0xF3, u8v(engine.mem(0xF3) + 1));
+                    if cbool(
+                        u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0,
+                    ) {
+                        engine
+                            .state
+                            .set_obj_timer(u8v(engine.state.obj_timer() + 1));
                         {
                             state = 4;
                             continue 'dispatch;
                         }
                     }
                     {
-                        engine.set_mem(0xEE, 0x00);
-                        if cbool(engine.mem(0xF0) != 0) {
-                            engine.set_mem(0x0C, engine.mem(0xFA));
-                            engine.set_mem(0x0D, engine.mem(0xFB));
+                        engine.state.set_obj_state(0x00);
+                        if cbool(engine.state.obj_move_scratch() != 0) {
+                            engine.set_mem(0x0C, engine.state.obj_x_tile());
+                            engine.set_mem(0x0D, engine.state.obj_y_pixel());
                             resolve_room_tile_pointer(engine, r);
                             let tile_ptr: i32 = u16v(engine.mem(0x0C) | (engine.mem(0x0D) << 8));
-                            engine.set_mem(tile_ptr, engine.mem(0xF0));
-                            let screen_diff: i32 = u8v(engine.mem(0xFA) - engine.mem(0x7C));
+                            engine.set_mem(tile_ptr, engine.state.obj_move_scratch());
+                            let screen_diff: i32 =
+                                u8v(engine.state.obj_x_tile() - engine.mem(0x7C));
                             if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
-                                let tile_x: i32 = engine.mem(0xFA);
+                                let tile_x: i32 = engine.state.obj_x_tile();
                                 engine.set_mem(0x0C, tile_x);
                                 engine.set_mem(0x16, u8v((tile_x << 1) & 0x1F));
-                                engine.set_mem(0x17, u8v((engine.mem(0xFA) & 0x10) >> 2));
+                                engine.set_mem(0x17, u8v((engine.state.obj_x_tile() & 0x10) >> 2));
                                 engine.set_mem(0x16, u8v(0x00 + engine.mem(0x16)));
                                 engine.set_mem(0x17, u8v(0x20 + engine.mem(0x17)));
                                 farcall_bank_09_r7(engine, r);

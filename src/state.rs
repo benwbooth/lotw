@@ -339,4 +339,187 @@ impl GameState {
     pub fn set_prompt_argument(&mut self, value: i32) {
         self.set_byte(0x90, value);
     }
+
+    // ---- Current object scratch slot (`$ED..$FC`) -------------------------
+    //
+    // Actors, items, doors, and projectiles live as 16-byte records under
+    // `$0400`. Most actor code copies the slot it is working on into this
+    // scratch window (`load_object_slot_scratch`), mutates the named fields
+    // below, then writes it back (`store_object_slot_scratch`). The slot
+    // offset for each field is noted alongside its scratch address.
+
+    /// Base address of the 16-byte object scratch window.
+    pub const OBJ_SCRATCH_BASE: i32 = 0x00ED;
+
+    /// Read scratch byte at slot `offset` (`0x00..=0x0F`). For the whole-slot
+    /// copy helpers; prefer the named field accessors for individual fields.
+    #[inline]
+    pub fn obj_scratch_byte(&self, offset: i32) -> i32 {
+        self.byte(Self::OBJ_SCRATCH_BASE + offset)
+    }
+    #[inline]
+    pub fn set_obj_scratch_byte(&mut self, offset: i32, value: i32) {
+        self.set_byte(Self::OBJ_SCRATCH_BASE + offset, value);
+    }
+
+    /// Sprite/tile id and animation bits — slot `+0x00` (`$ED`).
+    #[inline]
+    pub fn obj_tile(&self) -> i32 {
+        self.byte(0xED)
+    }
+    #[inline]
+    pub fn set_obj_tile(&mut self, value: i32) {
+        self.set_byte(0xED, value);
+    }
+
+    /// Active/state/lifetime byte — slot `+0x01` (`$EE`).
+    #[inline]
+    pub fn obj_state(&self) -> i32 {
+        self.byte(0xEE)
+    }
+    #[inline]
+    pub fn set_obj_state(&mut self, value: i32) {
+        self.set_byte(0xEE, value);
+    }
+
+    /// Attribute/direction bits — slot `+0x02` (`$EF`).
+    #[inline]
+    pub fn obj_attr(&self) -> i32 {
+        self.byte(0xEF)
+    }
+    #[inline]
+    pub fn set_obj_attr(&mut self, value: i32) {
+        self.set_byte(0xEF, value);
+    }
+
+    /// Tile-replacement / movement scratch — slot `+0x03` (`$F0`).
+    #[inline]
+    pub fn obj_move_scratch(&self) -> i32 {
+        self.byte(0xF0)
+    }
+    #[inline]
+    pub fn set_obj_move_scratch(&mut self, value: i32) {
+        self.set_byte(0xF0, value);
+    }
+
+    /// Cooldown / path scratch — slot `+0x04` (`$F1`).
+    #[inline]
+    pub fn obj_cooldown(&self) -> i32 {
+        self.byte(0xF1)
+    }
+    #[inline]
+    pub fn set_obj_cooldown(&mut self, value: i32) {
+        self.set_byte(0xF1, value);
+    }
+
+    /// Health / damage threshold — slot `+0x05` (`$F2`).
+    #[inline]
+    pub fn obj_health(&self) -> i32 {
+        self.byte(0xF2)
+    }
+    #[inline]
+    pub fn set_obj_health(&mut self, value: i32) {
+        self.set_byte(0xF2, value);
+    }
+
+    /// Timer / animation phase — slot `+0x06` (`$F3`).
+    #[inline]
+    pub fn obj_timer(&self) -> i32 {
+        self.byte(0xF3)
+    }
+    #[inline]
+    pub fn set_obj_timer(&mut self, value: i32) {
+        self.set_byte(0xF3, value);
+    }
+
+    /// Movement/direction state bits — slot `+0x07` (`$F4`); high bit and the
+    /// low two bits encode turn/animation direction state.
+    #[inline]
+    pub fn obj_move_state(&self) -> i32 {
+        self.byte(0xF4)
+    }
+    #[inline]
+    pub fn set_obj_move_state(&mut self, value: i32) {
+        self.set_byte(0xF4, value);
+    }
+
+    /// X velocity, low nibble — slot `+0x08` (`$F5`).
+    #[inline]
+    pub fn obj_x_vel_lo(&self) -> i32 {
+        self.byte(0xF5)
+    }
+    #[inline]
+    pub fn set_obj_x_vel_lo(&mut self, value: i32) {
+        self.set_byte(0xF5, value);
+    }
+
+    /// X velocity carry/sign — slot `+0x09` (`$F6`).
+    #[inline]
+    pub fn obj_x_vel_hi(&self) -> i32 {
+        self.byte(0xF6)
+    }
+    #[inline]
+    pub fn set_obj_x_vel_hi(&mut self, value: i32) {
+        self.set_byte(0xF6, value);
+    }
+
+    /// Y velocity — slot `+0x0A` (`$F7`).
+    #[inline]
+    pub fn obj_y_vel(&self) -> i32 {
+        self.byte(0xF7)
+    }
+    #[inline]
+    pub fn set_obj_y_vel(&mut self, value: i32) {
+        self.set_byte(0xF7, value);
+    }
+
+    /// Damage / effect strength — slot `+0x0B` (`$F8`).
+    #[inline]
+    pub fn obj_damage(&self) -> i32 {
+        self.byte(0xF8)
+    }
+    #[inline]
+    pub fn set_obj_damage(&mut self, value: i32) {
+        self.set_byte(0xF8, value);
+    }
+
+    /// X sub-tile fraction — slot `+0x0C` (`$F9`).
+    #[inline]
+    pub fn obj_x_sub(&self) -> i32 {
+        self.byte(0xF9)
+    }
+    #[inline]
+    pub fn set_obj_x_sub(&mut self, value: i32) {
+        self.set_byte(0xF9, value);
+    }
+
+    /// X tile coordinate — slot `+0x0D` (`$FA`).
+    #[inline]
+    pub fn obj_x_tile(&self) -> i32 {
+        self.byte(0xFA)
+    }
+    #[inline]
+    pub fn set_obj_x_tile(&mut self, value: i32) {
+        self.set_byte(0xFA, value);
+    }
+
+    /// Y pixel coordinate — slot `+0x0E` (`$FB`).
+    #[inline]
+    pub fn obj_y_pixel(&self) -> i32 {
+        self.byte(0xFB)
+    }
+    #[inline]
+    pub fn set_obj_y_pixel(&mut self, value: i32) {
+        self.set_byte(0xFB, value);
+    }
+
+    /// Extra y / sprite scratch — slot `+0x0F` (`$FC`).
+    #[inline]
+    pub fn obj_y_extra(&self) -> i32 {
+        self.byte(0xFC)
+    }
+    #[inline]
+    pub fn set_obj_y_extra(&mut self, value: i32) {
+        self.set_byte(0xFC, value);
+    }
 }

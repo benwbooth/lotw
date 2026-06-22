@@ -63,13 +63,13 @@ fn vram_blit(
 }
 
 fn item_spawn_setup(engine: &mut Engine, r: &mut RoutineContext, x: i32) {
-    engine.set_mem(0xee, u8v(x + 2));
-    engine.set_mem(0xed, u8v((x << 2) | 0x81));
-    engine.set_mem(0xef, 0x01);
-    engine.set_mem(0xfb, engine.mem(0xfc));
-    engine.set_mem(0xf3, 0xf0);
-    engine.set_mem(0xf0, 0x00);
-    engine.set_mem(0xf1, 0x00);
+    engine.state.set_obj_state(u8v(x + 2));
+    engine.state.set_obj_tile(u8v((x << 2) | 0x81));
+    engine.state.set_obj_attr(0x01);
+    engine.state.set_obj_y_pixel(engine.state.obj_y_extra());
+    engine.state.set_obj_timer(0xf0);
+    engine.state.set_obj_move_scratch(0x00);
+    engine.state.set_obj_cooldown(0x00);
     crate::game::update_object_terrain_probe(engine, r);
 }
 
@@ -312,13 +312,13 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
-        if engine.mem(0xfa) == 0 {
+        if engine.state.obj_x_tile() == 0 {
             break;
         }
     }
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
-        if engine.mem(0xfa) == 0 {
+        if engine.state.obj_x_tile() == 0 {
             break;
         }
     }
@@ -328,13 +328,13 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7a, 0xb7);
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
-        if engine.mem(0xfa) == 0 {
+        if engine.state.obj_x_tile() == 0 {
             break;
         }
     }
     loop {
         crate::game::advance_scripted_scroll_slice(engine, r);
-        if engine.mem(0xfa) == 0 {
+        if engine.state.obj_x_tile() == 0 {
             break;
         }
     }
@@ -557,8 +557,8 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         }
     }
 
-    if engine.mem(0xfa) == 0 {
-        match engine.mem(0xf3) {
+    if engine.state.obj_x_tile() == 0 {
+        match engine.state.obj_timer() {
             4 => {
                 engine.dec_mem(0xe9);
                 if engine.mem(0xe9) != 0 {
@@ -569,7 +569,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.set_mem(0x1e, 0xc2);
                 } else {
                     engine.set_mem(0x7a, 0xb3);
-                    engine.set_mem(0xf3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                 }
             }
             3 => {
@@ -596,7 +596,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.sub_mem(0x1e, 0x04);
                     }
                 } else if engine.mem(0x1c) != 0 {
-                    engine.set_mem(0xf3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                 } else {
                     engine.set_mem(0x7a, 0xb0);
                     engine.inc_mem(0xf3);
@@ -612,19 +612,19 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     }
                 } else {
                     engine.set_mem(0x7a, 0xb3);
-                    engine.set_mem(0xf3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                 }
             }
             1 => {
                 engine.dec_mem(0xe9);
                 if engine.mem(0xe9) == 0 {
-                    engine.set_mem(0xf3, 0x00);
+                    engine.state.set_obj_timer(0x00);
                 } else {
                     let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
                     engine.set_mem(0x7a, a);
                     engine.add_mem(0x1c, 0x04);
                     if engine.mem(0x1c) >= 0x40 {
-                        engine.set_mem(0xf3, 0x00);
+                        engine.state.set_obj_timer(0x00);
                     } else {
                         engine.set_mem(0x1e, 0xc2);
                     }
@@ -636,7 +636,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 let close = carry || sum >= 0xc0 || engine.mem(0x1c) >= 0x40;
                 let delayed_grow = sum < 0x80 || sum >= 0xa0;
                 if close || (delayed_grow && engine.mem(0x1e) >= 0xc3) {
-                    engine.set_mem(0xf3, 0x03);
+                    engine.state.set_obj_timer(0x03);
                     engine.set_mem(0xe9, 0x02);
                     engine.dec_mem(0xe9);
                     if engine.mem(0xe9) != 0 {
@@ -661,28 +661,28 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                             engine.sub_mem(0x1e, 0x04);
                         }
                     } else if engine.mem(0x1c) != 0 {
-                        engine.set_mem(0xf3, 0x00);
+                        engine.state.set_obj_timer(0x00);
                     } else {
                         engine.set_mem(0x7a, 0xb0);
                         engine.inc_mem(0xf3);
                         engine.set_mem(0xe9, 0x04);
                     }
                 } else if !delayed_grow {
-                    engine.set_mem(0xf3, 0x02);
+                    engine.state.set_obj_timer(0x02);
                     engine.set_mem(0xe9, 0x08);
                     engine.set_mem(0x7a, 0xb3);
                 } else {
-                    engine.set_mem(0xf3, 0x01);
+                    engine.state.set_obj_timer(0x01);
                     engine.set_mem(0xe9, 0x04);
                     engine.dec_mem(0xe9);
                     if engine.mem(0xe9) == 0 {
-                        engine.set_mem(0xf3, 0x00);
+                        engine.state.set_obj_timer(0x00);
                     } else {
                         let a = u8v(((engine.mem(0xe9) << 1) & 0x01) + 0xb0);
                         engine.set_mem(0x7a, a);
                         engine.add_mem(0x1c, 0x04);
                         if engine.mem(0x1c) >= 0x40 {
-                            engine.set_mem(0xf3, 0x00);
+                            engine.state.set_obj_timer(0x00);
                         } else {
                             engine.set_mem(0x1e, 0xc2);
                         }
@@ -1644,11 +1644,11 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     if tile == engine.mem(0x70) {
         if engine.mem(0x0491) == 0 {
             engine.set_mem(0x0b, tile_offset);
-            engine.set_mem(0xed, 0xe1);
-            engine.set_mem(0xee, 0x01);
-            engine.set_mem(0xef, 0x01);
-            engine.set_mem(0xf0, engine.mem(0x71));
-            engine.set_mem(0xf3, 0x0a);
+            engine.state.set_obj_tile(0xe1);
+            engine.state.set_obj_state(0x01);
+            engine.state.set_obj_attr(0x01);
+            engine.state.set_obj_move_scratch(engine.mem(0x71));
+            engine.state.set_obj_timer(0x0a);
             crate::game::seed_object_position_from_tile_offset(engine, r);
             crate::game::store_object_slot_scratch(engine, r);
             engine.state.set_prompt_state(0x06);
@@ -1678,11 +1678,11 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     return;
                 }
             }
-            engine.set_mem(0xed, 0xe1);
-            engine.set_mem(0xee, 0x01);
-            engine.set_mem(0xef, 0x01);
-            engine.set_mem(0xf0, engine.mem(0x74));
-            engine.set_mem(0xf3, 0x0f);
+            engine.state.set_obj_tile(0xe1);
+            engine.state.set_obj_state(0x01);
+            engine.state.set_obj_attr(0x01);
+            engine.state.set_obj_move_scratch(engine.mem(0x74));
+            engine.state.set_obj_timer(0x0f);
             crate::game::seed_object_position_from_tile_offset(engine, r);
             crate::game::store_object_slot_scratch(engine, r);
             engine.state.set_prompt_state(0x06);
@@ -1693,7 +1693,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     if tile == 0x3e {
         if (engine.state.buttons() & 0x80) != 0 && engine.mem(0x0491) == 0 {
             engine.set_mem(0x0b, tile_offset);
-            engine.set_mem(0xf4, 0x01);
+            engine.state.set_obj_move_state(0x01);
             r.offset = engine.mem(0x55);
             r.index = engine.mem(u16v(0x0051 + r.offset));
             let idx = r.index;
@@ -1736,13 +1736,15 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
                     let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
-                    engine.set_mem(0xed, engine.mem(u16v(p79 + 0xf8)) & 0xfe);
-                    engine.set_mem(0xee, 0x01);
-                    engine.set_mem(0xef, 0x03);
+                    engine
+                        .state
+                        .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
+                    engine.state.set_obj_state(0x01);
+                    engine.state.set_obj_attr(0x03);
                     r.offset = engine.mem(0x0b);
                     let b = engine.mem(u16v(tile_ptr + r.offset));
-                    engine.set_mem(0xf0, b);
-                    engine.set_mem(0xf3, 0x10);
+                    engine.state.set_obj_move_scratch(b);
+                    engine.state.set_obj_timer(0x10);
                     crate::game::read_room_tile_action_value(engine, r);
                     engine.set_mem(u16v(tile_ptr + r.offset), r.value);
                     crate::game::seed_object_position_from_tile_offset(engine, r);
@@ -1765,20 +1767,22 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;
                         let p79 = u16v(engine.mem(0x79) | (engine.mem(0x7a) << 8));
-                        engine.set_mem(0xed, engine.mem(u16v(p79 + 0xf8)) & 0xfe);
-                        engine.set_mem(0xee, 0x01);
-                        engine.set_mem(0xef, 0x03);
+                        engine
+                            .state
+                            .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
+                        engine.state.set_obj_state(0x01);
+                        engine.state.set_obj_attr(0x03);
                         r.offset = engine.mem(0x0b);
                         let b = engine.mem(u16v(tile_ptr + r.offset));
-                        engine.set_mem(0xf0, b);
-                        engine.set_mem(0xf3, 0x00);
+                        engine.state.set_obj_move_scratch(b);
+                        engine.state.set_obj_timer(0x00);
                         crate::game::read_room_tile_action_value(engine, r);
                         engine.set_mem(u16v(tile_ptr + r.offset), r.value);
                         crate::game::seed_object_position_from_tile_offset(engine, r);
                         crate::game::redraw_room_tile_column(engine, r);
                         crate::game::update_tile_projectile_motion(engine, r);
                         engine.set_mem(0xe3, 0xff);
-                        if engine.mem(0xee) != 0 {
+                        if engine.state.obj_state() != 0 {
                             engine.state.set_prompt_state(0x14);
                             crate::game::consume_magic_point(engine, r);
                         }
@@ -2110,9 +2114,9 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
         frame::wait_frame(engine, r);
     }
 
-    engine.set_mem(0xf9, 0);
-    engine.set_mem(0xf5, 0);
-    engine.set_mem(0xf7, 0);
+    engine.state.set_obj_x_sub(0);
+    engine.state.set_obj_x_vel_lo(0);
+    engine.state.set_obj_y_vel(0);
     engine.set_mem(0x0281, 0xf5);
     engine.set_mem(0x0291, 0xf5);
     engine.set_mem(0x0285, 0xf7);
@@ -2466,7 +2470,7 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
 /// collides with the playfield, the actor clears itself and raises `0xEB` so
 /// the foreground loop enters the pending special-exit room.
 pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineContext) {
-    if (engine.mem(0xee) & 0x7f) == 0 {
+    if (engine.state.obj_state() & 0x7f) == 0 {
         engine.state.set_prompt_state(0x18);
         engine.state.set_prompt_argument(0xff);
         r.index = 0x03;
@@ -2488,44 +2492,46 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
 
         engine.inc_mem(0xee);
         engine.state.set_prompt_state(0x02);
-        engine.set_mem(0xf1, 0x0f);
-        engine.set_mem(0xf5, 0x00);
-        engine.set_mem(0xf6, 0x00);
-        engine.set_mem(0xf0, 0x00);
-        engine.set_mem(0xfc, engine.mem(0xfb));
+        engine.state.set_obj_cooldown(0x0f);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
+        engine.state.set_obj_move_scratch(0x00);
+        engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
     }
 
-    if engine.mem(0xf0) == 0 {
+    if engine.state.obj_move_scratch() == 0 {
         engine.dec_mem(0xf1);
-        if engine.mem(0xf1) == 0 {
+        if engine.state.obj_cooldown() == 0 {
             engine.or_mem(0xef, 0x80);
-            engine.set_mem(0xf0, 0x01);
+            engine.state.set_obj_move_scratch(0x01);
             return;
         }
-        let a = u8v(((engine.mem(0xf1) >> 2) ^ 0xff) + 1);
-        engine.set_mem(0xf7, a);
+        let a = u8v(((engine.state.obj_cooldown() >> 2) ^ 0xff) + 1);
+        engine.state.set_obj_y_vel(a);
         crate::game::project_actor_position(engine, r);
         crate::game::check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
             engine.or_mem(0xef, 0x80);
-            engine.set_mem(0xf0, 0x01);
+            engine.state.set_obj_move_scratch(0x01);
             return;
         }
-        engine.set_mem(0xfb, engine.mem(0x0a));
+        engine.state.set_obj_y_pixel(engine.mem(0x0a));
         return;
     }
 
     engine.inc_mem(0xf0);
-    engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 2) + 1));
+    engine
+        .state
+        .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 2) + 1));
     crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
     if cbool(r.carry) {
-        engine.set_mem(0xee, 0x00);
-        engine.set_mem(0xf3, 0xf0);
+        engine.state.set_obj_state(0x00);
+        engine.state.set_obj_timer(0xf0);
         engine.set_mem(0xeb, 0x01);
         return;
     }
-    engine.set_mem(0xfb, engine.mem(0x0a));
+    engine.state.set_obj_y_pixel(engine.mem(0x0a));
 }
 
 /// Walks a purchase/refill room until the player presses action or reaches the
@@ -2715,39 +2721,43 @@ pub fn pop_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
 /// resource needs and the drop table.
 pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineContext) {
     const DROP_ITEM_TABLE: [i32; 9] = [0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x05, 0x06, 0x07];
-    if (engine.mem(0xee) & 0x7f) == 0 {
+    if (engine.state.obj_state() & 0x7f) == 0 {
         engine.inc_mem(0xee);
         engine.state.set_prompt_state(0x0e);
-        engine.set_mem(0xf1, 0x08);
-        engine.set_mem(0xf5, 0x00);
-        engine.set_mem(0xf6, 0x00);
-        engine.set_mem(0xf0, 0x00);
-        engine.set_mem(0xfc, engine.mem(0xfb));
+        engine.state.set_obj_cooldown(0x08);
+        engine.state.set_obj_x_vel_lo(0x00);
+        engine.state.set_obj_x_vel_hi(0x00);
+        engine.state.set_obj_move_scratch(0x00);
+        engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
         let ptr = u16v(engine.mem(0xe7) | (engine.mem(0xe8) << 8));
-        engine.set_mem(0xed, engine.mem(u16v(ptr + 6)));
+        engine.state.set_obj_tile(engine.mem(u16v(ptr + 6)));
         engine.and_mem(0xef, 0x03);
     }
-    if engine.mem(0xf0) == 0 {
+    if engine.state.obj_move_scratch() == 0 {
         engine.dec_mem(0xf1);
-        if engine.mem(0xf1) != 0 {
-            engine.set_mem(0xf7, u8v(0 - engine.mem(0xf1)));
+        if engine.state.obj_cooldown() != 0 {
+            engine
+                .state
+                .set_obj_y_vel(u8v(0 - engine.state.obj_cooldown()));
             crate::game::project_actor_position(engine, r);
             crate::game::check_position_out_of_bounds(engine, r);
             if !cbool(r.carry) {
-                engine.set_mem(0xfb, engine.mem(0x0a));
+                engine.state.set_obj_y_pixel(engine.mem(0x0a));
                 return;
             }
         }
         engine.or_mem(0xef, 0x80);
-        engine.set_mem(0xf0, 0x01);
+        engine.state.set_obj_move_scratch(0x01);
         return;
     }
     engine.inc_mem(0xf0);
-    engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 1) + 2));
+    engine
+        .state
+        .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 2));
     crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
     if !cbool(r.carry) {
-        engine.set_mem(0xfb, engine.mem(0x0a));
+        engine.state.set_obj_y_pixel(engine.mem(0x0a));
         return;
     }
     let mut x = 0x00;
