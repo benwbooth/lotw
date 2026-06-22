@@ -90,7 +90,6 @@ would currently be weaker than the cluster name.
 | Module | Routines | Status | Current role |
 |---|---:|---|---|
 | `game` | `0003`, `0005..0019` | cluster | opening/title scripted helpers, timed waits, cutscene sprite setup, and startup scene setup |
-| `game` | `0021..0028`, `0030..0032` | cluster | password/title/menu support and first-room transition helpers |
 
 ## Named Non-Numbered Routines
 
@@ -131,6 +130,7 @@ surface when touching nearby code:
 | `build_object_health_meter_standard_tiles` | build object health with the standard `0x65/0x6B` sprite tile pair |
 | `build_player_health_meter_sprites` | build the player health sprite meter in the second OAM meter slot |
 | `build_room_palette_buffer` | copy room palette/attribute bytes into the palette buffer and apply active family palette |
+| `build_scripted_player_input_delta` | convert controller bits into scripted-player movement deltas |
 | `build_staged_room_column` | build one staged room column from the current room tile pointer and tileset metadata |
 | `build_status_resource_meter_tiles` | build the two-row status resource meter in VRAM staging buffers |
 | `check_actor_position_out_of_bounds` | test projected actor position against the tighter actor bounds |
@@ -143,6 +143,7 @@ surface when touching nearby code:
 | `check_player_x_overlap` | horizontal half of the player hitbox test |
 | `check_player_y_overlap` | vertical half of the player hitbox test |
 | `check_position_out_of_bounds` | test projected position against the general playfield bounds |
+| `check_scripted_player_bounds` | reject scripted-player projected positions outside the final-exit screen bounds |
 | `check_top_boundary_exit_clear` | report whether the top-edge room transition is clear for the player to wrap upward |
 | `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
 | `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
@@ -184,6 +185,7 @@ surface when touching nearby code:
 | `draw_player_sprites` | project the two player sprites into OAM using the current camera scroll |
 | `draw_room_object_sprites` | project the rolling set of room object slots into OAM |
 | `draw_scene_and_wait_one_frame` | redraw player/object sprites and wait for one foreground frame |
+| `draw_scripted_player_sprites` | draw the two scripted-player sprites into fixed OAM slots |
 | `draw_shop_item_sprites` | draw the two shop item slots and hide unavailable or overstocked items |
 | `draw_status_item_sprites` | draw the selected-item cursor and equipped-item icons in the status area |
 | `drain_audio_timers_with_object_frames` | wait through object-render frames while draining transition audio timers |
@@ -239,6 +241,7 @@ surface when touching nearby code:
 | `prepare_room_metadata_and_palette` | select room data pointers, derive room metadata, and build the active room palette buffer |
 | `push_room_checkpoint` | save gameplay room position, scroll, room identity, and current song before temporary room flows |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
+| `project_scripted_player_position` | project scripted-player X/Y into movement scratch from the active deltas |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
 | `probe_actor_overhead_step` | probe the projected tile row above an actor when it is tile-aligned |
 | `probe_projected_solid_tile` | test a tile in the projected movement footprint for solidity |
@@ -299,6 +302,7 @@ surface when touching nearby code:
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
 | `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
 | `subtract_health_points` | subtract damage from health and saturate underflow at zero |
+| `subtract_scripted_player_health` | subtract scripted contact damage from health and saturate at zero |
 | `switch_song_if_needed` | start a new song only when the requested song id differs from `0x8E` |
 | `sync_coin_hud` | clamp coins and queue their HUD digits for redraw |
 | `sync_health_hud` | clamp health and queue its HUD digits for redraw |
@@ -318,6 +322,9 @@ surface when touching nearby code:
 | `tick_overhead_probe_actor` | actor behavior that alternates overhead probes, falling, and jump arcs |
 | `tick_player_jump_action` | start or continue the player jump/action arc and apply the selected jump-item boost |
 | `tick_player_walk_animation` | advance the player walk animation and facing/action overlay bits |
+| `tick_scripted_player_jump_action` | start or advance the scripted-player jump arc |
+| `tick_scripted_player_motion` | tick the reduced player controller used in final-exit scripted scenes |
+| `tick_scripted_player_walk_animation` | toggle the scripted-player walk frame while moving on the ground |
 | `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
 | `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
 | `tick_random_floating_actor` | actor behavior that chooses random directions and moves without terrain collision |
@@ -337,6 +344,7 @@ surface when touching nearby code:
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
 | `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
 | `try_move_player_with_collision` | project a player move, handle room exits/tile actions/object contact, and restore deltas |
+| `try_move_scripted_player_in_bounds` | project scripted-player motion and retry vertical delta toward zero until in bounds |
 | `try_nudge_player_to_tile_boundary` | retry a blocked player move with a small nudge toward the nearest tile boundary |
 | `trigger_damage_pickup` | apply the harmful pickup/trap reward effect |
 | `try_trigger_magic_contact_actor` | mark a contacted actor for high-bit behavior when the magic-contact timer is active |
@@ -346,6 +354,8 @@ surface when touching nearby code:
 | `update_inventory_list_cursor_sprites` | position the arrow sprites for the scrolling selected item-list slot |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_player_pose_from_motion` | update player pose and horizontal flip from movement, jump/fall, and lockout state |
+| `update_scripted_player_fall_state` | count scripted fall frames and seed a bounce timer after a long fall |
+| `update_scripted_player_pose_from_motion` | choose scripted-player pose and flip from motion and jump/fall state |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
 | `update_large_actor_facing_from_velocity` | update the large actor facing bit from horizontal velocity |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
@@ -385,8 +395,8 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-The isolated frame render/object sprite helpers, menu visual helpers, and native
-flow entry points have been renamed and covered by existing or focused tests.
-The remaining numbered work is in the two larger `game` clusters listed above;
-split those clusters only after tracing their caller state and adding narrow
-regression coverage.
+The isolated frame render/object sprite helpers, menu visual helpers, native
+flow entry points, and scripted-player final-exit helpers have been renamed and
+covered by existing or focused tests. The remaining numbered work is in the
+larger startup/title scripted helper cluster listed above; split it only after
+tracing its caller state and adding narrow regression coverage.

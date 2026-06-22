@@ -195,7 +195,13 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             farcall_0c0d(engine, r, 0xeb, 0xa2, setup_final_exit_sequence);
             loop {
                 frame::read_buttons(engine, r);
-                farcall_0c0d(engine, r, 0xbc, 0xab, crate::game::routine_0021);
+                farcall_0c0d(
+                    engine,
+                    r,
+                    0xbc,
+                    0xab,
+                    crate::game::tick_scripted_player_motion,
+                );
                 farcall_0c0d(engine, r, 0xe6, 0xa5, crate::game::routine_0005);
                 farcall_0c0d(engine, r, 0x5d, 0xa7, crate::game::routine_0014);
                 farcall_0c0d(engine, r, 0xe3, 0xa3, tick_final_exit_sequence);
@@ -310,7 +316,7 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0405, 0x64);
     engine.set_mem(0x3e, 0x08);
     engine.set_mem(0x43, u8v((engine.mem(0x44) << 4) | engine.mem(0x43)));
-    crate::game::routine_0026(engine, r);
+    crate::game::draw_scripted_player_sprites(engine, r);
     engine.set_mem(0x0210, 0xef);
     engine.set_mem(0x0214, 0xef);
     crate::game::routine_0016(engine, r);
@@ -327,21 +333,21 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x00f2, 0x00);
     set_sprite_blink_timer(engine, 0x00);
     engine.set_mem(0x88, 0x00);
-    crate::game::routine_0026(engine, r);
+    crate::game::draw_scripted_player_sprites(engine, r);
     crate::game::routine_0012(engine, r);
     engine.set_mem(0x0200, 0xef);
 
     while engine.mem(0x45) < 0xa0 {
         engine.inc_mem(0x45);
-        crate::game::routine_0026(engine, r);
+        crate::game::draw_scripted_player_sprites(engine, r);
         set_frame_counter(engine, 0x01);
         frame::wait_for_frame_counter(engine, r);
     }
 
     engine.set_mem(0x4e, 0x00);
     engine.set_mem(0x4f, 0x00);
-    crate::game::routine_0024(engine, r);
-    crate::game::routine_0026(engine, r);
+    crate::game::update_scripted_player_pose_from_motion(engine, r);
+    crate::game::draw_scripted_player_sprites(engine, r);
     engine.set_mem(0x7c, 0x20);
     engine.set_mem(0x1d, 0x01);
     set_prompt_state(engine, 0x20);
@@ -389,7 +395,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         queue_ppu_job_and_wait(engine, r);
         if frame_status_bit6_set(engine) {
             r.value = 0x05;
-            crate::game::routine_0030(engine, r);
+            crate::game::subtract_scripted_player_health(engine, r);
             crate::game::build_player_health_meter_sprites(engine, r);
         }
 
@@ -397,7 +403,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
             engine.set_mem(0x3e, 0x02);
         }
 
-        crate::game::routine_0026(engine, r);
+        crate::game::draw_scripted_player_sprites(engine, r);
         crate::game::routine_0014(engine, r);
         engine.dec_mem(0x10);
         if engine.mem(0x10) == 0 {
@@ -425,7 +431,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         if t >= 0xef {
             break;
         }
-        crate::game::routine_0026(engine, r);
+        crate::game::draw_scripted_player_sprites(engine, r);
         engine.inc_mem(0x08);
         r.value = 0xff;
         queue_ppu_job_and_wait(engine, r);

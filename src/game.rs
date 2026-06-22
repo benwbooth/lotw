@@ -41,6 +41,7 @@ pub use build_object_health_meter_alt_tiles::build_object_health_meter_alt_tiles
 pub use build_object_health_meter_standard_tiles::build_object_health_meter_standard_tiles;
 pub use build_player_health_meter_sprites::build_player_health_meter_sprites;
 pub use build_room_palette_buffer::build_room_palette_buffer;
+pub use build_scripted_player_input_delta::build_scripted_player_input_delta;
 pub use build_staged_room_column::build_staged_room_column;
 pub use build_status_resource_meter_tiles::build_status_resource_meter_tiles;
 pub use check_actor_direction_contact::check_actor_direction_contact;
@@ -53,6 +54,7 @@ pub use check_player_y_overlap::check_player_y_overlap;
 pub use check_position_out_of_bounds::check_position_out_of_bounds;
 pub use check_projected_terrain_collision::check_projected_terrain_collision;
 pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_collision;
+pub use check_scripted_player_bounds::check_scripted_player_bounds;
 pub use check_top_boundary_exit_clear::check_top_boundary_exit_clear;
 pub use choose_random_actor_direction::choose_random_actor_direction;
 pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
@@ -91,6 +93,7 @@ pub use draw_coin_cost_sprites::draw_coin_cost_sprites;
 pub use draw_object_slot_sprites::draw_object_slot_sprites;
 pub use draw_player_sprites::draw_player_sprites;
 pub use draw_room_object_sprites::draw_room_object_sprites;
+pub use draw_scripted_player_sprites::draw_scripted_player_sprites;
 pub use draw_shop_item_sprites::draw_shop_item_sprites;
 pub use draw_status_item_sprites::draw_status_item_sprites;
 pub use encode_inventory_snapshot_item_list::encode_inventory_snapshot_item_list;
@@ -138,6 +141,7 @@ pub use probe_projected_solid_tile::probe_projected_solid_tile;
 pub use project_actor_position::project_actor_position;
 pub use project_player_position::project_player_position;
 pub use project_player_projectile_position::project_player_projectile_position;
+pub use project_scripted_player_position::project_scripted_player_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
@@ -172,17 +176,6 @@ pub use routine_0016::routine_0016;
 pub use routine_0017::routine_0017;
 pub use routine_0018::routine_0018;
 pub use routine_0019::routine_0019;
-pub use routine_0021::routine_0021;
-pub use routine_0022::routine_0022;
-pub use routine_0023::routine_0023;
-pub use routine_0024::routine_0024;
-pub use routine_0025::routine_0025;
-pub use routine_0026::routine_0026;
-pub use routine_0027::routine_0027;
-pub use routine_0028::routine_0028;
-pub use routine_0030::routine_0030;
-pub use routine_0031::routine_0031;
-pub use routine_0032::routine_0032;
 pub use run_warp_transition_effect::run_warp_transition_effect;
 pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
@@ -210,6 +203,7 @@ pub use statusbar_split::statusbar_split;
 pub use stop_actor_motion::stop_actor_motion;
 pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use subtract_health_points::subtract_health_points;
+pub use subtract_scripted_player_health::subtract_scripted_player_health;
 pub use switch_song_if_needed::switch_song_if_needed;
 pub use sync_coin_hud::sync_coin_hud;
 pub use sync_health_hud::sync_health_hud;
@@ -231,6 +225,9 @@ pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
 pub use tick_random_floating_actor::tick_random_floating_actor;
 pub use tick_reflecting_chase_actor::tick_reflecting_chase_actor;
+pub use tick_scripted_player_jump_action::tick_scripted_player_jump_action;
+pub use tick_scripted_player_motion::tick_scripted_player_motion;
+pub use tick_scripted_player_walk_animation::tick_scripted_player_walk_animation;
 pub use tick_selected_item_effect::tick_selected_item_effect;
 pub use tick_standard_actor::tick_standard_actor;
 pub use tick_timed_chase_actor::tick_timed_chase_actor;
@@ -245,6 +242,7 @@ pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
 pub use try_move_actor_without_terrain::try_move_actor_without_terrain;
 pub use try_move_large_actor_with_terrain::try_move_large_actor_with_terrain;
 pub use try_move_player_with_collision::try_move_player_with_collision;
+pub use try_move_scripted_player_in_bounds::try_move_scripted_player_in_bounds;
 pub use try_nudge_player_to_tile_boundary::try_nudge_player_to_tile_boundary;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
@@ -258,6 +256,8 @@ pub use update_player_pose_from_motion::update_player_pose_from_motion;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
 pub use update_room_actors::update_room_actors;
+pub use update_scripted_player_fall_state::update_scripted_player_fall_state;
+pub use update_scripted_player_pose_from_motion::update_scripted_player_pose_from_motion;
 pub use update_tile_projectile::update_tile_projectile;
 pub use update_tile_projectile_motion::update_tile_projectile_motion;
 pub use update_wide_object_terrain_probe::update_wide_object_terrain_probe;
@@ -1281,29 +1281,33 @@ mod routine_0019 {
     }
 }
 
-mod routine_0021 {
+mod tick_scripted_player_motion {
     use super::*;
-    fn tail_acbb(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0024(engine, r);
-        routine_0025(engine, r);
-        routine_0026(engine, r);
+
+    fn finish_scripted_player_motion_frame(engine: &mut Engine, r: &mut RoutineContext) {
+        update_scripted_player_pose_from_motion(engine, r);
+        tick_scripted_player_walk_animation(engine, r);
+        draw_scripted_player_sprites(engine, r);
     }
 
-    fn tail_aca1(engine: &mut Engine, r: &mut RoutineContext) {
+    fn commit_scripted_player_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x43, engine.mem(0x0E));
         engine.set_mem(0x45, engine.mem(0x0A));
-        routine_0028(engine, r);
-        tail_acbb(engine, r);
+        update_scripted_player_fall_state(engine, r);
+        finish_scripted_player_motion_frame(engine, r);
     }
 
-    fn tail_acaf(engine: &mut Engine, r: &mut RoutineContext) {
+    fn cancel_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x4F, 0x00);
         engine.set_mem(0x4E, 0x00);
-        routine_0028(engine, r);
-        tail_acbb(engine, r);
+        update_scripted_player_fall_state(engine, r);
+        finish_scripted_player_motion_frame(engine, r);
     }
 
-    pub fn routine_0021(engine: &mut Engine, r: &mut RoutineContext) {
+    /// Ticks the reduced player controller used inside scripted/final-exit
+    /// scenes. It mirrors the normal gameplay movement path but only checks the
+    /// scripted screen bounds, not room tiles or object contacts.
+    pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -1340,7 +1344,7 @@ mod routine_0021 {
                                 u8v(u8v(engine.mem(0x1C) + engine.mem(u16v(0x040C + r.index))));
                             r.value = u8v((if cbool(sum < 0xB0) { 0x0A } else { 0x05 }));
                         }
-                        routine_0030(engine, r);
+                        subtract_scripted_player_health(engine, r);
                         engine.set_mem(0x4F, 0x0A);
                         engine.set_mem(0x8F, 0x21);
                         engine.set_mem(0x90, 0x02);
@@ -1359,22 +1363,22 @@ mod routine_0021 {
                     continue 'dispatch;
                 }
                 1 => {
-                    routine_0032(engine, r);
+                    build_scripted_player_input_delta(engine, r);
                     if cbool(engine.mem(0x4E) != 0) {
                         r.value = u8v(engine.mem(0x4E) >> 2);
                         r.value = u8v(r.value + 1);
                         engine.set_mem(0x4B, r.value);
-                        routine_0027(engine, r);
+                        try_move_scripted_player_in_bounds(engine, r);
                         if !cbool(r.carry) {
-                            tail_aca1(engine, r);
+                            commit_scripted_player_position(engine, r);
                             return;
                         }
                         engine.set_mem(0x49, 0x00);
-                        routine_0027(engine, r);
+                        try_move_scripted_player_in_bounds(engine, r);
                         if !cbool(r.carry) {
                             return;
                         }
-                        tail_acaf(engine, r);
+                        cancel_scripted_player_motion(engine, r);
                         return;
                     }
                     if cbool(engine.mem(0x4F) != 0) {
@@ -1395,19 +1399,19 @@ mod routine_0021 {
                     continue 'dispatch;
                 }
                 2 => {
-                    routine_0022(engine, r);
+                    tick_scripted_player_jump_action(engine, r);
                     r.value = 0x00;
                     state = 3;
                     continue 'dispatch;
                 }
                 3 => {
                     engine.set_mem(0x4F, r.value);
-                    routine_0027(engine, r);
+                    try_move_scripted_player_in_bounds(engine, r);
                     if cbool(r.carry) {
-                        tail_acaf(engine, r);
+                        cancel_scripted_player_motion(engine, r);
                         return;
                     }
-                    tail_aca1(engine, r);
+                    commit_scripted_player_position(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -1416,9 +1420,13 @@ mod routine_0021 {
     }
 }
 
-mod routine_0022 {
+mod tick_scripted_player_jump_action {
     use super::*;
-    pub fn routine_0022(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Starts or advances the scripted jump arc. `0x4F` is the jump timer and
+    /// `0x22` blocks held-button retriggers, matching the normal player jump
+    /// helper without item/magic extensions.
+    pub fn tick_scripted_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = engine.mem(0x4F);
         if cbool(x == 0) {
             if cbool(engine.mem(0x22) != 0) {
@@ -1430,29 +1438,32 @@ mod routine_0022 {
         engine.set_mem(0x22, 0x01);
         engine.set_mem(0x4F, u8v(engine.mem(0x4F) - 1));
         engine.set_mem(0x4B, u8v((u8v(x >> 2) ^ 0xFF) + 1));
-        routine_0027(engine, r);
+        try_move_scripted_player_in_bounds(engine, r);
         if cbool(r.carry) {
             engine.set_mem(0x49, 0x00);
-            routine_0027(engine, r);
+            try_move_scripted_player_in_bounds(engine, r);
         }
         if !cbool(r.carry) {
             engine.set_mem(0x43, engine.mem(0x0E));
             engine.set_mem(0x45, engine.mem(0x0A));
-            routine_0028(engine, r);
+            update_scripted_player_fall_state(engine, r);
         } else {
             engine.set_mem(0x4F, 0x00);
             engine.set_mem(0x4E, 0x00);
-            routine_0028(engine, r);
+            update_scripted_player_fall_state(engine, r);
         }
-        routine_0024(engine, r);
-        routine_0025(engine, r);
-        routine_0026(engine, r);
+        update_scripted_player_pose_from_motion(engine, r);
+        tick_scripted_player_walk_animation(engine, r);
+        draw_scripted_player_sprites(engine, r);
     }
 }
 
-mod routine_0023 {
+mod project_scripted_player_position {
     use super::*;
-    pub fn routine_0023(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Projects scripted player X/Y into `0x0E/0x0A` from the current position
+    /// and movement deltas `0x49/0x4B`.
+    pub fn project_scripted_player_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0A, engine.mem(0x45));
         if cbool(engine.mem(0x4B) != 0) {
@@ -1464,9 +1475,12 @@ mod routine_0023 {
     }
 }
 
-mod routine_0024 {
+mod update_scripted_player_pose_from_motion {
     use super::*;
-    pub fn routine_0024(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Chooses the scripted player pose and horizontal flip from movement,
+    /// jump/fall state, and the action button.
+    pub fn update_scripted_player_pose_from_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -1562,9 +1576,12 @@ mod routine_0024 {
     }
 }
 
-mod routine_0025 {
+mod tick_scripted_player_walk_animation {
     use super::*;
-    pub fn routine_0025(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Applies action-button pose bits and toggles the scripted walk frame every
+    /// eight moving frames when not jumping or falling.
+    pub fn tick_scripted_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x56) < 0x20) {
             let mut a: i32 = engine.mem(0x56);
             if cbool(engine.mem(0x20) & 0x40) {
@@ -1592,9 +1609,12 @@ mod routine_0025 {
     }
 }
 
-mod routine_0026 {
+mod draw_scripted_player_sprites {
     use super::*;
-    pub fn routine_0026(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Draws the two scripted-player sprites into fixed OAM entries
+    /// `0x0210/0x0214`, including blink hiding and horizontal tile order.
+    pub fn draw_scripted_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x85) != 0) {
             if cbool((engine.mem(0x84) & 0x01) == 0) {
                 engine.set_mem(0x0210, 0xEF);
@@ -1622,13 +1642,16 @@ mod routine_0026 {
     }
 }
 
-mod routine_0027 {
+mod try_move_scripted_player_in_bounds {
     use super::*;
-    pub fn routine_0027(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Projects scripted player motion and retries vertical movement toward zero
+    /// until the screen-bounds check succeeds or the delta is exhausted.
+    pub fn try_move_scripted_player_in_bounds(engine: &mut Engine, r: &mut RoutineContext) {
         let mut saved: i32 = engine.mem(0x4B);
         loop {
-            routine_0023(engine, r);
-            routine_0031(engine, r);
+            project_scripted_player_position(engine, r);
+            check_scripted_player_bounds(engine, r);
             if !cbool(r.carry) {
                 break;
             }
@@ -1655,9 +1678,13 @@ mod routine_0027 {
     }
 }
 
-mod routine_0028 {
+mod update_scripted_player_fall_state {
     use super::*;
-    pub fn routine_0028(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Updates scripted falling/contact timers. `0x4E` counts fall frames while
+    /// the player is above the landing Y, and a long fall seeds jump timer
+    /// `0x4F` for a bounce prompt.
+    pub fn update_scripted_player_fall_state(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x4F) != 0) {
             r.carry = 0;
             return;
@@ -1682,9 +1709,12 @@ mod routine_0028 {
     }
 }
 
-mod routine_0030 {
+mod subtract_scripted_player_health {
     use super::*;
-    pub fn routine_0030(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Subtracts scripted contact damage from health and saturates underflow at
+    /// zero while preserving the 6502-style flags in `RoutineContext`.
+    pub fn subtract_scripted_player_health(engine: &mut Engine, r: &mut RoutineContext) {
         let mut lhs: i32 = 0;
         let mut res: i32 = 0;
         engine.set_mem(0x08, r.value);
@@ -1703,9 +1733,12 @@ mod routine_0030 {
     }
 }
 
-mod routine_0031 {
+mod check_scripted_player_bounds {
     use super::*;
-    pub fn routine_0031(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Rejects projected scripted-player positions outside the final-exit screen
+    /// bounds.
+    pub fn check_scripted_player_bounds(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x0A) >= 0xA1) {
             r.carry = 1;
             return;
@@ -1718,9 +1751,12 @@ mod routine_0031 {
     }
 }
 
-mod routine_0032 {
+mod build_scripted_player_input_delta {
     use super::*;
-    pub fn routine_0032(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Converts the lower controller nibble into scripted-player X/Y velocity
+    /// scratch using the same ROM movement table as the original routine.
+    pub fn build_scripted_player_input_delta(engine: &mut Engine, r: &mut RoutineContext) {
         r.index = u8v((engine.mem(0x20) & 0x0F) << 1);
         engine.set_mem(0x49, engine.mem(u16v(0xFE8B + r.index)));
         engine.set_mem(0x4B, engine.mem(u16v(0xFE8C + r.index)));
