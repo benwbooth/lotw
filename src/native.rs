@@ -2418,7 +2418,7 @@ pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
         }
         let a = u8v(((engine.mem(0xf1) >> 2) ^ 0xff) + 1);
         engine.set_mem(0xf7, a);
-        crate::game::routine_0241(engine, r);
+        crate::game::project_actor_position(engine, r);
         crate::game::check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
             engine.or_mem(0xef, 0x80);
@@ -2431,7 +2431,7 @@ pub fn routine_0259(engine: &mut Engine, r: &mut RoutineContext) {
 
     engine.inc_mem(0xf0);
     engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 2) + 1));
-    crate::game::routine_0241(engine, r);
+    crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
     if cbool(r.carry) {
         engine.set_mem(0xee, 0x00);
@@ -2627,7 +2627,7 @@ pub fn routine_0240(engine: &mut Engine, r: &mut RoutineContext) {
         engine.dec_mem(0xf1);
         if engine.mem(0xf1) != 0 {
             engine.set_mem(0xf7, u8v(0 - engine.mem(0xf1)));
-            crate::game::routine_0241(engine, r);
+            crate::game::project_actor_position(engine, r);
             crate::game::check_position_out_of_bounds(engine, r);
             if !cbool(r.carry) {
                 engine.set_mem(0xfb, engine.mem(0x0a));
@@ -2640,7 +2640,7 @@ pub fn routine_0240(engine: &mut Engine, r: &mut RoutineContext) {
     }
     engine.inc_mem(0xf0);
     engine.set_mem(0xf7, u8v((engine.mem(0xf0) >> 1) + 2));
-    crate::game::routine_0241(engine, r);
+    crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
     if !cbool(r.carry) {
         engine.set_mem(0xfb, engine.mem(0x0a));

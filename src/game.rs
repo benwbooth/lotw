@@ -15,6 +15,13 @@ pub use add_key::add_key;
 pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
 pub use advance_envelope_phase::advance_envelope_phase;
+pub use aim_actor_from_player_overlap::aim_actor_from_player_overlap;
+pub use aim_actor_toward_player::aim_actor_toward_player;
+pub use animate_actor_cycle_tiles::animate_actor_cycle_tiles;
+pub use animate_actor_directional_walk::animate_actor_directional_walk;
+pub use animate_actor_flip_toggle::animate_actor_flip_toggle;
+pub use animate_actor_walk_toggle::animate_actor_walk_toggle;
+pub use apply_actor_player_contact_damage::apply_actor_player_contact_damage;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
 pub use audio_cmd_set_channel_flags::audio_cmd_set_channel_flags;
 pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
@@ -36,7 +43,10 @@ pub use check_player_y_overlap::check_player_y_overlap;
 pub use check_position_out_of_bounds::check_position_out_of_bounds;
 pub use check_projected_terrain_collision::check_projected_terrain_collision;
 pub use check_projected_wide_terrain_collision::check_projected_wide_terrain_collision;
+pub use choose_random_actor_direction::choose_random_actor_direction;
+pub use choose_random_cardinal_actor_direction::choose_random_cardinal_actor_direction;
 pub use clear_pending_vram_job::clear_pending_vram_job;
+pub use commit_actor_projected_position::commit_actor_projected_position;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
@@ -55,14 +65,17 @@ pub use maybe_spawn_pursuer_actor::maybe_spawn_pursuer_actor;
 pub use metasprite_build::metasprite_build;
 pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
+pub use probe_actor_overhead_step::probe_actor_overhead_step;
 pub use probe_object_solid_tile::probe_object_solid_tile;
 pub use probe_projected_solid_tile::probe_projected_solid_tile;
+pub use project_actor_position::project_actor_position;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
 pub use reset::reset;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
+pub use reverse_actor_horizontal_direction::reverse_actor_horizontal_direction;
 pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
 pub use routine_0003::routine_0003;
@@ -213,25 +226,6 @@ pub use routine_0226::routine_0226;
 pub use routine_0227::routine_0227;
 pub use routine_0228::routine_0228;
 pub use routine_0229::routine_0229;
-pub use routine_0230::routine_0230;
-pub use routine_0231::routine_0231;
-pub use routine_0232::routine_0232;
-pub use routine_0233::routine_0233;
-pub use routine_0234::routine_0234;
-pub use routine_0235::routine_0235;
-pub use routine_0236::routine_0236;
-pub use routine_0237::routine_0237;
-pub use routine_0238::routine_0238;
-pub use routine_0239::routine_0239;
-pub use routine_0241::routine_0241;
-pub use routine_0242::routine_0242;
-pub use routine_0243::routine_0243;
-pub use routine_0244::routine_0244;
-pub use routine_0245::routine_0245;
-pub use routine_0246::routine_0246;
-pub use routine_0247::routine_0247;
-pub use routine_0248::routine_0248;
-pub use routine_0249::routine_0249;
 pub use routine_0257::routine_0257;
 pub use routine_0258::routine_0258;
 pub use routine_0260::routine_0260;
@@ -255,6 +249,7 @@ pub use split_meter_value::split_meter_value;
 pub use start_note_envelope::start_note_envelope;
 pub use start_rest_envelope::start_rest_envelope;
 pub use statusbar_split::statusbar_split;
+pub use stop_actor_motion::stop_actor_motion;
 pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use subtract_health_points::subtract_health_points;
 pub use sync_coin_hud::sync_coin_hud;
@@ -269,7 +264,12 @@ pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
 pub use tick_standard_actor::tick_standard_actor;
 pub use tick_triangle_channel::tick_triangle_channel;
+pub use try_actor_gravity_motion::try_actor_gravity_motion;
+pub use try_actor_jump_arc_motion::try_actor_jump_arc_motion;
+pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
+pub use try_move_actor_without_terrain::try_move_actor_without_terrain;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
+pub use update_actor_animation::update_actor_animation;
 pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
@@ -7195,23 +7195,23 @@ mod tick_standard_actor {
                                 continue 'dispatch;
                             }
                         }
-                        routine_0237(engine, r);
+                        try_actor_jump_arc_motion(engine, r);
                         if cbool(r.carry) {
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
-                        routine_0238(engine, r);
+                        commit_actor_projected_position(engine, r);
                     }
-                    routine_0236(engine, r);
+                    try_actor_gravity_motion(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     state = 1;
                     continue 'dispatch;
                 }
@@ -7259,7 +7259,7 @@ mod routine_0220 {
                     }
                     if !cbool(do_place) {
                         engine.set_mem(0xF3, 0x00);
-                        routine_0235(engine, r);
+                        choose_random_cardinal_actor_direction(engine, r);
                         r.value = 0x06;
                         rng_update(engine, r);
                         engine.set_mem(0xF6, u8v(r.value + 1));
@@ -7275,7 +7275,7 @@ mod routine_0220 {
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
-                        routine_0236(engine, r);
+                        try_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
                                 state = 4;
@@ -7303,7 +7303,7 @@ mod routine_0220 {
                     continue 'dispatch;
                 }
                 1 => {
-                    routine_0237(engine, r);
+                    try_actor_jump_arc_motion(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 3;
@@ -7315,14 +7315,14 @@ mod routine_0220 {
                 }
                 2 => {
                     engine.set_mem(0xF1, 0x00);
-                    routine_0247(engine, r);
+                    try_move_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    routine_0239(engine, r);
+                    stop_actor_motion(engine, r);
                     {
                         state = 4;
                         continue 'dispatch;
@@ -7331,13 +7331,13 @@ mod routine_0220 {
                     continue 'dispatch;
                 }
                 3 => {
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     state = 4;
                     continue 'dispatch;
                 }
                 4 => {
                     update_object_terrain_probe(engine, r);
-                    routine_0242(engine, r);
+                    update_actor_animation(engine, r);
                     engine.set_mem(0xF6, saved_f6);
                     break 'dispatch;
                 }
@@ -7351,7 +7351,7 @@ mod routine_0221 {
     use super::*;
     pub fn routine_0221(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
-            routine_0234(engine, r);
+            choose_random_actor_direction(engine, r);
         }
         {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
@@ -7360,13 +7360,13 @@ mod routine_0221 {
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
-        routine_0248(engine, r);
+        try_move_actor_without_terrain(engine, r);
         if cbool(r.carry) {
-            routine_0239(engine, r);
+            stop_actor_motion(engine, r);
         } else {
-            routine_0238(engine, r);
+            commit_actor_projected_position(engine, r);
         }
-        routine_0242(engine, r);
+        update_actor_animation(engine, r);
     }
 }
 
@@ -7377,10 +7377,10 @@ mod routine_0222 {
         let mut reached_EBCC: i32 = 0;
         let mut done: i32 = 0;
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
-            routine_0233(engine, r);
+            reverse_actor_horizontal_direction(engine, r);
         }
         if cbool(engine.mem(0xF0) != 0) {
-            routine_0236(engine, r);
+            try_actor_gravity_motion(engine, r);
             if cbool(r.carry == 0) {
                 reached_EBC6 = 1;
             } else {
@@ -7391,7 +7391,7 @@ mod routine_0222 {
             r.offset = engine.mem(u16v(ptr + 9));
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
-            routine_0247(engine, r);
+            try_move_actor_with_terrain(engine, r);
             if cbool(r.carry) {
                 reached_EBCC = 1;
             } else {
@@ -7414,13 +7414,13 @@ mod routine_0222 {
         }
         if !cbool(done) {
             if cbool(reached_EBCC) {
-                routine_0239(engine, r);
+                stop_actor_motion(engine, r);
             } else if cbool(reached_EBC6) {
-                routine_0238(engine, r);
+                commit_actor_projected_position(engine, r);
             }
         }
         update_object_terrain_probe(engine, r);
-        routine_0242(engine, r);
+        update_actor_animation(engine, r);
     }
 }
 
@@ -7483,7 +7483,7 @@ mod routine_0223 {
                             }
                         }
                     }
-                    routine_0231(engine, r);
+                    aim_actor_toward_player(engine, r);
                     engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
                     {
                         state = 2;
@@ -7494,7 +7494,7 @@ mod routine_0223 {
                 }
                 1 => {
                     engine.set_mem(0xF3, 0x00);
-                    routine_0231(engine, r);
+                    aim_actor_toward_player(engine, r);
                     state = 2;
                     continue 'dispatch;
                 }
@@ -7506,7 +7506,7 @@ mod routine_0223 {
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
                     if cbool(engine.mem(0xF0) != 0) {
-                        routine_0236(engine, r);
+                        try_actor_gravity_motion(engine, r);
                         if cbool(r.carry) {
                             {
                                 state = 6;
@@ -7534,7 +7534,7 @@ mod routine_0223 {
                     continue 'dispatch;
                 }
                 3 => {
-                    routine_0237(engine, r);
+                    try_actor_jump_arc_motion(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 5;
@@ -7546,14 +7546,14 @@ mod routine_0223 {
                 }
                 4 => {
                     engine.set_mem(0xF1, 0x00);
-                    routine_0247(engine, r);
+                    try_move_actor_with_terrain(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 5;
                             continue 'dispatch;
                         }
                     }
-                    routine_0239(engine, r);
+                    stop_actor_motion(engine, r);
                     {
                         state = 6;
                         continue 'dispatch;
@@ -7562,13 +7562,13 @@ mod routine_0223 {
                     continue 'dispatch;
                 }
                 5 => {
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     state = 6;
                     continue 'dispatch;
                 }
                 6 => {
                     update_object_terrain_probe(engine, r);
-                    routine_0242(engine, r);
+                    update_actor_animation(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7584,7 +7584,7 @@ mod routine_0224 {
             u8v((cbool((engine.mem(0xF5) | engine.mem(0xF7)) != 0)
                 && cbool(engine.mem(0xF3) < 0x20)));
         if !cbool(skip) {
-            routine_0232(engine, r);
+            aim_actor_from_player_overlap(engine, r);
         }
         {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
@@ -7592,17 +7592,17 @@ mod routine_0224 {
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
-        routine_0248(engine, r);
+        try_move_actor_without_terrain(engine, r);
         if cbool(r.carry) {
             try_reflect_object_velocity(engine, r);
             if cbool(r.carry) {
-                routine_0239(engine, r);
-                routine_0242(engine, r);
+                stop_actor_motion(engine, r);
+                update_actor_animation(engine, r);
                 return;
             }
         }
-        routine_0238(engine, r);
-        routine_0242(engine, r);
+        commit_actor_projected_position(engine, r);
+        update_actor_animation(engine, r);
     }
 }
 
@@ -7628,7 +7628,7 @@ mod routine_0225 {
                     engine.set_mem(0x0F, engine.mem(0xFA));
                     engine.set_mem(0x0E, engine.mem(0xF9));
                     engine.set_mem(0x0A, engine.mem(0xFB));
-                    routine_0230(engine, r);
+                    probe_actor_overhead_step(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -7646,7 +7646,7 @@ mod routine_0225 {
                 }
                 1 => {
                     if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
-                        routine_0233(engine, r);
+                        reverse_actor_horizontal_direction(engine, r);
                     }
                     check_player_x_overlap(engine, r);
                     if cbool(r.carry) {
@@ -7661,14 +7661,14 @@ mod routine_0225 {
                     }
                     r.value = engine.mem(0xF4);
                     build_direction_velocity(engine, r);
-                    routine_0247(engine, r);
+                    try_move_actor_with_terrain(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
-                    routine_0230(engine, r);
+                    probe_actor_overhead_step(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 6;
@@ -7696,8 +7696,8 @@ mod routine_0225 {
                     continue 'dispatch;
                 }
                 3 => {
-                    routine_0236(engine, r);
-                    routine_0238(engine, r);
+                    try_actor_gravity_motion(engine, r);
+                    commit_actor_projected_position(engine, r);
                     {
                         let mut saved_f0: i32 = engine.mem(0xF0);
                         update_object_terrain_probe(engine, r);
@@ -7717,7 +7717,7 @@ mod routine_0225 {
                     continue 'dispatch;
                 }
                 4 => {
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     {
                         state = 7;
                         continue 'dispatch;
@@ -7726,14 +7726,14 @@ mod routine_0225 {
                     continue 'dispatch;
                 }
                 5 => {
-                    routine_0237(engine, r);
+                    try_actor_jump_arc_motion(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     {
                         state = 7;
                         continue 'dispatch;
@@ -7742,12 +7742,12 @@ mod routine_0225 {
                     continue 'dispatch;
                 }
                 6 => {
-                    routine_0239(engine, r);
+                    stop_actor_motion(engine, r);
                     state = 7;
                     continue 'dispatch;
                 }
                 7 => {
-                    routine_0242(engine, r);
+                    update_actor_animation(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -7826,12 +7826,12 @@ mod routine_0227 {
     pub fn routine_0227(engine: &mut Engine, r: &mut RoutineContext) {
         r.offset = 0x01;
         build_direction_velocity(engine, r);
-        routine_0241(engine, r);
+        project_actor_position(engine, r);
         check_player_overlap(engine, r);
         if cbool(r.carry == 0) {
             return;
         }
-        routine_0249(engine, r);
+        apply_actor_player_contact_damage(engine, r);
         r.carry = 1;
     }
 }
@@ -7840,7 +7840,7 @@ mod routine_0228 {
     use super::*;
     pub fn routine_0228(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0xF5) | engine.mem(0xF7)) == 0) {
-            routine_0234(engine, r);
+            choose_random_actor_direction(engine, r);
         }
         {
             let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
@@ -7848,18 +7848,18 @@ mod routine_0228 {
             r.value = engine.mem(0xF4);
             build_direction_velocity(engine, r);
         }
-        routine_0248(engine, r);
+        try_move_actor_without_terrain(engine, r);
         if cbool(r.carry) {
             if cbool(engine.mem(0xEA) != 0) {
                 r.value = 0x80;
                 engine.set_mem(0xEE, 0x80);
                 return;
             }
-            routine_0239(engine, r);
+            stop_actor_motion(engine, r);
         } else {
-            routine_0238(engine, r);
+            commit_actor_projected_position(engine, r);
         }
-        routine_0242(engine, r);
+        update_actor_animation(engine, r);
     }
 }
 
@@ -7879,14 +7879,14 @@ mod routine_0229 {
                         }
                     }
                     if cbool(engine.mem(0xF4) == 0) {
-                        routine_0232(engine, r);
+                        aim_actor_from_player_overlap(engine, r);
                     } else {
                         if cbool(engine.mem(0xF3) >= 0x08) {
                             let mut diff: i32 = 0;
                             let mut bit_count: i32 = 0;
                             let mut changed_bits: i32 = 0;
                             engine.set_mem(0x08, engine.mem(0xF4));
-                            routine_0232(engine, r);
+                            aim_actor_from_player_overlap(engine, r);
                             diff = u8v(engine.mem(0xF4) ^ engine.mem(0x08));
                             changed_bits = 0x00;
                             bit_count = 0x04;
@@ -7925,15 +7925,15 @@ mod routine_0229 {
                         r.value = engine.mem(0xF4);
                         build_direction_velocity(engine, r);
                     }
-                    routine_0248(engine, r);
+                    try_move_actor_without_terrain(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    routine_0238(engine, r);
-                    routine_0242(engine, r);
+                    commit_actor_projected_position(engine, r);
+                    update_actor_animation(engine, r);
                     return;
                     state = 1;
                     continue 'dispatch;
@@ -7949,9 +7949,11 @@ mod routine_0229 {
     }
 }
 
-mod routine_0230 {
+mod probe_actor_overhead_step {
     use super::*;
-    pub fn routine_0230(engine: &mut Engine, r: &mut RoutineContext) {
+    // Probes the projected tile one row above the actor when the projected Y
+    // position is tile-aligned. Carry is left from the solid-tile probe.
+    pub fn probe_actor_overhead_step(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0x0A) & 0x0F) != 0) {
             return;
         }
@@ -7974,30 +7976,32 @@ mod routine_0230 {
     }
 }
 
-mod routine_0231 {
+mod aim_actor_toward_player {
     use super::*;
-    pub fn routine_0231(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0x00;
+    // Sets direction bits in `0xF4` so an actor tends toward the player. Room
+    // actor data byte 9 allows occasional upward bias when the actor is below.
+    pub fn aim_actor_toward_player(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut direction_bits: i32 = 0x00;
         let mut dx: i32 = u16v(u16v(engine.mem(0xFA)) - engine.mem(0x0044));
         if cbool(u8v(dx) != 0) {
             {
-                x += 1;
-                x
+                direction_bits += 1;
+                direction_bits
             };
             if !cbool(dx & 0x100) {
                 {
-                    x += 1;
-                    x
+                    direction_bits += 1;
+                    direction_bits
                 };
             }
         }
-        engine.set_mem(0xF4, x);
+        engine.set_mem(0xF4, direction_bits);
         {
             let mut dy: i32 = u16v(u16v(engine.mem(0xFB)) - engine.mem(0x0045));
             if !cbool(dy & 0x100) {
-                let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-                let mut flag: i32 = engine.mem(u16v(ptr + 0x09));
-                if cbool(flag != 0) {
+                let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+                let mut vertical_bias_enabled: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
+                if cbool(vertical_bias_enabled != 0) {
                     r.value = 0x03;
                     rng_update(engine, r);
                     r.index = r.value;
@@ -8017,62 +8021,66 @@ mod routine_0231 {
     }
 }
 
-mod routine_0232 {
+mod aim_actor_from_player_overlap {
     use super::*;
-    pub fn routine_0232(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
+    // Builds direction bits by checking whether the actor already overlaps the
+    // player on each axis.
+    pub fn aim_actor_from_player_overlap(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut direction_bits: i32 = 0;
         engine.set_mem(0x0F, engine.mem(0xFA));
         engine.set_mem(0x0E, engine.mem(0xF9));
         engine.set_mem(0x0A, engine.mem(0xFB));
         check_player_x_overlap(engine, r);
-        x = 0x00;
+        direction_bits = 0x00;
         if cbool(r.carry == 0) {
-            let mut d: i32 = u8v(engine.mem(0xFA) - engine.mem(0x44));
-            let mut carry: i32 = u8v((if cbool(engine.mem(0xFA) >= engine.mem(0x44)) {
-                1
-            } else {
-                0
-            }));
-            x = 0x01;
-            if cbool(carry) {
-                x = 0x02;
+            let mut actor_is_right_of_player: i32 =
+                u8v((if cbool(engine.mem(0xFA) >= engine.mem(0x44)) {
+                    1
+                } else {
+                    0
+                }));
+            direction_bits = 0x01;
+            if cbool(actor_is_right_of_player) {
+                direction_bits = 0x02;
             }
         }
-        engine.set_mem(0xF4, x);
+        engine.set_mem(0xF4, direction_bits);
         check_player_y_overlap(engine, r);
-        x = 0x00;
+        direction_bits = 0x00;
         if cbool(r.carry == 0) {
-            let mut carry: i32 = u8v((if cbool(engine.mem(0xFB) >= engine.mem(0x45)) {
-                1
-            } else {
-                0
-            }));
-            x = 0x04;
-            if cbool(carry) {
-                x = 0x08;
+            let mut actor_is_below_player: i32 =
+                u8v((if cbool(engine.mem(0xFB) >= engine.mem(0x45)) {
+                    1
+                } else {
+                    0
+                }));
+            direction_bits = 0x04;
+            if cbool(actor_is_below_player) {
+                direction_bits = 0x08;
             }
         }
-        engine.set_mem(0xF4, u8v(x | engine.mem(0xF4)));
+        engine.set_mem(0xF4, u8v(direction_bits | engine.mem(0xF4)));
         engine.set_mem(0xF3, 0x00);
     }
 }
 
-mod routine_0233 {
+mod reverse_actor_horizontal_direction {
     use super::*;
-    pub fn routine_0233(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = engine.mem(0xF4) & 0x03;
-        if cbool(v == 0) {
-            v = 0x01;
+    pub fn reverse_actor_horizontal_direction(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut direction_bits: i32 = engine.mem(0xF4) & 0x03;
+        if cbool(direction_bits == 0) {
+            direction_bits = 0x01;
         }
-        v ^= 0x03;
-        engine.set_mem(0xF4, v);
-        r.value = v;
+        direction_bits ^= 0x03;
+        engine.set_mem(0xF4, direction_bits);
+        r.value = direction_bits;
     }
 }
 
-mod routine_0234 {
+mod choose_random_actor_direction {
     use super::*;
-    pub fn routine_0234(engine: &mut Engine, r: &mut RoutineContext) {
+    // Chooses one of the eight direction-bit patterns in the original table.
+    pub fn choose_random_actor_direction(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x08;
         rng_update(engine, r);
         r.index = r.value;
@@ -8080,30 +8088,33 @@ mod routine_0234 {
     }
 }
 
-mod routine_0235 {
+mod choose_random_cardinal_actor_direction {
     use super::*;
-    const sound_lookup_eeb3: [i32; 8] = [0x01, 0x05, 0x04, 0x06, 0x02, 0x0A, 0x08, 0x09];
+    const DIRECTION_LOOKUP: [i32; 8] = [0x01, 0x05, 0x04, 0x06, 0x02, 0x0A, 0x08, 0x09];
 
-    pub fn routine_0235(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
+    // Chooses from every other entry in the direction table, giving a smaller
+    // cardinal-ish set used by wandering actors.
+    pub fn choose_random_cardinal_actor_direction(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x03;
         rng_update(engine, r);
-        x = u8v(r.value << 1);
-        engine.set_mem(0xF4, sound_lookup_eeb3[x as usize]);
+        let direction_index: i32 = u8v(r.value << 1);
+        engine.set_mem(0xF4, DIRECTION_LOOKUP[direction_index as usize]);
     }
 }
 
-mod routine_0236 {
+mod try_actor_gravity_motion {
     use super::*;
-    pub fn routine_0236(engine: &mut Engine, r: &mut RoutineContext) {
+    // Advances a falling actor. If the projected move is blocked, horizontal
+    // velocity is dropped and the move is retried before vertical motion stops.
+    pub fn try_actor_gravity_motion(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF7, u8v((engine.mem(0xF0) >> 1) + 0x02));
-        routine_0247(engine, r);
+        try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
         engine.set_mem(0xF5, 0x00);
         engine.set_mem(0xF6, 0x00);
-        routine_0247(engine, r);
+        try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
@@ -8111,24 +8122,25 @@ mod routine_0236 {
     }
 }
 
-mod routine_0237 {
+mod try_actor_jump_arc_motion {
     use super::*;
-    pub fn routine_0237(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0xF1);
-        if cbool(x == 0) {
-            x = 0x0F;
+    // Uses `0xF1` as a jump-arc countdown and converts it into upward velocity.
+    pub fn try_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut jump_counter: i32 = engine.mem(0xF1);
+        if cbool(jump_counter == 0) {
+            jump_counter = 0x0F;
         }
-        x = u8v(x - 1);
-        engine.set_mem(0xF1, x);
-        r.index = x;
-        engine.set_mem(0xF7, u8v(((x >> 1) ^ 0xFF) + 1));
-        routine_0247(engine, r);
+        jump_counter = u8v(jump_counter - 1);
+        engine.set_mem(0xF1, jump_counter);
+        r.index = jump_counter;
+        engine.set_mem(0xF7, u8v(((jump_counter >> 1) ^ 0xFF) + 1));
+        try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
         engine.set_mem(0xF5, 0x00);
         engine.set_mem(0xF6, 0x00);
-        routine_0247(engine, r);
+        try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
@@ -8137,9 +8149,10 @@ mod routine_0237 {
     }
 }
 
-mod routine_0238 {
+mod commit_actor_projected_position {
     use super::*;
-    pub fn routine_0238(engine: &mut Engine, r: &mut RoutineContext) {
+    // Commits projected actor position `0x0E/0x0F/0x0A` back to actor scratch.
+    pub fn commit_actor_projected_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF9, engine.mem(0x0E));
         engine.set_mem(0xFA, engine.mem(0x0F));
         engine.set_mem(0xFB, engine.mem(0x0A));
@@ -8147,9 +8160,10 @@ mod routine_0238 {
     }
 }
 
-mod routine_0239 {
+mod stop_actor_motion {
     use super::*;
-    pub fn routine_0239(engine: &mut Engine, r: &mut RoutineContext) {
+    // Clears actor velocity and arc/probe counters.
+    pub fn stop_actor_motion(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0xF5, 0);
         engine.set_mem(0xF7, 0);
         engine.set_mem(0xF1, 0);
@@ -8157,83 +8171,89 @@ mod routine_0239 {
     }
 }
 
-mod routine_0241 {
+mod project_actor_position {
     use super::*;
-    pub fn routine_0241(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut dx: i32 = 0;
-        let mut sum: i32 = 0;
-        let mut carry: i32 = 0;
+    // Projects current actor scratch position `0xF9..0xFB` through velocity
+    // `0xF5..0xF7`, leaving the projected position in `0x0E/0x0F/0x0A`.
+    pub fn project_actor_position(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut subtile_dx: i32 = 0;
+        let mut subtile_sum: i32 = 0;
+        let mut tile_carry: i32 = 0;
         engine.set_mem(0x0E, engine.mem(0xF9));
         engine.set_mem(0x0F, engine.mem(0xFA));
         engine.set_mem(0x0A, engine.mem(0xFB));
         if cbool(engine.mem(0xF7) != 0) {
             engine.set_mem(0x0A, u8v(engine.mem(0xF7) + engine.mem(0x0A)));
         }
-        dx = engine.mem(0xF5);
-        if cbool(dx != 0) {
-            sum = u8v(dx + engine.mem(0x0E));
-            engine.set_mem(0x0E, u8v(sum & 0x0F));
-            carry = u8v((sum >> 4) & 1);
-            engine.set_mem(0x0F, u8v(engine.mem(0x0F) + engine.mem(0xF6) + carry));
+        subtile_dx = engine.mem(0xF5);
+        if cbool(subtile_dx != 0) {
+            subtile_sum = u8v(subtile_dx + engine.mem(0x0E));
+            engine.set_mem(0x0E, u8v(subtile_sum & 0x0F));
+            tile_carry = u8v((subtile_sum >> 4) & 1);
+            engine.set_mem(0x0F, u8v(engine.mem(0x0F) + engine.mem(0xF6) + tile_carry));
         }
     }
 }
 
-mod routine_0242 {
+mod update_actor_animation {
     use super::*;
-    pub fn routine_0242(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
-        const table: [i32; 4] = [0xF03B, 0xF04B, 0xF071, 0xF0B9];
-        let mut idx: i32 = u8v(engine.mem(u16v(ptr + 7)) & 0x03);
-        let mut handler: i32 = table[idx as usize];
-        engine.set_mem(0x0E, u8v(handler & 0xFF));
-        engine.set_mem(0x0F, u8v(handler >> 8));
+    const ANIMATION_HANDLERS: [i32; 4] = [0xF03B, 0xF04B, 0xF071, 0xF0B9];
+
+    // Dispatches the animation mode stored in room actor data byte 7.
+    pub fn update_actor_animation(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut actor_data_ptr: i32 = u16v(engine.mem(0xE7) | (engine.mem(0xE8) << 8));
+        let mut animation_id: i32 = u8v(engine.mem(u16v(actor_data_ptr + 7)) & 0x03);
+        let mut original_handler: i32 = ANIMATION_HANDLERS[animation_id as usize];
+        engine.set_mem(0x0E, u8v(original_handler & 0xFF));
+        engine.set_mem(0x0F, u8v(original_handler >> 8));
         r.offset = 0x07;
-        r.index = u8v(idx << 1);
-        r.value = u8v(idx << 1);
-        match idx {
+        r.index = u8v(animation_id << 1);
+        r.value = u8v(animation_id << 1);
+        match animation_id {
             0 => {
-                routine_0243(engine, r);
+                animate_actor_flip_toggle(engine, r);
             }
             1 => {
-                routine_0244(engine, r);
+                animate_actor_walk_toggle(engine, r);
             }
             2 => {
-                routine_0245(engine, r);
+                animate_actor_directional_walk(engine, r);
             }
             3 => {
-                routine_0246(engine, r);
+                animate_actor_cycle_tiles(engine, r);
             }
             _ => {}
         }
     }
 }
 
-mod routine_0243 {
+mod animate_actor_flip_toggle {
     use super::*;
-    pub fn routine_0243(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0;
+    pub fn animate_actor_flip_toggle(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut animation_phase: i32 = 0;
         engine.inc_mem(0xF3);
-        a = engine.mem(0xF3) & 0x03;
-        if cbool(a == 0) {
-            a = engine.mem(0xEF) ^ 0x40;
-            engine.set_mem(0xEF, a);
+        animation_phase = engine.mem(0xF3) & 0x03;
+        if cbool(animation_phase == 0) {
+            animation_phase = engine.mem(0xEF) ^ 0x40;
+            engine.set_mem(0xEF, animation_phase);
         }
-        r.value = a;
+        r.value = animation_phase;
     }
 }
 
-mod routine_0244 {
+mod animate_actor_walk_toggle {
     use super::*;
-    pub fn routine_0244(engine: &mut Engine, r: &mut RoutineContext) {
+    // Faces the actor from horizontal velocity and toggles the sprite tile bit
+    // every four animation ticks.
+    pub fn animate_actor_walk_toggle(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xF5) != 0) {
-            let mut y: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
                 0x00
             } else {
                 0x40
             });
-            engine.set_mem(0x08, y);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | y));
+            engine.set_mem(0x08, facing_bit);
+            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
         }
         engine.inc_mem(0xF3);
         if cbool((engine.mem(0xF3) & 0x03) == 0) {
@@ -8242,17 +8262,19 @@ mod routine_0244 {
     }
 }
 
-mod routine_0245 {
+mod animate_actor_directional_walk {
     use super::*;
-    pub fn routine_0245(engine: &mut Engine, r: &mut RoutineContext) {
+    // Similar to `animate_actor_walk_toggle`, with a separate vertical-motion
+    // tile bit so climbing/falling frames differ from horizontal frames.
+    pub fn animate_actor_directional_walk(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xF5) != 0) {
-            let mut y: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
                 0x00
             } else {
                 0x40
             });
-            engine.set_mem(0x08, y);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | y));
+            engine.set_mem(0x08, facing_bit);
+            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
             engine.set_mem(0xED, u8v(engine.mem(0xED) & 0xF7));
         } else {
             if cbool(engine.mem(0xF7) != 0) {
@@ -8270,80 +8292,85 @@ mod routine_0245 {
     }
 }
 
-mod routine_0246 {
+mod animate_actor_cycle_tiles {
     use super::*;
-    pub fn routine_0246(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut t: i32 = 0;
+    // Cycles the two sprite-tile animation bits from the frame timer.
+    pub fn animate_actor_cycle_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0xF5) != 0) {
-            let mut y: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
+            let mut facing_bit: i32 = (if cbool(engine.mem(0xF6) & 0x80) {
                 0x00
             } else {
                 0x40
             });
-            engine.set_mem(0x08, y);
-            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | y));
+            engine.set_mem(0x08, facing_bit);
+            engine.set_mem(0xEF, u8v((engine.mem(0xEF) & 0x3F) | facing_bit));
         }
         engine.inc_mem(0xF3);
-        t = u8v((engine.mem(0xF3) & 0x06) << 1);
-        engine.set_mem(0x08, t);
-        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | t));
+        let animation_tile_bits: i32 = u8v((engine.mem(0xF3) & 0x06) << 1);
+        engine.set_mem(0x08, animation_tile_bits);
+        engine.set_mem(0xED, u8v((engine.mem(0xED) & 0xF3) | animation_tile_bits));
     }
 }
 
-mod routine_0247 {
+mod try_move_actor_with_terrain {
     use super::*;
-    pub fn routine_0247(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_f7: i32 = engine.mem(0xF7);
-        let mut cflag: i32 = 0;
+    // Projects motion, rejects out-of-bounds and solid terrain, applies player
+    // contact damage, and restores the original vertical velocity before
+    // returning carry set when movement was blocked.
+    pub fn try_move_actor_with_terrain(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut saved_vertical_velocity: i32 = engine.mem(0xF7);
+        let mut blocked: i32 = 0;
         loop {
-            routine_0241(engine, r);
+            project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
                 engine.set_mem(0xF3, 0xF0);
-                cflag = 1;
+                blocked = 1;
                 break;
             }
             if cbool(u8v(engine.mem(0xEE) - 1) == 0) {
                 check_player_overlap(engine, r);
                 if cbool(r.carry) {
-                    routine_0249(engine, r);
+                    apply_actor_player_contact_damage(engine, r);
                 }
             }
             check_projected_terrain_collision(engine, r);
             if cbool(r.carry == 0) {
-                cflag = 0;
+                blocked = 0;
                 break;
             }
             {
-                let mut x: i32 = engine.mem(0xF7);
-                if cbool(x == 0) {
-                    cflag = 1;
+                let mut adjusted_vertical_velocity: i32 = engine.mem(0xF7);
+                if cbool(adjusted_vertical_velocity == 0) {
+                    blocked = 1;
                     break;
                 }
-                if !cbool(x & 0x80) {
-                    x = u8v(x - 2);
+                if !cbool(adjusted_vertical_velocity & 0x80) {
+                    adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
-                x = u8v(x + 1);
-                engine.set_mem(0xF7, x);
-                if cbool(x == 0) {
-                    cflag = 1;
+                adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
+                engine.set_mem(0xF7, adjusted_vertical_velocity);
+                if cbool(adjusted_vertical_velocity == 0) {
+                    blocked = 1;
                     break;
                 }
             }
         }
-        engine.set_mem(0xF7, saved_f7);
-        r.carry = cflag;
+        engine.set_mem(0xF7, saved_vertical_velocity);
+        r.carry = blocked;
     }
 }
 
-mod routine_0248 {
+mod try_move_actor_without_terrain {
     use super::*;
-    pub fn routine_0248(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0241(engine, r);
+    // Projects motion for actors that ignore terrain, but still applies player
+    // contact and clears the actor if it leaves bounds.
+    pub fn try_move_actor_without_terrain(engine: &mut Engine, r: &mut RoutineContext) {
+        project_actor_position(engine, r);
         check_player_overlap(engine, r);
         if cbool(r.carry) {
-            routine_0249(engine, r);
+            apply_actor_player_contact_damage(engine, r);
             r.carry = 1;
             return;
         }
@@ -8356,9 +8383,11 @@ mod routine_0248 {
     }
 }
 
-mod routine_0249 {
+mod apply_actor_player_contact_damage {
     use super::*;
-    pub fn routine_0249(engine: &mut Engine, r: &mut RoutineContext) {
+    // Applies contact damage unless the player is already invulnerable or a
+    // special character/item state suppresses the hit.
+    pub fn apply_actor_player_contact_damage(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x85) != 0) {
             return;
         }
@@ -8367,8 +8396,8 @@ mod routine_0249 {
         }
         if cbool(engine.mem(0x2D) >= 0x30) {
             if cbool(engine.mem(0xE3) != 0) {
-                let mut x: i32 = engine.mem(0x55);
-                if cbool(engine.mem(u16v(0x0051 + x)) == 0x0A) {
+                let mut selected_item_slot: i32 = engine.mem(0x55);
+                if cbool(engine.mem(u16v(0x0051 + selected_item_slot)) == 0x0A) {
                     engine.set_mem(0x8F, 0x01);
                     return;
                 }
@@ -8722,7 +8751,7 @@ mod try_reflect_object_velocity {
                     continue 'dispatch;
                 }
                 1 => {
-                    routine_0247(engine, r);
+                    try_move_actor_with_terrain(engine, r);
                     return;
                     state = 2;
                     continue 'dispatch;
@@ -8823,7 +8852,7 @@ mod routine_0258 {
                                     continue 'dispatch;
                                 }
                             }
-                            routine_0231(engine, r);
+                            aim_actor_toward_player(engine, r);
                             engine.set_mem(0xF4, u8v(0x80 | engine.mem(0xF4)));
                             {
                                 state = 2;
@@ -8843,7 +8872,7 @@ mod routine_0258 {
                 }
                 1 => {
                     engine.set_mem(0xF3, 0x00);
-                    routine_0231(engine, r);
+                    aim_actor_toward_player(engine, r);
                     state = 2;
                     continue 'dispatch;
                 }
@@ -8899,7 +8928,7 @@ mod routine_0258 {
                             continue 'dispatch;
                         }
                     }
-                    routine_0239(engine, r);
+                    stop_actor_motion(engine, r);
                     {
                         state = 6;
                         continue 'dispatch;
@@ -8908,7 +8937,7 @@ mod routine_0258 {
                     continue 'dispatch;
                 }
                 5 => {
-                    routine_0238(engine, r);
+                    commit_actor_projected_position(engine, r);
                     state = 6;
                     continue 'dispatch;
                 }
@@ -8938,7 +8967,7 @@ mod routine_0260 {
         engine.set_mem(0xF5, 0x00);
         engine.set_mem(0xF6, 0x00);
         r.value = 0x00;
-        routine_0247(engine, r);
+        try_move_actor_with_terrain(engine, r);
         if !cbool(r.carry) {
             return;
         }
@@ -8974,7 +9003,7 @@ mod routine_0262 {
         let mut saved_f7: i32 = engine.mem(0xF7);
         let mut cflag: i32 = 0;
         loop {
-            routine_0241(engine, r);
+            project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(0xEE, 0x00);
@@ -8984,7 +9013,7 @@ mod routine_0262 {
             }
             check_player_overlap_wide(engine, r);
             if cbool(r.carry) {
-                routine_0249(engine, r);
+                apply_actor_player_contact_damage(engine, r);
             }
             check_projected_wide_terrain_collision(engine, r);
             if cbool(r.carry == 0) {
@@ -9263,7 +9292,7 @@ mod update_player_projectile_slot {
             finish_projectile_slot_update(engine, r);
             return;
         }
-        routine_0241(engine, r);
+        project_actor_position(engine, r);
         check_position_out_of_bounds(engine, r);
         if cbool(r.carry) {
             engine.set_mem(0xEE, 0x00);
@@ -9439,7 +9468,7 @@ mod update_tile_projectile_motion {
                         }
                     }
                     engine.set_mem(0xE3, 0x09);
-                    routine_0241(engine, r);
+                    project_actor_position(engine, r);
                     check_actor_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
                         {

@@ -114,9 +114,7 @@ would currently be weaker than the cluster name.
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `game` | `0220..0229` | cluster | per-actor behavior handlers selected by room actor data |
-| `game` | `0230..0239` | inferred | actor movement helper routines, velocity reset, and collision response |
 | `native` | `0240` | inferred | high-bit/special actor update path |
-| `game` | `0241..0249` | inferred | object motion prediction, animation, collision scan, and hit/damage application |
 | `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
 
@@ -132,7 +130,14 @@ surface when touching nearby code:
 | `add_key` | add one key and refresh the key HUD digits |
 | `add_keys` | add to the key counter and refresh its HUD digits |
 | `add_magic_points` | add to magic and refresh its HUD digits |
+| `aim_actor_from_player_overlap` | set actor direction bits by comparing actor/player overlap on each axis |
+| `aim_actor_toward_player` | set actor direction bits toward the player, with optional room-data vertical bias |
+| `animate_actor_cycle_tiles` | cycle actor sprite tile bits from the animation timer |
+| `animate_actor_directional_walk` | update actor facing and horizontal/vertical walk animation bits |
+| `animate_actor_flip_toggle` | periodically toggle the actor sprite flip bit |
+| `animate_actor_walk_toggle` | update actor facing and toggle a walking sprite tile bit |
 | `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
+| `apply_actor_player_contact_damage` | apply actor contact damage and hit feedback unless invulnerability or special state suppresses it |
 | `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
 | `audio_cmd_set_duty_instrument` | audio bytecode command 0: set pulse duty bits and choose the envelope/instrument table offset |
 | `audio_cmd_set_pitch_offset` | audio bytecode command 3: set the selected channel's fine pitch offset |
@@ -153,7 +158,10 @@ surface when touching nearby code:
 | `check_player_x_overlap` | horizontal half of the player hitbox test |
 | `check_player_y_overlap` | vertical half of the player hitbox test |
 | `check_position_out_of_bounds` | test projected position against the general playfield bounds |
+| `choose_random_actor_direction` | choose one actor direction-bit pattern from the full movement table |
+| `choose_random_cardinal_actor_direction` | choose one actor direction-bit pattern from the smaller wandering set |
 | `clear_pending_vram_job` | clear the deferred VRAM job selector at `0x28` |
+| `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
@@ -174,12 +182,15 @@ surface when touching nearby code:
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
+| `probe_actor_overhead_step` | probe the projected tile row above an actor when it is tile-aligned |
 | `probe_projected_solid_tile` | test a tile in the projected movement footprint for solidity |
+| `project_actor_position` | project actor scratch position through actor velocity into movement scratch |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
 | `reset` | top-level reset entry |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
+| `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
@@ -191,6 +202,7 @@ surface when touching nearby code:
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
 | `spend_coins` | subtract a coin cost and report affordability through carry |
+| `stop_actor_motion` | clear actor velocity and arc/probe motion counters |
 | `start_note_envelope` | load the selected channel's active-note envelope phase state |
 | `start_rest_envelope` | load the selected channel's timed silent envelope phase state |
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
@@ -209,6 +221,11 @@ surface when touching nearby code:
 | `tick_standard_actor` | generic non-boss actor tick for motion continuation, collision response, expiry, and terrain probing |
 | `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
 | `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
+| `try_actor_gravity_motion` | try a falling actor move, dropping horizontal velocity if the first projection is blocked |
+| `try_actor_jump_arc_motion` | convert the actor jump countdown into upward velocity and try the projected move |
+| `try_move_actor_with_terrain` | project an actor move, check bounds/player/terrain, and report whether movement was blocked |
+| `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
+| `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
@@ -227,7 +244,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Actor behavior/movement helpers: `routine_0220..0265`.
+1. Actor behavior and large-actor helpers: `routine_0220..0229`, `routine_0257..0265`.
 2. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
