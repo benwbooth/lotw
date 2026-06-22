@@ -1370,101 +1370,63 @@ mod project_scripted_player_position {
 mod update_scripted_player_pose_from_motion {
     use super::*;
 
+    fn apply_scripted_horizontal_pose(
+        engine: &mut Engine,
+        r: &mut RoutineContext,
+        pose_bits: i32,
+        preserve_mask: i32,
+    ) -> bool {
+        r.index = pose_bits;
+        r.offset = 0x00;
+        if cbool(engine.mem(0x49) & 0x80) {
+            // Negative horizontal deltas face left with no sprite flip.
+        } else if cbool(engine.mem(0x49) == 0) {
+            return false;
+        } else {
+            r.offset = 0x40;
+        }
+
+        engine.set_mem(0x08, r.index);
+        engine.set_mem(
+            0x56,
+            u8v((engine.mem(0x56) & preserve_mask) | engine.mem(0x08)),
+        );
+        engine.set_mem(0x57, r.offset);
+        true
+    }
+
     /// Chooses the scripted player pose and horizontal flip from movement,
     /// jump/fall state, and the action button.
     pub fn update_scripted_player_pose_from_motion(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    r.index = 0x09;
-                    if cbool(u8v(engine.mem(0x20) & 0xBF) == 0x80) {
-                        engine.set_mem(0x56, r.index);
-                        return;
-                    }
-                    if cbool(engine.mem(0x4B) == 0) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x4B) & 0x80) {
-                        if cbool(engine.mem(0x4F) == 0) {
-                            engine.set_mem(0x56, r.index);
-                            return;
-                        }
-                        {
-                            state = 3;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x4E) != 0) {
-                        {
-                            state = 3;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool((engine.mem(0x20) & 0x04) == 0) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
+        let jump_pose = 0x09;
+        if cbool(u8v(engine.mem(0x20) & 0xBF) == 0x80) {
+            r.index = jump_pose;
+            engine.set_mem(0x56, r.index);
+            return;
+        }
+
+        if cbool(engine.mem(0x4B) != 0) {
+            if cbool(engine.mem(0x4B) & 0x80) {
+                if cbool(engine.mem(0x4F) == 0) {
+                    r.index = jump_pose;
+                    engine.set_mem(0x56, r.index);
+                    return;
+                }
+            } else if cbool(engine.mem(0x4E) == 0) {
+                if cbool(engine.mem(0x20) & 0x04) {
                     r.index = 0x0D;
                     engine.set_mem(0x56, r.index);
                     return;
-                    state = 1;
-                    continue 'dispatch;
                 }
-                1 => {
-                    r.index = 0x01;
-                    r.offset = 0x00;
-                    if cbool(engine.mem(0x49) & 0x80) {
-                        {
-                            state = 2;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x49) == 0) {
-                        return;
-                    }
-                    r.offset = 0x40;
-                    state = 2;
-                    continue 'dispatch;
-                }
-                2 => {
-                    engine.set_mem(0x08, r.index);
-                    engine.set_mem(0x56, u8v((engine.mem(0x56) & 0x07) | engine.mem(0x08)));
-                    engine.set_mem(0x57, r.offset);
-                    return;
-                    state = 3;
-                    continue 'dispatch;
-                }
-                3 => {
-                    r.index = 0x39;
-                    r.offset = 0x00;
-                    if cbool(engine.mem(0x49) & 0x80) {
-                        {
-                            state = 4;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(0x49) == 0) {
-                        return;
-                    }
-                    r.offset = 0x40;
-                    state = 4;
-                    continue 'dispatch;
-                }
-                4 => {
-                    engine.set_mem(0x08, r.index);
-                    engine.set_mem(0x56, u8v((engine.mem(0x56) & 0x03) | engine.mem(0x08)));
-                    engine.set_mem(0x57, r.offset);
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
+                apply_scripted_horizontal_pose(engine, r, 0x01, 0x07);
+                return;
             }
+
+            apply_scripted_horizontal_pose(engine, r, 0x39, 0x03);
+            return;
         }
+
+        apply_scripted_horizontal_pose(engine, r, 0x01, 0x07);
     }
 }
 

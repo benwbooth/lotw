@@ -126,6 +126,61 @@ fn scripted_player_sprites_draw_flip_and_blink() {
 }
 
 #[test]
+fn scripted_player_pose_uses_horizontal_delta_for_ground_flip() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x56, 0x30);
+    engine.set_mem(0x49, 0x01);
+
+    game::update_scripted_player_pose_from_motion(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x56), 0x01);
+    assert_eq!(engine.mem(0x57), 0x40);
+    assert_eq!(r.index, 0x01);
+
+    engine.set_mem(0x56, 0x30);
+    engine.set_mem(0x49, 0xFF);
+
+    game::update_scripted_player_pose_from_motion(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x56), 0x01);
+    assert_eq!(engine.mem(0x57), 0x00);
+}
+
+#[test]
+fn scripted_player_pose_uses_airborne_pose_while_falling() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x56, 0x22);
+    engine.set_mem(0x49, 0x01);
+    engine.set_mem(0x4B, 0x01);
+    engine.set_mem(0x4E, 0x01);
+
+    game::update_scripted_player_pose_from_motion(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x56), 0x3B);
+    assert_eq!(engine.mem(0x57), 0x40);
+    assert_eq!(r.index, 0x39);
+}
+
+#[test]
+fn scripted_player_pose_uses_jump_pose_for_unheld_upward_motion() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x56, 0x30);
+    engine.set_mem(0x4B, 0xFF);
+    engine.set_mem(0x4F, 0x00);
+
+    game::update_scripted_player_pose_from_motion(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x56), 0x09);
+    assert_eq!(r.index, 0x09);
+}
+
+#[test]
 fn scripted_player_fall_state_counts_and_bounces_after_long_fall() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
