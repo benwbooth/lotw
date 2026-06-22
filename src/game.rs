@@ -4709,14 +4709,14 @@ mod tick_selected_item_effect {
             engine.set_mem(0x0044, 0x1A);
             engine.set_mem(0x0043, 0x00);
             engine.set_mem(0x007B, 0x00);
-            routine_0067(engine, r);
+            fade_room_palette_out_reset_audio(engine, r);
             reset_room_object_slots(engine, r);
             scene_assemble(engine, r);
             routine_0077(engine, r);
             clear_gameplay_object_sprites(engine, r);
             routine_0060(engine, r);
             routine_0061(engine, r);
-            routine_0070(engine, r);
+            fade_room_palette_in(engine, r);
             r.carry = 1;
             return;
         }
@@ -4770,14 +4770,14 @@ mod enter_room_link_destination {
 
         r.value = engine.mem(u16v(link_ptr + 0x0F));
         engine.set_mem(0x45, r.value);
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         r.carry = 1;
     }
 }
@@ -4798,14 +4798,14 @@ mod enter_fragment_pickup_room {
         engine.set_mem(0x43, 0x00);
         engine.set_mem(0x7B, 0x00);
         r.value = 0x00;
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         r.carry = 1;
     }
 }
@@ -4827,14 +4827,14 @@ mod enter_pending_special_exit_room {
         engine.set_mem(0x43, 0x00);
         engine.set_mem(0x7B, 0x00);
         r.value = 0x00;
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         r.carry = 1;
     }
 }
@@ -4903,7 +4903,7 @@ mod run_warp_transition_effect {
         engine.set_mem(0x8F, 0x18);
         engine.set_mem(0x90, 0xFF);
         r.index = 0x08;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
     }
 }
 
@@ -4911,14 +4911,14 @@ mod handle_player_room_transition {
     use super::*;
 
     fn scene_rebuild_full(engine: &mut Engine, r: &mut RoutineContext) {
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
         scene_assemble(engine, r);
         routine_0077(engine, r);
         clear_gameplay_object_sprites(engine, r);
         routine_0060(engine, r);
         routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         engine.set_mem(0x36, 0);
         r.carry = 1;
     }
@@ -5781,7 +5781,7 @@ mod defeat_active_room_actors {
         engine.set_mem(0x8F, 0x18);
         engine.set_mem(0x90, 0xFF);
         r.index = 0x02;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
     }
 }
 
@@ -6370,7 +6370,7 @@ mod restore_room_from_checkpoint {
     /// including the saved song, room graphics, sprites, and player pose.
     pub fn restore_room_from_checkpoint(engine: &mut Engine, r: &mut RoutineContext) {
         pop_room_checkpoint(engine, r);
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xFE);
         routine_0123(engine, r);
@@ -6379,7 +6379,7 @@ mod restore_room_from_checkpoint {
         routine_0061(engine, r);
         routine_0063(engine, r);
         routine_0060(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         update_player_pose_from_motion(engine, r);
         tick_player_walk_animation(engine, r);
     }
@@ -6392,7 +6392,7 @@ mod enter_temporary_room_page {
     /// transition fade that also resets active music channel state.
     pub fn enter_temporary_room_page(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         engine.set_mem(0x08, a);
         engine.set_mem(0x47, u8v((a & 0x0C) >> 2));
         engine.set_mem(0x7C, u8v((a & 0x03) << 4));
@@ -6422,7 +6422,7 @@ mod refresh_temporary_room_page {
     /// currently playing audio state.
     pub fn refresh_temporary_room_page(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
-        routine_0068(engine, r);
+        fade_room_palette_out_keep_audio(engine, r);
         engine.set_mem(0x08, a);
         engine.set_mem(0x47, u8v((a & 0x0C) >> 2));
         engine.set_mem(0x7C, u8v((a & 0x03) << 4));

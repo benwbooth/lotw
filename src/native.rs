@@ -232,11 +232,11 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0061(engine, r);
 
     r.index = 0x02;
-    farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
+    farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     crate::game::reset_room_object_slots(engine, r);
     crate::game::routine_0063(engine, r);
     r.index = 0x03;
-    farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
+    farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     routine_0004(engine, r);
 
     set_prompt_state(engine, 0x20);
@@ -256,7 +256,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x10);
     farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
     r.index = 0x04;
-    farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
+    farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     engine.set_mem(0x7c, 0x00);
     farcall_cce4(engine, r, 0x6c, 0xc7, crate::game::routine_0080);
     engine.set_mem(0x2d, 0x3d);
@@ -277,7 +277,7 @@ pub fn routine_0001(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     r.index = 0x02;
-    farcall_cce4(engine, r, 0x40, 0xc5, routine_0074);
+    farcall_cce4(engine, r, 0x40, 0xc5, flash_palette_buffer);
     farcall_cce4(engine, r, 0xc7, 0xc1, crate::game::routine_0060);
 
     engine.set_mem(0x040c, 0x00);
@@ -414,7 +414,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x3f, 0x80);
     crate::game::reset_room_object_slots(engine, r);
     routine_0045(engine, r);
-    routine_0069(engine, r);
+    fade_palette_buffer_out(engine, r);
     crate::game::routine_0066(engine, r);
     crate::game::routine_0065(engine, r);
     engine.set_mem(0x48, 0x10);
@@ -463,7 +463,7 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0062(engine, r);
     crate::game::routine_0063(engine, r);
     engine.set_mem(0x40, 0x07);
-    farcall_cce4(engine, r, 0x92, 0xc4, routine_0070);
+    farcall_cce4(engine, r, 0x92, 0xc4, fade_room_palette_in);
     set_countdown_timer(engine, 0x05);
     while countdown_timer_active(engine) {
         routine_0020(engine, r);
@@ -736,7 +736,7 @@ pub fn routine_0020(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
-    routine_0069(engine, r);
+    fade_palette_buffer_out(engine, r);
     farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
     crate::game::routine_0076(engine, r);
     crate::game::routine_0065(engine, r);
@@ -756,7 +756,7 @@ pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn routine_0039(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0x92);
     routine_0045(engine, r);
-    routine_0069(engine, r);
+    fade_palette_buffer_out(engine, r);
     crate::game::routine_0066(engine, r);
     crate::game::routine_0047(engine, r);
     engine.set_mem(0x2a, 0x20);
@@ -900,7 +900,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
 
-        routine_0069(engine, r);
+        fade_palette_buffer_out(engine, r);
         crate::game::routine_0065(engine, r);
         crate::game::reset_room_object_slots(engine, r);
         crate::game::routine_0037(engine, r);
@@ -1000,7 +1000,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::clear_gameplay_object_sprites(engine, r);
         crate::game::routine_0061(engine, r);
         crate::game::routine_0062(engine, r);
-        farcall_cce4(engine, r, 0x92, 0xc4, routine_0070);
+        farcall_cce4(engine, r, 0x92, 0xc4, fade_room_palette_in);
         set_countdown_timer(engine, 0x0a);
 
         loop {
@@ -1053,7 +1053,7 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
             break;
         }
 
-        routine_0069(engine, r);
+        fade_palette_buffer_out(engine, r);
         continue 'restart;
     }
 }
@@ -1157,7 +1157,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
         }
     }
 
-    routine_0069(engine, r);
+    fade_palette_buffer_out(engine, r);
     engine.set_mem(0xec, 0x00);
     engine.set_mem(0x3e, 0x00);
     engine.set_mem(0x3f, 0x80);
@@ -1182,7 +1182,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x56, 0x39);
     crate::game::routine_0065(engine, r);
     crate::game::routine_0061(engine, r);
-    farcall_cce4(engine, r, 0xe0, 0xc4, routine_0072);
+    farcall_cce4(engine, r, 0xe0, 0xc4, fade_two_room_palette_rows_in);
 
     loop {
         crate::game::read_debounced_buttons(engine, r);
@@ -1195,7 +1195,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
 
     set_prompt_state(engine, 0x18);
     if engine.mem(0x45) != 0x70 {
-        routine_0069(engine, r);
+        fade_palette_buffer_out(engine, r);
         set_frame_counter(engine, 0x78);
         enter_return_home(engine, 0x35, 0xc1);
         frame::commit_frame_work(engine, r);
@@ -1213,7 +1213,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x40, 0x06);
     engine.set_mem(0x47, 0x03);
     engine.set_mem(0x48, 0x10);
-    routine_0069(engine, r);
+    fade_palette_buffer_out(engine, r);
     engine.set_mem(0x8e, 0x02);
     crate::game::routine_0066(engine, r);
     crate::game::routine_0076(engine, r);
@@ -1229,7 +1229,7 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     }
     engine.set_mem(0x0210, 0xef);
     engine.set_mem(0x0214, 0xef);
-    farcall_cce4(engine, r, 0xb4, 0xc4, routine_0071);
+    farcall_cce4(engine, r, 0xb4, 0xc4, fade_room_palette_row_in);
     r.index = 0x01;
 }
 
@@ -1264,12 +1264,16 @@ pub fn routine_0055(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0075(engine, r);
 }
 
-pub fn routine_0058(engine: &mut Engine, r: &mut RoutineContext) {
+/// Commits pending foreground frame work and waits for the active frame counter
+/// to expire.
+pub fn commit_foreground_frame_and_wait(engine: &mut Engine, r: &mut RoutineContext) {
     frame::commit_frame_work(engine, r);
     frame::wait_for_frame_counter(engine, r);
 }
 
-pub fn routine_0069(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades the base palette buffer at `0x0180..0x01A0` toward black over four
+/// frame-counter steps.
+pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x04;
     loop {
         set_frame_counter(engine, 0x05);
@@ -1296,7 +1300,8 @@ pub fn routine_0069(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0071(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades in the first room palette row from the active room data pointer.
+pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
     let ptr = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
     let mut v = 0x40;
     engine.set_mem(0x09, v);
@@ -1319,7 +1324,8 @@ pub fn routine_0071(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0075(engine, r);
 }
 
-pub fn routine_0072(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades in the first two room palette rows from the active room data pointer.
+pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext) {
     let ptr = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
     let mut v = 0x40;
     engine.set_mem(0x09, v);
@@ -1766,7 +1772,8 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     r.carry = u8v(tile >= 0x30);
 }
 
-pub fn routine_0067(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades the room palette out and resets active audio channel state.
+pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineContext) {
     engine.inc_mem(0x92);
     let mut y = 0x04;
     loop {
@@ -1803,7 +1810,8 @@ pub fn routine_0067(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x92, 0);
 }
 
-pub fn routine_0068(engine: &mut Engine, r: &mut RoutineContext) {
+/// Fades the room palette out while preserving active audio channel state.
+pub fn fade_room_palette_out_keep_audio(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x04;
     loop {
         set_frame_counter(engine, 0x05);
@@ -1830,7 +1838,8 @@ pub fn routine_0068(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0070(engine: &mut Engine, r: &mut RoutineContext) {
+/// Rebuilds room palette attributes and fades the gameplay palette back in.
+pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
     let mut v = 0x40;
     engine.set_mem(0x09, v);
     loop {
@@ -1850,7 +1859,9 @@ pub fn routine_0070(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0075(engine, r);
 }
 
-pub fn routine_0074(engine: &mut Engine, r: &mut RoutineContext) {
+/// Flashes the palette buffer `r.index` times by alternating a bright fill and
+/// rebuilt palette upload.
+pub fn flash_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
     let mut x = r.index;
     loop {
         for i in (0..=0x1f).rev() {
@@ -1978,7 +1989,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         engine.set_mem(0x7b, 0x08);
         crate::game::routine_0060(engine, r);
         crate::game::routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
     }
 
     loop {
@@ -2004,7 +2015,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
 
     if engine.mem(0x2d) < 0x30 {
         pop_room_checkpoint(engine, r);
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         crate::game::clear_temporary_room_sprites(engine, r);
         r.value = engine.mem(0xfe);
         crate::game::routine_0123(engine, r);
@@ -2013,7 +2024,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         crate::game::routine_0061(engine, r);
         crate::game::routine_0063(engine, r);
         crate::game::routine_0060(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
     }
 
     engine.dec_mem(0x8d);
@@ -2124,7 +2135,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         r.value = 0x04;
         crate::game::enter_temporary_room_page(engine, r);
         crate::game::draw_coin_cost_sprites(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
 
         loop {
             walk_purchase_room_until_action_or_exit(engine, r);
@@ -2150,7 +2161,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                     break;
                 }
             }
-            routine_0068(engine, r);
+            fade_room_palette_out_keep_audio(engine, r);
             animate_health_refill_to_cap(engine, r);
             animate_magic_refill_to_cap(engine, r);
             r.value = 0x08;
@@ -2161,13 +2172,13 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             engine.set_mem(0x7b, 0x08);
             crate::game::routine_0060(engine, r);
             crate::game::routine_0061(engine, r);
-            routine_0070(engine, r);
+            fade_room_palette_in(engine, r);
             run_carried_item_loadout_flow(engine, r);
             r.value = 0x04;
             crate::game::refresh_temporary_room_page(engine, r);
             crate::game::clear_temporary_room_sprites(engine, r);
             crate::game::draw_coin_cost_sprites(engine, r);
-            routine_0070(engine, r);
+            fade_room_palette_in(engine, r);
         }
     }
 
@@ -2197,7 +2208,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     crate::game::routine_0061(engine, r);
     crate::game::restore_status_sprite_template(engine, r);
     crate::game::reset_room_object_slots(engine, r);
-    routine_0070(engine, r);
+    fade_room_palette_in(engine, r);
 
     loop {
         walk_character_select_room_until_action(engine, r);
@@ -2268,7 +2279,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         frame::wait_for_frame_counter(engine, r);
 
         r.index = 0x05;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
         engine.set_mem(0x2c, u8v(engine.mem(0x40) + 0x38));
         engine.set_mem(0x2d, 0x3d);
         engine.set_mem(0x2e, 0x3e);
@@ -2283,12 +2294,12 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         frame::wait_for_frame_counter(engine, r);
 
         r.index = 0x05;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
         set_frame_counter(engine, 0x78);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
 
-        routine_0067(engine, r);
+        fade_room_palette_out_reset_audio(engine, r);
         engine.set_mem(0x56, 0x08);
         engine.set_mem(0x57, 0x00);
         set_player_health(engine, 0x63);
@@ -2305,7 +2316,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         engine.set_mem(0x7b, 0x08);
         crate::game::routine_0060(engine, r);
         crate::game::routine_0061(engine, r);
-        routine_0070(engine, r);
+        fade_room_palette_in(engine, r);
         run_carried_item_loadout_flow(engine, r);
         crate::game::restore_room_from_checkpoint(engine, r);
         return;
@@ -2332,7 +2343,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::draw_shop_item_sprites(engine, r);
     crate::game::routine_0120(engine, r);
     crate::game::draw_coin_cost_sprites(engine, r);
-    routine_0070(engine, r);
+    fade_room_palette_in(engine, r);
 
     loop {
         walk_purchase_room_until_action_or_exit(engine, r);
@@ -2425,21 +2436,21 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
         set_prompt_state(engine, 0x18);
         set_prompt_argument(engine, 0xff);
         r.index = 0x03;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
 
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
 
         r.index = 0x03;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
 
         set_frame_counter(engine, 0x05);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
 
         r.index = 0x03;
-        routine_0074(engine, r);
+        flash_palette_buffer(engine, r);
 
         engine.inc_mem(0xee);
         set_prompt_state(engine, 0x02);

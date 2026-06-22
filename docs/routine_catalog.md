@@ -94,9 +94,7 @@ would currently be weaker than the cluster name.
 | `native` | `0033`, `0034`, `0039`, `0045`, `0049`, `0050`, `0055` | inferred | title screen, family select, password entry, and start-game screen orchestration |
 | `game` | `0035..0038`, `0040..0044`, `0046..0048` | cluster | family/password/menu visual and state helpers |
 | `game` | `0051..0054`, `0056`, `0057` | cluster | transition, palette, and display setup helpers used by menu/start flows |
-| `native` | `0058` | inferred | post-render PPU/status handling in the foreground loop |
 | `game` | `0059..0066` | inferred | frame render pass, OAM clearing, background/object sprite projection, and palette/display setup |
-| `native` | `0067..0072`, `0074` | inferred | room transition and item/inventory screen orchestration |
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
 
@@ -163,6 +161,7 @@ surface when touching nearby code:
 | `collect_small_health_reward` | add the small health reward and play its pickup sound |
 | `collect_small_magic_reward` | add the small magic reward and play its pickup sound |
 | `commit_actor_projected_position` | copy projected actor position from `0x0E/0x0F/0x0A` back to actor scratch `0xF9..0xFB` |
+| `commit_foreground_frame_and_wait` | commit pending foreground frame work and wait for the active frame counter |
 | `compose_large_actor_body_slots` | mirror the large actor logical slot into the three linked 2x2 body sprite slots and refresh its health meter |
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
@@ -180,11 +179,18 @@ surface when touching nearby code:
 | `enter_fragment_pickup_room` | run the warp effect and enter the fragment-progress room selected by `0x6E` |
 | `enter_pending_special_exit_room` | consume the pending special-exit flag and enter its fixed destination room |
 | `enter_room_link_destination` | load a destination room and player position from the active room link record |
+| `fade_palette_buffer_out` | fade the base palette buffer toward black over four frame-counter steps |
+| `fade_room_palette_in` | rebuild room palette attributes and fade the gameplay palette back in |
+| `fade_room_palette_out_keep_audio` | fade the room palette out while preserving active audio channel state |
+| `fade_room_palette_out_reset_audio` | fade the room palette out and reset active audio channel state |
+| `fade_room_palette_row_in` | fade in the first room palette row from active room data |
+| `fade_two_room_palette_rows_in` | fade in the first two room palette rows from active room data |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
 | `find_damageable_actor_overlap` | scan live object slots for a projected projectile/stomp overlap with a damageable actor |
 | `find_player_object_overlap` | scan live object slots for projected player contact with doors, pickups, or actors |
+| `flash_palette_buffer` | flash the palette buffer by alternating a bright fill and rebuilt palette upload |
 | `frame_counters` | tick coarse frame timers once per second |
 | `game_update` | foreground input/player/item update |
 | `grant_long_invulnerability` | start the long invulnerability reward timer |
@@ -326,7 +332,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Native post-render and transition helpers: `routine_0058`, `routine_0067..0072`, `routine_0074`.
+1. Game VRAM, room render, and palette helpers: `routine_0073..0089`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

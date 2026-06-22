@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         game::routine_0059(&mut engine, &mut r);
         game::routine_0061(&mut engine, &mut r);
         game::routine_0063(&mut engine, &mut r);
-        lotw::native::routine_0058(&mut engine, &mut r);
+        lotw::native::commit_foreground_frame_and_wait(&mut engine, &mut r);
         game::sound_tick(&mut engine, &mut r);
         if (engine.ppu.mask & 0x18) == 0 {
             engine.ppu.mask = 0x1e;
