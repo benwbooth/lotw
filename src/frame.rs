@@ -53,7 +53,8 @@ pub fn frame_runner_stop_requested() -> bool {
     STOP_REQUESTED.with(|stop| *stop.borrow())
 }
 
-pub fn frame_wait(_engine: &mut Engine, _r: &mut RoutineContext) {
+pub fn frame_wait(_engine: &mut Engine, r: &mut RoutineContext) {
+    let saved = *r;
     ACTIVE_WAIT.with(|active| {
         let Some(sync) = active.borrow().clone() else {
             return;
@@ -78,6 +79,7 @@ pub fn frame_wait(_engine: &mut Engine, _r: &mut RoutineContext) {
             panic::panic_any(FrameRunnerStop);
         }
     });
+    *r = saved;
 }
 
 pub struct FrameRunner {

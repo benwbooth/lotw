@@ -55,12 +55,17 @@ impl Engine {
 
     #[inline]
     pub fn mem(&self, addr: i32) -> i32 {
-        self.memory[(addr as usize) & 0xffff] as i32
+        let idx = (addr as usize) & 0xffff;
+        // The frame runner parks the game thread while vblank mutates RAM from
+        // the control thread. Volatile RAM access keeps resumed game code from
+        // reusing stale values across that explicit wait boundary.
+        unsafe { std::ptr::read_volatile(self.memory.as_ptr().add(idx)) as i32 }
     }
 
     #[inline]
     pub fn set_mem(&mut self, addr: i32, value: i32) {
-        self.memory[(addr as usize) & 0xffff] = value as u8;
+        let idx = (addr as usize) & 0xffff;
+        unsafe { std::ptr::write_volatile(self.memory.as_mut_ptr().add(idx), value as u8) };
     }
 
     #[inline]

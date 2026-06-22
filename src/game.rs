@@ -722,7 +722,7 @@ mod ram_state_init {
             engine.set_mem(0x0000 + x, engine.mem(0x9B9F + x));
             if !cbool(
                 {
-                    x += 1;
+                    x = u8v(x + 1);
                     x
                 } != 0,
             ) {
@@ -756,7 +756,7 @@ mod ram_state_init {
             engine.set_mem(0x0300 + x, engine.mem(0x9D3E + x));
             if !cbool(
                 {
-                    x += 1;
+                    x = u8v(x + 1);
                     x
                 } != 0,
             ) {
@@ -768,7 +768,7 @@ mod ram_state_init {
             engine.set_mem(0x0400 + x, engine.mem(0x9DC9 + x));
             if !cbool(
                 {
-                    x += 1;
+                    x = u8v(x + 1);
                     x
                 } != 0,
             ) {
