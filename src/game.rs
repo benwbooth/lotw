@@ -9,7 +9,15 @@ use crate::frame;
 use crate::native::*;
 use crate::{Engine, RoutineContext, cbool, not, u8v, u16v};
 
+pub use add_coins::add_coins;
+pub use add_health_points::add_health_points;
+pub use add_key::add_key;
+pub use add_keys::add_keys;
+pub use add_magic_points::add_magic_points;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
+pub use consume_health_point::consume_health_point;
+pub use consume_key::consume_key;
+pub use consume_magic_point::consume_magic_point;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
@@ -97,10 +105,6 @@ pub use routine_0089::routine_0089;
 pub use routine_0090::routine_0090;
 pub use routine_0091::routine_0091;
 pub use routine_0092::routine_0092;
-pub use routine_0093::routine_0093;
-pub use routine_0094::routine_0094;
-pub use routine_0095::routine_0095;
-pub use routine_0096::routine_0096;
 pub use routine_0097::routine_0097;
 pub use routine_0098::routine_0098;
 pub use routine_0099::routine_0099;
@@ -186,16 +190,6 @@ pub use routine_0198::routine_0198;
 pub use routine_0199::routine_0199;
 pub use routine_0200::routine_0200;
 pub use routine_0201::routine_0201;
-pub use routine_0202::routine_0202;
-pub use routine_0203::routine_0203;
-pub use routine_0204::routine_0204;
-pub use routine_0205::routine_0205;
-pub use routine_0206::routine_0206;
-pub use routine_0207::routine_0207;
-pub use routine_0208::routine_0208;
-pub use routine_0209::routine_0209;
-pub use routine_0210::routine_0210;
-pub use routine_0211::routine_0211;
 pub use routine_0212::routine_0212;
 pub use routine_0215::routine_0215;
 pub use routine_0216::routine_0216;
@@ -271,8 +265,14 @@ pub use sound_set_default_banks::sound_set_default_banks;
 pub use sound_set_song_banks::sound_set_song_banks;
 pub use sound_tick::sound_tick;
 pub use spawn_player_projectile::spawn_player_projectile;
+pub use spend_coins::spend_coins;
 pub use statusbar_split::statusbar_split;
 pub use store_object_slot_scratch::store_object_slot_scratch;
+pub use subtract_health_points::subtract_health_points;
+pub use sync_coin_hud::sync_coin_hud;
+pub use sync_health_hud::sync_health_hud;
+pub use sync_key_hud::sync_key_hud;
+pub use sync_magic_hud::sync_magic_hud;
 pub use text_attr_build::text_attr_build;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
@@ -3506,16 +3506,18 @@ mod routine_0092 {
     }
 }
 
-mod routine_0093 {
+mod sync_health_hud {
     use super::*;
-    pub fn routine_0093(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = engine.mem(0x58);
-        if cbool(v >= 0x6D) {
-            v = 0x6D;
+
+    /// Clamps the health counter and queues the health HUD digits for redraw.
+    pub fn sync_health_hud(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut health: i32 = engine.mem(0x58);
+        if cbool(health >= 0x6D) {
+            health = 0x6D;
         }
-        engine.set_mem(0x58, v);
-        engine.set_mem(0x08, v);
-        r.value = v;
+        engine.set_mem(0x58, health);
+        engine.set_mem(0x08, health);
+        r.value = health;
         r.index = 0x00;
         routine_0097(engine, r);
         r.value = 0x01;
@@ -3523,16 +3525,18 @@ mod routine_0093 {
     }
 }
 
-mod routine_0094 {
+mod sync_magic_hud {
     use super::*;
-    pub fn routine_0094(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = engine.mem(0x59);
-        if cbool(v >= 0x6D) {
-            v = 0x6D;
+
+    /// Clamps the magic counter and queues the magic HUD digits for redraw.
+    pub fn sync_magic_hud(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut magic: i32 = engine.mem(0x59);
+        if cbool(magic >= 0x6D) {
+            magic = 0x6D;
         }
-        engine.set_mem(0x59, v);
-        engine.set_mem(0x08, v);
-        r.value = v;
+        engine.set_mem(0x59, magic);
+        engine.set_mem(0x08, magic);
+        r.value = magic;
         r.index = 0x06;
         routine_0097(engine, r);
         r.value = 0x01;
@@ -3540,16 +3544,18 @@ mod routine_0094 {
     }
 }
 
-mod routine_0095 {
+mod sync_key_hud {
     use super::*;
-    pub fn routine_0095(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = engine.mem(0x5B);
-        if cbool(v >= 0x6D) {
-            v = 0x6D;
+
+    /// Clamps the key counter and queues the key HUD digits for redraw.
+    pub fn sync_key_hud(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut keys: i32 = engine.mem(0x5B);
+        if cbool(keys >= 0x6D) {
+            keys = 0x6D;
         }
-        engine.set_mem(0x5B, v);
-        engine.set_mem(0x08, v);
-        r.value = v;
+        engine.set_mem(0x5B, keys);
+        engine.set_mem(0x08, keys);
+        r.value = keys;
         r.index = 0x0C;
         routine_0097(engine, r);
         r.value = 0x01;
@@ -3557,16 +3563,18 @@ mod routine_0095 {
     }
 }
 
-mod routine_0096 {
+mod sync_coin_hud {
     use super::*;
-    pub fn routine_0096(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = engine.mem(0x5A);
-        if cbool(v >= 0x6D) {
-            v = 0x6D;
+
+    /// Clamps the coin counter and queues the coin HUD digits for redraw.
+    pub fn sync_coin_hud(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut coins: i32 = engine.mem(0x5A);
+        if cbool(coins >= 0x6D) {
+            coins = 0x6D;
         }
-        engine.set_mem(0x5A, v);
-        engine.set_mem(0x08, v);
-        r.value = v;
+        engine.set_mem(0x5A, coins);
+        engine.set_mem(0x08, coins);
+        r.value = coins;
         r.index = 0x12;
         routine_0097(engine, r);
         r.value = 0x01;
@@ -4568,7 +4576,7 @@ mod routine_0135 {
                     {
                         let mut x: i32 = engine.mem(0x55);
                         if cbool(engine.mem(u16v(0x51 + x)) == 0x06) {
-                            routine_0204(engine, r);
+                            consume_magic_point(engine, r);
                             if !cbool(r.carry) {
                                 let mut f: i32 = engine.mem(0x4F);
                                 engine.set_mem(0x4F, u8v((f >> 2) + f));
@@ -4703,7 +4711,7 @@ mod routine_0136 {
             return;
         }
         r.index = x;
-        routine_0204(engine, r);
+        consume_magic_point(engine, r);
         if cbool(r.carry == 0) {
             engine.set_mem(u16v(0x86 + x), 0x02);
             return;
@@ -5579,7 +5587,7 @@ mod routine_0151 {
     pub fn routine_0151(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x1E);
         r.value = 0x05;
-        routine_0205(engine, r);
+        add_health_points(engine, r);
     }
 }
 
@@ -5588,7 +5596,7 @@ mod routine_0152 {
     pub fn routine_0152(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x05;
-        routine_0206(engine, r);
+        add_magic_points(engine, r);
     }
 }
 
@@ -5597,7 +5605,7 @@ mod routine_0153 {
     pub fn routine_0153(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x02;
-        routine_0207(engine, r);
+        add_coins(engine, r);
     }
 }
 
@@ -5606,7 +5614,7 @@ mod routine_0154 {
     pub fn routine_0154(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x11);
         r.value = 0x32;
-        routine_0207(engine, r);
+        add_coins(engine, r);
     }
 }
 
@@ -5615,7 +5623,7 @@ mod routine_0155 {
     pub fn routine_0155(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x1D);
         r.value = 0x05;
-        routine_0203(engine, r);
+        subtract_health_points(engine, r);
     }
 }
 
@@ -5623,7 +5631,7 @@ mod routine_0156 {
     use super::*;
     pub fn routine_0156(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x15);
-        routine_0209(engine, r);
+        add_key(engine, r);
     }
 }
 
@@ -5632,7 +5640,7 @@ mod routine_0157 {
     pub fn routine_0157(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x8F, 0x15);
         r.value = 0x14;
-        routine_0210(engine, r);
+        add_keys(engine, r);
     }
 }
 
@@ -5757,7 +5765,7 @@ mod routine_0165 {
             engine.set_mem(0x4F, 0x0A);
         }
         if cbool(engine.mem(0x85) == 0) {
-            routine_0202(engine, r);
+            consume_health_point(engine, r);
             engine.set_mem(0x8F, 0x0A);
             engine.set_mem(0x85, 0x01);
         }
@@ -6188,8 +6196,8 @@ mod routine_0178 {
         }
         engine.set_mem(0x8F, 0x10);
         routine_0130(engine, r);
-        routine_0095(engine, r);
-        routine_0096(engine, r);
+        sync_key_hud(engine, r);
+        sync_coin_hud(engine, r);
         engine.set_mem(0x7C, 0x20);
         routine_0081(engine, r);
         routine_0060(engine, r);
@@ -6616,156 +6624,175 @@ mod routine_0201 {
     }
 }
 
-mod routine_0202 {
+mod consume_health_point {
     use super::*;
-    pub fn routine_0202(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Spends one health point, returning carry set when health was already
+    /// empty.
+    pub fn consume_health_point(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = engine.mem(0x58);
         if cbool(r.value == 0) {
             r.carry = 1;
             return;
         }
         engine.set_mem(0x58, u8v(engine.mem(0x58) - 1));
-        routine_0093(engine, r);
+        sync_health_hud(engine, r);
         r.carry = 0;
     }
 }
 
-mod routine_0203 {
+mod subtract_health_points {
     use super::*;
-    pub fn routine_0203(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut dmg: i32 = u8v(r.value);
-        let mut res: i32 = 0;
-        let mut carry: i32 = 0;
-        engine.set_mem(0x08, dmg);
-        res = u16v(engine.mem(0x58)) - dmg;
-        engine.set_mem(0x58, u8v(res));
-        carry = u8v(res < 0x100);
-        if cbool(carry == 0) {
+
+    /// Subtracts `r.value` health, saturating at zero. Carry is set when the
+    /// subtraction did not underflow.
+    pub fn subtract_health_points(engine: &mut Engine, r: &mut RoutineContext) {
+        let damage: i32 = u8v(r.value);
+        engine.set_mem(0x08, damage);
+        let health: i32 = engine.mem(0x58);
+        let enough_health: i32 = u8v(health >= damage);
+        if cbool(enough_health) {
+            engine.set_mem(0x58, u8v(health - damage));
+        } else {
             engine.set_mem(0x58, 0x00);
         }
-        routine_0093(engine, r);
-        r.carry = carry;
+        sync_health_hud(engine, r);
+        r.carry = enough_health;
     }
 }
 
-mod routine_0204 {
+mod consume_magic_point {
     use super::*;
-    pub fn routine_0204(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_x: i32 = u8v(r.index);
+
+    /// Spends one magic point and preserves the caller's `r.index`. Carry is
+    /// set when no magic was available.
+    pub fn consume_magic_point(engine: &mut Engine, r: &mut RoutineContext) {
+        let saved_index: i32 = u8v(r.index);
         r.value = engine.mem(0x59);
         r.carry = 1;
         if cbool(engine.mem(0x59) != 0) {
             engine.set_mem(0x59, u8v(engine.mem(0x59) - 1));
-            routine_0094(engine, r);
+            sync_magic_hud(engine, r);
             r.carry = 0;
         }
-        r.index = saved_x;
+        r.index = saved_index;
     }
 }
 
-mod routine_0205 {
+mod add_health_points {
     use super::*;
-    pub fn routine_0205(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut sum: i32 = u8v(u16v(r.value) + engine.mem(0x58));
-        let mut v: i32 = 0;
-        if cbool(sum > 0xFF) {
-            v = 0x6D;
-        } else if cbool(u8v(sum) >= 0x6E) {
-            v = 0x6D;
+
+    /// Adds `r.value` health and clamps it to the HUD/resource maximum.
+    pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
+        let total: i32 = u8v(u16v(r.value) + engine.mem(0x58));
+        let capped_total: i32 = if cbool(total > 0xFF) {
+            0x6D
+        } else if cbool(u8v(total) >= 0x6E) {
+            0x6D
         } else {
-            v = u8v(sum);
-        }
-        engine.set_mem(0x58, v);
-        routine_0093(engine, r);
+            u8v(total)
+        };
+        engine.set_mem(0x58, capped_total);
+        sync_health_hud(engine, r);
     }
 }
 
-mod routine_0206 {
+mod add_magic_points {
     use super::*;
-    pub fn routine_0206(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut sum: i32 = u8v(u16v(r.value) + engine.mem(0x59));
-        let mut v: i32 = 0;
-        if cbool(sum > 0xFF) {
-            v = 0x6D;
-        } else if cbool(u8v(sum) >= 0x6E) {
-            v = 0x6D;
+
+    /// Adds `r.value` magic and clamps it to the HUD/resource maximum.
+    pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
+        let total: i32 = u8v(u16v(r.value) + engine.mem(0x59));
+        let capped_total: i32 = if cbool(total > 0xFF) {
+            0x6D
+        } else if cbool(u8v(total) >= 0x6E) {
+            0x6D
         } else {
-            v = u8v(sum);
-        }
-        engine.set_mem(0x59, v);
-        routine_0094(engine, r);
+            u8v(total)
+        };
+        engine.set_mem(0x59, capped_total);
+        sync_magic_hud(engine, r);
     }
 }
 
-mod routine_0207 {
+mod add_coins {
     use super::*;
-    pub fn routine_0207(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut sum: i32 = u8v(u16v(r.value) + engine.mem(0x5A));
-        let mut v: i32 = 0;
-        if cbool(sum > 0xFF) {
-            v = 0x6D;
-        } else if cbool(u8v(sum) >= 0x6E) {
-            v = 0x6D;
+
+    /// Adds `r.value` coins and clamps them to the HUD/resource maximum.
+    pub fn add_coins(engine: &mut Engine, r: &mut RoutineContext) {
+        let total: i32 = u8v(u16v(r.value) + engine.mem(0x5A));
+        let capped_total: i32 = if cbool(total > 0xFF) {
+            0x6D
+        } else if cbool(u8v(total) >= 0x6E) {
+            0x6D
         } else {
-            v = u8v(sum);
-        }
-        engine.set_mem(0x5A, v);
-        routine_0096(engine, r);
+            u8v(total)
+        };
+        engine.set_mem(0x5A, capped_total);
+        sync_coin_hud(engine, r);
     }
 }
 
-mod routine_0208 {
+mod spend_coins {
     use super::*;
-    pub fn routine_0208(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Spends `r.value` coins. Carry is set on success and clear when the
+    /// player cannot afford the cost.
+    pub fn spend_coins(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x08, r.value);
-        let mut res: i32 = u16v(engine.mem(0x5A)) - u16v(engine.mem(0x08));
-        r.value = u8v(res);
-        if cbool(res & 0x100) {
+        let remaining_coins: i32 = u16v(engine.mem(0x5A)) - u16v(engine.mem(0x08));
+        r.value = u8v(remaining_coins);
+        if cbool(remaining_coins & 0x100) {
             r.carry = 0;
             return;
         }
         engine.set_mem(0x5A, r.value);
-        routine_0096(engine, r);
+        sync_coin_hud(engine, r);
         r.carry = 1;
     }
 }
 
-mod routine_0209 {
+mod add_key {
     use super::*;
-    pub fn routine_0209(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Adds one key and refreshes the key HUD digits.
+    pub fn add_key(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x5B, u8v(engine.mem(0x5B) + 1));
-        routine_0095(engine, r);
+        sync_key_hud(engine, r);
         r.carry = 0;
     }
 }
 
-mod routine_0210 {
+mod add_keys {
     use super::*;
-    pub fn routine_0210(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut sum: i32 = u8v(u16v(r.value) + engine.mem(0x5B));
-        let mut v: i32 = 0;
-        if cbool(sum > 0xFF) {
-            v = 0x6D;
-        } else if cbool(u8v(sum) >= 0x6E) {
-            v = 0x6D;
+
+    /// Adds `r.value` keys and clamps them to the HUD/resource maximum.
+    pub fn add_keys(engine: &mut Engine, r: &mut RoutineContext) {
+        let total: i32 = u8v(u16v(r.value) + engine.mem(0x5B));
+        let capped_total: i32 = if cbool(total > 0xFF) {
+            0x6D
+        } else if cbool(u8v(total) >= 0x6E) {
+            0x6D
         } else {
-            v = u8v(sum);
-        }
-        engine.set_mem(0x5B, v);
-        routine_0095(engine, r);
+            u8v(total)
+        };
+        engine.set_mem(0x5B, capped_total);
+        sync_key_hud(engine, r);
     }
 }
 
-mod routine_0211 {
+mod consume_key {
     use super::*;
-    pub fn routine_0211(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Spends one key, returning carry set when no key was available.
+    pub fn consume_key(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = engine.mem(0x5B);
         if cbool(r.value == 0) {
             r.carry = 1;
             return;
         }
         engine.set_mem(0x5B, u8v(engine.mem(0x5B) - 1));
-        routine_0095(engine, r);
+        sync_key_hud(engine, r);
         r.carry = 0;
     }
 }
@@ -8334,7 +8361,7 @@ mod routine_0249 {
             }
         }
         r.value = engine.mem(0xF8);
-        routine_0203(engine, r);
+        subtract_health_points(engine, r);
         engine.set_mem(0x8F, 0x21);
         engine.set_mem(0x90, 0x01);
         engine.set_mem(0x85, 0x01);
@@ -9151,7 +9178,7 @@ mod spawn_player_projectile {
                             continue 'dispatch;
                         }
                     }
-                    routine_0204(engine, r);
+                    consume_magic_point(engine, r);
                     if cbool(r.carry) {
                         {
                             state = 1;
@@ -9164,12 +9191,12 @@ mod spawn_player_projectile {
                     routine_0126(engine, r);
                     engine.set_mem(0xEE, r.value);
                     if cbool(r.carry == 0) {
-                        routine_0204(engine, r);
+                        consume_magic_point(engine, r);
                     }
                     routine_0125(engine, r);
                     engine.set_mem(0xF8, r.value);
                     if cbool(r.carry == 0) {
-                        routine_0204(engine, r);
+                        consume_magic_point(engine, r);
                     }
                     engine.set_mem(0xEF, 0x00);
                     engine.set_mem(0xED, 0x21);
@@ -9442,7 +9469,7 @@ mod update_tile_projectile_motion {
                             continue 'dispatch;
                         }
                     }
-                    routine_0202(engine, r);
+                    consume_health_point(engine, r);
                     engine.set_mem(0x8F, 0x0A);
                     engine.set_mem(0x85, 0x02);
                     state = 2;

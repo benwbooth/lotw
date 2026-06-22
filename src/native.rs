@@ -453,10 +453,10 @@ fn routine_0002_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x0442, 0x40);
     crate::game::routine_0076(engine, r);
     farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
-    crate::game::routine_0093(engine, r);
-    crate::game::routine_0094(engine, r);
-    crate::game::routine_0096(engine, r);
-    crate::game::routine_0095(engine, r);
+    crate::game::sync_health_hud(engine, r);
+    crate::game::sync_magic_hud(engine, r);
+    crate::game::sync_coin_hud(engine, r);
+    crate::game::sync_key_hud(engine, r);
     crate::game::routine_0060(engine, r);
     crate::game::routine_0127(engine, r);
     crate::game::routine_0061(engine, r);
@@ -741,10 +741,10 @@ pub fn routine_0034(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0076(engine, r);
     crate::game::routine_0065(engine, r);
     crate::game::routine_0053(engine, r);
-    crate::game::routine_0093(engine, r);
-    crate::game::routine_0096(engine, r);
-    crate::game::routine_0095(engine, r);
-    crate::game::routine_0096(engine, r);
+    crate::game::sync_health_hud(engine, r);
+    crate::game::sync_coin_hud(engine, r);
+    crate::game::sync_key_hud(engine, r);
+    crate::game::sync_coin_hud(engine, r);
 
     set_frame_counter(engine, 0x01);
     enter_return_home(engine, 0x35, 0xc1);
@@ -992,10 +992,10 @@ pub fn routine_0033(engine: &mut Engine, r: &mut RoutineContext) {
         farcall_cce4(engine, r, 0x8b, 0xc3, crate::game::routine_0066);
         crate::game::routine_0076(engine, r);
         farcall_cce4(engine, r, 0xcb, 0xc5, crate::game::routine_0077);
-        crate::game::routine_0093(engine, r);
-        crate::game::routine_0094(engine, r);
-        crate::game::routine_0096(engine, r);
-        crate::game::routine_0095(engine, r);
+        crate::game::sync_health_hud(engine, r);
+        crate::game::sync_magic_hud(engine, r);
+        crate::game::sync_coin_hud(engine, r);
+        crate::game::sync_key_hud(engine, r);
         crate::game::routine_0060(engine, r);
         crate::game::routine_0127(engine, r);
         crate::game::routine_0061(engine, r);
@@ -1217,10 +1217,10 @@ pub fn routine_0049(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x8e, 0x02);
     crate::game::routine_0066(engine, r);
     crate::game::routine_0076(engine, r);
-    crate::game::routine_0093(engine, r);
-    crate::game::routine_0094(engine, r);
-    crate::game::routine_0095(engine, r);
-    crate::game::routine_0096(engine, r);
+    crate::game::sync_health_hud(engine, r);
+    crate::game::sync_magic_hud(engine, r);
+    crate::game::sync_key_hud(engine, r);
+    crate::game::sync_coin_hud(engine, r);
     farcall_cce4(engine, r, 0xf2, 0xc8, crate::game::scene_assemble);
 
     r.value = 0x0f;
@@ -1566,7 +1566,7 @@ fn routine_0163_dc4d(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x4f, v);
         engine.set_mem(0x46, u8v(v + 0x0a));
         engine.set_mem(0x8f, 0x0a);
-        crate::game::routine_0202(engine, r);
+        crate::game::consume_health_point(engine, r);
     }
     if engine.mem(0x4e) == 0 {
         r.offset = 0x01;
@@ -1608,13 +1608,13 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
             r.value = item;
             if item == 0x07 {
                 r.index = engine.mem(0x55);
-                crate::game::routine_0204(engine, r);
+                crate::game::consume_magic_point(engine, r);
                 if cbool(r.carry) {
                     r.carry = 1;
                     return;
                 }
             } else {
-                crate::game::routine_0211(engine, r);
+                crate::game::consume_key(engine, r);
                 if cbool(r.carry) {
                     r.carry = 1;
                     return;
@@ -1664,7 +1664,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                             engine.set_mem(0x0496, 0x0f);
                             crate::game::routine_0172(engine, r);
                             engine.set_mem(0x0493, r.value);
-                            crate::game::routine_0204(engine, r);
+                            crate::game::consume_magic_point(engine, r);
                             engine.set_mem(0x8f, 0x14);
                         }
                     }
@@ -1722,7 +1722,7 @@ pub fn routine_0169(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.set_mem(0xe3, 0xff);
                         if engine.mem(0xee) != 0 {
                             engine.set_mem(0x8f, 0x14);
-                            crate::game::routine_0204(engine, r);
+                            crate::game::consume_magic_point(engine, r);
                         }
                         engine.set_mem(0x4b, 0x00);
                         engine.set_mem(0x4e, 0x00);
@@ -1857,7 +1857,7 @@ pub fn routine_0133(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0061(engine, r);
     loop {
         engine.inc_mem(0x58);
-        crate::game::routine_0093(engine, r);
+        crate::game::sync_health_hud(engine, r);
         set_prompt_state(engine, 0x16);
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
@@ -1879,7 +1879,7 @@ pub fn routine_0134(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0061(engine, r);
     loop {
         engine.inc_mem(0x59);
-        crate::game::routine_0094(engine, r);
+        crate::game::sync_magic_hud(engine, r);
         set_prompt_state(engine, 0x16);
         set_frame_counter(engine, 0x02);
         frame::commit_frame_work(engine, r);
@@ -1896,7 +1896,7 @@ pub fn routine_0134(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn routine_0148(engine: &mut Engine, r: &mut RoutineContext) {
-    crate::game::routine_0211(engine, r);
+    crate::game::consume_key(engine, r);
     if cbool(r.carry) {
         set_prompt_state(engine, 0x06);
         r.carry = 0;
@@ -2104,7 +2104,7 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
             let mut x = 0x0a;
             loop {
                 engine.dec_mem(0x5a);
-                crate::game::routine_0096(engine, r);
+                crate::game::sync_coin_hud(engine, r);
                 set_prompt_state(engine, 0x0c);
                 set_frame_counter(engine, 0x0a);
                 frame::commit_frame_work(engine, r);
@@ -2152,8 +2152,8 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x40, 0x06);
     r.value = 0x06;
     crate::game::routine_0195(engine, r);
-    crate::game::routine_0093(engine, r);
-    crate::game::routine_0094(engine, r);
+    crate::game::sync_health_hud(engine, r);
+    crate::game::sync_magic_hud(engine, r);
     engine.set_mem(0x55, 0x03);
     crate::game::routine_0062(engine, r);
     engine.set_mem(0x56, 0xf1);
@@ -2257,8 +2257,8 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x57, 0x00);
         set_player_health(engine, 0x63);
         set_player_magic(engine, 0x63);
-        crate::game::routine_0093(engine, r);
-        crate::game::routine_0094(engine, r);
+        crate::game::sync_health_hud(engine, r);
+        crate::game::sync_magic_hud(engine, r);
         engine.set_mem(0x55, 0x02);
         crate::game::routine_0062(engine, r);
         r.value = 0x08;
@@ -2320,7 +2320,7 @@ pub fn routine_0187(engine: &mut Engine, r: &mut RoutineContext) {
         } else {
             let price = engine.mem(u16v(0x81 + x));
             r.value = price;
-            crate::game::routine_0208(engine, r);
+            crate::game::spend_coins(engine, r);
             if cbool(r.carry) {
                 engine.set_mem(u16v(0x80 + x), 0xff);
                 crate::game::routine_0198(engine, r);

@@ -56,9 +56,10 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x47..0x48` | map-space room coordinates | room assembly |
 | `0x49..0x4F` | movement/action scratch | movement and collision checks |
 | `0x51..0x55` | carried items and selected slot | inventory and action routines |
-| `0x58` | health-like resource counter | `routine_0205`, native helpers |
-| `0x59` | magic-like resource counter | `routine_0204`, projectile/action use |
-| `0x5A..0x5B` | secondary counters | inventory and item accounting |
+| `0x58` | health counter | `add_health_points`, `consume_health_point`, `subtract_health_points` |
+| `0x59` | magic/action counter | `add_magic_points`, `consume_magic_point`, projectile/action use |
+| `0x5A` | coin counter | `add_coins`, `spend_coins`, shop item purchases |
+| `0x5B` | key counter | `add_key`, `add_keys`, `consume_key`, door and tile-action costs |
 | `0x70..0x74` | current room tile/action ids | scene assembly and item actions |
 | `0x75..0x78` | room map pointer and saved pointer | tile addressing and scene assembly |
 | `0x79..0x7A` | current metasprite/table pointer | sprite build and room assets |
@@ -95,7 +96,6 @@ would currently be weaker than the cluster name.
 | `native` | `0067..0072`, `0074` | inferred | room transition and item/inventory screen orchestration |
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `game` | `0090..0092` | inferred | tile address math and deferred frame work commit |
-| `game` | `0093..0096` | inferred | HUD resource display update helpers |
 | `game` | `0097..0103`, `0106..0108` | cluster | movement vector, tile lookup, direction, and frame/input helper routines |
 | `native` | `0104`, `0105` | inferred | wait-for-release and wait-for-press input gates |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
@@ -116,8 +116,7 @@ would currently be weaker than the cluster name.
 | `native` | `0175` | inferred | inventory item compaction and carried-item reordering |
 | `game` | `0178..0186` | cluster | inventory/menu cursor, item list, and status draw helpers |
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
-| `game` | `0192`, `0195..0203` | cluster | room transition, damage/effect, and score/resource effect helpers |
-| `game` | `0204..0211` | inferred | resource/counter add, subtract, cap, decrement, and HUD sync |
+| `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `game` | `0212` | inferred | main room actor scheduler |
 | `game` | `0215..0219` | inferred | inactive actor spawn, respawn delay, boss dispatch, and normal actor tick |
 | `game` | `0220..0229` | cluster | per-actor behavior handlers selected by room actor data |
@@ -138,6 +137,14 @@ surface when touching nearby code:
 
 | Routine | Role |
 |---|---|
+| `add_coins` | add to the coin counter and refresh its HUD digits |
+| `add_health_points` | add to health and refresh its HUD digits |
+| `add_key` | add one key and refresh the key HUD digits |
+| `add_keys` | add to the key counter and refresh its HUD digits |
+| `add_magic_points` | add to magic and refresh its HUD digits |
+| `consume_health_point` | spend one health point and report empty health through carry |
+| `consume_key` | spend one key and report missing keys through carry |
+| `consume_magic_point` | spend one magic point and report missing magic through carry |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
@@ -158,8 +165,14 @@ surface when touching nearby code:
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
+| `spend_coins` | subtract a coin cost and report affordability through carry |
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
 | `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
+| `subtract_health_points` | subtract damage from health and saturate underflow at zero |
+| `sync_coin_hud` | clamp coins and queue their HUD digits for redraw |
+| `sync_health_hud` | clamp health and queue its HUD digits for redraw |
+| `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
+| `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
 | `update_player_projectile_slot` | update one player projectile slot and clear it on expiry/collision |
 | `update_player_projectiles` | pooled player projectile slot scheduler |
@@ -173,10 +186,11 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Resource/HUD counters: `routine_0204..0211`.
-2. Tile address and collision probes: `routine_0090..0116`, `0250..0256`.
-3. Audio command engine: `routine_0273..0289`.
-4. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+1. Tile address, movement vector, and collision probes: `routine_0090..0092`,
+   `routine_0097..0116`, `routine_0250..0256`.
+2. Audio command engine: `routine_0273..0289`.
+3. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+4. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
