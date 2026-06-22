@@ -14,7 +14,13 @@ pub use add_health_points::add_health_points;
 pub use add_key::add_key;
 pub use add_keys::add_keys;
 pub use add_magic_points::add_magic_points;
+pub use advance_envelope_phase::advance_envelope_phase;
 pub use apply_projectile_direction_bits::apply_projectile_direction_bits;
+pub use audio_cmd_set_channel_flags::audio_cmd_set_channel_flags;
+pub use audio_cmd_set_duty_instrument::audio_cmd_set_duty_instrument;
+pub use audio_cmd_set_pitch_offset::audio_cmd_set_pitch_offset;
+pub use audio_cmd_set_sweep_value::audio_cmd_set_sweep_value;
+pub use audio_cmd_set_volume_scale::audio_cmd_set_volume_scale;
 pub use build_direction_velocity::build_direction_velocity;
 pub use build_health_meter_sprites::build_health_meter_sprites;
 pub use build_input_movement_delta::build_input_movement_delta;
@@ -34,15 +40,18 @@ pub use clear_pending_vram_job::clear_pending_vram_job;
 pub use consume_health_point::consume_health_point;
 pub use consume_key::consume_key;
 pub use consume_magic_point::consume_magic_point;
+pub use dispatch_audio_stream_command::dispatch_audio_stream_command;
 pub use farcall_bank_0C0D_seed::farcall_bank_0C0D_seed;
 pub use farcall_bank_09_r7::farcall_bank_09_r7;
 pub use farcall_return_home::farcall_return_home;
 pub use frame_counters::frame_counters;
 pub use game_update::game_update;
 pub use inc16_95::inc16_95;
+pub use load_note_period::load_note_period;
 pub use load_object_slot_scratch::load_object_slot_scratch;
 pub use main_init::main_init;
 pub use metasprite_build::metasprite_build;
+pub use next_envelope_volume::next_envelope_volume;
 pub use ppu_commit_banks::ppu_commit_banks;
 pub use probe_object_solid_tile::probe_object_solid_tile;
 pub use probe_projected_solid_tile::probe_projected_solid_tile;
@@ -52,6 +61,7 @@ pub use read_controllers::read_controllers;
 pub use read_debounced_buttons::read_debounced_buttons;
 pub use reset::reset;
 pub use resolve_room_tile_pointer::resolve_room_tile_pointer;
+pub use rewind_or_stop_audio_stream::rewind_or_stop_audio_stream;
 pub use rng_update::rng_update;
 pub use routine_0003::routine_0003;
 pub use routine_0005::routine_0005;
@@ -234,23 +244,7 @@ pub use routine_0262::routine_0262;
 pub use routine_0263::routine_0263;
 pub use routine_0264::routine_0264;
 pub use routine_0265::routine_0265;
-pub use routine_0273::routine_0273;
-pub use routine_0274::routine_0274;
-pub use routine_0275::routine_0275;
-pub use routine_0276::routine_0276;
-pub use routine_0277::routine_0277;
-pub use routine_0278::routine_0278;
-pub use routine_0279::routine_0279;
-pub use routine_0280::routine_0280;
-pub use routine_0281::routine_0281;
-pub use routine_0282::routine_0282;
-pub use routine_0283::routine_0283;
-pub use routine_0284::routine_0284;
-pub use routine_0285::routine_0285;
-pub use routine_0286::routine_0286;
-pub use routine_0287::routine_0287;
-pub use routine_0288::routine_0288;
-pub use routine_0289::routine_0289;
+pub use scale_envelope_volume::scale_envelope_volume;
 pub use scale_room_tile_column::scale_room_tile_column;
 pub use scene_assemble::scene_assemble;
 pub use sfx_overlay_voice::sfx_overlay_voice;
@@ -262,6 +256,8 @@ pub use sound_tick::sound_tick;
 pub use spawn_player_projectile::spawn_player_projectile;
 pub use spend_coins::spend_coins;
 pub use split_meter_value::split_meter_value;
+pub use start_note_envelope::start_note_envelope;
+pub use start_rest_envelope::start_rest_envelope;
 pub use statusbar_split::statusbar_split;
 pub use store_object_slot_scratch::store_object_slot_scratch;
 pub use subtract_health_points::subtract_health_points;
@@ -270,6 +266,10 @@ pub use sync_health_hud::sync_health_hud;
 pub use sync_key_hud::sync_key_hud;
 pub use sync_magic_hud::sync_magic_hud;
 pub use text_attr_build::text_attr_build;
+pub use tick_noise_channel::tick_noise_channel;
+pub use tick_pulse1_channel::tick_pulse1_channel;
+pub use tick_pulse2_channel::tick_pulse2_channel;
+pub use tick_triangle_channel::tick_triangle_channel;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
 pub use update_object_terrain_probe::update_object_terrain_probe;
 pub use update_player_projectile_slot::update_player_projectile_slot;
@@ -9535,20 +9535,23 @@ mod update_tile_projectile_motion {
     }
 }
 
-mod routine_0273 {
+// Music channel state is stored in 0x10-byte lanes. The current lane offset
+// lives in 0x02: 0x00 pulse 1, 0x10 pulse 2, 0x20 triangle, 0x30 noise, and
+// 0x40 for the pulse-2 sound-effect overlay.
+mod tick_pulse1_channel {
     use super::*;
-    fn silence_F95E(engine: &mut Engine, r: &mut RoutineContext) {
+    fn silence_pulse1(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4000, (engine.mem(0x99) & 0xC0) | 0x30);
         engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFE));
     }
 
-    pub fn routine_0273(engine: &mut Engine, r: &mut RoutineContext) {
+    pub fn tick_pulse1_channel(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
                     if cbool((engine.mem(0x94) & 0x80) == 0) {
-                        silence_F95E(engine, r);
+                        silence_pulse1(engine, r);
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0x93)) != 0) {
@@ -9558,28 +9561,28 @@ mod routine_0273 {
                         }
                     }
                     loop {
-                        let mut ptr: i32 = u16v(engine.mem(0x95) | (engine.mem(0x96) << 8));
-                        let mut note: i32 = engine.mem(ptr);
-                        if cbool(note == 0) {
-                            routine_0287(engine, r);
-                            silence_F95E(engine, r);
+                        let mut stream_ptr: i32 = u16v(engine.mem(0x95) | (engine.mem(0x96) << 8));
+                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        if cbool(note_byte == 0) {
+                            rewind_or_stop_audio_stream(engine, r);
+                            silence_pulse1(engine, r);
                             return;
                         }
-                        if cbool(note == 0xFF) {
-                            routine_0277(engine, r);
+                        if cbool(note_byte == 0xFF) {
+                            dispatch_audio_stream_command(engine, r);
                             continue;
                         }
                         inc16_95(engine, r);
-                        engine.set_mem(0x93, u8v(note & 0x7F));
-                        if cbool(note & 0x80) {
-                            routine_0286(engine, r);
+                        engine.set_mem(0x93, u8v(note_byte & 0x7F));
+                        if cbool(note_byte & 0x80) {
+                            start_rest_envelope(engine, r);
                         } else {
-                            routine_0283(engine, r);
+                            load_note_period(engine, r);
                             engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x01));
                             engine.device_write(0x4001, engine.mem(0x9A));
                             engine.device_write(0x4002, engine.mem(0x04));
                             engine.device_write(0x4003, (engine.mem(0x05) & 0x07) | 0x18);
-                            routine_0285(engine, r);
+                            start_note_envelope(engine, r);
                         }
                         break;
                     }
@@ -9591,12 +9594,12 @@ mod routine_0273 {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0x9D)) == 0) {
-                        routine_0288(engine, r);
+                        next_envelope_volume(engine, r);
                         engine.device_write(0x4000, r.value);
                     }
-                    routine_0289(engine, r);
+                    advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
-                        silence_F95E(engine, r);
+                        silence_pulse1(engine, r);
                     }
                     break 'dispatch;
                 }
@@ -9606,24 +9609,24 @@ mod routine_0273 {
     }
 }
 
-mod routine_0274 {
+mod tick_pulse2_channel {
     use super::*;
-    fn silence_F9F9(engine: &mut Engine, r: &mut RoutineContext) {
+    fn silence_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4004, (engine.mem(0xA9) & 0xC0) | 0x30);
         engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFD));
     }
 
-    pub fn routine_0274(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a4: i32 = engine.mem(0xA4);
+    pub fn tick_pulse2_channel(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_flags: i32 = engine.mem(0xA4);
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((a4 & 0x80) == 0) {
-                        if cbool(a4 & 0x40) {
+                    if cbool((channel_flags & 0x80) == 0) {
+                        if cbool(channel_flags & 0x40) {
                             return;
                         }
-                        silence_F9F9(engine, r);
+                        silence_pulse2(engine, r);
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xA3)) != 0) {
@@ -9633,24 +9636,24 @@ mod routine_0274 {
                         }
                     }
                     loop {
-                        let mut ptr: i32 = u16v(engine.mem(0xA5) | (engine.mem(0xA6) << 8));
-                        let mut note: i32 = engine.mem(ptr);
-                        if cbool(note == 0) {
-                            routine_0287(engine, r);
-                            silence_F9F9(engine, r);
+                        let mut stream_ptr: i32 = u16v(engine.mem(0xA5) | (engine.mem(0xA6) << 8));
+                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        if cbool(note_byte == 0) {
+                            rewind_or_stop_audio_stream(engine, r);
+                            silence_pulse2(engine, r);
                             return;
                         }
-                        if cbool(note == 0xFF) {
-                            routine_0277(engine, r);
+                        if cbool(note_byte == 0xFF) {
+                            dispatch_audio_stream_command(engine, r);
                             continue;
                         }
                         inc16_95(engine, r);
-                        engine.set_mem(0xA3, u8v(note & 0x7F));
-                        if cbool(note & 0x80) {
+                        engine.set_mem(0xA3, u8v(note_byte & 0x7F));
+                        if cbool(note_byte & 0x80) {
                             if cbool(engine.mem(0xA4) & 0x40) {
                                 return;
                             }
-                            routine_0286(engine, r);
+                            start_rest_envelope(engine, r);
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -9660,13 +9663,13 @@ mod routine_0274 {
                             inc16_95(engine, r);
                             return;
                         }
-                        routine_0283(engine, r);
+                        load_note_period(engine, r);
                         engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x02));
                         engine.device_write(0x4004, engine.mem(0xA9));
                         engine.device_write(0x4005, engine.mem(0xAA));
                         engine.device_write(0x4006, engine.mem(0x04));
                         engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0x18);
-                        routine_0285(engine, r);
+                        start_note_envelope(engine, r);
                         break;
                     }
                     state = 1;
@@ -9680,12 +9683,12 @@ mod routine_0274 {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xAD)) == 0) {
-                        routine_0288(engine, r);
+                        next_envelope_volume(engine, r);
                         engine.device_write(0x4004, r.value);
                     }
-                    routine_0289(engine, r);
+                    advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
-                        silence_F9F9(engine, r);
+                        silence_pulse2(engine, r);
                     }
                     break 'dispatch;
                 }
@@ -9695,18 +9698,18 @@ mod routine_0274 {
     }
 }
 
-mod routine_0275 {
+mod tick_triangle_channel {
     use super::*;
-    fn fa54(engine: &mut Engine, r: &mut RoutineContext) {
+    fn silence_triangle(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x00;
         engine.device_write((0x4008), 0x00);
         engine.set_mem(0x27, engine.mem(0x27) & 0xFB);
         r.value = engine.mem(0x27);
     }
 
-    pub fn routine_0275(engine: &mut Engine, r: &mut RoutineContext) {
+    pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool((engine.mem(0xB4) & 0x80) == 0) {
-            fa54(engine, r);
+            silence_triangle(engine, r);
             return;
         }
         if cbool(u8v(engine.mem(0xB3) - 1) != 0) {
@@ -9715,24 +9718,24 @@ mod routine_0275 {
         }
         engine.set_mem(0xB3, u8v(engine.mem(0xB3) - 1));
         loop {
-            let mut ptr: i32 = u16v(engine.mem(0xB5) | (engine.mem(0xB6) << 8));
-            let mut cmd: i32 = engine.mem(ptr);
-            if cbool(cmd == 0) {
-                routine_0287(engine, r);
-                fa54(engine, r);
+            let mut stream_ptr: i32 = u16v(engine.mem(0xB5) | (engine.mem(0xB6) << 8));
+            let mut note_byte: i32 = engine.mem(stream_ptr);
+            if cbool(note_byte == 0) {
+                rewind_or_stop_audio_stream(engine, r);
+                silence_triangle(engine, r);
                 return;
             }
-            if cbool(cmd != 0xFF) {
-                let mut saved_n: i32 = u8v(cmd & 0x80);
-                r.value = cmd;
+            if cbool(note_byte != 0xFF) {
+                let mut is_rest: i32 = u8v(note_byte & 0x80);
+                r.value = note_byte;
                 inc16_95(engine, r);
-                r.value = u8v(cmd & 0x7F);
+                r.value = u8v(note_byte & 0x7F);
                 engine.set_mem(0xB3, r.value);
-                if cbool(saved_n) {
-                    fa54(engine, r);
+                if cbool(is_rest) {
+                    silence_triangle(engine, r);
                     return;
                 }
-                routine_0283(engine, r);
+                load_note_period(engine, r);
                 engine.set_mem(0x27, engine.mem(0x27) | 0x04);
                 engine.device_write((0x4008), engine.mem(0xBA));
                 engine.device_write((0x400A), engine.mem(0x04));
@@ -9740,25 +9743,25 @@ mod routine_0275 {
                 engine.device_write((0x400B), r.value);
                 return;
             }
-            routine_0277(engine, r);
+            dispatch_audio_stream_command(engine, r);
         }
     }
 }
 
-mod routine_0276 {
+mod tick_noise_channel {
     use super::*;
-    fn silence_FB82(engine: &mut Engine, r: &mut RoutineContext) {
+    fn silence_noise(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x400C, 0x30);
         engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xF7));
     }
 
-    pub fn routine_0276(engine: &mut Engine, r: &mut RoutineContext) {
+    pub fn tick_noise_channel(engine: &mut Engine, r: &mut RoutineContext) {
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
                 0 => {
                     if cbool((engine.mem(0xC4) & 0x80) == 0) {
-                        silence_FB82(engine, r);
+                        silence_noise(engine, r);
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xC3)) != 0) {
@@ -9768,26 +9771,26 @@ mod routine_0276 {
                         }
                     }
                     loop {
-                        let mut ptr: i32 = u16v(engine.mem(0xC5) | (engine.mem(0xC6) << 8));
-                        let mut note: i32 = engine.mem(ptr);
-                        if cbool(note == 0) {
-                            routine_0287(engine, r);
-                            silence_FB82(engine, r);
+                        let mut stream_ptr: i32 = u16v(engine.mem(0xC5) | (engine.mem(0xC6) << 8));
+                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        if cbool(note_byte == 0) {
+                            rewind_or_stop_audio_stream(engine, r);
+                            silence_noise(engine, r);
                             return;
                         }
-                        if cbool(note == 0xFF) {
-                            routine_0277(engine, r);
+                        if cbool(note_byte == 0xFF) {
+                            dispatch_audio_stream_command(engine, r);
                             continue;
                         }
                         inc16_95(engine, r);
-                        engine.set_mem(0xC3, u8v(note & 0x7F));
-                        if cbool(note & 0x80) {
-                            routine_0286(engine, r);
+                        engine.set_mem(0xC3, u8v(note_byte & 0x7F));
+                        if cbool(note_byte & 0x80) {
+                            start_rest_envelope(engine, r);
                         } else {
                             engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x08));
                             engine.device_write(0x400E, engine.mem(0xCA));
                             engine.device_write(0x400F, 0x80);
-                            routine_0285(engine, r);
+                            start_note_envelope(engine, r);
                         }
                         break;
                     }
@@ -9799,12 +9802,12 @@ mod routine_0276 {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xCD)) == 0) {
-                        routine_0288(engine, r);
+                        next_envelope_volume(engine, r);
                         engine.device_write(0x400C, r.value);
                     }
-                    routine_0289(engine, r);
+                    advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
-                        silence_FB82(engine, r);
+                        silence_noise(engine, r);
                     }
                     break 'dispatch;
                 }
@@ -9814,16 +9817,19 @@ mod routine_0276 {
     }
 }
 
-mod routine_0277 {
+mod dispatch_audio_stream_command {
     use super::*;
     fn deref_stream(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
-        let mut x: i32 = u8v(r.index);
-        let mut lo: i32 = engine.mem((0x95 + x) & 0xFF);
-        let mut hi: i32 = engine.mem((0x96 + x) & 0xFF);
+        let mut channel_offset: i32 = u8v(r.index);
+        let mut lo: i32 = engine.mem((0x95 + channel_offset) & 0xFF);
+        let mut hi: i32 = engine.mem((0x96 + channel_offset) & 0xFF);
         return engine.mem(u16v(lo | (hi << 8)));
     }
 
-    pub fn routine_0277(engine: &mut Engine, r: &mut RoutineContext) {
+    // A 0xFF stream byte is followed by command id and value bytes. The command
+    // updates per-channel playback state, then leaves the stream pointer at the
+    // next note/rest/control byte.
+    pub fn dispatch_audio_stream_command(engine: &mut Engine, r: &mut RoutineContext) {
         r.index = engine.mem(0x02);
         inc16_95(engine, r);
         {
@@ -9836,143 +9842,148 @@ mod routine_0277 {
             engine.set_mem(0x05, __v);
         }
         inc16_95(engine, r);
-        let mut idx: i32 = engine.mem(0x04);
-        if cbool(idx >= 0x05) {
+        let mut command_id: i32 = engine.mem(0x04);
+        if cbool(command_id >= 0x05) {
             return;
         }
-        const tbl: [i32; 5] = [0xFBC5, 0xFBE2, 0xFBFF, 0xFC02, 0xFC05];
-        let mut p: i32 = tbl[idx as usize];
-        engine.set_mem(0x06, u8v(p & 0xFF));
-        engine.set_mem(0x07, u8v(p >> 8));
+        const ORIGINAL_COMMAND_HANDLERS: [i32; 5] = [0xFBC5, 0xFBE2, 0xFBFF, 0xFC02, 0xFC05];
+        let mut original_handler: i32 = ORIGINAL_COMMAND_HANDLERS[command_id as usize];
+        engine.set_mem(0x06, u8v(original_handler & 0xFF));
+        engine.set_mem(0x07, u8v(original_handler >> 8));
         r.value = engine.mem(0x05);
         r.index = engine.mem(0x02);
-        match idx {
+        match command_id {
             0 => {
-                routine_0278(engine, r);
+                audio_cmd_set_duty_instrument(engine, r);
             }
             1 => {
-                routine_0279(engine, r);
+                audio_cmd_set_volume_scale(engine, r);
             }
             2 => {
-                routine_0280(engine, r);
+                audio_cmd_set_channel_flags(engine, r);
             }
             3 => {
-                routine_0281(engine, r);
+                audio_cmd_set_pitch_offset(engine, r);
             }
             4 => {
-                routine_0282(engine, r);
+                audio_cmd_set_sweep_value(engine, r);
             }
             _ => {}
         }
     }
 }
 
-mod routine_0278 {
+mod audio_cmd_set_duty_instrument {
     use super::*;
-    pub fn routine_0278(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = u8v(r.value);
-        let mut x: i32 = u8v(r.index);
-        let mut hi: i32 = u8v(u8v(a & 0xF0) << 2);
-        engine.set_mem(0x00, hi);
+    // Command 0 packs pulse duty in the high nibble and envelope table choice
+    // in the low nibble. The low nibble is expanded to a 16-byte table offset.
+    pub fn audio_cmd_set_duty_instrument(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut command_value: i32 = u8v(r.value);
+        let mut channel_offset: i32 = u8v(r.index);
+        let mut duty_bits: i32 = u8v(u8v(command_value & 0xF0) << 2);
+        engine.set_mem(0x00, duty_bits);
         engine.set_mem(
-            (0x99 + x) & 0xFF,
-            u8v((engine.mem((0x99 + x) & 0xFF) & 0x3F) | hi),
+            (0x99 + channel_offset) & 0xFF,
+            u8v((engine.mem((0x99 + channel_offset) & 0xFF) & 0x3F) | duty_bits),
         );
-        a = u8v(a << 4);
-        engine.set_mem((0xA2 + x) & 0xFF, a);
-        engine.set_mem((0x9A + x) & 0xFF, engine.mem(u16v(0xFDD2 + a)));
-        r.value = engine.mem(u16v(0xFDD2 + a));
-        r.offset = a;
-        r.index = x;
+        let mut envelope_offset: i32 = u8v(command_value << 4);
+        engine.set_mem((0xA2 + channel_offset) & 0xFF, envelope_offset);
+        engine.set_mem(
+            (0x9A + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDD2 + envelope_offset)),
+        );
+        r.value = engine.mem(u16v(0xFDD2 + envelope_offset));
+        r.offset = envelope_offset;
+        r.index = channel_offset;
     }
 }
 
-mod routine_0279 {
+mod audio_cmd_set_volume_scale {
     use super::*;
-    pub fn routine_0279(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = u8v(r.index);
-        let mut a: i32 = 0;
-        let mut take_fbec: i32 = 0;
-        a = engine.mem(0x02);
-        if cbool(a == 0x40) {
-            take_fbec = 1;
-        } else {
-            a = engine.mem(0x92);
-            if cbool(a != 0) {
-                r.value = a;
-                r.index = x;
+    // Command 1 stores the per-channel multiplier used after the envelope's raw
+    // 0..15 volume accumulator is updated.
+    pub fn audio_cmd_set_volume_scale(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = u8v(r.index);
+        if !cbool(engine.mem(0x02) == 0x40) {
+            let mut music_volume_override: i32 = engine.mem(0x92);
+            if cbool(music_volume_override != 0) {
+                r.value = music_volume_override;
+                r.index = channel_offset;
                 return;
             }
-            take_fbec = 1;
         }
         {
-            let mut sum: i32 = u16v(0x0F + engine.mem(0x05));
-            let mut carry_in: i32 = 1;
-            let mut diff: i32 = u16v((sum & 0xFF) - 0x08 + (carry_in - 1));
-            let mut bcs: i32 = u8v((sum & 0xFF) >= 0x08);
-            a = u8v(diff);
-            if !cbool(bcs) {
-                a = 0x00;
-            }
-            a = u8v(a << 1);
-            a = u8v(a + 1);
-            engine.set_mem((0xA0 + x) & 0xFF, a);
+            let mut adjusted_command: i32 = u8v(0x0F + engine.mem(0x05));
+            let mut scale: i32 = if cbool(adjusted_command >= 0x08) {
+                u8v(adjusted_command - 0x08)
+            } else {
+                0x00
+            };
+            scale = u8v(scale << 1);
+            scale = u8v(scale + 1);
+            engine.set_mem((0xA0 + channel_offset) & 0xFF, scale);
+            r.value = scale;
         }
-        r.value = a;
-        r.index = x;
+        r.index = channel_offset;
     }
 }
 
-mod routine_0280 {
+mod audio_cmd_set_channel_flags {
     use super::*;
-    pub fn routine_0280(engine: &mut Engine, r: &mut RoutineContext) {
+    // Command 2 replaces the channel flag/register shadow byte at 0x99+x.
+    pub fn audio_cmd_set_channel_flags(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem((0x99 + r.index) & 0xFF, r.value);
     }
 }
 
-mod routine_0281 {
+mod audio_cmd_set_pitch_offset {
     use super::*;
-    pub fn routine_0281(engine: &mut Engine, r: &mut RoutineContext) {
+    // Command 3 stores a fine pitch offset subtracted from the period table.
+    pub fn audio_cmd_set_pitch_offset(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem((0xA1 + r.index) & 0xFF, r.value);
     }
 }
 
-mod routine_0282 {
+mod audio_cmd_set_sweep_value {
     use super::*;
-    pub fn routine_0282(engine: &mut Engine, r: &mut RoutineContext) {
+    // Command 4 replaces the square-channel sweep/noise-period shadow byte.
+    pub fn audio_cmd_set_sweep_value(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem((0x9A + r.index) & 0xFF, r.value);
     }
 }
 
-mod routine_0283 {
+mod load_note_period {
     use super::*;
-    pub fn routine_0283(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut ptr: i32 = u16v(engine.mem(u8v(0x95 + x)) | (engine.mem(u8v(0x96 + x)) << 8));
-        let mut note: i32 = engine.mem(ptr);
+    // Note bytes use the low nibble as the pitch-table index and the high
+    // nibble as the octave shift. The resulting period lands in 0x04/0x05.
+    pub fn load_note_period(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut stream_ptr: i32 = u16v(
+            engine.mem(u8v(0x95 + channel_offset)) | (engine.mem(u8v(0x96 + channel_offset)) << 8),
+        );
+        let mut note_byte: i32 = engine.mem(stream_ptr);
         inc16_95(engine, r);
         {
-            let mut y: i32 = note;
-            let mut idx: i32 = u8v((note & 0x0F) << 1);
-            let mut lo: i32 = engine.mem(u16v(0xFDB1 + idx));
-            let mut hi: i32 = engine.mem(u16v(0xFDB2 + idx));
-            x = engine.mem(0x02);
+            let mut pitch_index: i32 = u8v((note_byte & 0x0F) << 1);
+            let mut lo: i32 = engine.mem(u16v(0xFDB1 + pitch_index));
+            let mut hi: i32 = engine.mem(u16v(0xFDB2 + pitch_index));
+            channel_offset = engine.mem(0x02);
             {
-                let mut sub: i32 = u16v(u16v(lo) - engine.mem(u8v(0xA1 + x)));
+                let mut sub: i32 = u16v(u16v(lo) - engine.mem(u8v(0xA1 + channel_offset)));
                 lo = u8v(sub);
                 if cbool(sub & 0x100) {
                     hi = u8v(hi - 1);
                 }
             }
             {
-                let mut cnt: i32 = u8v(y >> 4);
-                while cbool(cnt != 0) {
-                    let mut newcarry: i32 = u8v(hi & 1);
+                let mut octave_shift_count: i32 = u8v(note_byte >> 4);
+                while cbool(octave_shift_count != 0) {
+                    let mut carry_from_hi: i32 = u8v(hi & 1);
                     hi = u8v(hi >> 1);
-                    lo = u8v((lo >> 1) | (newcarry << 7));
+                    lo = u8v((lo >> 1) | (carry_from_hi << 7));
                     {
-                        cnt -= 1;
-                        cnt
+                        octave_shift_count -= 1;
+                        octave_shift_count
                     };
                 }
             }
@@ -9982,127 +9993,175 @@ mod routine_0283 {
     }
 }
 
-mod routine_0284 {
+mod scale_envelope_volume {
     use super::*;
-    pub fn routine_0284(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = 0x00;
-        let mut y: i32 = u8v(u8v(r.offset + 1));
+    // Multiply the raw envelope accumulator in 0x00 by r.offset+1, then divide
+    // by 16 to return the APU's 4-bit volume value.
+    pub fn scale_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut scaled_volume: i32 = 0x00;
+        let mut multiplier: i32 = u8v(u8v(r.offset + 1));
         loop {
-            a = u8v(a + engine.mem(0x00));
-            y = u8v(y - 1);
-            if !cbool(y != 0) {
+            scaled_volume = u8v(scaled_volume + engine.mem(0x00));
+            multiplier = u8v(multiplier - 1);
+            if !cbool(multiplier != 0) {
                 break;
             }
         }
-        a >>= 4;
-        engine.set_mem(0x00, a);
-        r.value = a;
+        scaled_volume >>= 4;
+        engine.set_mem(0x00, scaled_volume);
+        r.value = scaled_volume;
         r.offset = 0;
     }
 }
 
-mod routine_0285 {
+mod start_note_envelope {
     use super::*;
-    pub fn routine_0285(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut y: i32 = engine.mem((0xA2 + x) & 0xFF);
-        engine.set_mem((0x9B + x) & 0xFF, y);
-        engine.set_mem((0x9C + x) & 0xFF, engine.mem(u16v(0xFDCB + y)));
-        engine.set_mem((0x9D + x) & 0xFF, engine.mem(u16v(0xFDCC + y)));
-        engine.set_mem((0x9E + x) & 0xFF, engine.mem(u16v(0xFDCD + y)));
-        engine.set_mem((0x9F + x) & 0xFF, engine.mem(u16v(0xFDCE + y)));
-        r.index = x;
-        r.offset = y;
+    // Load the first active-note envelope phase into the selected channel lane.
+    pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut envelope_offset: i32 = engine.mem((0xA2 + channel_offset) & 0xFF);
+        engine.set_mem((0x9B + channel_offset) & 0xFF, envelope_offset);
+        engine.set_mem(
+            (0x9C + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCB + envelope_offset)),
+        );
+        engine.set_mem(
+            (0x9D + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCC + envelope_offset)),
+        );
+        engine.set_mem(
+            (0x9E + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCD + envelope_offset)),
+        );
+        engine.set_mem(
+            (0x9F + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCE + envelope_offset)),
+        );
+        r.index = channel_offset;
+        r.offset = envelope_offset;
     }
 }
 
-mod routine_0286 {
+mod start_rest_envelope {
     use super::*;
-    pub fn routine_0286(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut y: i32 = u8v(engine.mem((0xA2 + x) & 0xFF) + 0x0C);
-        engine.set_mem((0x9B + x) & 0xFF, y);
-        engine.set_mem((0x9C + x) & 0xFF, engine.mem(u16v(0xFDCB + y)));
-        engine.set_mem((0x9D + x) & 0xFF, engine.mem(u16v(0xFDCC + y)));
-        engine.set_mem((0x9E + x) & 0xFF, engine.mem(u16v(0xFDCD + y)));
-        r.index = x;
-        r.offset = y;
-        r.value = engine.mem(u16v(0xFDCD + y));
+    // Rest bytes reuse the same envelope table with a +0x0C offset, which
+    // gives the ticker a timed silent phase instead of an audible period.
+    pub fn start_rest_envelope(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut rest_envelope_offset: i32 = u8v(engine.mem((0xA2 + channel_offset) & 0xFF) + 0x0C);
+        engine.set_mem((0x9B + channel_offset) & 0xFF, rest_envelope_offset);
+        engine.set_mem(
+            (0x9C + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCB + rest_envelope_offset)),
+        );
+        engine.set_mem(
+            (0x9D + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCC + rest_envelope_offset)),
+        );
+        engine.set_mem(
+            (0x9E + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCD + rest_envelope_offset)),
+        );
+        r.index = channel_offset;
+        r.offset = rest_envelope_offset;
+        r.value = engine.mem(u16v(0xFDCD + rest_envelope_offset));
     }
 }
 
-mod routine_0287 {
+mod rewind_or_stop_audio_stream {
     use super::*;
-    pub fn routine_0287(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut hi: i32 = 0;
-        engine.set_mem((0x95 + x) & 0xFF, engine.mem((0x97 + x) & 0xFF));
-        hi = engine.mem((0x98 + x) & 0xFF);
-        engine.set_mem((0x96 + x) & 0xFF, hi);
-        if cbool(hi != 0) {
-            engine.set_mem((0x93 + x) & 0xFF, 0x01);
+    // A zero stream byte jumps to the saved loop pointer when one exists; a
+    // missing loop pointer clears the active bit while preserving sfx overlay.
+    pub fn rewind_or_stop_audio_stream(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut loop_pointer_hi: i32 = 0;
+        engine.set_mem(
+            (0x95 + channel_offset) & 0xFF,
+            engine.mem((0x97 + channel_offset) & 0xFF),
+        );
+        loop_pointer_hi = engine.mem((0x98 + channel_offset) & 0xFF);
+        engine.set_mem((0x96 + channel_offset) & 0xFF, loop_pointer_hi);
+        if cbool(loop_pointer_hi != 0) {
+            engine.set_mem((0x93 + channel_offset) & 0xFF, 0x01);
         } else {
-            engine.and_mem((0x94 + x) & 0xFF, 0x40);
+            engine.and_mem((0x94 + channel_offset) & 0xFF, 0x40);
         }
-        r.index = x;
+        r.index = channel_offset;
     }
 }
 
-mod routine_0288 {
+mod next_envelope_volume {
     use super::*;
-    pub fn routine_0288(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut idx: i32 = engine.mem(u8v(0x9B + x));
-        engine.set_mem(u8v(0x9D + x), engine.mem(u16v(0xFDCC + idx)));
+    // Update the current envelope accumulator and compose the APU volume
+    // register value from channel flags, constant-volume bit, and scaled volume.
+    pub fn next_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut envelope_phase: i32 = engine.mem(u8v(0x9B + channel_offset));
+        engine.set_mem(
+            u8v(0x9D + channel_offset),
+            engine.mem(u16v(0xFDCC + envelope_phase)),
+        );
         {
-            let mut v: i32 = engine.mem(u8v(0x9C + x));
-            let mut a: i32 = u8v(v + engine.mem(u8v(0x9F + x)));
-            if cbool(v & 0x80) {
-                if cbool(a >= 0x10) {
-                    a = 0x00;
+            let mut envelope_delta: i32 = engine.mem(u8v(0x9C + channel_offset));
+            let mut accumulator: i32 = u8v(envelope_delta + engine.mem(u8v(0x9F + channel_offset)));
+            if cbool(envelope_delta & 0x80) {
+                if cbool(accumulator >= 0x10) {
+                    accumulator = 0x00;
                 }
             } else {
-                if cbool(a >= 0x10) {
-                    a = 0x0F;
+                if cbool(accumulator >= 0x10) {
+                    accumulator = 0x0F;
                 }
             }
-            engine.set_mem(u8v(0x9F + x), a);
-            engine.set_mem(0x00, a);
+            engine.set_mem(u8v(0x9F + channel_offset), accumulator);
+            engine.set_mem(0x00, accumulator);
         }
-        r.offset = engine.mem(u8v(0xA0 + x));
-        routine_0284(engine, r);
+        r.offset = engine.mem(u8v(0xA0 + channel_offset));
+        scale_envelope_volume(engine, r);
         {
-            let mut result: i32 = u8v((engine.mem(u8v(0x99 + x)) & 0xC0) | engine.mem(0x00) | 0x30);
-            r.value = result;
+            let mut volume_register: i32 =
+                u8v((engine.mem(u8v(0x99 + channel_offset)) & 0xC0) | engine.mem(0x00) | 0x30);
+            r.value = volume_register;
         }
     }
 }
 
-mod routine_0289 {
+mod advance_envelope_phase {
     use super::*;
-    pub fn routine_0289(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        let mut a: i32 = 0;
-        let mut y: i32 = 0;
-        if cbool(engine.dec_mem((0x9E + x) & 0xFF) != 0) {
-            r.index = x;
+    // Tick the phase duration. When it expires, advance four bytes in the
+    // envelope table; low nibbles >= 0x0C mark the terminal silent phase.
+    pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
+        let mut channel_offset: i32 = engine.mem(0x02);
+        let mut phase_low_nibble: i32 = 0;
+        let mut next_phase: i32 = 0;
+        if cbool(engine.dec_mem((0x9E + channel_offset) & 0xFF) != 0) {
+            r.index = channel_offset;
             r.carry = 0;
             return;
         }
-        a = engine.mem((0x9B + x) & 0xFF) & 0x0F;
-        if cbool(a >= 0x0C) {
-            r.index = x;
-            r.value = a;
+        phase_low_nibble = engine.mem((0x9B + channel_offset) & 0xFF) & 0x0F;
+        if cbool(phase_low_nibble >= 0x0C) {
+            r.index = channel_offset;
+            r.value = phase_low_nibble;
             r.carry = 1;
             return;
         }
-        y = u8v(engine.mem((0x9B + x) & 0xFF) + 0x04);
-        engine.set_mem((0x9B + x) & 0xFF, y);
-        engine.set_mem((0x9C + x) & 0xFF, engine.mem(u16v(0xFDCB + y)));
-        engine.set_mem((0x9D + x) & 0xFF, engine.mem(u16v(0xFDCC + y)));
-        engine.set_mem((0x9E + x) & 0xFF, engine.mem(u16v(0xFDCD + y)));
-        r.index = x;
-        r.offset = y;
+        next_phase = u8v(engine.mem((0x9B + channel_offset) & 0xFF) + 0x04);
+        engine.set_mem((0x9B + channel_offset) & 0xFF, next_phase);
+        engine.set_mem(
+            (0x9C + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCB + next_phase)),
+        );
+        engine.set_mem(
+            (0x9D + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCC + next_phase)),
+        );
+        engine.set_mem(
+            (0x9E + channel_offset) & 0xFF,
+            engine.mem(u16v(0xFDCD + next_phase)),
+        );
+        r.index = channel_offset;
+        r.offset = next_phase;
         r.carry = 0;
     }
 }
@@ -10124,7 +10183,7 @@ mod scene_assemble {
 
 mod sfx_overlay_voice {
     use super::*;
-    fn silence_FB0F(engine: &mut Engine, r: &mut RoutineContext) {
+    fn silence_sfx_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4004, (engine.mem(0xD9) & 0xC0) | 0x30);
         engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFD));
     }
@@ -10156,41 +10215,41 @@ mod sfx_overlay_voice {
                             }
                         }
                     } else {
-                        let mut x: i32 = 0;
+                        let mut sfx_table_index: i32 = 0;
                         engine.set_mem(0x91, engine.mem(0x90));
-                        x = u8v(engine.mem(0x8F) << 1);
-                        engine.set_mem(0xD5, engine.mem(u16v(0x8014 + x)));
-                        engine.set_mem(0xD6, engine.mem(u16v(0x8015 + x)));
+                        sfx_table_index = u8v(engine.mem(0x8F) << 1);
+                        engine.set_mem(0xD5, engine.mem(u16v(0x8014 + sfx_table_index)));
+                        engine.set_mem(0xD6, engine.mem(u16v(0x8015 + sfx_table_index)));
                         engine.set_mem(0xD4, 0x80);
                         engine.set_mem(0xA4, u8v(engine.mem(0xA4) | 0x40));
                         engine.set_mem(0x8F, 0x00);
                         engine.set_mem(0x90, 0x00);
                     }
                     loop {
-                        let mut ptr: i32 = u16v(engine.mem(0xD5) | (engine.mem(0xD6) << 8));
-                        let mut note: i32 = engine.mem(ptr);
-                        if cbool(note == 0) {
+                        let mut stream_ptr: i32 = u16v(engine.mem(0xD5) | (engine.mem(0xD6) << 8));
+                        let mut note_byte: i32 = engine.mem(stream_ptr);
+                        if cbool(note_byte == 0) {
                             engine.set_mem(0xD4, 0x00);
                             engine.set_mem(0x91, 0x00);
                             engine.set_mem(0xA4, u8v(engine.mem(0xA4) & 0xBF));
-                            silence_FB0F(engine, r);
+                            silence_sfx_pulse2(engine, r);
                             return;
                         }
-                        if cbool(note == 0xFF) {
-                            routine_0277(engine, r);
+                        if cbool(note_byte == 0xFF) {
+                            dispatch_audio_stream_command(engine, r);
                             continue;
                         }
                         inc16_95(engine, r);
-                        engine.set_mem(0xD3, u8v(note & 0x7F));
-                        if cbool(note & 0x80) {
-                            routine_0286(engine, r);
+                        engine.set_mem(0xD3, u8v(note_byte & 0x7F));
+                        if cbool(note_byte & 0x80) {
+                            start_rest_envelope(engine, r);
                         } else {
-                            routine_0283(engine, r);
+                            load_note_period(engine, r);
                             engine.set_mem(0x27, u8v(0x02 | engine.mem(0x27)));
                             engine.device_write(0x4005, engine.mem(0xDA));
                             engine.device_write(0x4006, engine.mem(0x04));
                             engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0xC0);
-                            routine_0285(engine, r);
+                            start_note_envelope(engine, r);
                         }
                         break;
                     }
@@ -10202,12 +10261,12 @@ mod sfx_overlay_voice {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xDD)) == 0) {
-                        routine_0288(engine, r);
+                        next_envelope_volume(engine, r);
                         engine.device_write(0x4004, r.value);
                     }
-                    routine_0289(engine, r);
+                    advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
-                        silence_FB0F(engine, r);
+                        silence_sfx_pulse2(engine, r);
                     }
                     break 'dispatch;
                 }
@@ -10346,16 +10405,16 @@ mod sound_tick {
             sound_set_song_banks(engine, r);
             engine.set_mem(0x02, 0x00);
             r.value = 0x00;
-            routine_0273(engine, r);
+            tick_pulse1_channel(engine, r);
             engine.set_mem(0x02, 0x10);
             r.value = 0x10;
-            routine_0274(engine, r);
+            tick_pulse2_channel(engine, r);
             engine.set_mem(0x02, 0x20);
             r.value = 0x20;
-            routine_0275(engine, r);
+            tick_triangle_channel(engine, r);
             engine.set_mem(0x02, 0x30);
             r.value = 0x30;
-            routine_0276(engine, r);
+            tick_noise_channel(engine, r);
         }
         sound_restore_game_banks(engine, r);
     }

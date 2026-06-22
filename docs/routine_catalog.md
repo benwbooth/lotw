@@ -67,7 +67,7 @@ Rust dataflow and should be preferred in comments and future renames.
 | `0x84..0x8C` | frame timers | `frame_counters` |
 | `0x8D..0x8F` | audio/sfx mode and pending sfx id | sound tick and sfx overlay |
 | `0x90..0x92` | sfx/music scratch | sound init and overlay voice |
-| `0x93..0xC6` | music channel state | `routine_0273..routine_0289` |
+| `0x93..0xC6` | music channel state | `tick_*_channel`, `dispatch_audio_stream_command`, envelope helpers |
 | `0xD3..0xDD` | sfx overlay channel state | `sfx_overlay_voice` |
 | `0xE3..0xE9` | object-loop slot index and pointers | actor update loops |
 | `0xED..0xFC` | current object scratch slot | copied by `load_object_slot_scratch/store_object_slot_scratch` |
@@ -121,9 +121,6 @@ would currently be weaker than the cluster name.
 | `game` | `0241..0249` | inferred | object motion prediction, animation, collision scan, and hit/damage application |
 | `game` | `0257`, `0258`, `0260..0265` | inferred | actor spawn/setup and multi-sprite boss/body slot composition |
 | `native` | `0259` | inferred | inventory/equipment screen helper path |
-| `game` | `0273..0276` | inferred | four music/audio channel tickers |
-| `game` | `0277..0282` | inferred | music bytecode/control command dispatcher |
-| `game` | `0283..0289` | inferred | note period, envelope, duration, and silence helpers |
 
 ## Named Non-Numbered Routines
 
@@ -137,6 +134,12 @@ surface when touching nearby code:
 | `add_key` | add one key and refresh the key HUD digits |
 | `add_keys` | add to the key counter and refresh its HUD digits |
 | `add_magic_points` | add to magic and refresh its HUD digits |
+| `advance_envelope_phase` | tick the selected audio channel's envelope duration and advance or terminate its phase |
+| `audio_cmd_set_channel_flags` | audio bytecode command 2: replace the selected channel flag/register shadow byte |
+| `audio_cmd_set_duty_instrument` | audio bytecode command 0: set pulse duty bits and choose the envelope/instrument table offset |
+| `audio_cmd_set_pitch_offset` | audio bytecode command 3: set the selected channel's fine pitch offset |
+| `audio_cmd_set_sweep_value` | audio bytecode command 4: set the selected channel's sweep/noise-period shadow byte |
+| `audio_cmd_set_volume_scale` | audio bytecode command 1: set the per-channel envelope volume scale |
 | `build_direction_velocity` | convert direction bits and speed into object velocity scratch `0xF5..0xF7` |
 | `build_health_meter_sprites` | build a two-row OAM health meter from full/empty tile ids |
 | `build_input_movement_delta` | convert current input and speed into player movement scratch `0x49..0x4B` |
@@ -156,6 +159,7 @@ surface when touching nearby code:
 | `consume_health_point` | spend one health point and report empty health through carry |
 | `consume_key` | spend one key and report missing keys through carry |
 | `consume_magic_point` | spend one magic point and report missing magic through carry |
+| `dispatch_audio_stream_command` | consume a `0xFF`-prefixed audio stream command and route it to the selected channel helper |
 | `farcall_bank_09_r7` | temporarily map bank 9 into PRG slot 7 and build a metasprite |
 | `farcall_bank_0C0D_seed` | seed PRG banks 0x0C/0x0D into the bank shadows |
 | `farcall_return_home` | restore saved PRG bank shadows after a farcall-style section |
@@ -163,8 +167,10 @@ surface when touching nearby code:
 | `game_update` | foreground input/player/item update |
 | `inc16_95` | increment the music stream pointer for the selected channel |
 | `load_object_slot_scratch` | copy a 16-byte object slot into scratch RAM `0xED..0xFC` |
+| `load_note_period` | convert an audio note byte into low/high APU period bytes in `0x04/0x05` |
 | `main_init` | hardware/RAM/bootstrap sequence and handoff to main loop |
 | `metasprite_build` | build HUD/metasprite staging data for a queued VRAM upload |
+| `next_envelope_volume` | update the selected audio channel's envelope accumulator and compose the APU volume byte |
 | `ppu_commit_banks` | write all PPU bank shadows to the mapper |
 | `project_player_projectile_position` | project a player projectile from player pose and slot velocity |
 | `probe_object_solid_tile` | test a tile in the current object terrain-probe footprint for solidity |
@@ -175,6 +181,8 @@ surface when touching nearby code:
 | `reset` | top-level reset entry |
 | `resolve_room_tile_pointer` | convert room tile coordinates in scratch into a room tile pointer |
 | `rng_update` | update random source bounded by `r.value` |
+| `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
+| `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
 | `scale_room_tile_column` | multiply a room tile column by the room-data stride of 12 |
 | `scene_assemble` | rebuild room state from current map coordinates |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
@@ -183,6 +191,8 @@ surface when touching nearby code:
 | `song_init` | initialize all music channels for the selected song id |
 | `sound_tick` | per-frame music and sfx tick |
 | `spend_coins` | subtract a coin cost and report affordability through carry |
+| `start_note_envelope` | load the selected channel's active-note envelope phase state |
+| `start_rest_envelope` | load the selected channel's timed silent envelope phase state |
 | `statusbar_split` | status-bar scroll/bank update plus audio tick |
 | `store_object_slot_scratch` | copy scratch RAM `0xED..0xFC` back into the current 16-byte object slot |
 | `subtract_health_points` | subtract damage from health and saturate underflow at zero |
@@ -191,6 +201,10 @@ surface when touching nearby code:
 | `sync_key_hud` | clamp keys and queue their HUD digits for redraw |
 | `sync_magic_hud` | clamp magic and queue its HUD digits for redraw |
 | `text_attr_build` | derive room actor/tile/CHR metadata from the current room record |
+| `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
+| `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
+| `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
+| `tick_triangle_channel` | per-frame music tick for the triangle channel lane at `0xB3..0xB6` |
 | `try_reflect_object_velocity` | try to reflect object velocity away from a blocked subtile edge |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
@@ -209,9 +223,8 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Audio command engine: `routine_0273..0289`.
-2. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
-3. Inventory, item actions, and pickup effects: `routine_0124..0168`.
+1. Main room actor scheduler and behavior dispatch: `routine_0212`, `0215..0265`.
+2. Inventory, item actions, and pickup effects: `routine_0124..0168`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
