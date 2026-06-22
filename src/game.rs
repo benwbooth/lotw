@@ -396,7 +396,7 @@ mod game_update {
                 1 => {
                     check_final_exit_trigger(engine, r);
                     if cbool(engine.mem(0x20) & 0x10) {
-                        routine_0174(engine, r);
+                        run_character_select_overlay(engine, r);
                         return;
                     }
                     tick_selected_item_effect(engine, r);
@@ -5886,7 +5886,7 @@ mod dispatch_overhead_tile_action {
         r.offset = offset;
         match engine.mem(u16v(tile_ptr + r.offset)) & 0x3F {
             0x05 => {
-                routine_0175(engine, r);
+                run_character_select_room_flow(engine, r);
                 engine.lotw_nonlocal_handoff = 1;
                 true
             }

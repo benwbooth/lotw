@@ -1957,7 +1957,9 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     r.carry = 1;
 }
 
-pub fn routine_0174(engine: &mut Engine, r: &mut RoutineContext) {
+/// Opens the in-game character-select overlay, waits for a press/release of the
+/// character-select button, then restores the gameplay room.
+pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext) {
     set_prompt_state(engine, 0x03);
     engine.inc_mem(0x8d);
 
@@ -2012,7 +2014,9 @@ pub fn routine_0174(engine: &mut Engine, r: &mut RoutineContext) {
     engine.dec_mem(0x8d);
 }
 
-pub fn routine_0176(engine: &mut Engine, r: &mut RoutineContext) {
+/// Shows the read-only inventory item-list page until the player presses a
+/// button, then returns to the character-selection room page.
+pub fn show_inventory_item_list_screen(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x10);
     crate::game::routine_0081(engine, r);
     crate::game::routine_0060(engine, r);
@@ -2040,7 +2044,9 @@ pub fn routine_0176(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::routine_0060(engine, r);
 }
 
-pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the interactive inventory item-grid editor from the character-selection
+/// room.
+pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext) {
     engine.set_mem(0x7c, 0x30);
     crate::game::routine_0081(engine, r);
     crate::game::clear_inventory_item_list_buffer(engine, r);
@@ -2105,7 +2111,9 @@ pub fn routine_0177(engine: &mut Engine, r: &mut RoutineContext) {
     }
 }
 
-pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
+/// Runs the special room flow used to refill resources, return carried items,
+/// pick a family member, and optionally visit the inventory item pages.
+pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.mem(0x48) != 0x10 {
         routine_0193(engine, r);
         r.value = 0x04;
@@ -2222,11 +2230,11 @@ pub fn routine_0175(engine: &mut Engine, r: &mut RoutineContext) {
                 chosen = Some(0x02);
             } else if lo == 0x0a {
                 set_prompt_state(engine, 0x03);
-                routine_0176(engine, r);
+                show_inventory_item_list_screen(engine, r);
                 continue;
             } else if lo == 0x0c {
                 set_prompt_state(engine, 0x03);
-                routine_0177(engine, r);
+                run_inventory_item_grid_menu(engine, r);
                 continue;
             }
         } else if hi == 0x90 {

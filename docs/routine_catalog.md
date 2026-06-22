@@ -100,8 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `native` | `0174..0177` | inferred | character swap/inventory selection flow |
-| `native` | `0175` | inferred | inventory item compaction and carried-item reordering |
 | `native` | `0187..0191`, `0193`, `0194` | inferred | room transition/death/return-home state handling |
 | `game` | `0192`, `0195..0201` | cluster | room transition, item/score/effect helpers |
 | `native` | `0240` | inferred | high-bit/special actor update path |
@@ -226,6 +224,9 @@ surface when touching nearby code:
 | `reverse_actor_horizontal_direction` | flip the low horizontal actor direction bits |
 | `rng_update` | update random source bounded by `r.value` |
 | `run_warp_transition_effect` | shared scroll/audio transition used before scripted room warps |
+| `run_character_select_overlay` | open the in-game character-select overlay, wait for select-button release, and restore the room |
+| `run_character_select_room_flow` | run the special room flow for resource refill, carried-item return, family selection, and item pages |
+| `run_inventory_item_grid_menu` | run the interactive inventory item-grid editor from the character-selection room |
 | `rewind_or_stop_audio_stream` | handle a zero audio stream byte by rewinding to the loop pointer or stopping the channel |
 | `restore_inventory_state_snapshot` | restore progress, inventory counts, coins, and keys saved before inventory/status flows |
 | `scale_envelope_volume` | apply the selected channel volume scale to the raw 4-bit envelope accumulator |
@@ -234,6 +235,7 @@ surface when touching nearby code:
 | `seed_object_position_from_tile_offset` | convert a tile sample offset and projected coordinates into object scratch position |
 | `select_inventory_grid_entry` | copy the active inventory grid entry into the scrolling item-list buffer or handle menu controls |
 | `set_inventory_list_buffer_index` | convert the scrolling item-list cursor into a 32-byte buffer index |
+| `show_inventory_item_list_screen` | show the read-only inventory item-list page until the player presses a button |
 | `spawn_player_projectile` | allocate/spawn a player projectile from current input and facing |
 | `split_meter_value` | split a resource value into full 10-point blocks and a partial block |
 | `sfx_overlay_voice` | play pending sound effects over music channel state |
@@ -310,7 +312,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Native inventory/selection flows: `routine_0174..0177`.
+1. Room transition/death/return-home flows: `routine_0187..0194`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.
