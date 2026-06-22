@@ -83,6 +83,7 @@ pub use grant_long_invulnerability::grant_long_invulnerability;
 pub use grant_long_speed_boost::grant_long_speed_boost;
 pub use grant_short_invulnerability::grant_short_invulnerability;
 pub use grant_short_speed_boost::grant_short_speed_boost;
+pub use handle_player_room_transition::handle_player_room_transition;
 pub use inc16_95::inc16_95;
 pub use initialize_large_actor_slot::initialize_large_actor_slot;
 pub use load_effective_jump_duration::load_effective_jump_duration;
@@ -100,6 +101,7 @@ pub use probe_object_solid_tile::probe_object_solid_tile;
 pub use probe_player_solid_tile::probe_player_solid_tile;
 pub use probe_projected_solid_tile::probe_projected_solid_tile;
 pub use project_actor_position::project_actor_position;
+pub use project_player_position::project_player_position;
 pub use project_player_projectile_position::project_player_projectile_position;
 pub use ram_state_init::ram_state_init;
 pub use read_controllers::read_controllers;
@@ -187,12 +189,6 @@ pub use routine_0120::routine_0120;
 pub use routine_0121::routine_0121;
 pub use routine_0122::routine_0122;
 pub use routine_0123::routine_0123;
-pub use routine_0142::routine_0142;
-pub use routine_0143::routine_0143;
-pub use routine_0144::routine_0144;
-pub use routine_0145::routine_0145;
-pub use routine_0146::routine_0146;
-pub use routine_0147::routine_0147;
 pub use routine_0170::routine_0170;
 pub use routine_0171::routine_0171;
 pub use routine_0172::routine_0172;
@@ -249,6 +245,7 @@ pub use tick_ledge_walking_actor::tick_ledge_walking_actor;
 pub use tick_noise_channel::tick_noise_channel;
 pub use tick_overhead_probe_actor::tick_overhead_probe_actor;
 pub use tick_player_jump_action::tick_player_jump_action;
+pub use tick_player_walk_animation::tick_player_walk_animation;
 pub use tick_pulse1_channel::tick_pulse1_channel;
 pub use tick_pulse2_channel::tick_pulse2_channel;
 pub use tick_random_floating_actor::tick_random_floating_actor;
@@ -266,10 +263,13 @@ pub use try_large_actor_jump_arc_motion::try_large_actor_jump_arc_motion;
 pub use try_move_actor_with_terrain::try_move_actor_with_terrain;
 pub use try_move_actor_without_terrain::try_move_actor_without_terrain;
 pub use try_move_large_actor_with_terrain::try_move_large_actor_with_terrain;
+pub use try_move_player_with_collision::try_move_player_with_collision;
 pub use try_reflect_object_velocity::try_reflect_object_velocity;
+pub use try_trigger_magic_contact_actor::try_trigger_magic_contact_actor;
 pub use update_actor_animation::update_actor_animation;
 pub use update_large_actor_facing_from_velocity::update_large_actor_facing_from_velocity;
 pub use update_object_terrain_probe::update_object_terrain_probe;
+pub use update_player_pose_from_motion::update_player_pose_from_motion;
 pub use update_player_projectile_slot::update_player_projectile_slot;
 pub use update_player_projectiles::update_player_projectiles;
 pub use update_room_actors::update_room_actors;
@@ -452,7 +452,7 @@ mod game_update {
                     build_input_movement_delta(engine, r);
                     if cbool(engine.mem(0x4E) != 0) {
                         engine.set_mem(0x4B, u8v((engine.mem(0x4E) >> 2) + 1));
-                        routine_0146(engine, r);
+                        try_move_player_with_collision(engine, r);
                         if !cbool(r.carry) {
                             {
                                 state = 3;
@@ -461,7 +461,7 @@ mod game_update {
                         }
                         engine.set_mem(0x49, 0x00);
                         engine.set_mem(0x4A, 0x00);
-                        routine_0146(engine, r);
+                        try_move_player_with_collision(engine, r);
                         if !cbool(r.carry) {
                             {
                                 state = 3;
@@ -489,7 +489,7 @@ mod game_update {
                         engine.set_mem(0x22, 0x00);
                         engine.set_mem(0x4F, 0x00);
                     }
-                    routine_0146(engine, r);
+                    try_move_player_with_collision(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 2;
@@ -578,8 +578,8 @@ mod game_update {
                     continue 'dispatch;
                 }
                 6 => {
-                    routine_0144(engine, r);
-                    routine_0145(engine, r);
+                    update_player_pose_from_motion(engine, r);
+                    tick_player_walk_animation(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -4606,7 +4606,7 @@ mod tick_player_jump_action {
                         let upward_speed: i32 = u8v(jump_timer >> 2);
                         engine.set_mem(0x4B, u8v((upward_speed ^ 0xFF) + 1));
                     }
-                    routine_0146(engine, r);
+                    try_move_player_with_collision(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 2;
@@ -4615,7 +4615,7 @@ mod tick_player_jump_action {
                     }
                     engine.set_mem(0x49, 0x00);
                     engine.set_mem(0x4A, 0x00);
-                    routine_0146(engine, r);
+                    try_move_player_with_collision(engine, r);
                     if !cbool(r.carry) {
                         {
                             state = 2;
@@ -4663,8 +4663,8 @@ mod tick_player_jump_action {
                     continue 'dispatch;
                 }
                 4 => {
-                    routine_0144(engine, r);
-                    routine_0145(engine, r);
+                    update_player_pose_from_motion(engine, r);
+                    tick_player_walk_animation(engine, r);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -4907,8 +4907,9 @@ mod run_warp_transition_effect {
     }
 }
 
-mod routine_0142 {
+mod handle_player_room_transition {
     use super::*;
+
     fn scene_rebuild_full(engine: &mut Engine, r: &mut RoutineContext) {
         routine_0067(engine, r);
         reset_room_object_slots(engine, r);
@@ -4932,9 +4933,12 @@ mod routine_0142 {
         r.carry = 1;
     }
 
-    pub fn routine_0142(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut a: i32 = engine.mem(0x0045);
-        if cbool(a < 0x10) {
+    /// Handles player transitions across room edges. Vertical exits can rebuild
+    /// a whole room or a vertical strip; horizontal exits play the side-scroll
+    /// transition while moving the map-space room coordinate.
+    pub fn handle_player_room_transition(engine: &mut Engine, r: &mut RoutineContext) {
+        let player_y: i32 = engine.mem(0x0045);
+        if cbool(player_y < 0x10) {
             check_top_boundary_exit_clear(engine, r);
             if cbool(r.carry == 0) {
                 return;
@@ -4958,7 +4962,7 @@ mod routine_0142 {
             scene_rebuild_vert(engine, r);
             return;
         }
-        if cbool(a >= 0xA1) {
+        if cbool(player_y >= 0xA1) {
             if cbool(engine.mem(0x0048) == 0x10) {
                 engine.set_mem(0x0048, 0x00);
                 engine.set_mem(0x0047, 0x00);
@@ -5094,31 +5098,35 @@ mod routine_0142 {
     }
 }
 
-mod routine_0143 {
+mod project_player_position {
     use super::*;
-    pub fn routine_0143(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut dx: i32 = 0;
-        let mut sum: i32 = 0;
-        let mut carry: i32 = 0;
+
+    /// Copies player position `0x43..0x45` into projection scratch
+    /// `0x0E/0x0F/0x0A`, then applies horizontal delta `0x49/0x4A` and vertical
+    /// delta `0x4B`.
+    pub fn project_player_position(engine: &mut Engine, r: &mut RoutineContext) {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0F, engine.mem(0x44));
         engine.set_mem(0x0A, engine.mem(0x45));
         if cbool(engine.mem(0x4B) != 0) {
             engine.set_mem(0x0A, u8v(engine.mem(0x4B) + engine.mem(0x0A)));
         }
-        dx = engine.mem(0x49);
-        if cbool(dx != 0) {
-            sum = u8v(dx + engine.mem(0x0E));
+        let horizontal_subtile_delta: i32 = engine.mem(0x49);
+        if cbool(horizontal_subtile_delta != 0) {
+            let sum: i32 = u8v(horizontal_subtile_delta + engine.mem(0x0E));
             engine.set_mem(0x0E, u8v(sum & 0x0F));
-            carry = u8v((sum >> 4) & 1);
+            let carry: i32 = u8v((sum >> 4) & 1);
             engine.set_mem(0x0F, u8v(engine.mem(0x0F) + engine.mem(0x4A) + carry));
         }
     }
 }
 
-mod routine_0144 {
+mod update_player_pose_from_motion {
     use super::*;
-    pub fn routine_0144(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Updates the player pose byte `0x56` and horizontal flip `0x57` from the
+    /// current movement deltas, jump/fall counters, and action lockout.
+    pub fn update_player_pose_from_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
         let mut a: i32 = 0;
@@ -5240,9 +5248,12 @@ mod routine_0144 {
     }
 }
 
-mod routine_0145 {
+mod tick_player_walk_animation {
     use super::*;
-    pub fn routine_0145(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Advances the walking animation every eight movement ticks and folds the
+    /// current action/facing button into the pose byte.
+    pub fn tick_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.mem(0x46) == 0) {
             if cbool(engine.mem(0x56) < 0x20) {
                 if cbool(engine.mem(0x20) & 0x40) {
@@ -5270,11 +5281,14 @@ mod routine_0145 {
     }
 }
 
-mod routine_0146 {
+mod try_move_player_with_collision {
     use super::*;
-    pub fn routine_0146(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut save4B: i32 = engine.mem(0x4B);
-        let mut save49: i32 = engine.mem(0x49);
+
+    /// Projects a player move, handles room exits/tile actions/object contact,
+    /// retries speed-boost nudges, and restores movement deltas before return.
+    pub fn try_move_player_with_collision(engine: &mut Engine, r: &mut RoutineContext) {
+        let saved_vertical_delta: i32 = engine.mem(0x4B);
+        let saved_horizontal_subtile_delta: i32 = engine.mem(0x49);
         let mut a: i32 = 0;
         let mut x: i32 = 0;
         let mut v: i32 = 0;
@@ -5282,10 +5296,10 @@ mod routine_0146 {
         'dispatch: loop {
             match state {
                 1 => {
-                    routine_0143(engine, r);
+                    project_player_position(engine, r);
                     check_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
-                        routine_0142(engine, r);
+                        handle_player_room_transition(engine, r);
                         if cbool(r.carry) {
                             {
                                 state = 7;
@@ -5370,7 +5384,7 @@ mod routine_0146 {
                     continue 'dispatch;
                 }
                 3 => {
-                    routine_0147(engine, r);
+                    try_trigger_magic_contact_actor(engine, r);
                     state = 4;
                     continue 'dispatch;
                 }
@@ -5414,7 +5428,7 @@ mod routine_0146 {
                     continue 'dispatch;
                 }
                 6 => {
-                    engine.set_mem(0x49, save49);
+                    engine.set_mem(0x49, saved_horizontal_subtile_delta);
                     x = engine.mem(0x4B);
                     if cbool(x == 0) {
                         {
@@ -5442,8 +5456,8 @@ mod routine_0146 {
                     continue 'dispatch;
                 }
                 8 => {
-                    engine.set_mem(0x49, save49);
-                    engine.set_mem(0x4B, save4B);
+                    engine.set_mem(0x49, saved_horizontal_subtile_delta);
+                    engine.set_mem(0x4B, saved_vertical_delta);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -5452,9 +5466,12 @@ mod routine_0146 {
     }
 }
 
-mod routine_0147 {
+mod try_trigger_magic_contact_actor {
     use super::*;
-    pub fn routine_0147(engine: &mut Engine, r: &mut RoutineContext) {
+
+    /// Marks the contacted actor for its high-bit behavior when the selected
+    /// magic-contact timer is active and magic remains.
+    pub fn try_trigger_magic_contact_actor(engine: &mut Engine, r: &mut RoutineContext) {
         if (cbool(engine.mem(0x2D) < 0x30)
             && cbool(engine.mem(0x87) != 0)
             && cbool(engine.mem(0x59) != 0))
@@ -6123,7 +6140,7 @@ mod routine_0173 {
                     continue 'dispatch;
                 }
                 2 => {
-                    routine_0146(engine, r);
+                    try_move_player_with_collision(engine, r);
                     return;
                     state = 3;
                     continue 'dispatch;
@@ -6347,8 +6364,8 @@ mod routine_0192 {
         routine_0063(engine, r);
         routine_0060(engine, r);
         routine_0070(engine, r);
-        routine_0144(engine, r);
-        routine_0145(engine, r);
+        update_player_pose_from_motion(engine, r);
+        tick_player_walk_animation(engine, r);
     }
 }
 
@@ -6373,7 +6390,7 @@ mod routine_0195 {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
         }
         routine_0078(engine, r);
-        routine_0144(engine, r);
+        update_player_pose_from_motion(engine, r);
         routine_0061(engine, r);
         routine_0060(engine, r);
     }
@@ -6400,7 +6417,7 @@ mod routine_0196 {
             engine.set_mem(0x7A, u8v(0x1F + 0xA0));
         }
         routine_0078(engine, r);
-        routine_0144(engine, r);
+        update_player_pose_from_motion(engine, r);
         routine_0061(engine, r);
         routine_0060(engine, r);
     }

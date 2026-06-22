@@ -2375,7 +2375,7 @@ pub fn routine_0191(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = buttons & 0x0f;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
-        crate::game::routine_0143(engine, r);
+        crate::game::project_player_position(engine, r);
 
         let ty = engine.mem(0x0a);
         if ty >= 0x30 && ty < 0xa1 {
@@ -2472,7 +2472,7 @@ pub fn routine_0189(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = buttons & 0x0f;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
-        crate::game::routine_0143(engine, r);
+        crate::game::project_player_position(engine, r);
 
         let ty = engine.mem(0x0a);
         if ty >= 0xa1 {
@@ -2489,8 +2489,8 @@ pub fn routine_0189(engine: &mut Engine, r: &mut RoutineContext) {
             }
         }
 
-        crate::game::routine_0144(engine, r);
-        crate::game::routine_0145(engine, r);
+        crate::game::update_player_pose_from_motion(engine, r);
+        crate::game::tick_player_walk_animation(engine, r);
         crate::game::routine_0061(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
@@ -2510,7 +2510,7 @@ pub fn routine_0190(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = buttons & 0x0f;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
-        crate::game::routine_0143(engine, r);
+        crate::game::project_player_position(engine, r);
 
         let ty = engine.mem(0x0a);
         if ty >= 0xa1 {
@@ -2535,8 +2535,8 @@ pub fn routine_0190(engine: &mut Engine, r: &mut RoutineContext) {
             }
         }
 
-        crate::game::routine_0144(engine, r);
-        crate::game::routine_0145(engine, r);
+        crate::game::update_player_pose_from_motion(engine, r);
+        crate::game::tick_player_walk_animation(engine, r);
         crate::game::routine_0061(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);

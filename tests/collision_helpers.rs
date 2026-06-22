@@ -198,6 +198,61 @@ fn player_terrain_contact_resets_contact_state_while_locked() {
 }
 
 #[test]
+fn project_player_position_applies_subtile_carry_and_vertical_delta() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x43, 0x0E);
+    engine.set_mem(0x44, 0x10);
+    engine.set_mem(0x45, 0x50);
+    engine.set_mem(0x49, 0x05);
+    engine.set_mem(0x4A, 0x00);
+    engine.set_mem(0x4B, 0xFE);
+
+    game::project_player_position(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0E), 0x03);
+    assert_eq!(engine.mem(0x0F), 0x11);
+    assert_eq!(engine.mem(0x0A), 0x4E);
+}
+
+#[test]
+fn player_walk_animation_toggles_pose_every_eight_movement_ticks() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x20, 0x41);
+    engine.set_mem(0x56, 0x01);
+    engine.set_mem(0x57, 0x00);
+    engine.set_mem(0x4D, 0x07);
+
+    game::tick_player_walk_animation(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x4D), 0x08);
+    assert_eq!(engine.mem(0x56), 0x15);
+    assert_eq!(engine.mem(0x57), 0x00);
+}
+
+#[test]
+fn magic_contact_actor_marks_hit_slot_when_timer_and_magic_are_active() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x2D, 0x20);
+    engine.set_mem(0x87, 0x01);
+    engine.set_mem(0x59, 0x01);
+    engine.set_mem(0x09, 0x30);
+
+    game::try_trigger_magic_contact_actor(&mut engine, &mut r);
+    assert_eq!(engine.mem(0x0431), 0x80);
+
+    engine.set_mem(0x0431, 0x00);
+    engine.set_mem(0x59, 0x00);
+    game::try_trigger_magic_contact_actor(&mut engine, &mut r);
+    assert_eq!(engine.mem(0x0431), 0x00);
+}
+
+#[test]
 fn try_reflect_object_velocity_reports_no_reflection_when_stationary() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();

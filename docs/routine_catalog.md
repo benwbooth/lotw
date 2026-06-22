@@ -100,7 +100,6 @@ would currently be weaker than the cluster name.
 | `game` | `0073..0089` | inferred | VRAM/PPU setup, room render upload, palette updates, and room assembly helpers |
 | `native` | `0109`, `0110` | inferred | object/player overlap search across live object slots |
 | `game` | `0117..0123` | cluster | persistent room flag and room tile mutation helpers |
-| `game` | `0142..0147` | inferred | player movement projection, room-boundary transitions, facing/animation, and object contact checks |
 | `native` | `0169` | inferred | tile action dispatch, including item use and special projectile spawn |
 | `game` | `0170..0173` | inferred | object spawn coordinate setup, room tile readback, and movement intent resolution |
 | `native` | `0174..0177` | inferred | character swap/inventory selection flow |
@@ -193,6 +192,7 @@ surface when touching nearby code:
 | `grant_long_speed_boost` | start or queue a long speed/action boost reward timer |
 | `grant_short_invulnerability` | start the short invulnerability reward timer |
 | `grant_short_speed_boost` | start or queue a short speed/action boost reward timer |
+| `handle_player_room_transition` | handle player transitions across room edges, including scroll/rebuild effects |
 | `inc16_95` | increment the music stream pointer for the selected channel |
 | `initialize_large_actor_slot` | spawn the special large actor slot from room actor data after checking its wide footprint |
 | `load_effective_jump_duration` | load jump duration, applying the selected jump-item boost when magic is available |
@@ -211,6 +211,7 @@ surface when touching nearby code:
 | `probe_projected_solid_tile` | test a tile in the projected movement footprint for solidity |
 | `probe_player_solid_tile` | test a player-footprint tile sample, including the tile-aligned empty-floor case |
 | `project_actor_position` | project actor scratch position through actor velocity into movement scratch |
+| `project_player_position` | project player position through horizontal and vertical movement deltas into scratch |
 | `ram_state_init` | initialize zero-page, palette, and RAM defaults from ROM tables |
 | `read_controllers` | read replay/live input into the current button byte |
 | `read_debounced_buttons` | wait for release, press, and release, returning the pressed buttons |
@@ -253,6 +254,7 @@ surface when touching nearby code:
 | `tick_noise_channel` | per-frame music tick for the noise channel lane at `0xC3..0xC6` |
 | `tick_overhead_probe_actor` | actor behavior that alternates overhead probes, falling, and jump arcs |
 | `tick_player_jump_action` | start or continue the player jump/action arc and apply the selected jump-item boost |
+| `tick_player_walk_animation` | advance the player walk animation and facing/action overlay bits |
 | `tick_pulse1_channel` | per-frame music tick for the first square/pulse channel lane at `0x93..0x96` |
 | `tick_pulse2_channel` | per-frame music tick for the second square/pulse channel lane at `0xA3..0xA6`, including sfx overlay suppression |
 | `tick_random_floating_actor` | actor behavior that chooses random directions and moves without terrain collision |
@@ -270,10 +272,13 @@ surface when touching nearby code:
 | `try_move_actor_with_terrain` | project an actor move, check bounds/player/terrain, and report whether movement was blocked |
 | `try_move_actor_without_terrain` | project an actor move that ignores terrain but still checks player contact and bounds |
 | `try_move_large_actor_with_terrain` | project large actor motion, apply wide contact damage, and reject the three-tile-wide footprint |
+| `try_move_player_with_collision` | project a player move, handle room exits/tile actions/object contact, and restore deltas |
 | `trigger_damage_pickup` | apply the harmful pickup/trap reward effect |
+| `try_trigger_magic_contact_actor` | mark a contacted actor for high-bit behavior when the magic-contact timer is active |
 | `unlock_door_with_key` | spend a key and run the door-unlock prompt/music sequence |
 | `update_actor_animation` | dispatch the actor animation mode from room actor data byte 7 |
 | `update_object_terrain_probe` | advance the normal object terrain probe when its footprint stays clear |
+| `update_player_pose_from_motion` | update player pose and horizontal flip from movement, jump/fall, and lockout state |
 | `update_room_actors` | room actor scheduler that copies object slots to scratch, runs the state path, and stores them back |
 | `update_large_actor_facing_from_velocity` | update the large actor facing bit from horizontal velocity |
 | `upload_resource_hud` | queue the resource HUD VRAM upload after counter changes |
@@ -294,7 +299,7 @@ surface when touching nearby code:
 
 The safest remaining concrete rename/alias batches are:
 
-1. Player movement helpers: `routine_0142..0147`.
+1. Tile action and object-spawn helpers: `routine_0169..0173`.
 
 Each batch should come with a narrow regression test or an existing replay smoke
 before replacing numeric call sites.

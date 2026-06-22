@@ -29,7 +29,7 @@ fn item_pickup_updates_inventory_and_clears_object() {
     engine.set_mem(0x040e + 0x80, engine.mem(0x45));
 
     r.value = 0x00;
-    game::routine_0146(&mut engine, &mut r);
+    game::try_move_player_with_collision(&mut engine, &mut r);
 
     expect_u8(&engine, "inventory count", 0x0060, 0x01);
     expect_u8(&engine, "object active", 0x0401 + 0x80, 0x00);
