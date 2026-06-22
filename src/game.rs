@@ -117,7 +117,7 @@ pub use grant_short_invulnerability::grant_short_invulnerability;
 pub use grant_short_speed_boost::grant_short_speed_boost;
 pub use handle_player_room_transition::handle_player_room_transition;
 pub use hide_all_sprite_y_positions::hide_all_sprite_y_positions;
-pub use inc16_95::inc16_95;
+pub use increment_selected_music_stream_pointer::increment_selected_music_stream_pointer;
 pub use initialize_large_actor_slot::initialize_large_actor_slot;
 pub use load_demo_oam_template::load_demo_oam_template;
 pub use load_effective_jump_duration::load_effective_jump_duration;
@@ -353,21 +353,17 @@ mod farcall_return_home {
 
 mod frame_counters {
     use super::*;
+
+    /// Ticks the frame prescaler at `0x84` and decrements the eight coarse
+    /// timers at `0x85..0x8C` once per 60 frames.
     pub fn frame_counters(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.dec_mem(0x84) != 0) {
             return;
         }
-        {
-            let mut x: i32 = 7;
-            while cbool(x >= 0) {
-                if cbool(engine.mem((0x85 + x) & 0xFF) != 0) {
-                    engine.dec_mem((0x85 + x) & 0xFF);
-                }
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
+        for timer_offset in (0..=7).rev() {
+            let timer_addr = (0x85 + timer_offset) & 0xFF;
+            if cbool(engine.mem(timer_addr) != 0) {
+                engine.dec_mem(timer_addr);
             }
         }
         engine.set_mem(0x84, 0x3C);
@@ -587,14 +583,17 @@ mod game_update {
     }
 }
 
-mod inc16_95 {
+mod increment_selected_music_stream_pointer {
     use super::*;
-    pub fn inc16_95(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x02);
-        if cbool(engine.inc_mem((0x95 + x) & 0xFF) == 0) {
-            engine.inc_mem((0x96 + x) & 0xFF);
+
+    /// Advances the 16-bit music stream pointer selected by the channel offset
+    /// in `0x02`.
+    pub fn increment_selected_music_stream_pointer(engine: &mut Engine, r: &mut RoutineContext) {
+        let channel_pointer_offset: i32 = engine.mem(0x02);
+        if cbool(engine.inc_mem((0x95 + channel_pointer_offset) & 0xFF) == 0) {
+            engine.inc_mem((0x96 + channel_pointer_offset) & 0xFF);
         }
-        r.index = x;
+        r.index = channel_pointer_offset;
     }
 }
 
@@ -607,10 +606,10 @@ mod main_init {
         mut hi: i32,
         target: RoutineFn,
     ) {
-        let mut old6: i32 = engine.mem(0x30);
-        let mut old7: i32 = engine.mem(0x31);
-        engine.set_mem(0x32, old6);
-        engine.set_mem(0x33, old7);
+        let saved_bank_6: i32 = engine.mem(0x30);
+        let saved_bank_7: i32 = engine.mem(0x31);
+        engine.set_mem(0x32, saved_bank_6);
+        engine.set_mem(0x33, saved_bank_7);
         engine.set_mem(0x0E, lo);
         engine.set_mem(0x0F, hi);
         engine.set_mem(0x30, 0x0C);
@@ -618,12 +617,14 @@ mod main_init {
         engine.set_mem(0x25, 0x07);
         engine.prg_map_shadow();
         target(engine, r);
-        engine.set_mem(0x31, old7);
-        engine.set_mem(0x30, old6);
+        engine.set_mem(0x31, saved_bank_7);
+        engine.set_mem(0x30, saved_bank_6);
         engine.set_mem(0x25, 0x06);
         engine.prg_map_shadow();
     }
 
+    /// Performs the cold-start initialization path and enters the main game
+    /// dispatcher after the title screen flow completes.
     pub fn main_init(engine: &mut Engine, r: &mut RoutineContext) {
         engine.device_write(0x2000, 0x00);
         engine.device_write(0x2001, 0x00);
@@ -717,19 +718,12 @@ mod metasprite_build {
 
 mod ppu_commit_banks {
     use super::*;
+
+    /// Writes the eight PPU bank shadows at `0x2A..0x31` to the mapper.
     pub fn ppu_commit_banks(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 7;
-            while cbool(x >= 0) {
-                engine.device_write(0x8000, u8v(x));
-                engine.device_write(0x8001, engine.mem(u16v(0x2A + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for bank_register in (0..=7).rev() {
+            engine.device_write(0x8000, u8v(bank_register));
+            engine.device_write(0x8001, engine.mem(0x2A + bank_register));
         }
         r.index = 0xFF;
     }
@@ -737,117 +731,60 @@ mod ppu_commit_banks {
 
 mod ram_state_init {
     use super::*;
+
+    /// Initializes zero-page, stack work RAM, palette RAM, and persistent object
+    /// pages from the ROM default tables.
     pub fn ram_state_init(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut i: i32 = 0;
-        x = 0;
-        loop {
-            engine.set_mem(0x0000 + x, engine.mem(0x9B9F + x));
-            if !cbool(
-                {
-                    x = u8v(x + 1);
-                    x
-                } != 0,
-            ) {
-                break;
-            }
+        for zero_page_addr in 0..=0xFF {
+            engine.set_mem(zero_page_addr, engine.mem(0x9B9F + zero_page_addr));
         }
-        {
-            i = 0x3F;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0100 + u8v(i), engine.mem(0x9C9E + u8v(i)));
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+
+        for stack_offset in (0..=0x3F).rev() {
+            engine.set_mem(0x0100 + stack_offset, engine.mem(0x9C9E + stack_offset));
         }
-        {
-            i = 0x1F;
-            while cbool(i >= 0) {
-                engine.set_mem(0x0180 + u8v(i), 0x0F);
-                {
-                    let __old = i;
-                    i -= 1;
-                    __old
-                };
-            }
+
+        for palette_offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0180 + palette_offset, 0x0F);
         }
-        x = 0;
-        loop {
-            engine.set_mem(0x0300 + x, engine.mem(0x9D3E + x));
-            if !cbool(
-                {
-                    x = u8v(x + 1);
-                    x
-                } != 0,
-            ) {
-                break;
-            }
+
+        for save_ram_offset in 0..=0xFF {
+            engine.set_mem(
+                0x0300 + save_ram_offset,
+                engine.mem(0x9D3E + save_ram_offset),
+            );
         }
-        x = 0;
-        loop {
-            engine.set_mem(0x0400 + x, engine.mem(0x9DC9 + x));
-            if !cbool(
-                {
-                    x = u8v(x + 1);
-                    x
-                } != 0,
-            ) {
-                break;
-            }
+
+        for object_ram_offset in 0..=0xFF {
+            engine.set_mem(
+                0x0400 + object_ram_offset,
+                engine.mem(0x9DC9 + object_ram_offset),
+            );
         }
     }
 }
 
 mod read_controllers {
     use super::*;
+
+    /// Polls both controller ports and stores the merged button state in
+    /// `0x20`, using replay input when one is configured.
     pub fn read_controllers(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut a: i32 = 0;
-        let mut c: i32 = 0;
-        if let Some(__buttons) = engine.next_input() {
-            engine.ppu.set_buttons(__buttons);
+        if let Some(replay_buttons) = engine.next_input() {
+            engine.ppu.set_buttons(replay_buttons);
         }
         engine.device_write(0x4016, 0x01);
         engine.device_write(0x4016, 0x00);
-        {
-            x = 8;
-            while cbool(x != 0) {
-                a = u8v(engine.device_read(0x4016) | engine.device_read(0x4017));
-                c = a & 1;
-                a >>= 1;
-                engine.set_mem(0x20, u8v((engine.mem(0x20) << 1) | c));
-                c = a & 1;
-                engine.set_mem(0x21, u8v((engine.mem(0x21) << 1) | c));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+
+        for _ in 0..8 {
+            let mut controller_sample: i32 =
+                u8v(engine.device_read(0x4016) | engine.device_read(0x4017));
+            let player_one_bit: i32 = controller_sample & 1;
+            controller_sample >>= 1;
+            let player_two_bit: i32 = controller_sample & 1;
+            engine.set_mem(0x20, u8v((engine.mem(0x20) << 1) | player_one_bit));
+            engine.set_mem(0x21, u8v((engine.mem(0x21) << 1) | player_two_bit));
         }
-        engine.set_mem(0x20, engine.mem(0x20) | engine.mem(0x21));
-        return;
-        engine.set_mem(0x4016, 0x01);
-        engine.set_mem(0x4016, 0x00);
-        {
-            x = 8;
-            while cbool(x != 0) {
-                a = engine.mem(0x4016) | engine.mem(0x4017);
-                c = a & 1;
-                a >>= 1;
-                engine.set_mem(0x20, u8v((engine.mem(0x20) << 1) | c));
-                c = a & 1;
-                engine.set_mem(0x21, u8v((engine.mem(0x21) << 1) | c));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
-        }
+
         engine.set_mem(0x20, engine.mem(0x20) | engine.mem(0x21));
     }
 }
@@ -864,40 +801,41 @@ mod reset {
 
 mod rng_update {
     use super::*;
+
+    /// Advances the two-byte RNG seed at `0x3A..0x3B` until the generated value
+    /// is below the limit supplied in `r.value`.
     pub fn rng_update(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut count: i32 = u8v(r.value);
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        let mut a: i32 = 0;
-        engine.set_mem(0x38, count);
-        if cbool(count == 0) {
+        let limit: i32 = u8v(r.value);
+        engine.set_mem(0x38, limit);
+        if cbool(limit == 0) {
             r.value = engine.mem(0x3B);
             return;
         }
-        x = engine.mem(0x3B);
-        y = engine.mem(0x3A);
+        let mut rng_high: i32 = engine.mem(0x3B);
+        let mut rng_low: i32 = engine.mem(0x3A);
         loop {
-            let mut xy: i32 = 0;
-            let mut s: i32 = 0;
-            let mut carry: i32 = 0;
-            engine.set_mem(0x39, y);
-            xy = u16v((u16v((x << 8) | y) << 1) + 1);
-            x = u8v(xy >> 8);
-            y = u8v(xy);
-            s = u16v(y + engine.mem(0x3A));
-            y = u8v(s);
-            carry = u8v(s >> 8);
-            a = u8v(x + engine.mem(0x3B) + carry);
-            a = u8v(a + engine.mem(0x39));
-            a &= 0x7F;
-            x = a;
-            engine.set_mem(0x3B, a);
-            engine.set_mem(0x3A, y);
-            if !cbool(a >= count) {
+            engine.set_mem(0x39, rng_low);
+
+            let shifted_seed: i32 = u16v((u16v((rng_high << 8) | rng_low) << 1) + 1);
+            rng_high = u8v(shifted_seed >> 8);
+            rng_low = u8v(shifted_seed);
+
+            let low_sum: i32 = u16v(rng_low + engine.mem(0x3A));
+            rng_low = u8v(low_sum);
+            let carry: i32 = u8v(low_sum >> 8);
+
+            let mut candidate: i32 = u8v(rng_high + engine.mem(0x3B) + carry);
+            candidate = u8v(candidate + engine.mem(0x39));
+            candidate &= 0x7F;
+
+            rng_high = candidate;
+            engine.set_mem(0x3B, candidate);
+            engine.set_mem(0x3A, rng_low);
+            if !cbool(candidate >= limit) {
                 break;
             }
         }
-        r.value = a;
+        r.value = rng_high;
     }
 }
 
@@ -9417,7 +9355,7 @@ mod tick_pulse1_channel {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
-                        inc16_95(engine, r);
+                        increment_selected_music_stream_pointer(engine, r);
                         engine.set_mem(0x93, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
@@ -9492,7 +9430,7 @@ mod tick_pulse2_channel {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
-                        inc16_95(engine, r);
+                        increment_selected_music_stream_pointer(engine, r);
                         engine.set_mem(0xA3, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             if cbool(engine.mem(0xA4) & 0x40) {
@@ -9505,7 +9443,7 @@ mod tick_pulse2_channel {
                             }
                         }
                         if cbool(engine.mem(0xA4) & 0x40) {
-                            inc16_95(engine, r);
+                            increment_selected_music_stream_pointer(engine, r);
                             return;
                         }
                         load_note_period(engine, r);
@@ -9573,7 +9511,7 @@ mod tick_triangle_channel {
             if cbool(note_byte != 0xFF) {
                 let mut is_rest: i32 = u8v(note_byte & 0x80);
                 r.value = note_byte;
-                inc16_95(engine, r);
+                increment_selected_music_stream_pointer(engine, r);
                 r.value = u8v(note_byte & 0x7F);
                 engine.set_mem(0xB3, r.value);
                 if cbool(is_rest) {
@@ -9627,7 +9565,7 @@ mod tick_noise_channel {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
-                        inc16_95(engine, r);
+                        increment_selected_music_stream_pointer(engine, r);
                         engine.set_mem(0xC3, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
@@ -9676,17 +9614,17 @@ mod dispatch_audio_stream_command {
     // next note/rest/control byte.
     pub fn dispatch_audio_stream_command(engine: &mut Engine, r: &mut RoutineContext) {
         r.index = engine.mem(0x02);
-        inc16_95(engine, r);
+        increment_selected_music_stream_pointer(engine, r);
         {
             let __v = deref_stream(engine, r);
             engine.set_mem(0x04, __v);
         }
-        inc16_95(engine, r);
+        increment_selected_music_stream_pointer(engine, r);
         {
             let __v = deref_stream(engine, r);
             engine.set_mem(0x05, __v);
         }
-        inc16_95(engine, r);
+        increment_selected_music_stream_pointer(engine, r);
         let mut command_id: i32 = engine.mem(0x04);
         if cbool(command_id >= 0x05) {
             return;
@@ -9807,7 +9745,7 @@ mod load_note_period {
             engine.mem(u8v(0x95 + channel_offset)) | (engine.mem(u8v(0x96 + channel_offset)) << 8),
         );
         let mut note_byte: i32 = engine.mem(stream_ptr);
-        inc16_95(engine, r);
+        increment_selected_music_stream_pointer(engine, r);
         {
             let mut pitch_index: i32 = u8v((note_byte & 0x0F) << 1);
             let mut lo: i32 = engine.mem(u16v(0xFDB1 + pitch_index));
@@ -10084,7 +10022,7 @@ mod sfx_overlay_voice {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
-                        inc16_95(engine, r);
+                        increment_selected_music_stream_pointer(engine, r);
                         engine.set_mem(0xD3, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);

@@ -216,7 +216,7 @@ surface when touching nearby code:
 | `grant_short_invulnerability` | start the short invulnerability reward timer |
 | `grant_short_speed_boost` | start or queue a short speed/action boost reward timer |
 | `handle_player_room_transition` | handle player transitions across room edges, including scroll/rebuild effects |
-| `inc16_95` | increment the music stream pointer for the selected channel |
+| `increment_selected_music_stream_pointer` | increment the music stream pointer for the selected channel |
 | `initialize_large_actor_slot` | spawn the special large actor slot from room actor data after checking its wide footprint |
 | `load_effective_jump_duration` | load jump duration, applying the selected jump-item boost when magic is available |
 | `load_effective_projectile_damage` | load projectile damage, applying the selected power-item boost when magic is available |
