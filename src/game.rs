@@ -729,7 +729,9 @@ mod queue_room_column_vram_upload {
                 .set_scratch3((engine.state.scratch3() + 1) & 0xFF);
         }
 
-        engine.set_mem(0x19, u8v(engine.state.vram_addr_hi() + 0x03));
+        engine
+            .state
+            .set_vram_addr2_hi(u8v(engine.state.vram_addr_hi() + 0x03));
         let destination_low_byte: i32 = engine.state.vram_addr_lo();
         engine
             .state
@@ -1190,11 +1192,11 @@ mod rotate_sprite_zero_from_scripted_oam {
     /// Rotates one scripted OAM entry into sprite zero and hides the source
     /// sprite. The sequence cycles through player/projectile sprites via `0x3E`.
     pub fn rotate_sprite_zero_from_scripted_oam(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut sprite_index = u8v(engine.mem(0x3E) - 1);
+        let mut sprite_index = u8v(engine.state.sprite_index() - 1);
         if cbool(sprite_index & 0x80) {
             sprite_index = 0x07;
         }
-        engine.set_mem(0x3E, sprite_index);
+        engine.state.set_sprite_index(sprite_index);
         let oam_offset = u8v(sprite_index << 2);
         let source_base = if cbool(sprite_index & 0x06) {
             0x0280
@@ -1300,7 +1302,7 @@ mod sync_final_exit_body_slots_from_player {
     /// Mirrors the player pose and position into the three linked final-exit
     /// body slots used by the scripted cutscene.
     pub fn sync_final_exit_body_slots_from_player(engine: &mut Engine, r: &mut RoutineContext) {
-        let pose_tile_bits = u8v(engine.mem(0x56) & 0x1F);
+        let pose_tile_bits = u8v(engine.state.player_pose() & 0x1F);
         engine.state.set_scratch0(pose_tile_bits);
         engine.state.set_object_tile(
             0x10,
@@ -1377,7 +1379,7 @@ mod tick_scripted_player_motion {
 
         if cbool(engine.state.sprite_blink_timer() == 0) {
             if engine.state.sprite0_hit() {
-                r.index = u8v(engine.mem(0x3E) + 1);
+                r.index = u8v(engine.state.sprite_index() + 1);
                 if !cbool(r.index & 0x06) {
                     let collision_screen_x = u8v(u8v(
                         engine.state.scroll_pixel_x() + engine.state.object_x_sub(r.index)
@@ -1533,7 +1535,7 @@ mod update_scripted_player_pose_from_motion {
         engine.state.set_scratch0(r.index);
         engine.set_mem(
             0x56,
-            u8v((engine.mem(0x56) & preserve_mask) | engine.state.scratch0()),
+            u8v((engine.state.player_pose() & preserve_mask) | engine.state.scratch0()),
         );
         engine.set_mem(0x57, r.offset);
         true
@@ -1545,7 +1547,7 @@ mod update_scripted_player_pose_from_motion {
         let jump_pose = 0x09;
         if cbool(u8v(engine.state.buttons() & 0xBF) == 0x80) {
             r.index = jump_pose;
-            engine.set_mem(0x56, r.index);
+            engine.state.set_player_pose(r.index);
             return;
         }
 
@@ -1553,13 +1555,13 @@ mod update_scripted_player_pose_from_motion {
             if cbool(engine.state.vertical_delta() & 0x80) {
                 if cbool(engine.state.jump_timer() == 0) {
                     r.index = jump_pose;
-                    engine.set_mem(0x56, r.index);
+                    engine.state.set_player_pose(r.index);
                     return;
                 }
             } else if cbool(engine.state.fall_frames() == 0) {
                 if cbool(engine.state.buttons() & 0x04) {
                     r.index = 0x0D;
-                    engine.set_mem(0x56, r.index);
+                    engine.state.set_player_pose(r.index);
                     return;
                 }
                 apply_scripted_horizontal_pose(engine, r, 0x01, 0x07);
@@ -1580,14 +1582,14 @@ mod tick_scripted_player_walk_animation {
     /// Applies action-button pose bits and toggles the scripted walk frame every
     /// eight moving frames when not jumping or falling.
     pub fn tick_scripted_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.mem(0x56) < 0x20) {
-            let mut pose = engine.mem(0x56);
+        if cbool(engine.state.player_pose() < 0x20) {
+            let mut pose = engine.state.player_pose();
             if cbool(engine.state.buttons() & 0x40) {
                 pose = u8v(pose | 0x10);
             } else {
                 pose = u8v(pose & 0xEF);
             }
-            engine.set_mem(0x56, pose);
+            engine.state.set_player_pose(pose);
         }
         if cbool((engine.state.buttons() & 0x0F) == 0) {
             return;
@@ -1599,10 +1601,12 @@ mod tick_scripted_player_walk_animation {
         if cbool((engine.mem(0x4D) & 0x07) != 0) {
             return;
         }
-        if cbool(engine.mem(0x56) & 0x08) {
+        if cbool(engine.state.player_pose() & 0x08) {
             engine.xor_mem(0x57, 0x40);
         } else {
-            engine.xor_mem(0x56, 0x04);
+            engine
+                .state
+                .set_player_pose(engine.state.player_pose() ^ 0x04);
         }
     }
 }
@@ -1637,12 +1641,12 @@ mod draw_scripted_player_sprites {
             .state
             .set_oam_attr(0x14, u8v(engine.mem(0x57) | 0x20));
         if cbool(engine.mem(0x57) & 0x40) {
-            r.index = engine.mem(0x56);
+            r.index = engine.state.player_pose();
             engine.state.set_oam_tile(0x14, r.index);
             r.index = u8v(r.index + 2);
             engine.state.set_oam_tile(0x10, r.index);
         } else {
-            r.index = engine.mem(0x56);
+            r.index = engine.state.player_pose();
             engine.state.set_oam_tile(0x10, r.index);
             r.index = u8v(r.index + 2);
             engine.state.set_oam_tile(0x14, r.index);
@@ -1966,7 +1970,7 @@ mod upload_intro_text_scroll_slice {
         if cbool(scroll_upload_row >= 0xF0) {
             scroll_upload_row = u8v(scroll_upload_row + 0x10);
         }
-        engine.set_mem(0x1E, scroll_upload_row);
+        engine.state.set_scroll_y(scroll_upload_row);
         r.value = first_job_id;
         queue_ppu_job_and_wait(engine, r);
         r.value = 0xFF;
@@ -2446,7 +2450,7 @@ mod draw_player_sprites {
         engine.state.set_oam_attr(0x10, engine.mem(0x57));
         engine.state.set_oam_attr(0x14, engine.mem(0x57));
 
-        let left_tile: i32 = engine.mem(0x56);
+        let left_tile: i32 = engine.state.player_pose();
         if cbool(engine.mem(0x57) & 0x40) {
             engine.state.set_oam_tile(0x14, left_tile);
             engine.state.set_oam_tile(0x10, u8v(left_tile + 2));
@@ -2515,7 +2519,7 @@ mod draw_room_object_sprites {
     pub fn draw_room_object_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_scratch2(0x10);
         let mut oam_offset: i32 = engine.mem(0x3F);
-        let mut object_offset: i32 = engine.mem(0x3E);
+        let mut object_offset: i32 = engine.state.sprite_index();
         loop {
             r.index = oam_offset;
             r.offset = object_offset;
@@ -2528,7 +2532,7 @@ mod draw_room_object_sprites {
             }
         }
         engine.set_mem(0x3F, u8v((u8v(oam_offset + 0x38)) | 0x80));
-        engine.set_mem(0x3E, u8v(object_offset + 0x10));
+        engine.state.set_sprite_index(u8v(object_offset + 0x10));
     }
 }
 
@@ -4093,8 +4097,12 @@ mod upload_inventory_item_count_tiles {
         r.value = x;
         load_family_item_permission_bits(engine, r);
         if !cbool(r.carry) {
-            engine.set_mem(0x18, u8v(engine.mem(0x18) - 0x40));
-            engine.set_mem(0x19, u8v(engine.mem(0x19) - 0x40));
+            engine
+                .state
+                .set_vram_addr2_lo(u8v(engine.state.vram_addr2_lo() - 0x40));
+            engine
+                .state
+                .set_vram_addr2_hi(u8v(engine.state.vram_addr2_hi() - 0x40));
         }
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
@@ -4176,11 +4184,11 @@ mod build_decimal_digit_tiles {
             };
         }
         a = u8v(a + 0xD0);
-        engine.set_mem(0x18, a);
+        engine.state.set_vram_addr2_lo(a);
         if cbool(hi == 0xD0) {
             hi = 0xC0;
         }
-        engine.set_mem(0x19, hi);
+        engine.state.set_vram_addr2_hi(hi);
     }
 }
 
@@ -4417,14 +4425,14 @@ mod upload_inventory_item_list {
         engine.set_mem(0x1B, 0x00);
         engine.state.set_vram_addr_lo(0xE6);
         engine.state.set_vram_addr_hi(0x24);
-        engine.set_mem(0x18, 0x62);
-        engine.set_mem(0x19, 0x03);
+        engine.state.set_vram_addr2_lo(0x62);
+        engine.state.set_vram_addr2_hi(0x03);
         r.value = 0x05;
         queue_ppu_job_and_wait(engine, r);
         engine.state.set_vram_addr_lo(0x06);
         engine.state.set_vram_addr_hi(0x25);
-        engine.set_mem(0x18, 0x76);
-        engine.set_mem(0x19, 0x03);
+        engine.state.set_vram_addr2_lo(0x76);
+        engine.state.set_vram_addr2_hi(0x03);
         r.value = 0x05;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -4890,7 +4898,9 @@ mod handle_player_room_transition {
         }
         update_player_terrain_contact(engine, r);
         engine.state.set_sprite_blink_timer(0x00);
-        engine.set_mem(0x56, u8v(engine.mem(0x56) & 0x07));
+        engine
+            .state
+            .set_player_pose(u8v(engine.state.player_pose() & 0x07));
         if cbool(engine.state.player_x_tile() == 0x00) {
             if cbool(u8v((engine.state.map_screen_x() - 1)) & 0x80) {
                 return;
@@ -5116,7 +5126,7 @@ mod update_player_pose_from_motion {
                         }
                     }
                     x = 0x0D;
-                    engine.set_mem(0x56, x);
+                    engine.state.set_player_pose(x);
                     return;
                     state = 1;
                     continue 'dispatch;
@@ -5150,7 +5160,9 @@ mod update_player_pose_from_motion {
                 }
                 3 => {
                     engine.state.set_scratch0(x);
-                    engine.set_mem(0x56, (engine.mem(0x56) & 0x07) | engine.state.scratch0());
+                    engine.state.set_player_pose(
+                        (engine.state.player_pose() & 0x07) | engine.state.scratch0(),
+                    );
                     engine.set_mem(0x57, y);
                     return;
                     state = 4;
@@ -5183,7 +5195,9 @@ mod update_player_pose_from_motion {
                 }
                 6 => {
                     engine.state.set_scratch0(x);
-                    engine.set_mem(0x56, (engine.mem(0x56) & 0x03) | engine.state.scratch0());
+                    engine.state.set_player_pose(
+                        (engine.state.player_pose() & 0x03) | engine.state.scratch0(),
+                    );
                     engine.set_mem(0x57, y);
                     break 'dispatch;
                 }
@@ -5200,11 +5214,15 @@ mod tick_player_walk_animation {
     /// current action/facing button into the pose byte.
     pub fn tick_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
         if cbool(engine.state.landing_timer() == 0) {
-            if cbool(engine.mem(0x56) < 0x20) {
+            if cbool(engine.state.player_pose() < 0x20) {
                 if cbool(engine.state.buttons() & 0x40) {
-                    engine.set_mem(0x56, u8v(engine.mem(0x56) | 0x10));
+                    engine
+                        .state
+                        .set_player_pose(u8v(engine.state.player_pose() | 0x10));
                 } else {
-                    engine.set_mem(0x56, u8v(engine.mem(0x56) & 0xEF));
+                    engine
+                        .state
+                        .set_player_pose(u8v(engine.state.player_pose() & 0xEF));
                 }
             }
         }
@@ -5218,10 +5236,12 @@ mod tick_player_walk_animation {
         if cbool((engine.mem(0x4D) & 0x07) != 0) {
             return;
         }
-        if cbool(engine.mem(0x56) & 0x08) {
+        if cbool(engine.state.player_pose() & 0x08) {
             engine.set_mem(0x57, u8v(engine.mem(0x57) ^ 0x40));
         } else {
-            engine.set_mem(0x56, u8v(engine.mem(0x56) ^ 0x04));
+            engine
+                .state
+                .set_player_pose(u8v(engine.state.player_pose() ^ 0x04));
         }
     }
 }
@@ -9874,7 +9894,7 @@ mod tick_pulse2_channel {
     }
 
     pub fn tick_pulse2_channel(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut channel_flags: i32 = engine.mem(0xA4);
+        let mut channel_flags: i32 = engine.state.sound_channel_flags();
         let mut state: i32 = 0;
         'dispatch: loop {
             match state {
@@ -9907,7 +9927,7 @@ mod tick_pulse2_channel {
                         increment_selected_music_stream_pointer(engine, r);
                         engine.set_mem(0xA3, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
-                            if cbool(engine.mem(0xA4) & 0x40) {
+                            if cbool(engine.state.sound_channel_flags() & 0x40) {
                                 return;
                             }
                             start_rest_envelope(engine, r);
@@ -9916,7 +9936,7 @@ mod tick_pulse2_channel {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(engine.mem(0xA4) & 0x40) {
+                        if cbool(engine.state.sound_channel_flags() & 0x40) {
                             increment_selected_music_stream_pointer(engine, r);
                             return;
                         }
@@ -9933,7 +9953,7 @@ mod tick_pulse2_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.mem(0xA4) & 0x40) {
+                    if cbool(engine.state.sound_channel_flags() & 0x40) {
                         return;
                     }
                     if cbool((engine.mem(0x27) & 0x02) == 0) {
@@ -10499,7 +10519,11 @@ mod sfx_overlay_voice {
                         engine.set_mem(0xD5, engine.mem(u16v(0x8014 + sfx_table_index)));
                         engine.set_mem(0xD6, engine.mem(u16v(0x8015 + sfx_table_index)));
                         engine.set_mem(0xD4, 0x80);
-                        engine.set_mem(0xA4, u8v(engine.mem(0xA4) | 0x40));
+                        engine
+                            .state
+                            .set_sound_channel_flags(
+                                u8v(engine.state.sound_channel_flags() | 0x40),
+                            );
                         engine.state.set_prompt_state(0x00);
                         engine.state.set_prompt_argument(0x00);
                     }
@@ -10509,7 +10533,11 @@ mod sfx_overlay_voice {
                         if cbool(note_byte == 0) {
                             engine.set_mem(0xD4, 0x00);
                             engine.set_mem(0x91, 0x00);
-                            engine.set_mem(0xA4, u8v(engine.mem(0xA4) & 0xBF));
+                            engine
+                                .state
+                                .set_sound_channel_flags(u8v(
+                                    engine.state.sound_channel_flags() & 0xBF
+                                ));
                             silence_sfx_pulse2(engine, r);
                             return;
                         }
@@ -10717,7 +10745,7 @@ mod statusbar_split {
         ));
         engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
         engine.device_write(0x2005, engine.state.scroll_pixel_x());
-        engine.device_write(0x2005, engine.mem(0x1E));
+        engine.device_write(0x2005, engine.state.scroll_y());
         if cbool(engine.state.statusbar_split_flag() != 0) {
             let _ = engine.mem(0x2002);
             engine.device_write(0x2000, engine.state.ppu_ctrl_shadow() & 0xFE);
@@ -10737,7 +10765,7 @@ mod statusbar_split {
         engine.device_write(0x8000, 0x01);
         engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
         engine.device_write(0x2005, engine.state.scroll_pixel_x());
-        engine.device_write(0x2005, engine.mem(0x1E));
+        engine.device_write(0x2005, engine.state.scroll_y());
         engine.device_write(0x8001, engine.state.chr_bank(1));
         engine.device_write(0x8000, 0x04);
         engine.device_write(0x8001, engine.state.chr_bank(4));
@@ -10971,7 +10999,7 @@ mod vram_copy_indirect {
     use super::*;
     pub fn vram_copy_indirect(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = engine.mem(0x1A);
-        let mut src: i32 = u16v(engine.mem(0x18) | (engine.mem(0x19) << 8));
+        let mut src: i32 = u16v(engine.state.vram_addr2_lo() | (engine.state.vram_addr2_hi() << 8));
         let mut y: i32 = 0;
         loop {
             engine.device_write(0x2007, engine.mem(u16v(src + y)));
@@ -10997,7 +11025,7 @@ mod vram_fill_run {
     use super::*;
     pub fn vram_fill_run(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = engine.mem(0x1A);
-        let mut a: i32 = engine.mem(0x18);
+        let mut a: i32 = engine.state.vram_addr2_lo();
         loop {
             engine.device_write(0x2007, a);
             if !cbool(
@@ -11016,8 +11044,8 @@ mod vram_fill_run {
 mod vram_poke2 {
     use super::*;
     pub fn vram_poke2(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x2007, engine.mem(0x19));
-        engine.device_write(0x2007, engine.mem(0x18));
+        engine.device_write(0x2007, engine.state.vram_addr2_hi());
+        engine.device_write(0x2007, engine.state.vram_addr2_lo());
         vblank_commit_tail(engine, r);
     }
 }
@@ -11054,13 +11082,14 @@ mod vram_upload_hud {
         {
             x = 0x0A;
             while cbool(x >= 0) {
-                engine.device_write(0x2006, engine.mem(0x19));
+                engine.device_write(0x2006, engine.state.vram_addr2_hi());
                 engine.device_write(0x2006, engine.mem(u16v(0x0170 + x)));
                 let _ = engine.device_read(0x2007);
                 {
-                    let mut v: i32 = u8v((engine.device_read(0x2007) & engine.mem(0x18))
+                    let mut v: i32 = u8v((engine.device_read(0x2007)
+                        & engine.state.vram_addr2_lo())
                         | engine.mem(u16v(0x0171 + x)));
-                    engine.device_write(0x2006, engine.mem(0x19));
+                    engine.device_write(0x2006, engine.state.vram_addr2_hi());
                     engine.device_write(0x2006, engine.mem(u16v(0x0170 + x)));
                     engine.device_write(0x2007, v);
                 }

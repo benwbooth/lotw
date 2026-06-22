@@ -193,7 +193,7 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_chr_bank(2, 0x38);
     engine.state.set_chr_bank(4, 0x3e);
     engine.state.set_chr_bank(5, 0x20);
-    engine.set_mem(0x56, 0x0d);
+    engine.state.set_player_pose(0x0d);
     engine.set_mem(0x57, 0);
     engine.set_mem(0x42, 1);
     engine.state.set_player_health(0x64);

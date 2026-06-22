@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 e.state.player_x_tile(),
                 e.state.player_y(),
                 e.state.scroll_pixel_x(),
-                e.mem(0x1e),
+                e.state.scroll_y(),
                 e.state.song(),
                 e.state.selected_item_slot(),
                 e.mem(0x60),

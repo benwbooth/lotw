@@ -1261,6 +1261,67 @@ impl GameState {
         self.set_byte(0x0352 + i, value);
     }
 
+    // ---- More player / render / sound scalars -----------------------------
+
+    /// Player animation pose/frame selector (`$56`).
+    #[inline]
+    pub fn player_pose(&self) -> i32 {
+        self.byte(0x56)
+    }
+    #[inline]
+    pub fn set_player_pose(&mut self, value: i32) {
+        self.set_byte(0x56, value);
+    }
+
+    /// Secondary VRAM transfer address, low byte (`$18`).
+    #[inline]
+    pub fn vram_addr2_lo(&self) -> i32 {
+        self.byte(0x18)
+    }
+    #[inline]
+    pub fn set_vram_addr2_lo(&mut self, value: i32) {
+        self.set_byte(0x18, value);
+    }
+    /// Secondary VRAM transfer address, high byte (`$19`).
+    #[inline]
+    pub fn vram_addr2_hi(&self) -> i32 {
+        self.byte(0x19)
+    }
+    #[inline]
+    pub fn set_vram_addr2_hi(&mut self, value: i32) {
+        self.set_byte(0x19, value);
+    }
+
+    /// Vertical scroll value written to PPUSCROLL `$2005` (`$1E`).
+    #[inline]
+    pub fn scroll_y(&self) -> i32 {
+        self.byte(0x1E)
+    }
+    #[inline]
+    pub fn set_scroll_y(&mut self, value: i32) {
+        self.set_byte(0x1E, value);
+    }
+
+    /// Sprite slot index/counter while building the OAM buffer (`$3E`).
+    #[inline]
+    pub fn sprite_index(&self) -> i32 {
+        self.byte(0x3E)
+    }
+    #[inline]
+    pub fn set_sprite_index(&mut self, value: i32) {
+        self.set_byte(0x3E, value);
+    }
+
+    /// Sound channel active/control flags (`$A4`).
+    #[inline]
+    pub fn sound_channel_flags(&self) -> i32 {
+        self.byte(0xA4)
+    }
+    #[inline]
+    pub fn set_sound_channel_flags(&mut self, value: i32) {
+        self.set_byte(0xA4, value);
+    }
+
     // ---- Sound engine channel state ---------------------------------------
     //
     // Per-channel playback state lives in 16-byte records starting at `$93`
