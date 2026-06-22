@@ -943,17 +943,17 @@ mod update_final_exit_projectiles {
         engine.set_mem(0xE5, 0x10);
         engine.set_mem(0xE6, 0x04);
         loop {
-            let mut p: i32 = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
-            if cbool(engine.mem(u16v(p + 1)) != 0) {
+            let slot_ptr = u16v(engine.mem(0xE5) | (engine.mem(0xE6) << 8));
+            if cbool(engine.mem(u16v(slot_ptr + 1)) != 0) {
                 update_final_exit_projectile_slot(engine, r);
             } else if (cbool(engine.mem(0x20) & 0x40) && !cbool(engine.mem(0xFD) & 0x40)) {
                 spawn_final_exit_projectile(engine, r);
             }
             engine.set_mem(0xE3, u8v(engine.mem(0xE3) + 1));
             {
-                let mut np: i32 = u16v(engine.mem(0xE5) + 0x10);
-                engine.set_mem(0xE5, u8v(np));
-                engine.set_mem(0xE6, u8v(engine.mem(0xE6) + (np >> 8)));
+                let next_slot_ptr = u16v(engine.mem(0xE5) + 0x10);
+                engine.set_mem(0xE5, u8v(next_slot_ptr));
+                engine.set_mem(0xE6, u8v(engine.mem(0xE6) + (next_slot_ptr >> 8)));
             }
             if !cbool(engine.mem(0xE3) < 0x04) {
                 break;
@@ -1025,12 +1025,12 @@ mod project_final_exit_projectile_spawn {
         engine.set_mem(0x0E, engine.mem(0x43));
         engine.set_mem(0x0A, engine.mem(0x45));
         if cbool(engine.mem(0xF7) != 0) {
-            let mut a: i32 = u8v(engine.mem(0xF7) << 2);
-            engine.set_mem(0x0A, u8v(a + engine.mem(0x0A)));
+            let scaled_y_delta = u8v(engine.mem(0xF7) << 2);
+            engine.set_mem(0x0A, u8v(scaled_y_delta + engine.mem(0x0A)));
         }
         if cbool(engine.mem(0xF5) != 0) {
-            let mut a: i32 = u8v(engine.mem(0xF5) << 2);
-            engine.set_mem(0x0E, u8v(a + engine.mem(0x0E)));
+            let scaled_x_delta = u8v(engine.mem(0xF5) << 2);
+            engine.set_mem(0x0E, u8v(scaled_x_delta + engine.mem(0x0E)));
         }
     }
 }
@@ -1091,18 +1091,12 @@ mod draw_final_exit_projectile_sprites {
 
     /// Draws all three final-exit projectile slots into their fixed OAM ranges.
     pub fn draw_final_exit_projectile_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut count: i32 = 0;
         engine.set_mem(0x0F, 0x88);
         engine.set_mem(0x0E, 0x10);
-        count = 0x03;
-        loop {
+        for _ in 0..3 {
             draw_final_exit_projectile_slot_sprites(engine, r);
             engine.set_mem(0x0F, u8v(engine.mem(0x0F) + 0x08));
             engine.set_mem(0x0E, u8v(engine.mem(0x0E) + 0x10));
-            count = u8v(count - 0x01);
-            if !cbool(count != 0) {
-                break;
-            }
         }
     }
 }
@@ -1113,60 +1107,36 @@ mod draw_final_exit_projectile_slot_sprites {
     /// Draws one final-exit projectile as a two-sprite pair or hides it when the
     /// slot is inactive/offscreen.
     pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x0F);
-        let mut y: i32 = engine.mem(0x0E);
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    if cbool(engine.mem(u16v(0x0401 + y)) == 0) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    if cbool(engine.mem(u16v(0x040E + y)) >= 0xBF) {
-                        {
-                            state = 1;
-                            continue 'dispatch;
-                        }
-                    }
-                    {
-                        let mut attr: i32 = engine.mem(u16v(0x0402 + y));
-                        engine.set_mem(u16v(0x0202 + x), attr);
-                        engine.set_mem(u16v(0x0206 + x), attr);
-                        if cbool(attr & 0x40) {
-                            let mut t: i32 = engine.mem(u16v(0x0400 + y));
-                            engine.set_mem(u16v(0x0205 + x), t);
-                            engine.set_mem(u16v(0x0201 + x), u8v(t + 2));
-                        } else {
-                            let mut t: i32 = engine.mem(u16v(0x0400 + y));
-                            engine.set_mem(u16v(0x0201 + x), t);
-                            engine.set_mem(u16v(0x0205 + x), u8v(t + 2));
-                        }
-                    }
-                    {
-                        let mut px: i32 = engine.mem(u16v(0x040C + y));
-                        engine.set_mem(u16v(0x0203 + x), px);
-                        engine.set_mem(u16v(0x0207 + x), u8v(px + 8));
-                        {
-                            let mut py: i32 = u8v(engine.mem(u16v(0x040E + y)) + 0x2B);
-                            engine.set_mem(u16v(0x0200 + x), py);
-                            engine.set_mem(u16v(0x0204 + x), py);
-                        }
-                    }
-                    return;
-                    state = 1;
-                    continue 'dispatch;
-                }
-                1 => {
-                    engine.set_mem(u16v(0x0200 + x), 0xEF);
-                    engine.set_mem(u16v(0x0204 + x), 0xEF);
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
-            }
+        let oam_offset = engine.mem(0x0F);
+        let slot_offset = engine.mem(0x0E);
+        if cbool(engine.mem(u16v(0x0401 + slot_offset)) == 0)
+            || cbool(engine.mem(u16v(0x040E + slot_offset)) >= 0xBF)
+        {
+            engine.set_mem(u16v(0x0200 + oam_offset), 0xEF);
+            engine.set_mem(u16v(0x0204 + oam_offset), 0xEF);
+            return;
         }
+
+        let attributes = engine.mem(u16v(0x0402 + slot_offset));
+        engine.set_mem(u16v(0x0202 + oam_offset), attributes);
+        engine.set_mem(u16v(0x0206 + oam_offset), attributes);
+
+        let tile_id = engine.mem(u16v(0x0400 + slot_offset));
+        if cbool(attributes & 0x40) {
+            engine.set_mem(u16v(0x0205 + oam_offset), tile_id);
+            engine.set_mem(u16v(0x0201 + oam_offset), u8v(tile_id + 2));
+        } else {
+            engine.set_mem(u16v(0x0201 + oam_offset), tile_id);
+            engine.set_mem(u16v(0x0205 + oam_offset), u8v(tile_id + 2));
+        }
+
+        let projectile_x = engine.mem(u16v(0x040C + slot_offset));
+        engine.set_mem(u16v(0x0203 + oam_offset), projectile_x);
+        engine.set_mem(u16v(0x0207 + oam_offset), u8v(projectile_x + 8));
+
+        let projectile_y = u8v(engine.mem(u16v(0x040E + slot_offset)) + 0x2B);
+        engine.set_mem(u16v(0x0200 + oam_offset), projectile_y);
+        engine.set_mem(u16v(0x0204 + oam_offset), projectile_y);
     }
 }
 
@@ -1176,18 +1146,22 @@ mod rotate_sprite_zero_from_scripted_oam {
     /// Rotates one scripted OAM entry into sprite zero and hides the source
     /// sprite. The sequence cycles through player/projectile sprites via `0x3E`.
     pub fn rotate_sprite_zero_from_scripted_oam(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut c: i32 = u8v(engine.mem(0x3E) - 1);
-        if cbool(c & 0x80) {
-            c = 0x07;
+        let mut sprite_index = u8v(engine.mem(0x3E) - 1);
+        if cbool(sprite_index & 0x80) {
+            sprite_index = 0x07;
         }
-        engine.set_mem(0x3E, c);
-        let mut x: i32 = u8v(c << 2);
-        let mut base: i32 = (if cbool(c & 0x06) { 0x0280 } else { 0x0210 });
-        engine.set_mem(0x0200, engine.mem(u16v(base + 0 + x)));
-        engine.set_mem(0x0201, engine.mem(u16v(base + 1 + x)));
-        engine.set_mem(0x0202, engine.mem(u16v(base + 2 + x)));
-        engine.set_mem(0x0203, engine.mem(u16v(base + 3 + x)));
-        engine.set_mem(u16v(base + x), 0xEF);
+        engine.set_mem(0x3E, sprite_index);
+        let oam_offset = u8v(sprite_index << 2);
+        let source_base = if cbool(sprite_index & 0x06) {
+            0x0280
+        } else {
+            0x0210
+        };
+        engine.set_mem(0x0200, engine.mem(u16v(source_base + oam_offset)));
+        engine.set_mem(0x0201, engine.mem(u16v(source_base + 1 + oam_offset)));
+        engine.set_mem(0x0202, engine.mem(u16v(source_base + 2 + oam_offset)));
+        engine.set_mem(0x0203, engine.mem(u16v(source_base + 3 + oam_offset)));
+        engine.set_mem(u16v(source_base + oam_offset), 0xEF);
     }
 }
 
@@ -1197,40 +1171,29 @@ mod build_final_exit_projectile_velocity {
     /// Converts the latched action direction into final-exit projectile velocity
     /// by accumulating the movement table for `r.offset` steps.
     pub fn build_final_exit_projectile_velocity(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut y: i32 = 0;
-        let mut x: i32 = 0;
-        let mut a: i32 = 0;
-        let mut c: i32 = 0;
-        engine.set_mem(0x09, r.offset);
-        x = u8v((r.value & 0x0F) << 1);
-        a = 0x00;
-        y = r.offset;
+        let direction_table_offset = u8v((r.value & 0x0F) << 1);
+        let step_count = r.offset;
+        let mut x_velocity = 0x00;
+        let mut remaining_steps = step_count;
         loop {
-            a = u8v(a + engine.mem(u16v(0xFE8B + x)));
-            {
-                let __old = y;
-                y -= 1;
-                __old
-            };
-            if !cbool(y != 0) {
+            x_velocity = u8v(x_velocity + engine.mem(u16v(0xFE8B + direction_table_offset)));
+            remaining_steps -= 1;
+            if !cbool(remaining_steps != 0) {
                 break;
             }
         }
-        engine.set_mem(0xF5, a);
-        y = engine.mem(0x09);
-        a = 0x00;
+        engine.set_mem(0xF5, x_velocity);
+
+        let mut y_velocity = 0x00;
+        remaining_steps = step_count;
         loop {
-            a = u8v(a + engine.mem(u16v(0xFE8C + x)));
-            {
-                let __old = y;
-                y -= 1;
-                __old
-            };
-            if !cbool(y != 0) {
+            y_velocity = u8v(y_velocity + engine.mem(u16v(0xFE8C + direction_table_offset)));
+            remaining_steps -= 1;
+            if !cbool(remaining_steps != 0) {
                 break;
             }
         }
-        engine.set_mem(0xF7, a);
+        engine.set_mem(0xF7, y_velocity);
     }
 }
 
@@ -1240,17 +1203,8 @@ mod load_final_exit_object_oam_template {
     /// Loads the final-exit object OAM template and rebuilds the standard object
     /// health meter.
     pub fn load_final_exit_object_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x3F;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x0240 + x), engine.mem(u16v(0xAAFC + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for oam_offset in (0..=0x3F).rev() {
+            engine.set_mem(0x0240 + oam_offset, engine.mem(0xAAFC + oam_offset));
         }
         build_object_health_meter_standard_tiles(engine, r);
     }
@@ -1262,17 +1216,8 @@ mod load_large_actor_oam_template {
     /// Loads the large-actor OAM template and rebuilds the alternate object
     /// health meter.
     pub fn load_large_actor_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x3F;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x0240 + x), engine.mem(u16v(0xAB3C + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for oam_offset in (0..=0x3F).rev() {
+            engine.set_mem(0x0240 + oam_offset, engine.mem(0xAB3C + oam_offset));
         }
         build_object_health_meter_alt_tiles(engine, r);
     }
@@ -1284,17 +1229,8 @@ mod load_final_exit_player_oam_template {
     /// Loads the final-exit player-side OAM template and rebuilds the player
     /// health meter.
     pub fn load_final_exit_player_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        {
-            x = 0x3F;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x02C0 + x), engine.mem(u16v(0xAB7C + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for oam_offset in (0..=0x3F).rev() {
+            engine.set_mem(0x02C0 + oam_offset, engine.mem(0xAB7C + oam_offset));
         }
         build_player_health_meter_sprites(engine, r);
     }
@@ -1306,30 +1242,21 @@ mod sync_final_exit_body_slots_from_player {
     /// Mirrors the player pose and position into the three linked final-exit
     /// body slots used by the scripted cutscene.
     pub fn sync_final_exit_body_slots_from_player(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut v: i32 = u8v(engine.mem(0x56) & 0x1F);
-        engine.set_mem(0x08, v);
-        engine.set_mem(0x0410, u8v((engine.mem(0x0410) & 0xE0) | v));
-        engine.set_mem(0x0420, u8v((engine.mem(0x0420) & 0xE0) | v));
-        engine.set_mem(0x0430, u8v((engine.mem(0x0430) & 0xE0) | v));
-        let mut xf: i32 = engine.mem(0x43);
-        engine.set_mem(0x041C, xf);
-        engine.set_mem(0x042C, xf);
-        engine.set_mem(0x043C, xf);
-        let mut x: i32 = engine.mem(0x44);
-        {
-            let __old = x;
-            x += 1;
-            __old
-        };
-        engine.set_mem(0x042D, x);
-        x -= 3;
-        engine.set_mem(0x043D, x);
-        {
-            let __old = x;
-            x -= 1;
-            __old
-        };
-        engine.set_mem(0x041D, x);
+        let pose_tile_bits = u8v(engine.mem(0x56) & 0x1F);
+        engine.set_mem(0x08, pose_tile_bits);
+        engine.set_mem(0x0410, u8v((engine.mem(0x0410) & 0xE0) | pose_tile_bits));
+        engine.set_mem(0x0420, u8v((engine.mem(0x0420) & 0xE0) | pose_tile_bits));
+        engine.set_mem(0x0430, u8v((engine.mem(0x0430) & 0xE0) | pose_tile_bits));
+
+        let player_x = engine.mem(0x43);
+        engine.set_mem(0x041C, player_x);
+        engine.set_mem(0x042C, player_x);
+        engine.set_mem(0x043C, player_x);
+
+        let player_tile_x = engine.mem(0x44);
+        engine.set_mem(0x042D, u8v(player_tile_x + 1));
+        engine.set_mem(0x043D, u8v(player_tile_x - 2));
+        engine.set_mem(0x041D, u8v(player_tile_x - 3));
     }
 }
 

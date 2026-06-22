@@ -141,3 +141,27 @@ fn final_exit_body_slots_mirror_player_pose_and_position() {
     assert_eq!(engine.mem(0x043D), 0x0E);
     assert_eq!(engine.mem(0x041D), 0x0D);
 }
+
+#[test]
+fn final_exit_oam_templates_copy_expected_ranges() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    for offset in 0..=0x3F {
+        engine.set_mem(0xAAFC + offset, 0x10 + offset);
+        engine.set_mem(0xAB3C + offset, 0x50 + offset);
+        engine.set_mem(0xAB7C + offset, 0x90 + offset);
+    }
+
+    game::load_final_exit_object_oam_template(&mut engine, &mut r);
+    assert_eq!(engine.mem(0x0240), 0x10);
+    assert_eq!(engine.mem(0x027F), 0x4F);
+
+    game::load_large_actor_oam_template(&mut engine, &mut r);
+    assert_eq!(engine.mem(0x0240), 0x50);
+    assert_eq!(engine.mem(0x027F), 0x8F);
+
+    game::load_final_exit_player_oam_template(&mut engine, &mut r);
+    assert_eq!(engine.mem(0x02C0), 0x90);
+    assert_eq!(engine.mem(0x02FF), 0xCF);
+}
