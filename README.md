@@ -25,6 +25,7 @@ ROMs are never committed; verify local copies against the checksum above.
 - `src/`      — Rust runtime, generated game routines, shims, bins, and player.
 - `tests/`    — Rust contract and gameplay checks.
 - `fixtures/` — replay fixtures for smoke and gameplay checks.
+- `docs/`     — reverse-engineering notes and routine catalog.
 
 ## Toolchain
 

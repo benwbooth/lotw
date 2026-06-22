@@ -1,4 +1,9 @@
 // Rust game routine module. The functions here are the checked-in native game logic.
+//
+// Numbered `routine_####` names are retained as stable port labels while the
+// original game systems are being identified. Keep semantic discoveries in
+// `docs/routine_catalog.md` first, then rename or alias routines only after the
+// dataflow is understood well enough to make the name useful.
 use crate::engine::RoutineFn;
 use crate::frame;
 use crate::native::*;
