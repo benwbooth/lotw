@@ -1,8 +1,9 @@
-# Legacy of the Wizard — Native Port
+# Legacy of the Wizard — Rust Port
 
-A C/C++ playable port of *Legacy of the Wizard* (USA). The runtime is native
-code: game C systems, a software PPU/APU shim, SDL playback, and C++20
-coroutines for frame-spanning gameplay. The source ROM is a runtime input only.
+A Rust playable port of *Legacy of the Wizard* (USA). The runtime is native
+Rust: game systems, software PPU/APU shims, explicit frame-spanning tasks,
+a threaded frame runner for NMI-style interruption points, and SDL playback.
+The source ROM is a runtime input only.
 
 ## ROM
 
@@ -20,23 +21,23 @@ Pinned in `config/rom.sha256`. ROMs are never committed.
 
 ## Layout
 
-- `rom/`        — the source ROM (gitignored, sha-pinned in `config/`).
-- `src/`        — native C/C++ runtime: game systems, shims, and coroutines.
-- `tools/verify/` — repository contract checks.
-- `fixtures/`    — replay fixtures for smoke and gameplay checks.
+- `rom/`      — the source ROM (gitignored, sha-pinned in `config/`).
+- `src/`      — Rust runtime, generated game routines, shims, bins, and player.
+- `tests/`    — Rust contract and gameplay checks.
+- `fixtures/` — replay fixtures for smoke and gameplay checks.
 
 ## Toolchain
 
-`nix develop` provides: `gcc`/`make`/`cmake`, `SDL3`, `cargo`/`rustc`, and
-`python3`.
+`nix develop` provides Rust, Cargo, SDL3, and small ROM/replay utilities.
 
 ## Verification loops
 
-- `nix develop --command cmake -S . -B build`
-- `nix develop --command cmake --build build -j`
-- `nix develop --command ctest --test-dir build --output-on-failure`
-- `env SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/play rom/lotw.nes 240 auto`
+- `cargo fmt --check`
+- `cargo check --all-targets`
+- `cargo check --features sdl --bin play`
+- `cargo test`
+- `env SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy cargo run --features sdl --bin play -- rom/lotw.nes 240 auto`
 
-`ctest` runs `tools/verify/check_port_contract.py`, which rejects stale runtime
-terms, generated source listings, direct frame waits from game routines, and
-native code that bypasses the coroutine frame helpers.
+`cargo test` includes a repository contract check that rejects any return of
+`CMakeLists.txt` or C/C++ source/header files. This keeps the port Rust-only
+instead of allowing the old runtime to creep back in as dormant reference code.

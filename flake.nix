@@ -1,5 +1,5 @@
 {
-  description = "Legacy of the Wizard — native C/C++ playable port";
+  description = "Legacy of the Wizard — native Rust playable port";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -26,13 +26,8 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            # C port build + tooling
-            gcc
-            gnumake
-            cmake
             pkg-config
             (sdl3gitFor pkgs)
-            # Development tooling
             cargo
             clippy
             rustc
@@ -50,24 +45,25 @@
       # Source is filtered to code only: the (gitignored) ROM never enters the
       # Nix store. The ROM is supplied at runtime as an argument.
       packages = forAllSystems (pkgs: rec {
-        play = pkgs.stdenv.mkDerivation {
+        play = pkgs.rustPlatform.buildRustPackage {
           pname = "lotw-play";
           version = "0.1.0";
           src = nixpkgs.lib.fileset.toSource {
             root = ./.;
             fileset = nixpkgs.lib.fileset.unions [
-              ./CMakeLists.txt
+              ./Cargo.toml
+              ./Cargo.lock
               ./src
-              ./test
+              ./tests
+              ./fixtures
+              ./config
             ];
           };
-          nativeBuildInputs = [ pkgs.cmake pkgs.pkg-config ];
+          cargoLock.lockFile = ./Cargo.lock;
+          cargoBuildFlags = [ "--features" "sdl" "--bin" "play" ];
+          cargoTestFlags = [ "--lib" "--tests" ];
+          nativeBuildInputs = [ pkgs.pkg-config ];
           buildInputs = [ (sdl3gitFor pkgs) ];
-          installPhase = ''
-            runHook preInstall
-            install -Dm755 play $out/bin/lotw-play
-            runHook postInstall
-          '';
         };
         default = play;
       });
@@ -75,7 +71,7 @@
       apps = forAllSystems (pkgs: rec {
         play = {
           type = "app";
-          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.play}/bin/lotw-play";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.play}/bin/play";
         };
         default = play;
       });
