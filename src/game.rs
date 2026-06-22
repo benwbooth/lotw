@@ -1990,159 +1990,99 @@ mod encode_inventory_snapshot_item_list {
     /// checksums are folded into spare bits before all non-seed entries are
     /// scrambled with `rng_update`.
     pub fn encode_inventory_snapshot_item_list(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
         // Split the saved progress bytes into low-nibble item-list entries.
-        x = 0x0F;
-        y = 0x07;
-        loop {
-            let mut b: i32 = engine.mem(u16v(0x0308 + y));
-            engine.set_mem(u16v(0x0322 + x), u8v(b >> 4));
-            {
-                let __old = x;
-                x -= 1;
-                __old
-            };
-            engine.set_mem(u16v(0x0322 + x), u8v(b & 0x0F));
-            {
-                let __old = x;
-                x -= 1;
-                __old
-            };
-            {
-                let __old = y;
-                y -= 1;
-                __old
-            };
-            if !cbool(y >= 0) {
-                break;
-            }
+        let mut progress_entry_offset: i32 = 0x0F;
+        for progress_byte_offset in (0..=0x07).rev() {
+            let progress_byte: i32 = engine.mem(0x0308 + progress_byte_offset);
+            engine.set_mem(0x0322 + progress_entry_offset, u8v(progress_byte >> 4));
+            progress_entry_offset -= 1;
+            engine.set_mem(0x0322 + progress_entry_offset, u8v(progress_byte & 0x0F));
+            progress_entry_offset -= 1;
         }
         // Copy saved inventory counts into the second half of the item list.
-        {
-            x = 0x0F;
-            while cbool(x >= 0) {
-                engine.set_mem(u16v(0x0332 + x), u8v(engine.mem(u16v(0x0310 + x)) & 0x0F));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        for inventory_offset in (0..=0x0F).rev() {
+            engine.set_mem(
+                0x0332 + inventory_offset,
+                u8v(engine.mem(0x0310 + inventory_offset) & 0x0F),
+            );
         }
         // Fold the saved key and coin counters into every other high-bit slot.
         {
-            let mut a: i32 = engine.mem(0x0320);
-            {
-                x = 0x0F;
-                while cbool(x >= 0) {
-                    let mut cin: i32 = u8v(a & 1);
-                    a >>= 1;
-                    let mut c: i32 = engine.mem(u16v(0x0322 + x));
-                    engine.set_mem(u16v(0x0322 + x), u8v((c << 1) | cin));
-                    x -= 2;
-                }
+            let mut key_bits: i32 = engine.mem(0x0320);
+            for entry_offset in (0..=0x0F).rev().step_by(2) {
+                let carry_bit: i32 = u8v(key_bits & 1);
+                key_bits >>= 1;
+                let entry: i32 = engine.mem(0x0322 + entry_offset);
+                engine.set_mem(0x0322 + entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         {
-            let mut a: i32 = engine.mem(0x0321);
-            {
-                x = 0x0F;
-                while cbool(x >= 0) {
-                    let mut cin: i32 = u8v(a & 1);
-                    a >>= 1;
-                    let mut c: i32 = engine.mem(u16v(0x0332 + x));
-                    engine.set_mem(u16v(0x0332 + x), u8v((c << 1) | cin));
-                    x -= 2;
-                }
+            let mut coin_bits: i32 = engine.mem(0x0321);
+            for entry_offset in (0..=0x0F).rev().step_by(2) {
+                let carry_bit: i32 = u8v(coin_bits & 1);
+                coin_bits >>= 1;
+                let entry: i32 = engine.mem(0x0332 + entry_offset);
+                engine.set_mem(0x0332 + entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         // Compute the checksum bytes over the packed-but-unscrambled entries.
         {
-            let mut a: i32 = 0x00;
-            {
-                x = 0x1F;
-                while cbool(x >= 0) {
-                    a = u8v(a + engine.mem(u16v(0x0322 + x)));
-                    {
-                        let __old = x;
-                        x -= 1;
-                        __old
-                    };
-                }
+            let mut additive_checksum: i32 = 0x00;
+            for entry_offset in (0..=0x1F).rev() {
+                additive_checksum = u8v(additive_checksum + engine.mem(0x0322 + entry_offset));
             }
-            engine.set_mem(0x0389, a);
+            engine.set_mem(0x0389, additive_checksum);
         }
         {
-            let mut a: i32 = 0x0A;
-            {
-                x = 0x1F;
-                while cbool(x >= 0) {
-                    a = u8v(a ^ engine.mem(u16v(0x0322 + x)));
-                    {
-                        let __old = x;
-                        x -= 1;
-                        __old
-                    };
-                }
+            let mut xor_checksum: i32 = 0x0A;
+            for entry_offset in (0..=0x1F).rev() {
+                xor_checksum = u8v(xor_checksum ^ engine.mem(0x0322 + entry_offset));
             }
-            engine.set_mem(0x038A, a);
+            engine.set_mem(0x038A, xor_checksum);
         }
         // Store the checksum bits in the remaining high-bit slots.
         {
-            let mut a: i32 = engine.mem(0x0389);
-            {
-                x = 0x0E;
-                while cbool(x >= 0) {
-                    let mut cin: i32 = u8v(a & 1);
-                    a >>= 1;
-                    let mut c: i32 = engine.mem(u16v(0x0322 + x));
-                    engine.set_mem(u16v(0x0322 + x), u8v((c << 1) | cin));
-                    x -= 2;
-                }
+            let mut additive_checksum_bits: i32 = engine.mem(0x0389);
+            for entry_offset in (0..=0x0E).rev().step_by(2) {
+                let carry_bit: i32 = u8v(additive_checksum_bits & 1);
+                additive_checksum_bits >>= 1;
+                let entry: i32 = engine.mem(0x0322 + entry_offset);
+                engine.set_mem(0x0322 + entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         {
-            let mut a: i32 = engine.mem(0x038A);
-            {
-                x = 0x0E;
-                while cbool(x >= 0) {
-                    let mut cin: i32 = u8v(a & 1);
-                    a >>= 1;
-                    let mut c: i32 = engine.mem(u16v(0x0332 + x));
-                    engine.set_mem(u16v(0x0332 + x), u8v((c << 1) | cin));
-                    x -= 2;
-                }
+            let mut xor_checksum_bits: i32 = engine.mem(0x038A);
+            for entry_offset in (0..=0x0E).rev().step_by(2) {
+                let carry_bit: i32 = u8v(xor_checksum_bits & 1);
+                xor_checksum_bits >>= 1;
+                let entry: i32 = engine.mem(0x0332 + entry_offset);
+                engine.set_mem(0x0332 + entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         // Entries at offsets 0x0F and 0x1F seed the RNG and are intentionally
         // not scrambled.
         engine.set_mem(0x3A, engine.mem(0x0331));
         engine.set_mem(0x3B, engine.mem(0x0341));
-        {
-            x = 0x0E;
-            while cbool(x >= 0) {
-                engine.set_mem(0x08, u8v(x));
-                r.value = 0x20;
-                rng_update(engine, r);
-                x = engine.mem(0x08);
-                engine.set_mem(
-                    u16v(0x0322 + x),
-                    u8v(r.value ^ engine.mem(u16v(0x0322 + x))),
-                );
-                r.value = 0x20;
-                rng_update(engine, r);
-                x = engine.mem(0x08);
-                engine.set_mem(
-                    u16v(0x0332 + x),
-                    u8v(r.value ^ engine.mem(u16v(0x0332 + x))),
-                );
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-            }
+        let mut scramble_offset: i32 = 0x0E;
+        while cbool(scramble_offset >= 0) {
+            engine.set_mem(0x08, u8v(scramble_offset));
+            r.value = 0x20;
+            rng_update(engine, r);
+            scramble_offset = engine.mem(0x08);
+            engine.set_mem(
+                0x0322 + scramble_offset,
+                u8v(r.value ^ engine.mem(0x0322 + scramble_offset)),
+            );
+
+            r.value = 0x20;
+            rng_update(engine, r);
+            scramble_offset = engine.mem(0x08);
+            engine.set_mem(
+                0x0332 + scramble_offset,
+                u8v(r.value ^ engine.mem(0x0332 + scramble_offset)),
+            );
+
+            scramble_offset -= 1;
         }
     }
 }
@@ -2154,198 +2094,117 @@ mod decode_inventory_item_list_snapshot {
     /// saved progress/inventory snapshot. Carry is set and the error sound is
     /// queued when either checksum fails.
     pub fn decode_inventory_item_list_snapshot(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        let mut state: i32 = 0;
-        'dispatch: loop {
-            match state {
-                0 => {
-                    // Work in a copy so a bad checksum leaves the visible list
-                    // untouched.
-                    {
-                        x = 0x1F;
-                        while cbool(x >= 0) {
-                            engine.set_mem(u16v(0x0342 + x), engine.mem(u16v(0x0322 + x)));
-                            {
-                                let __old = x;
-                                x -= 1;
-                                __old
-                            };
-                        }
-                    }
-                    // Unscramble every non-seed entry with the same RNG stream
-                    // used by the encoder.
-                    engine.set_mem(0x3A, engine.mem(0x0351));
-                    engine.set_mem(0x3B, engine.mem(0x0361));
-                    {
-                        x = 0x0E;
-                        while cbool(x >= 0) {
-                            engine.set_mem(0x08, u8v(x));
-                            r.value = 0x20;
-                            rng_update(engine, r);
-                            x = engine.mem(0x08);
-                            engine.xor_mem(u16v(0x0342 + x), r.value);
-                            r.value = 0x20;
-                            rng_update(engine, r);
-                            x = engine.mem(0x08);
-                            engine.xor_mem(u16v(0x0352 + x), r.value);
-                            {
-                                let __old = x;
-                                x -= 1;
-                                __old
-                            };
-                        }
-                    }
-                    // Pull the stored checksum bits back out of the high-bit
-                    // slots before verifying the decoded entries.
-                    {
-                        let mut a: i32 = 0;
-                        {
-                            x = 0x0E;
-                            while cbool(x >= 0) {
-                                let mut c: i32 = engine.mem(u16v(0x0352 + x));
-                                a = u8v((a >> 1) | ((c & 1) << 7));
-                                engine.set_mem(u16v(0x0352 + x), u8v(c >> 1));
-                                x -= 2;
-                            }
-                        }
-                        engine.set_mem(0x038A, a);
-                    }
-                    {
-                        let mut a: i32 = 0;
-                        {
-                            x = 0x0E;
-                            while cbool(x >= 0) {
-                                let mut c: i32 = engine.mem(u16v(0x0342 + x));
-                                a = u8v((a >> 1) | ((c & 1) << 7));
-                                engine.set_mem(u16v(0x0342 + x), u8v(c >> 1));
-                                x -= 2;
-                            }
-                        }
-                        engine.set_mem(0x0389, a);
-                    }
-                    // Verify additive and xor checksums before updating the
-                    // snapshot buffers.
-                    {
-                        let mut a: i32 = 0;
-                        {
-                            x = 0x1F;
-                            while cbool(x >= 0) {
-                                a = u8v(a + engine.mem(u16v(0x0342 + x)));
-                                {
-                                    let __old = x;
-                                    x -= 1;
-                                    __old
-                                };
-                            }
-                        }
-                        if cbool(a != engine.mem(0x0389)) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                    }
-                    {
-                        let mut a: i32 = 0x0A;
-                        {
-                            x = 0x1F;
-                            while cbool(x >= 0) {
-                                a ^= engine.mem(u16v(0x0342 + x));
-                                {
-                                    let __old = x;
-                                    x -= 1;
-                                    __old
-                                };
-                            }
-                        }
-                        if cbool(a != engine.mem(0x038A)) {
-                            {
-                                state = 1;
-                                continue 'dispatch;
-                            }
-                        }
-                    }
-                    // Decode key and coin counters from every other high-bit
-                    // slot.
-                    {
-                        let mut a: i32 = 0;
-                        {
-                            x = 0x0F;
-                            while cbool(x >= 0) {
-                                let mut c: i32 = engine.mem(u16v(0x0342 + x));
-                                a = u8v((a >> 1) | ((c & 1) << 7));
-                                engine.set_mem(u16v(0x0342 + x), u8v(c >> 1));
-                                x -= 2;
-                            }
-                        }
-                        engine.set_mem(0x0320, a);
-                    }
-                    {
-                        let mut a: i32 = 0;
-                        {
-                            x = 0x0F;
-                            while cbool(x >= 0) {
-                                let mut c: i32 = engine.mem(u16v(0x0352 + x));
-                                a = u8v((a >> 1) | ((c & 1) << 7));
-                                engine.set_mem(u16v(0x0352 + x), u8v(c >> 1));
-                                x -= 2;
-                            }
-                        }
-                        engine.set_mem(0x0321, a);
-                    }
-                    // Recombine progress nibbles and copy inventory counts
-                    // back to the snapshot area.
-                    x = 0x0F;
-                    y = 0x07;
-                    loop {
-                        let mut hi: i32 = engine.mem(u16v(0x0342 + x));
-                        {
-                            let __old = x;
-                            x -= 1;
-                            __old
-                        };
-                        let mut lo: i32 = engine.mem(u16v(0x0342 + x));
-                        {
-                            let __old = x;
-                            x -= 1;
-                            __old
-                        };
-                        engine.set_mem(u16v(0x0308 + y), u8v((hi << 4) | lo));
-                        {
-                            let __old = y;
-                            y -= 1;
-                            __old
-                        };
-                        if !cbool(y >= 0) {
-                            break;
-                        }
-                    }
-                    {
-                        x = 0x0F;
-                        while cbool(x >= 0) {
-                            engine.set_mem(u16v(0x0310 + x), engine.mem(u16v(0x0352 + x)));
-                            {
-                                let __old = x;
-                                x -= 1;
-                                __old
-                            };
-                        }
-                    }
-                    r.carry = 0;
-                    return;
-                    state = 1;
-                    continue 'dispatch;
-                }
-                1 => {
-                    engine.set_mem(0x8F, 0x1C);
-                    engine.set_mem(0x90, 0x1C);
-                    r.carry = 1;
-                    break 'dispatch;
-                }
-                _ => break 'dispatch,
-            }
+        // Work in a copy so a bad checksum leaves the visible list untouched.
+        for entry_offset in (0..=0x1F).rev() {
+            engine.set_mem(0x0342 + entry_offset, engine.mem(0x0322 + entry_offset));
         }
+
+        // Unscramble every non-seed entry with the same RNG stream used by the
+        // encoder.
+        engine.set_mem(0x3A, engine.mem(0x0351));
+        engine.set_mem(0x3B, engine.mem(0x0361));
+        let mut scramble_offset: i32 = 0x0E;
+        while cbool(scramble_offset >= 0) {
+            engine.set_mem(0x08, u8v(scramble_offset));
+            r.value = 0x20;
+            rng_update(engine, r);
+            scramble_offset = engine.mem(0x08);
+            engine.xor_mem(0x0342 + scramble_offset, r.value);
+
+            r.value = 0x20;
+            rng_update(engine, r);
+            scramble_offset = engine.mem(0x08);
+            engine.xor_mem(0x0352 + scramble_offset, r.value);
+
+            scramble_offset -= 1;
+        }
+
+        // Pull the stored checksum bits back out of the high-bit slots before
+        // verifying the decoded entries.
+        {
+            let mut stored_xor_checksum: i32 = 0;
+            for entry_offset in (0..=0x0E).rev().step_by(2) {
+                let entry: i32 = engine.mem(0x0352 + entry_offset);
+                stored_xor_checksum = u8v((stored_xor_checksum >> 1) | ((entry & 1) << 7));
+                engine.set_mem(0x0352 + entry_offset, u8v(entry >> 1));
+            }
+            engine.set_mem(0x038A, stored_xor_checksum);
+        }
+        {
+            let mut stored_additive_checksum: i32 = 0;
+            for entry_offset in (0..=0x0E).rev().step_by(2) {
+                let entry: i32 = engine.mem(0x0342 + entry_offset);
+                stored_additive_checksum =
+                    u8v((stored_additive_checksum >> 1) | ((entry & 1) << 7));
+                engine.set_mem(0x0342 + entry_offset, u8v(entry >> 1));
+            }
+            engine.set_mem(0x0389, stored_additive_checksum);
+        }
+
+        // Verify additive and xor checksums before updating the snapshot
+        // buffers.
+        let mut additive_checksum: i32 = 0;
+        for entry_offset in (0..=0x1F).rev() {
+            additive_checksum = u8v(additive_checksum + engine.mem(0x0342 + entry_offset));
+        }
+        if cbool(additive_checksum != engine.mem(0x0389)) {
+            engine.set_mem(0x8F, 0x1C);
+            engine.set_mem(0x90, 0x1C);
+            r.carry = 1;
+            return;
+        }
+
+        let mut xor_checksum: i32 = 0x0A;
+        for entry_offset in (0..=0x1F).rev() {
+            xor_checksum = u8v(xor_checksum ^ engine.mem(0x0342 + entry_offset));
+        }
+        if cbool(xor_checksum != engine.mem(0x038A)) {
+            engine.set_mem(0x8F, 0x1C);
+            engine.set_mem(0x90, 0x1C);
+            r.carry = 1;
+            return;
+        }
+
+        // Decode key and coin counters from every other high-bit slot.
+        {
+            let mut key_bits: i32 = 0;
+            for entry_offset in (0..=0x0F).rev().step_by(2) {
+                let entry: i32 = engine.mem(0x0342 + entry_offset);
+                key_bits = u8v((key_bits >> 1) | ((entry & 1) << 7));
+                engine.set_mem(0x0342 + entry_offset, u8v(entry >> 1));
+            }
+            engine.set_mem(0x0320, key_bits);
+        }
+        {
+            let mut coin_bits: i32 = 0;
+            for entry_offset in (0..=0x0F).rev().step_by(2) {
+                let entry: i32 = engine.mem(0x0352 + entry_offset);
+                coin_bits = u8v((coin_bits >> 1) | ((entry & 1) << 7));
+                engine.set_mem(0x0352 + entry_offset, u8v(entry >> 1));
+            }
+            engine.set_mem(0x0321, coin_bits);
+        }
+
+        // Recombine progress nibbles and copy inventory counts back to the
+        // snapshot area.
+        let mut progress_entry_offset: i32 = 0x0F;
+        for progress_byte_offset in (0..=0x07).rev() {
+            let high_nibble: i32 = engine.mem(0x0342 + progress_entry_offset);
+            progress_entry_offset -= 1;
+            let low_nibble: i32 = engine.mem(0x0342 + progress_entry_offset);
+            progress_entry_offset -= 1;
+            engine.set_mem(
+                0x0308 + progress_byte_offset,
+                u8v((high_nibble << 4) | low_nibble),
+            );
+        }
+        for inventory_offset in (0..=0x0F).rev() {
+            engine.set_mem(
+                0x0310 + inventory_offset,
+                engine.mem(0x0352 + inventory_offset),
+            );
+        }
+        r.carry = 0;
     }
 }
 
