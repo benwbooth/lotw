@@ -290,36 +290,36 @@ fn with_large_actor_asset_banks<F>(engine: &mut Engine, r: &mut RoutineContext, 
 where
     F: FnOnce(&mut Engine, &mut RoutineContext),
 {
-    let saved_bank6: i32 = engine.mem(0x30);
-    let saved_bank7: i32 = engine.mem(0x31);
-    engine.set_mem(0x32, saved_bank6);
-    engine.set_mem(0x33, saved_bank7);
-    engine.set_mem(0x30, 0x0C);
-    engine.set_mem(0x31, 0x0D);
-    engine.set_mem(0x25, 0x07);
+    let saved_bank6: i32 = engine.state.prg_bank_8000();
+    let saved_bank7: i32 = engine.state.prg_bank_a000();
+    engine.state.set_saved_prg_bank_8000(saved_bank6);
+    engine.state.set_saved_prg_bank_a000(saved_bank7);
+    engine.state.set_prg_bank_8000(0x0C);
+    engine.state.set_prg_bank_a000(0x0D);
+    engine.state.set_mmc3_bank_select(0x07);
     engine.prg_map_shadow();
     action(engine, r);
-    engine.set_mem(0x31, saved_bank7);
-    engine.set_mem(0x30, saved_bank6);
-    engine.set_mem(0x25, 0x06);
+    engine.state.set_prg_bank_a000(saved_bank7);
+    engine.state.set_prg_bank_8000(saved_bank6);
+    engine.state.set_mmc3_bank_select(0x06);
     engine.prg_map_shadow();
 }
 
 mod farcall_bank_09_r7 {
     use super::*;
     pub fn farcall_bank_09_r7(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut saved_r7: i32 = engine.mem(0x31);
-        engine.set_mem(0x25, 0x07);
+        let mut saved_r7: i32 = engine.state.prg_bank_a000();
+        engine.state.set_mmc3_bank_select(0x07);
         engine.device_write(0x8000, 0x07);
-        engine.set_mem(0x31, 0x09);
+        engine.state.set_prg_bank_a000(0x09);
         engine.device_write(0x8001, 0x09);
         engine.set_mem(0x0D, 0x00);
         r.value = 0x00;
         resolve_room_tile_pointer(engine, r);
         queue_room_column_vram_upload(engine, r);
-        engine.set_mem(0x25, 0x07);
+        engine.state.set_mmc3_bank_select(0x07);
         engine.device_write(0x8000, 0x07);
-        engine.set_mem(0x31, saved_r7);
+        engine.state.set_prg_bank_a000(saved_r7);
         engine.device_write(0x8001, saved_r7);
         r.value = saved_r7;
     }
@@ -328,15 +328,19 @@ mod farcall_bank_09_r7 {
 mod farcall_bank_0C0D_seed {
     use super::*;
     pub fn farcall_bank_0C0D_seed(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x32, engine.mem(0x30));
-        engine.set_mem(0x33, engine.mem(0x31));
-        engine.set_mem(0x25, 0x06);
+        engine
+            .state
+            .set_saved_prg_bank_8000(engine.state.prg_bank_8000());
+        engine
+            .state
+            .set_saved_prg_bank_a000(engine.state.prg_bank_a000());
+        engine.state.set_mmc3_bank_select(0x06);
         engine.device_write(0x8000, 0x06);
-        engine.set_mem(0x30, 0x0C);
+        engine.state.set_prg_bank_8000(0x0C);
         engine.device_write(0x8001, 0x0C);
-        engine.set_mem(0x25, 0x07);
+        engine.state.set_mmc3_bank_select(0x07);
         engine.device_write(0x8000, 0x07);
-        engine.set_mem(0x31, 0x0D);
+        engine.state.set_prg_bank_a000(0x0D);
         engine.device_write(0x8001, 0x0D);
         r.value = 0x0D;
         r.offset = 0x07;
@@ -346,8 +350,12 @@ mod farcall_bank_0C0D_seed {
 mod farcall_return_home {
     use super::*;
     pub fn farcall_return_home(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x31, engine.mem(0x33));
-        engine.set_mem(0x30, engine.mem(0x32));
+        engine
+            .state
+            .set_prg_bank_a000(engine.state.saved_prg_bank_a000());
+        engine
+            .state
+            .set_prg_bank_8000(engine.state.saved_prg_bank_8000());
     }
 }
 
@@ -606,20 +614,20 @@ mod main_init {
         mut hi: i32,
         target: RoutineFn,
     ) {
-        let saved_bank_6: i32 = engine.mem(0x30);
-        let saved_bank_7: i32 = engine.mem(0x31);
-        engine.set_mem(0x32, saved_bank_6);
-        engine.set_mem(0x33, saved_bank_7);
+        let saved_bank_6: i32 = engine.state.prg_bank_8000();
+        let saved_bank_7: i32 = engine.state.prg_bank_a000();
+        engine.state.set_saved_prg_bank_8000(saved_bank_6);
+        engine.state.set_saved_prg_bank_a000(saved_bank_7);
         engine.set_mem(0x0E, lo);
         engine.set_mem(0x0F, hi);
-        engine.set_mem(0x30, 0x0C);
-        engine.set_mem(0x31, 0x0D);
-        engine.set_mem(0x25, 0x07);
+        engine.state.set_prg_bank_8000(0x0C);
+        engine.state.set_prg_bank_a000(0x0D);
+        engine.state.set_mmc3_bank_select(0x07);
         engine.prg_map_shadow();
         target(engine, r);
-        engine.set_mem(0x31, saved_bank_7);
-        engine.set_mem(0x30, saved_bank_6);
-        engine.set_mem(0x25, 0x06);
+        engine.state.set_prg_bank_a000(saved_bank_7);
+        engine.state.set_prg_bank_8000(saved_bank_6);
+        engine.state.set_mmc3_bank_select(0x06);
         engine.prg_map_shadow();
     }
 
@@ -2897,8 +2905,8 @@ mod select_room_data_bank_and_pointers {
     /// Selects the PRG bank and base room data pointers for `0x47/0x48`.
     pub fn select_room_data_bank_and_pointers(engine: &mut Engine, r: &mut RoutineContext) {
         let room_bank: i32 = u8v(engine.mem(0x48) >> 1);
-        if cbool(room_bank != engine.mem(0x30)) {
-            engine.set_mem(0x30, room_bank);
+        if cbool(room_bank != engine.state.prg_bank_8000()) {
+            engine.state.set_prg_bank_8000(room_bank);
             r.value = 0xFF;
             queue_ppu_job_and_wait(engine, r);
         }
@@ -9962,9 +9970,9 @@ mod sound_restore_game_banks {
     use super::*;
     pub fn sound_restore_game_banks(engine: &mut Engine, r: &mut RoutineContext) {
         engine.device_write(0x8000, 0x06);
-        engine.device_write(0x8001, engine.mem(0x30));
+        engine.device_write(0x8001, engine.state.prg_bank_8000());
         engine.device_write(0x8000, 0x07);
-        engine.device_write(0x8001, engine.mem(0x31));
+        engine.device_write(0x8001, engine.state.prg_bank_a000());
     }
 }
 
@@ -10253,7 +10261,7 @@ mod vblank_commit_tail {
             engine.dec_mem(0x36);
         }
         frame_counters(engine, r);
-        engine.device_write(0x8000, engine.mem(0x25));
+        engine.device_write(0x8000, engine.state.mmc3_bank_select());
     }
 }
 

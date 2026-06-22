@@ -63,16 +63,20 @@ fn set_player_magic(engine: &mut Engine, value: i32) {
 fn enter_return_home(engine: &mut Engine, lo: i32, hi: i32) {
     engine.set_mem(0x0e, lo);
     engine.set_mem(0x0f, hi);
-    engine.set_mem(0x30, engine.mem(0x32));
-    engine.set_mem(0x31, engine.mem(0x33));
-    engine.set_mem(0x25, 0x06);
+    engine
+        .state
+        .set_prg_bank_8000(engine.state.saved_prg_bank_8000());
+    engine
+        .state
+        .set_prg_bank_a000(engine.state.saved_prg_bank_a000());
+    engine.state.set_mmc3_bank_select(0x06);
     engine.prg_map_shadow();
 }
 
 fn leave_return_home(engine: &mut Engine) {
-    engine.set_mem(0x30, 0x0c);
-    engine.set_mem(0x31, 0x0d);
-    engine.set_mem(0x25, 0x07);
+    engine.state.set_prg_bank_8000(0x0c);
+    engine.state.set_prg_bank_a000(0x0d);
+    engine.state.set_mmc3_bank_select(0x07);
     engine.prg_map_shadow();
 }
 
@@ -83,20 +87,20 @@ fn farcall_cce4(engine: &mut Engine, r: &mut RoutineContext, lo: i32, hi: i32, t
 }
 
 fn farcall_0c0d(engine: &mut Engine, r: &mut RoutineContext, lo: i32, hi: i32, target: RoutineFn) {
-    let old6 = engine.mem(0x30);
-    let old7 = engine.mem(0x31);
-    engine.set_mem(0x32, old6);
-    engine.set_mem(0x33, old7);
+    let old6 = engine.state.prg_bank_8000();
+    let old7 = engine.state.prg_bank_a000();
+    engine.state.set_saved_prg_bank_8000(old6);
+    engine.state.set_saved_prg_bank_a000(old7);
     engine.set_mem(0x0e, lo);
     engine.set_mem(0x0f, hi);
-    engine.set_mem(0x30, 0x0c);
-    engine.set_mem(0x31, 0x0d);
-    engine.set_mem(0x25, 0x07);
+    engine.state.set_prg_bank_8000(0x0c);
+    engine.state.set_prg_bank_a000(0x0d);
+    engine.state.set_mmc3_bank_select(0x07);
     engine.prg_map_shadow();
     target(engine, r);
-    engine.set_mem(0x31, old7);
-    engine.set_mem(0x30, old6);
-    engine.set_mem(0x25, 0x06);
+    engine.state.set_prg_bank_a000(old7);
+    engine.state.set_prg_bank_8000(old6);
+    engine.state.set_mmc3_bank_select(0x06);
     engine.prg_map_shadow();
 }
 
