@@ -17,8 +17,10 @@ pub mod game;
 pub mod native;
 pub mod ppu;
 pub mod scripts;
+pub mod state;
 
 pub use engine::{Engine, PPU_H, PPU_W, RoutineContext};
+pub use state::GameState;
 
 pub trait CTruth {
     fn c_truth(self) -> bool;

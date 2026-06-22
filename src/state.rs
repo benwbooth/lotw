@@ -1,0 +1,201 @@
+//! Game state: the CPU-visible memory image plus named accessors for it.
+//!
+//! The port is a faithful translation of 6502 code that addresses memory
+//! uniformly: zero-page game variables, the stack page, the OAM DMA source
+//! page, object/room buffers, and the MMC3-mapped PRG windows all live in one
+//! flat 64 KiB space, and the original code freely indexes across it and chases
+//! pointers through it. So the backing store stays a single `[u8; 0x10000]`
+//! array ([`GameState::ram`]).
+//!
+//! What this module adds on top is *meaning*: named, documented accessor
+//! methods for the individual RAM locations the game uses as discrete state
+//! variables. Call sites should prefer the named accessor
+//! (`state.prg_bank_8000()`) over a raw magic-number access
+//! (`state.byte(0x30)`); the raw [`GameState::byte`] / [`GameState::set_byte`]
+//! pair remains the documented escape hatch for the genuinely dynamic accesses
+//! (computed indices, pointer dereferences, table/buffer scans) that cannot be
+//! expressed as a fixed field.
+
+/// The CPU-visible memory image and the named state living inside it.
+///
+/// Indexing is uniform across the whole 64 KiB address space because the
+/// translated 6502 code performs cross-field indexing, aliasing, and pointer
+/// dereferences that a struct of typed fields could not reproduce byte-for-byte.
+pub struct GameState {
+    /// Flat backing store for the entire CPU address space:
+    /// `$0000-$07FF` RAM (+ mirrors), `$0100` stack page, `$0200` OAM DMA
+    /// source, object/room buffers, and the MMC3-mapped PRG at `$8000-$FFFF`.
+    pub ram: [u8; 0x10000],
+}
+
+impl Default for GameState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        Self { ram: [0; 0x10000] }
+    }
+
+    /// Clear all RAM back to zero. Mapped PRG/CHR is re-established by the
+    /// loader, so a full zero-fill here is correct for a fresh boot.
+    pub fn reset(&mut self) {
+        self.ram = [0; 0x10000];
+    }
+
+    // ---- Raw byte access (escape hatch for dynamic addresses) --------------
+    //
+    // Use these only where the address is computed at run time (indexed table
+    // reads, pointer dereferences, buffer scans). For a fixed, known location,
+    // prefer the named accessor further down so the call site reads as state.
+
+    /// Read one byte at `addr`.
+    ///
+    /// The read is volatile: the frame runner parks the game thread while
+    /// vblank mutates RAM from the control thread, and a volatile load keeps
+    /// resumed game code from reusing a stale value across that wait boundary.
+    #[inline]
+    pub fn byte(&self, addr: i32) -> i32 {
+        let idx = (addr as usize) & 0xffff;
+        unsafe { std::ptr::read_volatile(self.ram.as_ptr().add(idx)) as i32 }
+    }
+
+    /// Write the low byte of `value` at `addr` (volatile; see [`Self::byte`]).
+    #[inline]
+    pub fn set_byte(&mut self, addr: i32, value: i32) {
+        let idx = (addr as usize) & 0xffff;
+        unsafe { std::ptr::write_volatile(self.ram.as_mut_ptr().add(idx), value as u8) };
+    }
+
+    /// Add `value` to the byte at `addr` (wrapping, masked to 8 bits); returns
+    /// the new value.
+    #[inline]
+    pub fn add_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = self.byte(addr).wrapping_add(value) & 0xff;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// Subtract `value` from the byte at `addr` (wrapping, masked); returns it.
+    #[inline]
+    pub fn sub_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = self.byte(addr).wrapping_sub(value) & 0xff;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// `byte &= value`; returns the new value.
+    #[inline]
+    pub fn and_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = self.byte(addr) & value;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// `byte |= value`; returns the new value.
+    #[inline]
+    pub fn or_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = self.byte(addr) | value;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// `byte ^= value`; returns the new value.
+    #[inline]
+    pub fn xor_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = self.byte(addr) ^ value;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// `byte <<= value` (masked to 8 bits); returns the new value.
+    #[inline]
+    pub fn shl_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = (self.byte(addr) << value) & 0xff;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// `byte >>= value` (logical); returns the new value.
+    #[inline]
+    pub fn shr_byte(&mut self, addr: i32, value: i32) -> i32 {
+        let next = (self.byte(addr) & 0xff) >> value;
+        self.set_byte(addr, next);
+        next
+    }
+
+    /// Increment the byte at `addr` (wrapping); returns the new value.
+    #[inline]
+    pub fn inc_byte(&mut self, addr: i32) -> i32 {
+        self.add_byte(addr, 1)
+    }
+
+    /// Decrement the byte at `addr` (wrapping); returns the new value.
+    #[inline]
+    pub fn dec_byte(&mut self, addr: i32) -> i32 {
+        self.sub_byte(addr, 1)
+    }
+
+    // ---- MMC3 bank shadows + far-call save slots --------------------------
+    //
+    // The MMC3 mapper is driven through zero-page shadows that mirror the eight
+    // bank registers; a per-frame committer ($D41D) replays them to hardware.
+    // `$25` holds the bank-select value last written to `$8000` (which of R0-R7
+    // the next `$8001` write targets); `$2A-$31` shadow R0-R7. R6 (`$30`) and
+    // R7 (`$31`) select the swappable 8 KiB PRG windows at `$8000`/`$A000`.
+    // Far calls into a switchable bank stash the live PRG banks in `$32`/`$33`
+    // and restore them on return.
+
+    /// MMC3 bank-select shadow (`$25`): which register R0-R7 the next bank
+    /// write targets, plus the PRG/CHR mode bits.
+    #[inline]
+    pub fn mmc3_bank_select(&self) -> i32 {
+        self.byte(0x25)
+    }
+    #[inline]
+    pub fn set_mmc3_bank_select(&mut self, value: i32) {
+        self.set_byte(0x25, value);
+    }
+
+    /// PRG bank mapped at `$8000` — MMC3 R6 shadow (`$30`).
+    #[inline]
+    pub fn prg_bank_8000(&self) -> i32 {
+        self.byte(0x30)
+    }
+    #[inline]
+    pub fn set_prg_bank_8000(&mut self, value: i32) {
+        self.set_byte(0x30, value);
+    }
+
+    /// PRG bank mapped at `$A000` — MMC3 R7 shadow (`$31`).
+    #[inline]
+    pub fn prg_bank_a000(&self) -> i32 {
+        self.byte(0x31)
+    }
+    #[inline]
+    pub fn set_prg_bank_a000(&mut self, value: i32) {
+        self.set_byte(0x31, value);
+    }
+
+    /// Saved R6/`$8000` PRG bank stashed across a far call (`$32`).
+    #[inline]
+    pub fn saved_prg_bank_8000(&self) -> i32 {
+        self.byte(0x32)
+    }
+    #[inline]
+    pub fn set_saved_prg_bank_8000(&mut self, value: i32) {
+        self.set_byte(0x32, value);
+    }
+
+    /// Saved R7/`$A000` PRG bank stashed across a far call (`$33`).
+    #[inline]
+    pub fn saved_prg_bank_a000(&self) -> i32 {
+        self.byte(0x33)
+    }
+    #[inline]
+    pub fn set_saved_prg_bank_a000(&mut self, value: i32) {
+        self.set_byte(0x33, value);
+    }
+}

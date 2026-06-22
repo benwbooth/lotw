@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     engine.ppu.scroll_y = 0;
 
     let mut frame = vec![0; PPU_W * PPU_H * 3];
-    let memory = engine.memory;
+    let memory = engine.state.ram;
     engine.ppu.render(&memory, &mut frame);
     common::write_ppm("build/ppu_frame.ppm", &frame)?;
     let lit = frame

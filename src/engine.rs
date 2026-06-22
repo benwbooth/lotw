@@ -1,4 +1,4 @@
-use crate::{apu::Apu, ppu::Ppu};
+use crate::{apu::Apu, ppu::Ppu, state::GameState};
 
 pub const PPU_W: usize = 256;
 pub const PPU_H: usize = 240;
@@ -18,7 +18,8 @@ pub struct RoutineContext {
 pub type RoutineFn = fn(&mut Engine, &mut RoutineContext);
 
 pub struct Engine {
-    pub memory: [u8; 0x10000],
+    /// CPU-visible memory image plus named game-state accessors.
+    pub state: GameState,
     pub ppu: Ppu,
     pub apu: Apu,
     pub lotw_nonlocal_handoff: i32,
@@ -37,7 +38,7 @@ impl Default for Engine {
 impl Engine {
     pub fn new() -> Self {
         Self {
-            memory: [0; 0x10000],
+            state: GameState::new(),
             ppu: Ppu::new(),
             apu: Apu::new(),
             lotw_nonlocal_handoff: 0,
@@ -49,72 +50,59 @@ impl Engine {
     }
 
     pub fn reset_memory(&mut self) {
-        self.memory = [0; 0x10000];
+        self.state.reset();
         self.lotw_nonlocal_handoff = 0;
     }
 
+    // Memory access delegates to `self.state`. These keep existing call sites
+    // compiling while the codebase migrates from raw `engine.mem(addr)` access
+    // to the named state accessors on `GameState`; new code should reach for
+    // `engine.state.<field>()` (or `engine.state.byte(addr)` for genuinely
+    // dynamic addresses) instead.
+
     #[inline]
     pub fn mem(&self, addr: i32) -> i32 {
-        let idx = (addr as usize) & 0xffff;
-        // The frame runner parks the game thread while vblank mutates RAM from
-        // the control thread. Volatile RAM access keeps resumed game code from
-        // reusing stale values across that explicit wait boundary.
-        unsafe { std::ptr::read_volatile(self.memory.as_ptr().add(idx)) as i32 }
+        self.state.byte(addr)
     }
 
     #[inline]
     pub fn set_mem(&mut self, addr: i32, value: i32) {
-        let idx = (addr as usize) & 0xffff;
-        unsafe { std::ptr::write_volatile(self.memory.as_mut_ptr().add(idx), value as u8) };
+        self.state.set_byte(addr, value);
     }
 
     #[inline]
     pub fn add_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.mem(addr).wrapping_add(value) & 0xff;
-        self.set_mem(addr, next);
-        next
+        self.state.add_byte(addr, value)
     }
 
     #[inline]
     pub fn sub_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.mem(addr).wrapping_sub(value) & 0xff;
-        self.set_mem(addr, next);
-        next
+        self.state.sub_byte(addr, value)
     }
 
     #[inline]
     pub fn and_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.mem(addr) & value;
-        self.set_mem(addr, next);
-        next
+        self.state.and_byte(addr, value)
     }
 
     #[inline]
     pub fn or_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.mem(addr) | value;
-        self.set_mem(addr, next);
-        next
+        self.state.or_byte(addr, value)
     }
 
     #[inline]
     pub fn xor_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.mem(addr) ^ value;
-        self.set_mem(addr, next);
-        next
+        self.state.xor_byte(addr, value)
     }
 
     #[inline]
     pub fn shl_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = (self.mem(addr) << value) & 0xff;
-        self.set_mem(addr, next);
-        next
+        self.state.shl_byte(addr, value)
     }
 
     #[inline]
     pub fn shr_mem(&mut self, addr: i32, value: i32) -> i32 {
-        let next = (self.mem(addr) & 0xff) >> value;
-        self.set_mem(addr, next);
-        next
+        self.state.shr_byte(addr, value)
     }
 
     #[inline]
@@ -217,7 +205,7 @@ impl Engine {
                 let base = (value as usize) << 8;
                 for i in 0..256 {
                     let dst = self.ppu.oamaddr.wrapping_add(i as u8) as usize;
-                    self.ppu.oam[dst] = self.memory[(base + i) & 0xffff];
+                    self.ppu.oam[dst] = self.state.ram[(base + i) & 0xffff];
                 }
             }
             0x8000 => {
@@ -312,7 +300,7 @@ impl Engine {
         let nbanks = self.ppu.prg_len / 0x2000;
         let off = ((bank8k as usize) % nbanks) * 0x2000;
         let dst = (cpu_base as usize) & 0xffff;
-        self.memory[dst..dst + 0x2000].copy_from_slice(&self.ppu.prg[off..off + 0x2000]);
+        self.state.ram[dst..dst + 0x2000].copy_from_slice(&self.ppu.prg[off..off + 0x2000]);
     }
 
     pub fn prg_map_shadow(&mut self) {
@@ -331,14 +319,14 @@ impl Engine {
         }
         if init_ram_pattern {
             for a in 0..0x0800 {
-                self.memory[a] = if (a & 4) != 0 { 0xff } else { 0x00 };
+                self.state.ram[a] = if (a & 4) != 0 { 0xff } else { 0x00 };
             }
         }
         self.ppu_load_prg(&rom[16..16 + prg]);
         self.ppu_load_chr(&rom[16 + prg..16 + prg + chr]);
         self.ppu.reset();
         self.apu.reset();
-        self.memory[0xc000..0x10000].copy_from_slice(&rom[16 + prg - 0x4000..16 + prg]);
+        self.state.ram[0xc000..0x10000].copy_from_slice(&rom[16 + prg - 0x4000..16 + prg]);
         self.ppu_map_prg(0x8000, 12);
         self.ppu_map_prg(0xa000, 13);
         self.ppu.set_vblank(true);
