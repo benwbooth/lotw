@@ -18,6 +18,16 @@ fn room_persistent_flag_read_and_clear_use_current_map_bit() {
     assert_eq!(engine.mem(0x0302), 0x7F);
     assert_eq!(r.index, 0x02);
     assert_eq!(r.value, 0x7F);
+
+    engine.set_mem(0x47, 0x03);
+    engine.set_mem(0x48, 0x02);
+    engine.set_mem(0x0303, 0xFF);
+
+    game::clear_room_persistent_flag(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0303), 0xBF);
+    assert_eq!(r.index, 0x03);
+    assert_eq!(r.value, 0xBF);
 }
 
 #[test]

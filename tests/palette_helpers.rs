@@ -62,6 +62,34 @@ fn load_title_palette_buffer_copies_rom_palette() {
 }
 
 #[test]
+fn room_palette_buffer_copies_room_bytes_and_family_override() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x77, 0x00);
+    engine.set_mem(0x78, 0xB0);
+    engine.set_mem(0x40, 0x02);
+    for offset in 0xE0..=0xFF {
+        engine.set_mem(0xB000 + offset, 0x30 + (offset & 0x1F));
+    }
+    for offset in 0x08..=0x0B {
+        engine.set_mem(0xFFC5 + offset, 0x60 + offset);
+    }
+
+    game::build_room_palette_buffer(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0180), 0x30);
+    assert_eq!(engine.mem(0x018F), 0x3F);
+    assert_eq!(engine.mem(0x0190), 0x68);
+    assert_eq!(engine.mem(0x0193), 0x6B);
+    assert_eq!(engine.mem(0x019F), 0x4F);
+    assert_eq!(r.value, 0x0B);
+    assert_eq!(r.index, 0x07);
+    assert_eq!(r.offset, 0xFF);
+    assert_eq!(r.carry, 0);
+}
+
+#[test]
 fn upload_title_screen_nametables_copies_rom_pages_and_chr_banks() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();

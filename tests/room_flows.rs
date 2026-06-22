@@ -1,4 +1,4 @@
-use lotw::{Engine, RoutineContext, native};
+use lotw::{Engine, RoutineContext, game, native};
 
 const ROOM_STATE_ADDRS: [i32; 7] = [0x43, 0x44, 0x45, 0x7B, 0x7C, 0x47, 0x48];
 
@@ -12,6 +12,34 @@ fn assert_room_state(engine: &Engine, state: [i32; 7]) {
     for (addr, value) in ROOM_STATE_ADDRS.into_iter().zip(state) {
         assert_eq!(engine.mem(addr), value, "room state address {addr:#04x}");
     }
+}
+
+#[test]
+fn room_tile_page_copy_copies_three_source_pages() {
+    let mut engine = Engine::new();
+    let mut r = RoutineContext::default();
+
+    engine.set_mem(0x75, 0x00);
+    engine.set_mem(0x76, 0x90);
+    for page in 0..=2 {
+        for offset in 0..0x100 {
+            engine.set_mem(
+                0x9000 + (page << 8) + offset,
+                (page * 0x40) + (offset & 0x3F),
+            );
+        }
+    }
+
+    game::copy_room_tile_pages(&mut engine, &mut r);
+
+    assert_eq!(engine.mem(0x0500), 0x00);
+    assert_eq!(engine.mem(0x053F), 0x3F);
+    assert_eq!(engine.mem(0x0600), 0x40);
+    assert_eq!(engine.mem(0x0700), 0x80);
+    assert_eq!(engine.mem(0x07FF), 0xBF);
+    assert_eq!(engine.mem(0x77), 0x00);
+    assert_eq!(engine.mem(0x78), 0x93);
+    assert_eq!(r.offset, 0x00);
 }
 
 #[test]

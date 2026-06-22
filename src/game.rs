@@ -2870,68 +2870,23 @@ mod copy_room_tile_pages {
     /// Copies three room tile pages from the active room data pointer into
     /// `0x0500..0x07FF`.
     pub fn copy_room_tile_pages(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut lo: i32 = 0;
-        let mut hi: i32 = 0;
-        let mut ptr: i32 = 0;
-        let mut i: i32 = 0;
         engine.set_mem(0x77, engine.mem(0x75));
         engine.set_mem(0x78, engine.mem(0x76));
-        lo = engine.mem(0x77);
-        hi = engine.mem(0x78);
-        ptr = u16v(lo | (hi << 8));
-        {
-            i = 0;
-            while cbool(i < 256) {
-                engine.set_mem(u16v(0x0500 + i), engine.mem(u16v(ptr + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
+
+        let source_lo: i32 = engine.mem(0x77);
+        let mut source_hi: i32 = engine.mem(0x78);
+        for page_index in 0..=2 {
+            let source_ptr: i32 = u16v(source_lo | (source_hi << 8));
+            let dest_base: i32 = 0x0500 + (page_index << 8);
+            for page_offset in 0..0x100 {
+                engine.set_mem(
+                    dest_base + page_offset,
+                    engine.mem(u16v(source_ptr + page_offset)),
+                );
             }
+            source_hi += 1;
+            engine.set_mem(0x78, source_hi);
         }
-        {
-            let __old = hi;
-            hi += 1;
-            __old
-        };
-        engine.set_mem(0x78, hi);
-        ptr = u16v(lo | (hi << 8));
-        {
-            i = 0;
-            while cbool(i < 256) {
-                engine.set_mem(u16v(0x0600 + i), engine.mem(u16v(ptr + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            let __old = hi;
-            hi += 1;
-            __old
-        };
-        engine.set_mem(0x78, hi);
-        ptr = u16v(lo | (hi << 8));
-        {
-            i = 0;
-            while cbool(i < 256) {
-                engine.set_mem(u16v(0x0700 + i), engine.mem(u16v(ptr + i)));
-                {
-                    let __old = i;
-                    i += 1;
-                    __old
-                };
-            }
-        }
-        {
-            let __old = hi;
-            hi += 1;
-            __old
-        };
-        engine.set_mem(0x78, hi);
         r.offset = 0;
     }
 }
@@ -2941,22 +2896,25 @@ mod select_room_data_bank_and_pointers {
 
     /// Selects the PRG bank and base room data pointers for `0x47/0x48`.
     pub fn select_room_data_bank_and_pointers(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut bank: i32 = u8v(engine.mem(0x48) >> 1);
-        let mut t: i32 = 0;
-        let mut lo: i32 = 0;
-        if cbool(bank != engine.mem(0x30)) {
-            engine.set_mem(0x30, bank);
+        let room_bank: i32 = u8v(engine.mem(0x48) >> 1);
+        if cbool(room_bank != engine.mem(0x30)) {
+            engine.set_mem(0x30, room_bank);
             r.value = 0xFF;
             queue_ppu_job_and_wait(engine, r);
         }
-        t = u8v(((engine.mem(0x48) & 0x01) << 2));
-        t = u8v((t | engine.mem(0x47)) << 2);
-        lo = u8v(t + 0x80);
-        engine.set_mem(0x76, lo);
-        engine.set_mem(0x78, u8v(lo + 0x03));
+
+        let room_table_offset: i32 =
+            u8v((u8v((engine.mem(0x48) & 0x01) << 2) | engine.mem(0x47)) << 2);
+        let room_ptr_lo: i32 = u8v(room_table_offset + 0x80);
+        engine.set_mem(0x76, room_ptr_lo);
+        engine.set_mem(0x78, u8v(room_ptr_lo + 0x03));
         engine.set_mem(0x77, 0x00);
         engine.set_mem(0x75, 0x00);
-        r.carry = u8v((if cbool((lo + 0x03) > 0xFF) { 1 } else { 0 }));
+        r.carry = u8v(if cbool((room_ptr_lo + 0x03) > 0xFF) {
+            1
+        } else {
+            0
+        });
     }
 }
 
@@ -2966,47 +2924,33 @@ mod build_room_palette_buffer {
     /// Copies room palette/attribute bytes into the palette buffer and applies
     /// the active family-member palette when applicable.
     pub fn build_room_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ptr: i32 = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
-        let mut a: i32 = 0;
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        {
-            y = 0xE0;
-            while cbool(y <= 0xFF) {
-                engine.set_mem(u16v(0x00A0 + u8v(y)), engine.mem(u16v(ptr + u8v(y))));
-                {
-                    let __old = y;
-                    y += 1;
-                    __old
-                };
-            }
+        let room_palette_ptr: i32 = u16v(engine.mem(0x77) | (engine.mem(0x78) << 8));
+        for room_palette_offset in 0xE0..=0xFF {
+            engine.set_mem(
+                0x00A0 + room_palette_offset,
+                engine.mem(u16v(room_palette_ptr + room_palette_offset)),
+            );
         }
-        a = engine.mem(0x40);
-        if cbool(a >= 0x06) {
-            r.value = a;
+
+        let family_member: i32 = engine.mem(0x40);
+        if cbool(family_member >= 0x06) {
+            r.value = family_member;
             r.carry = 1;
             return;
         }
-        a = u8v((a << 2) + 0x03);
-        x = a;
-        {
-            y = 0x03;
-            while cbool(y >= 0) {
-                engine.set_mem(u16v(0x0190 + y), engine.mem(u16v(0xFFC5 + x)));
-                {
-                    let __old = x;
-                    x -= 1;
-                    __old
-                };
-                {
-                    let __old = y;
-                    y -= 1;
-                    __old
-                };
-            }
+
+        let family_palette_end_offset: i32 = u8v((family_member << 2) + 0x03);
+        let mut family_palette_offset: i32 = family_palette_end_offset;
+        for dest_offset in (0..=0x03).rev() {
+            engine.set_mem(
+                0x0190 + dest_offset,
+                engine.mem(0xFFC5 + family_palette_offset),
+            );
+            family_palette_offset -= 1;
         }
-        r.value = a;
-        r.index = x;
+
+        r.value = family_palette_end_offset;
+        r.index = family_palette_offset;
         r.offset = u8v(0xFF);
         r.carry = 0;
     }
@@ -3017,23 +2961,15 @@ mod read_room_persistent_flag {
 
     /// Reads the persistent room-progress bit for the current map coordinates.
     pub fn read_room_persistent_flag(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut ms_y: i32 = engine.mem(0x48);
-        let mut ms_x: i32 = engine.mem(0x47);
-        let mut idx: i32 = u8v(((ms_y << 2) & 0x04) | ms_x);
-        let mut a: i32 = engine.mem(u16v(0x0300 + idx));
-        let mut cnt: i32 = u8v((ms_y >> 1) + 1);
-        loop {
-            a = u8v(a << 1);
-            if !cbool(
-                {
-                    cnt -= 1;
-                    cnt
-                } != 0,
-            ) {
-                break;
-            }
+        let map_y: i32 = engine.mem(0x48);
+        let map_x: i32 = engine.mem(0x47);
+        let flag_byte_index: i32 = u8v(((map_y << 2) & 0x04) | map_x);
+        let mut shifted_flags: i32 = engine.mem(0x0300 + flag_byte_index);
+        let shift_count: i32 = u8v((map_y >> 1) + 1);
+        for _ in 0..shift_count {
+            shifted_flags = u8v(shifted_flags << 1);
         }
-        r.value = a;
+        r.value = shifted_flags;
     }
 }
 
@@ -3042,28 +2978,13 @@ mod clear_room_persistent_flag {
 
     /// Clears the persistent room-progress bit for the current map coordinates.
     pub fn clear_room_persistent_flag(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut msy: i32 = engine.mem(0x48);
-        let mut x: i32 = u8v((msy >> 1) + 1);
-        let mut a: i32 = 0xFF;
-        let mut carry: i32 = 0;
-        let mut idx: i32 = 0;
-        loop {
-            let mut newcarry: i32 = a & 1;
-            a = u8v((carry << 7) | (a >> 1));
-            carry = newcarry;
-            {
-                let __old = x;
-                x -= 1;
-                __old
-            };
-            if !cbool(x != 0) {
-                break;
-            }
-        }
-        idx = u8v(((u8v(msy << 2)) & 0x04) | engine.mem(0x47));
-        engine.and_mem(u16v(0x0300 + idx), a);
-        r.value = engine.mem(u16v(0x0300 + idx));
-        r.index = idx;
+        let map_y: i32 = engine.mem(0x48);
+        let shift_count: i32 = u8v((map_y >> 1) + 1);
+        let clear_mask: i32 = u8v(0xFF ^ (0x80 >> (shift_count - 1)));
+        let flag_byte_index: i32 = u8v(((u8v(map_y << 2)) & 0x04) | engine.mem(0x47));
+        engine.and_mem(0x0300 + flag_byte_index, clear_mask);
+        r.value = engine.mem(0x0300 + flag_byte_index);
+        r.index = flag_byte_index;
     }
 }
 
