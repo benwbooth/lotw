@@ -1986,17 +1986,21 @@ mod encode_inventory_snapshot_item_list {
         // Split the saved progress bytes into low-nibble item-list entries.
         let mut progress_entry_offset: i32 = 0x0F;
         for progress_byte_offset in (0..=0x07).rev() {
-            let progress_byte: i32 = engine.mem(0x0308 + progress_byte_offset);
-            engine.set_mem(0x0322 + progress_entry_offset, u8v(progress_byte >> 4));
+            let progress_byte: i32 = engine.state.save_progress(progress_byte_offset);
+            engine
+                .state
+                .set_password_nibbles_a(progress_entry_offset, u8v(progress_byte >> 4));
             progress_entry_offset -= 1;
-            engine.set_mem(0x0322 + progress_entry_offset, u8v(progress_byte & 0x0F));
+            engine
+                .state
+                .set_password_nibbles_a(progress_entry_offset, u8v(progress_byte & 0x0F));
             progress_entry_offset -= 1;
         }
         // Copy saved inventory counts into the second half of the item list.
         for inventory_offset in (0..=0x0F).rev() {
             engine.set_mem(
                 0x0332 + inventory_offset,
-                u8v(engine.mem(0x0310 + inventory_offset) & 0x0F),
+                u8v(engine.state.save_inventory(inventory_offset) & 0x0F),
             );
         }
         // Fold the saved key and coin counters into every other high-bit slot.
@@ -2005,8 +2009,10 @@ mod encode_inventory_snapshot_item_list {
             for entry_offset in (0..=0x0F).rev().step_by(2) {
                 let carry_bit: i32 = u8v(key_bits & 1);
                 key_bits >>= 1;
-                let entry: i32 = engine.mem(0x0322 + entry_offset);
-                engine.set_mem(0x0322 + entry_offset, u8v((entry << 1) | carry_bit));
+                let entry: i32 = engine.state.password_nibbles_a(entry_offset);
+                engine
+                    .state
+                    .set_password_nibbles_a(entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         {
@@ -2014,22 +2020,25 @@ mod encode_inventory_snapshot_item_list {
             for entry_offset in (0..=0x0F).rev().step_by(2) {
                 let carry_bit: i32 = u8v(coin_bits & 1);
                 coin_bits >>= 1;
-                let entry: i32 = engine.mem(0x0332 + entry_offset);
-                engine.set_mem(0x0332 + entry_offset, u8v((entry << 1) | carry_bit));
+                let entry: i32 = engine.state.password_nibbles_b(entry_offset);
+                engine
+                    .state
+                    .set_password_nibbles_b(entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         // Compute the checksum bytes over the packed-but-unscrambled entries.
         {
             let mut additive_checksum: i32 = 0x00;
             for entry_offset in (0..=0x1F).rev() {
-                additive_checksum = u8v(additive_checksum + engine.mem(0x0322 + entry_offset));
+                additive_checksum =
+                    u8v(additive_checksum + engine.state.password_nibbles_a(entry_offset));
             }
             engine.set_mem(0x0389, additive_checksum);
         }
         {
             let mut xor_checksum: i32 = 0x0A;
             for entry_offset in (0..=0x1F).rev() {
-                xor_checksum = u8v(xor_checksum ^ engine.mem(0x0322 + entry_offset));
+                xor_checksum = u8v(xor_checksum ^ engine.state.password_nibbles_a(entry_offset));
             }
             engine.set_mem(0x038A, xor_checksum);
         }
@@ -2039,8 +2048,10 @@ mod encode_inventory_snapshot_item_list {
             for entry_offset in (0..=0x0E).rev().step_by(2) {
                 let carry_bit: i32 = u8v(additive_checksum_bits & 1);
                 additive_checksum_bits >>= 1;
-                let entry: i32 = engine.mem(0x0322 + entry_offset);
-                engine.set_mem(0x0322 + entry_offset, u8v((entry << 1) | carry_bit));
+                let entry: i32 = engine.state.password_nibbles_a(entry_offset);
+                engine
+                    .state
+                    .set_password_nibbles_a(entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         {
@@ -2048,8 +2059,10 @@ mod encode_inventory_snapshot_item_list {
             for entry_offset in (0..=0x0E).rev().step_by(2) {
                 let carry_bit: i32 = u8v(xor_checksum_bits & 1);
                 xor_checksum_bits >>= 1;
-                let entry: i32 = engine.mem(0x0332 + entry_offset);
-                engine.set_mem(0x0332 + entry_offset, u8v((entry << 1) | carry_bit));
+                let entry: i32 = engine.state.password_nibbles_b(entry_offset);
+                engine
+                    .state
+                    .set_password_nibbles_b(entry_offset, u8v((entry << 1) | carry_bit));
             }
         }
         // Entries at offsets 0x0F and 0x1F seed the RNG and are intentionally
@@ -2064,7 +2077,7 @@ mod encode_inventory_snapshot_item_list {
             scramble_offset = engine.state.scratch0();
             engine.set_mem(
                 0x0322 + scramble_offset,
-                u8v(r.value ^ engine.mem(0x0322 + scramble_offset)),
+                u8v(r.value ^ engine.state.password_nibbles_a(scramble_offset)),
             );
 
             r.value = 0x20;
@@ -2072,7 +2085,7 @@ mod encode_inventory_snapshot_item_list {
             scramble_offset = engine.state.scratch0();
             engine.set_mem(
                 0x0332 + scramble_offset,
-                u8v(r.value ^ engine.mem(0x0332 + scramble_offset)),
+                u8v(r.value ^ engine.state.password_nibbles_b(scramble_offset)),
             );
 
             scramble_offset -= 1;
@@ -2089,7 +2102,10 @@ mod decode_inventory_item_list_snapshot {
     pub fn decode_inventory_item_list_snapshot(engine: &mut Engine, r: &mut RoutineContext) {
         // Work in a copy so a bad checksum leaves the visible list untouched.
         for entry_offset in (0..=0x1F).rev() {
-            engine.set_mem(0x0342 + entry_offset, engine.mem(0x0322 + entry_offset));
+            engine.state.set_password_scramble_a(
+                entry_offset,
+                engine.state.password_nibbles_a(entry_offset),
+            );
         }
 
         // Unscramble every non-seed entry with the same RNG stream used by the
@@ -2102,12 +2118,18 @@ mod decode_inventory_item_list_snapshot {
             r.value = 0x20;
             rng_update(engine, r);
             scramble_offset = engine.state.scratch0();
-            engine.xor_mem(0x0342 + scramble_offset, r.value);
+            engine.state.set_password_scramble_a(
+                scramble_offset,
+                engine.state.password_scramble_a(scramble_offset) ^ r.value,
+            );
 
             r.value = 0x20;
             rng_update(engine, r);
             scramble_offset = engine.state.scratch0();
-            engine.xor_mem(0x0352 + scramble_offset, r.value);
+            engine.state.set_password_scramble_b(
+                scramble_offset,
+                engine.state.password_scramble_b(scramble_offset) ^ r.value,
+            );
 
             scramble_offset -= 1;
         }
@@ -2117,19 +2139,23 @@ mod decode_inventory_item_list_snapshot {
         {
             let mut stored_xor_checksum: i32 = 0;
             for entry_offset in (0..=0x0E).rev().step_by(2) {
-                let entry: i32 = engine.mem(0x0352 + entry_offset);
+                let entry: i32 = engine.state.password_scramble_b(entry_offset);
                 stored_xor_checksum = u8v((stored_xor_checksum >> 1) | ((entry & 1) << 7));
-                engine.set_mem(0x0352 + entry_offset, u8v(entry >> 1));
+                engine
+                    .state
+                    .set_password_scramble_b(entry_offset, u8v(entry >> 1));
             }
             engine.set_mem(0x038A, stored_xor_checksum);
         }
         {
             let mut stored_additive_checksum: i32 = 0;
             for entry_offset in (0..=0x0E).rev().step_by(2) {
-                let entry: i32 = engine.mem(0x0342 + entry_offset);
+                let entry: i32 = engine.state.password_scramble_a(entry_offset);
                 stored_additive_checksum =
                     u8v((stored_additive_checksum >> 1) | ((entry & 1) << 7));
-                engine.set_mem(0x0342 + entry_offset, u8v(entry >> 1));
+                engine
+                    .state
+                    .set_password_scramble_a(entry_offset, u8v(entry >> 1));
             }
             engine.set_mem(0x0389, stored_additive_checksum);
         }
@@ -2138,7 +2164,8 @@ mod decode_inventory_item_list_snapshot {
         // buffers.
         let mut additive_checksum: i32 = 0;
         for entry_offset in (0..=0x1F).rev() {
-            additive_checksum = u8v(additive_checksum + engine.mem(0x0342 + entry_offset));
+            additive_checksum =
+                u8v(additive_checksum + engine.state.password_scramble_a(entry_offset));
         }
         if cbool(additive_checksum != engine.mem(0x0389)) {
             engine.state.set_prompt_state(0x1C);
@@ -2149,7 +2176,7 @@ mod decode_inventory_item_list_snapshot {
 
         let mut xor_checksum: i32 = 0x0A;
         for entry_offset in (0..=0x1F).rev() {
-            xor_checksum = u8v(xor_checksum ^ engine.mem(0x0342 + entry_offset));
+            xor_checksum = u8v(xor_checksum ^ engine.state.password_scramble_a(entry_offset));
         }
         if cbool(xor_checksum != engine.mem(0x038A)) {
             engine.state.set_prompt_state(0x1C);
@@ -2162,18 +2189,22 @@ mod decode_inventory_item_list_snapshot {
         {
             let mut key_bits: i32 = 0;
             for entry_offset in (0..=0x0F).rev().step_by(2) {
-                let entry: i32 = engine.mem(0x0342 + entry_offset);
+                let entry: i32 = engine.state.password_scramble_a(entry_offset);
                 key_bits = u8v((key_bits >> 1) | ((entry & 1) << 7));
-                engine.set_mem(0x0342 + entry_offset, u8v(entry >> 1));
+                engine
+                    .state
+                    .set_password_scramble_a(entry_offset, u8v(entry >> 1));
             }
             engine.set_mem(0x0320, key_bits);
         }
         {
             let mut coin_bits: i32 = 0;
             for entry_offset in (0..=0x0F).rev().step_by(2) {
-                let entry: i32 = engine.mem(0x0352 + entry_offset);
+                let entry: i32 = engine.state.password_scramble_b(entry_offset);
                 coin_bits = u8v((coin_bits >> 1) | ((entry & 1) << 7));
-                engine.set_mem(0x0352 + entry_offset, u8v(entry >> 1));
+                engine
+                    .state
+                    .set_password_scramble_b(entry_offset, u8v(entry >> 1));
             }
             engine.set_mem(0x0321, coin_bits);
         }
@@ -2182,9 +2213,9 @@ mod decode_inventory_item_list_snapshot {
         // snapshot area.
         let mut progress_entry_offset: i32 = 0x0F;
         for progress_byte_offset in (0..=0x07).rev() {
-            let high_nibble: i32 = engine.mem(0x0342 + progress_entry_offset);
+            let high_nibble: i32 = engine.state.password_scramble_a(progress_entry_offset);
             progress_entry_offset -= 1;
-            let low_nibble: i32 = engine.mem(0x0342 + progress_entry_offset);
+            let low_nibble: i32 = engine.state.password_scramble_a(progress_entry_offset);
             progress_entry_offset -= 1;
             engine.set_mem(
                 0x0308 + progress_byte_offset,
@@ -2194,7 +2225,7 @@ mod decode_inventory_item_list_snapshot {
         for inventory_offset in (0..=0x0F).rev() {
             engine.set_mem(
                 0x0310 + inventory_offset,
-                engine.mem(0x0352 + inventory_offset),
+                engine.state.password_scramble_b(inventory_offset),
             );
         }
         r.carry = 0;
@@ -3167,7 +3198,7 @@ mod read_room_persistent_flag {
         let map_y: i32 = engine.state.map_screen_y();
         let map_x: i32 = engine.state.map_screen_x();
         let flag_byte_index: i32 = u8v(((map_y << 2) & 0x04) | map_x);
-        let mut shifted_flags: i32 = engine.mem(0x0300 + flag_byte_index);
+        let mut shifted_flags: i32 = engine.state.save_payload(flag_byte_index);
         let shift_count: i32 = u8v((map_y >> 1) + 1);
         for _ in 0..shift_count {
             shifted_flags = u8v(shifted_flags << 1);
@@ -3185,8 +3216,11 @@ mod clear_room_persistent_flag {
         let shift_count: i32 = u8v((map_y >> 1) + 1);
         let clear_mask: i32 = u8v(0xFF ^ (0x80 >> (shift_count - 1)));
         let flag_byte_index: i32 = u8v(((u8v(map_y << 2)) & 0x04) | engine.state.map_screen_x());
-        engine.and_mem(0x0300 + flag_byte_index, clear_mask);
-        r.value = engine.mem(0x0300 + flag_byte_index);
+        engine.state.set_save_payload(
+            flag_byte_index,
+            engine.state.save_payload(flag_byte_index) & clear_mask,
+        );
+        r.value = engine.state.save_payload(flag_byte_index);
         r.index = flag_byte_index;
     }
 }
@@ -4216,7 +4250,7 @@ mod snapshot_inventory_state {
         for progress_offset in (0..8).rev() {
             engine.set_mem(
                 0x0308 + progress_offset,
-                engine.mem(0x0300 + progress_offset),
+                engine.state.save_payload(progress_offset),
             );
         }
         for inventory_offset in (0..16).rev() {
@@ -4240,13 +4274,13 @@ mod restore_inventory_state_snapshot {
         for progress_offset in (0..8).rev() {
             engine.set_mem(
                 0x0300 + progress_offset,
-                engine.mem(0x0308 + progress_offset),
+                engine.state.save_progress(progress_offset),
             );
         }
         for inventory_offset in (0..16).rev() {
             engine.set_mem(
                 0x0060 + inventory_offset,
-                engine.mem(0x0310 + inventory_offset),
+                engine.state.save_inventory(inventory_offset),
             );
         }
         engine.state.set_coins(engine.mem(0x0321));
@@ -4308,7 +4342,7 @@ mod clear_inventory_item_list_buffer {
     /// Fills the item-list source buffer with blank tile ids.
     pub fn clear_inventory_item_list_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         for item_list_offset in (0..32).rev() {
-            engine.set_mem(0x0322 + item_list_offset, 0x7F);
+            engine.state.set_password_nibbles_a(item_list_offset, 0x7F);
         }
         r.value = 0x7F;
         r.index = 0xFF;

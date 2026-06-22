@@ -1043,6 +1043,83 @@ impl GameState {
         self.set_byte(0x29, value);
     }
 
+    // ---- Save state / password codec --------------------------------------
+    //
+    // The password subsystem packs the save state ($0300 region) into two
+    // banks of nibble cells ($0322 / $0332), scrambles them via the RNG into
+    // copies ($0342 / $0352), and folds in checksums. These are indexed
+    // working buffers, named by region.
+
+    /// Save-state payload byte `i` (`$0300 + i`).
+    #[inline]
+    pub fn save_payload(&self, i: i32) -> i32 {
+        self.byte(0x0300 + i)
+    }
+    #[inline]
+    pub fn set_save_payload(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0300 + i, value);
+    }
+
+    /// Save-state progress byte `i` (`$0308 + i`).
+    #[inline]
+    pub fn save_progress(&self, i: i32) -> i32 {
+        self.byte(0x0308 + i)
+    }
+    #[inline]
+    pub fn set_save_progress(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0308 + i, value);
+    }
+
+    /// Save-state inventory snapshot byte `i` (`$0310 + i`).
+    #[inline]
+    pub fn save_inventory(&self, i: i32) -> i32 {
+        self.byte(0x0310 + i)
+    }
+    #[inline]
+    pub fn set_save_inventory(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0310 + i, value);
+    }
+
+    /// Password nibble cell, bank A, index `i` (`$0322 + i`).
+    #[inline]
+    pub fn password_nibbles_a(&self, i: i32) -> i32 {
+        self.byte(0x0322 + i)
+    }
+    #[inline]
+    pub fn set_password_nibbles_a(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0322 + i, value);
+    }
+
+    /// Password nibble cell, bank B, index `i` (`$0332 + i`).
+    #[inline]
+    pub fn password_nibbles_b(&self, i: i32) -> i32 {
+        self.byte(0x0332 + i)
+    }
+    #[inline]
+    pub fn set_password_nibbles_b(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0332 + i, value);
+    }
+
+    /// Scrambled password cell, bank A, index `i` (`$0342 + i`).
+    #[inline]
+    pub fn password_scramble_a(&self, i: i32) -> i32 {
+        self.byte(0x0342 + i)
+    }
+    #[inline]
+    pub fn set_password_scramble_a(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0342 + i, value);
+    }
+
+    /// Scrambled password cell, bank B, index `i` (`$0352 + i`).
+    #[inline]
+    pub fn password_scramble_b(&self, i: i32) -> i32 {
+        self.byte(0x0352 + i)
+    }
+    #[inline]
+    pub fn set_password_scramble_b(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0352 + i, value);
+    }
+
     // ---- RNG state ($38..$3B) ---------------------------------------------
     //
     // `rng_update` advances a 16-bit LFSR-style seed ($3A low, $3B high) mixed
