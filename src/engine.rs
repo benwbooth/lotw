@@ -54,66 +54,10 @@ impl Engine {
         self.lotw_nonlocal_handoff = 0;
     }
 
-    // Memory access delegates to `self.state`. These keep existing call sites
-    // compiling while the codebase migrates from raw `engine.mem(addr)` access
-    // to the named state accessors on `GameState`; new code should reach for
-    // `engine.state.<field>()` (or `engine.state.byte(addr)` for genuinely
-    // dynamic addresses) instead.
-
-    #[inline]
-    pub fn mem(&self, addr: i32) -> i32 {
-        self.state.byte(addr)
-    }
-
-    #[inline]
-    pub fn set_mem(&mut self, addr: i32, value: i32) {
-        self.state.set_byte(addr, value);
-    }
-
-    #[inline]
-    pub fn add_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.add_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn sub_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.sub_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn and_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.and_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn or_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.or_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn xor_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.xor_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn shl_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.shl_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn shr_mem(&mut self, addr: i32, value: i32) -> i32 {
-        self.state.shr_byte(addr, value)
-    }
-
-    #[inline]
-    pub fn inc_mem(&mut self, addr: i32) -> i32 {
-        self.add_mem(addr, 1)
-    }
-
-    #[inline]
-    pub fn dec_mem(&mut self, addr: i32) -> i32 {
-        self.sub_mem(addr, 1)
-    }
+    // Memory is accessed through `self.state` (a `GameState`): named accessors
+    // for known locations, or `state.byte`/`set_byte` for genuinely dynamic
+    // addresses. The old `engine.mem(addr)` delegates have been fully removed
+    // now that every call site uses the labeled API.
 
     pub fn set_next_input<F>(&mut self, next: F)
     where

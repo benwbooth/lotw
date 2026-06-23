@@ -111,7 +111,9 @@ fn inventory_item_list_decoder_rejects_checksum_mismatch() {
     engine.state.set_save_inventory(0x11, 0x34);
 
     game::encode_inventory_snapshot_item_list(&mut engine, &mut r);
-    engine.xor_mem(0x0322, 0x01);
+    engine
+        .state
+        .set_password_nibbles_a(0, engine.state.password_nibbles_a(0) ^ 0x01);
 
     game::decode_inventory_item_list_snapshot(&mut engine, &mut r);
 
