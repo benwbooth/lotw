@@ -62,7 +62,7 @@ pub fn write_wav(path: impl AsRef<Path>, samples: &[i16]) -> Result<(), Box<dyn 
 
 pub fn write_ram(path: impl AsRef<Path>, engine: &Engine) -> Result<(), Box<dyn Error>> {
     ensure_parent(&path)?;
-    fs::write(path, &engine.state.ram[..0x800])?;
+    fs::write(path, &engine.state.ram[..2048])?;
     Ok(())
 }
 
@@ -72,7 +72,7 @@ pub fn write_ppu_state(path: impl AsRef<Path>, engine: &Engine) -> Result<(), Bo
     let mirror = engine.ppu.mirror;
     for nt in 0..4 {
         let phys = if mirror == 0 { nt >> 1 } else { nt & 1 };
-        f.write_all(&engine.ppu.vram[phys * 0x400..phys * 0x400 + 0x400])?;
+        f.write_all(&engine.ppu.vram[phys * 1024..phys * 1024 + 1024])?;
     }
     f.write_all(&engine.ppu.pal)?;
     f.write_all(&engine.ppu.oam)?;
@@ -113,14 +113,14 @@ pub fn parse_replay(path: impl AsRef<Path>) -> Result<Vec<u8>, Box<dyn Error>> {
 
 fn button_bit(name: &str) -> Result<u8, Box<dyn Error>> {
     Ok(match name {
-        "A" => 0x01,
-        "B" => 0x02,
-        "select" => 0x04,
-        "start" => 0x08,
-        "up" => 0x10,
-        "down" => 0x20,
-        "left" => 0x40,
-        "right" => 0x80,
+        "A" => 1,
+        "B" => 2,
+        "select" => 4,
+        "start" => 8,
+        "up" => 16,
+        "down" => 32,
+        "left" => 64,
+        "right" => 128,
         _ => return Err(format!("unknown replay button: {name}").into()),
     })
 }
@@ -175,36 +175,36 @@ pub fn build_path(parts: &[&str]) -> PathBuf {
 pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     game::ram_state_init(engine, r);
     game::farcall_bank_0C0D_seed(engine, r);
-    engine.state.set_song(0x09);
-    engine.state.set_family_member_mask(0xff);
-    engine.state.set_rng_seed_scratch(0xc5);
-    engine.state.set_rng_low(0x17);
-    engine.state.set_rng_high(0x42);
-    engine.state.set_map_screen_x(0x01);
-    engine.state.set_map_screen_y(0x05);
-    engine.state.set_character_index(0x00);
+    engine.state.set_song(9);
+    engine.state.set_family_member_mask(255);
+    engine.state.set_rng_seed_scratch(197);
+    engine.state.set_rng_low(23);
+    engine.state.set_rng_high(66);
+    engine.state.set_map_screen_x(1);
+    engine.state.set_map_screen_y(5);
+    engine.state.set_character_index(0);
     for i in 0..4 {
         engine
             .state
-            .set_byte(0x5c + i, engine.state.byte(game::CHARACTER_STATS_TABLE + i));
+            .set_byte(92 + i, engine.state.byte(game::CHARACTER_STATS_TABLE + i));
     }
     engine
         .state
         .set_item_slot(0, engine.state.byte(game::START_ITEM_TABLE));
     engine.state.set_selected_item_slot(0);
-    engine.state.set_chr_bank(2, 0x38);
-    engine.state.set_chr_bank(4, 0x3e);
-    engine.state.set_chr_bank(5, 0x20);
-    engine.state.set_player_pose(0x0d);
+    engine.state.set_chr_bank(2, 56);
+    engine.state.set_chr_bank(4, 62);
+    engine.state.set_chr_bank(5, 32);
+    engine.state.set_player_pose(13);
     engine.state.set_player_facing(0);
     engine.state.set_title_timer(1);
-    engine.state.set_player_health(0x64);
-    engine.state.set_player_magic(0x64);
+    engine.state.set_player_health(100);
+    engine.state.set_player_magic(100);
     engine.state.set_pending_special_exit(0);
-    engine.state.set_player_x_tile(0x20);
-    engine.state.set_player_y(0x80);
+    engine.state.set_player_x_tile(32);
+    engine.state.set_player_y(128);
     engine.state.set_player_x_fine(0);
-    engine.state.set_scroll_tile_x(0x18);
+    engine.state.set_scroll_tile_x(24);
     engine.state.set_scroll_fine_x(0);
     game::scene_assemble(engine, r);
 }

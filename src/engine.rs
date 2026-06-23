@@ -117,7 +117,7 @@ impl Engine {
     }
 
     pub fn next_input(&mut self) -> Option<i32> {
-        self.next_input.as_mut().map(|next| next() & 0xff)
+        self.next_input.as_mut().map(|next| next() & 255)
     }
 
     pub fn set_apu_trace<F>(&mut self, trace: F)
@@ -133,27 +133,27 @@ impl Engine {
 
     pub fn apu_write_with_trace(&mut self, addr: i32, value: i32) {
         if let Some(trace) = self.apu_trace.as_mut() {
-            trace(addr & 0xffff, value & 0xff);
+            trace(addr & 65535, value & 255);
         }
         self.apu.write(addr, value);
     }
 
     pub fn device_write(&mut self, addr: i32, value: i32) {
-        let addr = addr & 0xffff;
-        let value = value & 0xff;
-        if (0x2000..=0x2007).contains(&addr) {
+        let addr = addr & 65535;
+        let value = value & 255;
+        if (reg::PPU_CTRL..=reg::PPU_DATA).contains(&addr) {
             self.ppu.openbus = value as u8;
         }
         match addr {
-            0x2000 => self.ppu.ctrl = value as u8,
-            0x2001 => self.ppu.mask = value as u8,
-            0x2003 => self.ppu.oamaddr = value as u8,
-            0x2004 => {
+            reg::PPU_CTRL => self.ppu.ctrl = value as u8,
+            reg::PPU_MASK => self.ppu.mask = value as u8,
+            reg::OAM_ADDR => self.ppu.oamaddr = value as u8,
+            reg::OAM_DATA => {
                 let idx = self.ppu.oamaddr as usize;
                 self.ppu.oam[idx] = value as u8;
                 self.ppu.oamaddr = self.ppu.oamaddr.wrapping_add(1);
             }
-            0x2005 => {
+            reg::PPU_SCROLL => {
                 if self.ppu.wtoggle == 0 {
                     self.ppu.scroll_x = value as u8;
                     self.ppu.wtoggle = 1;
@@ -162,23 +162,23 @@ impl Engine {
                     self.ppu.wtoggle = 0;
                 }
             }
-            0x2006 => {
+            reg::PPU_ADDR => {
                 if self.ppu.wtoggle == 0 {
-                    self.ppu.vaddr = (self.ppu.vaddr & 0x00ff) | ((value as u16) << 8);
+                    self.ppu.vaddr = (self.ppu.vaddr & 255) | ((value as u16) << 8);
                     self.ppu.wtoggle = 1;
                 } else {
-                    self.ppu.vaddr = (self.ppu.vaddr & 0xff00) | value as u16;
+                    self.ppu.vaddr = (self.ppu.vaddr & 65280) | value as u16;
                     self.ppu.wtoggle = 0;
                 }
             }
-            0x2007 => {
-                let a = self.ppu.vaddr & 0x3fff;
-                if a >= 0x3f00 {
-                    let mut p = a & 0x1f;
+            reg::PPU_DATA => {
+                let a = self.ppu.vaddr & 16383;
+                if a >= 16128 {
+                    let mut p = a & 31;
                     if (p & 3) == 0 {
-                        p &= 0x0f;
+                        p &= 15;
                         self.ppu.pal[p as usize] = value as u8;
-                        self.ppu.pal[(p | 0x10) as usize] = value as u8;
+                        self.ppu.pal[(p | 16) as usize] = value as u8;
                     } else {
                         self.ppu.pal[p as usize] = value as u8;
                     }
@@ -189,38 +189,38 @@ impl Engine {
                 self.ppu.vaddr =
                     self.ppu
                         .vaddr
-                        .wrapping_add(if (self.ppu.ctrl & 0x04) != 0 { 32 } else { 1 });
+                        .wrapping_add(if (self.ppu.ctrl & 4) != 0 { 32 } else { 1 });
             }
-            0x4014 => {
+            reg::OAM_DMA => {
                 let base = (value as usize) << 8;
                 for i in 0..256 {
                     let dst = self.ppu.oamaddr.wrapping_add(i as u8) as usize;
-                    self.ppu.oam[dst] = self.state.ram[(base + i) & 0xffff];
+                    self.ppu.oam[dst] = self.state.ram[(base + i) & 65535];
                 }
             }
-            0x8000 => {
+            reg::MMC3_BANK_SELECT => {
                 self.ppu.mmc3_sel = value as u8;
                 self.ppu.recompute_chr();
             }
-            0x8001 => {
+            reg::MMC3_BANK_DATA => {
                 let sel = self.ppu.mmc3_sel & 7;
                 self.ppu.mmc3_bank[sel as usize] = value as u8;
                 self.ppu.recompute_chr();
                 if sel == 6 {
-                    self.ppu_map_prg(0x8000, value);
+                    self.ppu_map_prg(32768, value);
                 } else if sel == 7 {
-                    self.ppu_map_prg(0xa000, value);
+                    self.ppu_map_prg(40960, value);
                 }
             }
-            0xa000 => self.ppu.mirror = if (value & 1) != 0 { 0 } else { 1 },
-            0x4016 => {
+            reg::MMC3_MIRROR => self.ppu.mirror = if (value & 1) != 0 { 0 } else { 1 },
+            reg::JOY1 => {
                 self.ppu.strobe = (value & 1) as u8;
                 if self.ppu.strobe != 0 {
                     self.ppu.ctrl_latch = self.ppu.buttons;
                 }
             }
             _ => {
-                if (0x4000..=0x4017).contains(&addr) && addr != 0x4014 {
+                if (reg::SQ1_VOL..=reg::APU_FRAME).contains(&addr) && addr != reg::OAM_DMA {
                     self.apu_write_with_trace(addr, value);
                 }
             }
@@ -228,25 +228,25 @@ impl Engine {
     }
 
     pub fn device_read(&mut self, addr: i32) -> i32 {
-        let addr = addr & 0xffff;
+        let addr = addr & 65535;
         match addr {
-            0x2002 => {
-                let s = (self.ppu.status & 0xe0) | (self.ppu.openbus & 0x1f);
-                self.ppu.status &= !0x80;
+            reg::PPU_STATUS => {
+                let s = (self.ppu.status & 224) | (self.ppu.openbus & 31);
+                self.ppu.status &= !128;
                 self.ppu.wtoggle = 0;
                 s as i32
             }
-            0x2004 => {
+            reg::OAM_DATA => {
                 let ret = self.ppu.oam[self.ppu.oamaddr as usize];
                 self.ppu.openbus = ret;
                 ret as i32
             }
-            0x2007 => {
-                let a = self.ppu.vaddr & 0x3fff;
-                let ret = if a >= 0x3f00 {
-                    let mut p = a & 0x1f;
+            reg::PPU_DATA => {
+                let a = self.ppu.vaddr & 16383;
+                let ret = if a >= 16128 {
+                    let mut p = a & 31;
                     if (p & 3) == 0 {
-                        p &= 0x0f;
+                        p &= 15;
                     }
                     self.ppu.pal[p as usize]
                 } else {
@@ -257,11 +257,11 @@ impl Engine {
                 self.ppu.vaddr =
                     self.ppu
                         .vaddr
-                        .wrapping_add(if (self.ppu.ctrl & 0x04) != 0 { 32 } else { 1 });
+                        .wrapping_add(if (self.ppu.ctrl & 4) != 0 { 32 } else { 1 });
                 self.ppu.openbus = ret;
                 ret as i32
             }
-            0x4016 => {
+            reg::JOY1 => {
                 if self.ppu.strobe != 0 {
                     (self.ppu.buttons & 1) as i32
                 } else {
@@ -270,7 +270,7 @@ impl Engine {
                     bit as i32
                 }
             }
-            0x4017 => 0,
+            reg::APU_FRAME => 0,
             _ => 0,
         }
     }
@@ -287,15 +287,15 @@ impl Engine {
         if self.ppu.prg_len == 0 {
             return;
         }
-        let nbanks = self.ppu.prg_len / 0x2000;
-        let off = ((bank8k as usize) % nbanks) * 0x2000;
-        let dst = (cpu_base as usize) & 0xffff;
-        self.state.ram[dst..dst + 0x2000].copy_from_slice(&self.ppu.prg[off..off + 0x2000]);
+        let nbanks = self.ppu.prg_len / 8192;
+        let off = ((bank8k as usize) % nbanks) * 8192;
+        let dst = (cpu_base as usize) & 65535;
+        self.state.ram[dst..dst + 8192].copy_from_slice(&self.ppu.prg[off..off + 8192]);
     }
 
     pub fn prg_map_shadow(&mut self) {
-        self.ppu_map_prg(0x8000, self.state.prg_bank_8000());
-        self.ppu_map_prg(0xa000, self.state.prg_bank_a000());
+        self.ppu_map_prg(32768, self.state.prg_bank_8000());
+        self.ppu_map_prg(40960, self.state.prg_bank_a000());
     }
 
     pub fn load_ines(&mut self, rom: &[u8], init_ram_pattern: bool) -> Result<(), String> {
@@ -308,17 +308,17 @@ impl Engine {
             return Err("short ROM".to_string());
         }
         if init_ram_pattern {
-            for a in 0..0x0800 {
-                self.state.ram[a] = if (a & 4) != 0 { 0xff } else { 0x00 };
+            for a in 0..2048 {
+                self.state.ram[a] = if (a & 4) != 0 { 255 } else { 0 };
             }
         }
         self.ppu_load_prg(&rom[16..16 + prg]);
         self.ppu_load_chr(&rom[16 + prg..16 + prg + chr]);
         self.ppu.reset();
         self.apu.reset();
-        self.state.ram[0xc000..0x10000].copy_from_slice(&rom[16 + prg - 0x4000..16 + prg]);
-        self.ppu_map_prg(0x8000, 12);
-        self.ppu_map_prg(0xa000, 13);
+        self.state.ram[49152..0x10000].copy_from_slice(&rom[16 + prg - 16384..16 + prg]);
+        self.ppu_map_prg(32768, 12);
+        self.ppu_map_prg(40960, 13);
         self.ppu.set_vblank(true);
         Ok(())
     }

@@ -98,28 +98,28 @@ fn gamepad_buttons(gamepads: &[Gamepad]) -> i32 {
     let mut buttons = 0;
     for gamepad in gamepads.iter().filter(|gamepad| gamepad.connected()) {
         if gamepad.button(Button::DPadRight) || gamepad.axis(Axis::LeftX) > STICK_DEAD_ZONE {
-            buttons |= 0x80;
+            buttons |= 128;
         }
         if gamepad.button(Button::DPadLeft) || gamepad.axis(Axis::LeftX) < -STICK_DEAD_ZONE {
-            buttons |= 0x40;
+            buttons |= 64;
         }
         if gamepad.button(Button::DPadDown) || gamepad.axis(Axis::LeftY) > STICK_DEAD_ZONE {
-            buttons |= 0x20;
+            buttons |= 32;
         }
         if gamepad.button(Button::DPadUp) || gamepad.axis(Axis::LeftY) < -STICK_DEAD_ZONE {
-            buttons |= 0x10;
+            buttons |= 16;
         }
         if gamepad.button(Button::Start) {
-            buttons |= 0x08;
+            buttons |= 8;
         }
         if gamepad.button(Button::Back) {
-            buttons |= 0x04;
+            buttons |= 4;
         }
         if gamepad.button(Button::East) {
-            buttons |= 0x02;
+            buttons |= 2;
         }
         if gamepad.button(Button::South) {
-            buttons |= 0x01;
+            buttons |= 1;
         }
     }
     buttons
@@ -152,37 +152,37 @@ fn joystick_buttons(joysticks: &[Joystick]) -> i32 {
             || joystick_axis(joystick, 0) > STICK_DEAD_ZONE
             || joystick_axis(joystick, 6) > STICK_DEAD_ZONE
         {
-            buttons |= 0x80;
+            buttons |= 128;
         }
         if joystick_hat_pressed(joystick, HatState::Left as u8)
             || joystick_axis(joystick, 0) < -STICK_DEAD_ZONE
             || joystick_axis(joystick, 6) < -STICK_DEAD_ZONE
         {
-            buttons |= 0x40;
+            buttons |= 64;
         }
         if joystick_hat_pressed(joystick, HatState::Down as u8)
             || joystick_axis(joystick, 1) > STICK_DEAD_ZONE
             || joystick_axis(joystick, 7) > STICK_DEAD_ZONE
         {
-            buttons |= 0x20;
+            buttons |= 32;
         }
         if joystick_hat_pressed(joystick, HatState::Up as u8)
             || joystick_axis(joystick, 1) < -STICK_DEAD_ZONE
             || joystick_axis(joystick, 7) < -STICK_DEAD_ZONE
         {
-            buttons |= 0x10;
+            buttons |= 16;
         }
         if joystick_button(joystick, 7) || joystick_button(joystick, 9) {
-            buttons |= 0x08;
+            buttons |= 8;
         }
         if joystick_button(joystick, 6) || joystick_button(joystick, 8) {
-            buttons |= 0x04;
+            buttons |= 4;
         }
         if joystick_button(joystick, 1) || joystick_button(joystick, 2) {
-            buttons |= 0x02;
+            buttons |= 2;
         }
         if joystick_button(joystick, 0) {
-            buttons |= 0x01;
+            buttons |= 1;
         }
     }
     buttons
@@ -273,28 +273,28 @@ fn main() -> Result<(), Box<dyn Error>> {
         let keyboard = event_pump.keyboard_state();
         let mut buttons = 0;
         if keyboard.is_scancode_pressed(Scancode::Right) {
-            buttons |= 0x80;
+            buttons |= 128;
         }
         if keyboard.is_scancode_pressed(Scancode::Left) {
-            buttons |= 0x40;
+            buttons |= 64;
         }
         if keyboard.is_scancode_pressed(Scancode::Down) {
-            buttons |= 0x20;
+            buttons |= 32;
         }
         if keyboard.is_scancode_pressed(Scancode::Up) {
-            buttons |= 0x10;
+            buttons |= 16;
         }
         if keyboard.is_scancode_pressed(Scancode::Return) {
-            buttons |= 0x08;
+            buttons |= 8;
         }
         if keyboard.is_scancode_pressed(Scancode::RShift) {
-            buttons |= 0x04;
+            buttons |= 4;
         }
         if keyboard.is_scancode_pressed(Scancode::X) {
-            buttons |= 0x02;
+            buttons |= 2;
         }
         if keyboard.is_scancode_pressed(Scancode::Z) {
-            buttons |= 0x01;
+            buttons |= 1;
         }
         input_devices.update();
         buttons |= input_devices.buttons();
@@ -304,16 +304,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         if autostart {
             if (150..168).contains(&frames) {
-                buttons |= 0x08;
+                buttons |= 8;
             } else if frames >= 200 {
                 let seg = (frames - 200) / 45;
                 match seg % 6 {
-                    0 => buttons |= 0x40,
-                    1 => buttons |= 0x80,
-                    2 => buttons |= 0x10,
-                    3 => buttons |= 0x20,
-                    4 if (frames - 200) % 45 < 6 => buttons |= 0x01,
-                    5 if (frames - 200) % 45 < 6 => buttons |= 0x08,
+                    0 => buttons |= 64,
+                    1 => buttons |= 128,
+                    2 => buttons |= 16,
+                    3 => buttons |= 32,
+                    4 if (frames - 200) % 45 < 6 => buttons |= 1,
+                    5 if (frames - 200) % 45 < 6 => buttons |= 8,
                     _ => {}
                 }
             }

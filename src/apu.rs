@@ -85,51 +85,51 @@ impl Apu {
     }
 
     pub fn write(&mut self, addr: i32, val: i32) {
-        let val = val & 0xff;
-        match addr & 0xffff {
-            0x4000 => {
+        let val = val & 255;
+        match addr & 65535 {
+            16384 => {
                 self.p1.duty = val >> 6;
-                self.p1.halt = (val & 0x20) != 0;
-                self.p1.vol = val & 0x0f;
+                self.p1.halt = (val & 32) != 0;
+                self.p1.vol = val & 15;
             }
-            0x4001 => {}
-            0x4002 => self.p1.period = (self.p1.period & 0x700) | val,
-            0x4003 => {
-                self.p1.period = (self.p1.period & 0xff) | ((val & 7) << 8);
-                self.p1.len = LEN_TBL[((val >> 3) & 0x1f) as usize];
+            16385 => {}
+            16386 => self.p1.period = (self.p1.period & 1792) | val,
+            16387 => {
+                self.p1.period = (self.p1.period & 255) | ((val & 7) << 8);
+                self.p1.len = LEN_TBL[((val >> 3) & 31) as usize];
                 self.p1.phase = 0.0;
             }
-            0x4004 => {
+            16388 => {
                 self.p2.duty = val >> 6;
-                self.p2.halt = (val & 0x20) != 0;
-                self.p2.vol = val & 0x0f;
+                self.p2.halt = (val & 32) != 0;
+                self.p2.vol = val & 15;
             }
-            0x4005 => {}
-            0x4006 => self.p2.period = (self.p2.period & 0x700) | val,
-            0x4007 => {
-                self.p2.period = (self.p2.period & 0xff) | ((val & 7) << 8);
-                self.p2.len = LEN_TBL[((val >> 3) & 0x1f) as usize];
+            16389 => {}
+            16390 => self.p2.period = (self.p2.period & 1792) | val,
+            16391 => {
+                self.p2.period = (self.p2.period & 255) | ((val & 7) << 8);
+                self.p2.len = LEN_TBL[((val >> 3) & 31) as usize];
                 self.p2.phase = 0.0;
             }
-            0x4008 => {
-                self.tr.control = (val & 0x80) != 0;
-                self.tr.linear = val & 0x7f;
+            16392 => {
+                self.tr.control = (val & 128) != 0;
+                self.tr.linear = val & 127;
             }
-            0x400a => self.tr.period = (self.tr.period & 0x700) | val,
-            0x400b => {
-                self.tr.period = (self.tr.period & 0xff) | ((val & 7) << 8);
-                self.tr.len = LEN_TBL[((val >> 3) & 0x1f) as usize];
+            16394 => self.tr.period = (self.tr.period & 1792) | val,
+            16395 => {
+                self.tr.period = (self.tr.period & 255) | ((val & 7) << 8);
+                self.tr.len = LEN_TBL[((val >> 3) & 31) as usize];
             }
-            0x400c => {
-                self.nz.halt = (val & 0x20) != 0;
-                self.nz.vol = val & 0x0f;
+            16396 => {
+                self.nz.halt = (val & 32) != 0;
+                self.nz.vol = val & 15;
             }
-            0x400e => {
-                self.nz.period = NOISE_PER[(val & 0x0f) as usize];
+            16398 => {
+                self.nz.period = NOISE_PER[(val & 15) as usize];
                 self.nz.mode = (val >> 7) & 1;
             }
-            0x400f => self.nz.len = LEN_TBL[((val >> 3) & 0x1f) as usize],
-            0x4015 => {
+            16399 => self.nz.len = LEN_TBL[((val >> 3) & 31) as usize],
+            16405 => {
                 self.status = val;
                 self.p1.enabled = (val & 1) != 0;
                 self.p2.enabled = (val & 2) != 0;

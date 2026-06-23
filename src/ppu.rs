@@ -70,9 +70,9 @@ const LOTW_PALETTE: [[u8; 3]; 64] = [
 ];
 
 pub struct Ppu {
-    pub vram: [u8; 0x800],
-    pub pal: [u8; 0x20],
-    pub oam: [u8; 0x100],
+    pub vram: [u8; 2048],
+    pub pal: [u8; 32],
+    pub oam: [u8; 256],
     pub ctrl: u8,
     pub mask: u8,
     pub scroll_x: u8,
@@ -105,9 +105,9 @@ impl Default for Ppu {
 impl Ppu {
     pub fn new() -> Self {
         let mut ppu = Self {
-            vram: [0; 0x800],
-            pal: [0; 0x20],
-            oam: [0; 0x100],
+            vram: [0; 2048],
+            pal: [0; 32],
+            oam: [0; 256],
             ctrl: 0,
             mask: 0,
             scroll_x: 0,
@@ -135,9 +135,9 @@ impl Ppu {
     }
 
     pub fn reset(&mut self) {
-        self.vram = [0; 0x800];
-        self.pal = [0; 0x20];
-        self.oam = [0; 0x100];
+        self.vram = [0; 2048];
+        self.pal = [0; 32];
+        self.oam = [0; 256];
         self.ctrl = 0;
         self.mask = 0;
         self.scroll_x = 0;
@@ -169,12 +169,12 @@ impl Ppu {
     }
 
     pub fn recompute_chr(&mut self) {
-        let inv = (self.mmc3_sel & 0x80) != 0;
+        let inv = (self.mmc3_sel & 128) != 0;
         let two = [
-            self.mmc3_bank[0] & 0xfe,
-            (self.mmc3_bank[0] & 0xfe) | 1,
-            self.mmc3_bank[1] & 0xfe,
-            (self.mmc3_bank[1] & 0xfe) | 1,
+            self.mmc3_bank[0] & 254,
+            (self.mmc3_bank[0] & 254) | 1,
+            self.mmc3_bank[1] & 254,
+            (self.mmc3_bank[1] & 254) | 1,
         ];
         let one = [
             self.mmc3_bank[2],
@@ -208,8 +208,8 @@ impl Ppu {
     }
 
     fn chr_at(&self, a: i32) -> u8 {
-        let a = (a as usize) & 0x1fff;
-        let off = self.chr_win[a >> 10] as usize * 0x400 + (a & 0x3ff);
+        let a = (a as usize) & 8191;
+        let off = self.chr_win[a >> 10] as usize * 1024 + (a & 1023);
         if off < self.chr.len() {
             self.chr[off]
         } else {
@@ -223,7 +223,7 @@ impl Ppu {
         let phys = if self.mirror == 0 { nty } else { ntx };
         let cx = tx & 31;
         let cy = ty & 31;
-        (if phys != 0 { 0x400 } else { 0 }) + (cy as usize * 32 + cx as usize)
+        (if phys != 0 { 1024 } else { 0 }) + (cy as usize * 32 + cx as usize)
     }
 
     fn attr_bits(&self, tx: i32, ty: i32) -> i32 {
@@ -232,22 +232,22 @@ impl Ppu {
         let phys = if self.mirror == 0 { nty } else { ntx };
         let cx = tx & 31;
         let cy = ty & 31;
-        let base = (if phys != 0 { 0x400 } else { 0 }) + 0x3c0;
+        let base = (if phys != 0 { 1024 } else { 0 }) + 960;
         let ab = self.vram[base + ((cy >> 2) * 8 + (cx >> 2)) as usize];
         let quad = (if (cy & 2) != 0 { 2 } else { 0 }) + if (cx & 2) != 0 { 1 } else { 0 };
         ((ab >> (quad * 2)) & 3) as i32
     }
 
     pub fn nt_addr_offset(&self, addr: u16) -> usize {
-        let a = (addr.wrapping_sub(0x2000) & 0x0fff) as usize;
+        let a = (addr.wrapping_sub(8192) & 4095) as usize;
         let nt = (a >> 10) & 3;
-        let off = a & 0x03ff;
+        let off = a & 1023;
         let phys = if self.mirror == 0 { nt >> 1 } else { nt & 1 };
-        phys * 0x400 + off
+        phys * 1024 + off
     }
 
     fn put(out: &mut [u8], x: i32, y: i32, palidx: u8) {
-        let c = LOTW_PALETTE[(palidx & 0x3f) as usize];
+        let c = LOTW_PALETTE[(palidx & 63) as usize];
         let p = (y as usize * PPU_W + x as usize) * 3;
         out[p] = c[0];
         out[p + 1] = c[1];
@@ -255,23 +255,23 @@ impl Ppu {
     }
 
     fn bg_pixel(&self, wx: i32, wy: i32, bg_pt: i32) -> u8 {
-        let wx = wx & 0x1ff;
+        let wx = wx & 511;
         let mut wy = wy % 480;
         if wy < 0 {
             wy += 480;
         }
         let ntx = (wx >> 8) & 1;
         let nty = if wy >= 240 { 1 } else { 0 };
-        let lx = wx & 0xff;
+        let lx = wx & 255;
         let ly = if wy >= 240 { wy - 240 } else { wy };
         let phys = if self.mirror == 0 { nty } else { ntx };
-        let nt = if phys != 0 { 0x400 } else { 0 };
+        let nt = if phys != 0 { 1024 } else { 0 };
         let cx = lx >> 3;
         let cy = ly >> 3;
         let fx = lx & 7;
         let fy = ly & 7;
         let tile = self.vram[nt + (cy * 32 + cx) as usize] as i32;
-        let ab = self.vram[nt + 0x3c0 + ((cy >> 2) * 8 + (cx >> 2)) as usize] as i32;
+        let ab = self.vram[nt + 960 + ((cy >> 2) * 8 + (cx >> 2)) as usize] as i32;
         let pal = (ab
             >> (((if (cy & 2) != 0 { 2 } else { 0 }) + if (cx & 2) != 0 { 1 } else { 0 }) * 2))
             & 3;
@@ -285,23 +285,15 @@ impl Ppu {
     }
 
     pub fn render(&mut self, memory: &[u8; 0x10000], out: &mut [u8]) {
-        let bg_pt = if (self.ctrl & 0x10) != 0 {
-            0x1000
-        } else {
-            0x0000
-        };
-        let sp_pt = if (self.ctrl & 0x08) != 0 {
-            0x1000
-        } else {
-            0x0000
-        };
-        let tall = (self.ctrl & 0x20) != 0;
+        let bg_pt = if (self.ctrl & 16) != 0 { 4096 } else { 0 };
+        let sp_pt = if (self.ctrl & 8) != 0 { 4096 } else { 0 };
+        let tall = (self.ctrl & 32) != 0;
         // Status-bar sprite-0 split flag (GameState::STATUSBAR_SPLIT_FLAG, $29).
         let split = memory[crate::state::GameState::STATUSBAR_SPLIT_FLAG as usize] != 0;
         let mut split_y = if split { self.oam[0] as i32 + 1 } else { 0 };
         split_y = split_y.clamp(0, PPU_H as i32);
 
-        if (self.mask & 0x08) != 0 {
+        if (self.mask & 8) != 0 {
             let bx = if (self.ctrl & 1) != 0 { 256 } else { 0 };
             let by = if (self.ctrl & 2) != 0 { 240 } else { 0 };
             for sy in split_y..PPU_H as i32 {
@@ -323,17 +315,17 @@ impl Ppu {
             }
         }
 
-        if split && (self.mask & 0x08) != 0 {
+        if split && (self.mask & 8) != 0 {
             let b1 = self.mmc3_bank[1];
             let b4 = self.mmc3_bank[4];
             let b5 = self.mmc3_bank[5];
-            self.mmc3_bank[1] = 0x16;
-            self.mmc3_bank[4] = 0x3e;
-            self.mmc3_bank[5] = 0x3f;
+            self.mmc3_bank[1] = 22;
+            self.mmc3_bank[4] = 62;
+            self.mmc3_bank[5] = 63;
             self.recompute_chr();
             for sy in 0..split_y {
                 for sx in 0..PPU_W as i32 {
-                    Self::put(out, sx, sy, self.bg_pixel(sx, 0xc4 + sy, bg_pt));
+                    Self::put(out, sx, sy, self.bg_pixel(sx, 196 + sy, bg_pt));
                 }
             }
             self.mmc3_bank[1] = b1;
@@ -342,15 +334,15 @@ impl Ppu {
             self.recompute_chr();
         }
 
-        if (self.mask & 0x10) != 0 {
+        if (self.mask & 16) != 0 {
             for i in (0..64).rev() {
                 let o = i * 4;
                 let y = self.oam[o] as i32 + 1;
                 let at = self.oam[o + 2];
                 let x = self.oam[o + 3] as i32;
-                let pal = 0x10 + ((at & 3) as i32) * 4;
-                let hflip = (at & 0x40) != 0;
-                let vflip = (at & 0x80) != 0;
+                let pal = 16 + ((at & 3) as i32) * 4;
+                let hflip = (at & 64) != 0;
+                let vflip = (at & 128) != 0;
                 let h = if tall { 16 } else { 8 };
                 if y >= PPU_H as i32 || y + h <= 0 {
                     continue;
@@ -362,11 +354,8 @@ impl Ppu {
                     }
                     let sr = if vflip { h - 1 - row } else { row };
                     let a = if tall {
-                        let base = if (self.oam[o + 1] & 1) != 0 {
-                            0x1000
-                        } else {
-                            0x0000
-                        } + ((self.oam[o + 1] & 0xfe) as i32) * 16;
+                        let base = if (self.oam[o + 1] & 1) != 0 { 4096 } else { 0 }
+                            + ((self.oam[o + 1] & 254) as i32) * 16;
                         base + if sr < 8 { sr } else { 16 + (sr - 8) }
                     } else {
                         sp_pt + self.oam[o + 1] as i32 * 16 + sr
@@ -394,17 +383,13 @@ impl Ppu {
         let b1 = self.mmc3_bank[1];
         let b4 = self.mmc3_bank[4];
         let b5 = self.mmc3_bank[5];
-        self.mmc3_bank[1] = 0x16;
-        self.mmc3_bank[4] = 0x3e;
-        self.mmc3_bank[5] = 0x3f;
+        self.mmc3_bank[1] = 22;
+        self.mmc3_bank[4] = 62;
+        self.mmc3_bank[5] = 63;
         self.recompute_chr();
-        let bg_pt = if (self.ctrl & 0x10) != 0 {
-            0x1000
-        } else {
-            0x0000
-        };
+        let bg_pt = if (self.ctrl & 16) != 0 { 4096 } else { 0 };
         for sy in 0..rows.min(PPU_H as i32) {
-            let wy = sy + 0xc4;
+            let wy = sy + 196;
             let ty = wy >> 3;
             let fy = wy & 7;
             for sx in 0..PPU_W as i32 {
@@ -429,8 +414,8 @@ impl Ppu {
     }
 
     pub fn debug_tilesheet(&self, which: i32, out: &mut [u8]) {
-        const GRAY: [u8; 4] = [0, 12, 0x10, 0x30];
-        let base = if which != 0 { 0x1000 } else { 0x0000 };
+        const GRAY: [u8; 4] = [0, 12, 16, 48];
+        let base = if which != 0 { 4096 } else { 0 };
         for t in 0..256 {
             let ox = (t & 15) * 8;
             let oy = (t >> 4) * 8;
@@ -451,17 +436,17 @@ impl Ppu {
 
     pub fn set_vblank(&mut self, on: bool) {
         if on {
-            self.status |= 0x80;
+            self.status |= 128;
         } else {
-            self.status &= !0x80;
+            self.status &= !128;
         }
     }
 
     pub fn set_sprite0(&mut self, on: bool) {
         if on {
-            self.status |= 0x40;
+            self.status |= 64;
         } else {
-            self.status &= !0x40;
+            self.status &= !64;
         }
     }
 
@@ -470,11 +455,11 @@ impl Ppu {
     }
 
     pub fn eval_sprite_overflow(&mut self) {
-        let h = if (self.ctrl & 0x20) != 0 { 16 } else { 8 };
+        let h = if (self.ctrl & 32) != 0 { 16 } else { 8 };
         let mut perline = [0u8; 240];
         for s in 0..64 {
             let y = self.oam[s * 4] as i32;
-            if y >= 0xef {
+            if y >= 239 {
                 continue;
             }
             let top = y + 1;
@@ -482,12 +467,12 @@ impl Ppu {
             for sl in top..bot {
                 perline[sl as usize] = perline[sl as usize].wrapping_add(1);
                 if perline[sl as usize] > 8 {
-                    self.status |= 0x20;
+                    self.status |= 32;
                     return;
                 }
             }
         }
-        self.status &= !0x20;
+        self.status &= !32;
     }
 }
 

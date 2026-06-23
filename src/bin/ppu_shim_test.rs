@@ -18,27 +18,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for ty in 0..30 {
         for tx in 0..32 {
-            engine.ppu.vram[ty * 32 + tx] = ((ty * 32 + tx) & 0xff) as u8;
+            engine.ppu.vram[ty * 32 + tx] = ((ty * 32 + tx) & 255) as u8;
         }
     }
     for i in 0..64 {
-        engine.ppu.vram[0x3c0 + i] = (0x55 * (i & 3)) as u8;
+        engine.ppu.vram[960 + i] = (85 * (i & 3)) as u8;
     }
     engine.ppu.pal.copy_from_slice(&[
-        0x0f, 0x00, 0x10, 0x30, 0x0f, 0x06, 0x16, 0x26, 0x0f, 0x09, 0x19, 0x29, 0x0f, 0x01, 0x11,
-        0x21, 0x0f, 0x12, 0x22, 0x32, 0x0f, 0x14, 0x24, 0x34, 0x0f, 0x1a, 0x2a, 0x3a, 0x0f, 0x05,
-        0x15, 0x25,
+        15, 0, 16, 48, 15, 6, 22, 38, 15, 9, 25, 41, 15, 1, 17, 33, 15, 18, 34, 50, 15, 20, 36, 52,
+        15, 26, 42, 58, 15, 5, 21, 37,
     ]);
-    engine.ppu.oam.fill(0xff);
+    engine.ppu.oam.fill(255);
     for i in 0..8 {
         let o = i * 4;
         engine.ppu.oam[o] = 112;
-        engine.ppu.oam[o + 1] = 0x10 + i as u8;
+        engine.ppu.oam[o + 1] = 16 + i as u8;
         engine.ppu.oam[o + 2] = (i & 3) as u8;
         engine.ppu.oam[o + 3] = 40 + i as u8 * 24;
     }
-    engine.ppu.ctrl = 0x00;
-    engine.ppu.mask = 0x18;
+    engine.ppu.ctrl = 0;
+    engine.ppu.mask = 24;
     engine.ppu.scroll_x = 0;
     engine.ppu.scroll_y = 0;
 
