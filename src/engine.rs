@@ -52,13 +52,13 @@ pub mod reg {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RoutineContext {
-    pub value: i32,
-    pub index: i32,
-    pub offset: i32,
-    pub carry: i32,
-    pub zero: i32,
-    pub negative: i32,
-    pub overflow: i32,
+    pub value: u8,
+    pub index: u8,
+    pub offset: u8,
+    pub carry: u8,
+    pub zero: u8,
+    pub negative: u8,
+    pub overflow: u8,
 }
 
 pub type RoutineFn = fn(&mut Engine, &mut RoutineContext);

@@ -183,8 +183,8 @@ pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
 
 pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     crate::game::read_controllers(engine, r);
-    r.value = engine.state.buttons();
-    r.value
+    r.value = ((engine.state.buttons()) as u8);
+    ((r.value) as i32)
 }
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
