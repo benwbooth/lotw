@@ -5,6 +5,7 @@ edition = "2024"
 rust-version = "1.94"
 
 [dependencies]
+corosensei = "0.3.4"
 sdl3 = { version = "0.18.4", optional = true }
 
 [features]

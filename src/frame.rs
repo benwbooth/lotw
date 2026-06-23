@@ -1,197 +1,131 @@
-use std::{
-    cell::RefCell,
-    cell::UnsafeCell,
-    panic::{self, AssertUnwindSafe},
-    sync::{Arc, Condvar, Mutex, Once},
-    thread::{self, JoinHandle},
-};
+use std::cell::{Cell, UnsafeCell};
+
+use corosensei::{Coroutine, CoroutineResult, Yielder};
 
 use crate::{Engine, RoutineContext, engine::RoutineFn};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum RunnerState {
-    Created,
-    Running,
-    Waiting,
-    Done,
-}
-
-#[derive(Debug)]
-struct SyncState {
-    state: RunnerState,
-    stop: bool,
-}
-
-#[derive(Debug)]
-struct FrameRunnerStop;
-
-static STOP_PANIC_HOOK: Once = Once::new();
-
-fn install_stop_panic_hook() {
-    STOP_PANIC_HOOK.call_once(|| {
-        let previous = panic::take_hook();
-        panic::set_hook(Box::new(move |info| {
-            if info.payload().is::<FrameRunnerStop>() {
-                return;
-            }
-            previous(info);
-        }));
-    });
-}
-
-#[derive(Clone)]
-struct WaitSync {
-    inner: Arc<(Mutex<SyncState>, Condvar)>,
-}
+// The game is a translation of 6502 code structured as an infinite loop that
+// blocks at vblank waits deep inside nested calls. To suspend that whole call
+// stack at a frame boundary and resume it next frame, the game runs inside a
+// stackful coroutine on its own stack; `frame_wait` suspends it back to the
+// control loop, which does the per-frame hardware work and resumes it. Only one
+// side ever runs at a time (cooperative), all on a single OS thread.
 
 thread_local! {
-    static ACTIVE_WAIT: RefCell<Option<WaitSync>> = const { RefCell::new(None) };
-    static STOP_REQUESTED: RefCell<bool> = const { RefCell::new(false) };
+    // Pointer to the running coroutine's yielder, published while the game
+    // coroutine body executes so `frame_wait` (called many frames deep) can
+    // suspend. Null when no coroutine is active (e.g. routines called directly
+    // from tests), in which case `frame_wait` is a no-op.
+    static YIELDER: Cell<*const Yielder<(), ()>> = const { Cell::new(std::ptr::null()) };
 }
 
 pub fn frame_runner_stop_requested() -> bool {
-    STOP_REQUESTED.with(|stop| *stop.borrow())
+    // Shutdown now unwinds the coroutine stack on drop rather than signalling a
+    // stop flag, so the in-loop checks that used this always observe `false`.
+    false
 }
 
 pub fn frame_wait(_engine: &mut Engine, r: &mut RoutineContext) {
+    let yielder = YIELDER.with(|y| y.get());
+    if yielder.is_null() {
+        return;
+    }
+    // The control loop may overwrite the shared RoutineContext while we are
+    // suspended (e.g. vblank work), so save and restore the game's registers
+    // across the suspension point.
     let saved = *r;
-    ACTIVE_WAIT.with(|active| {
-        let Some(sync) = active.borrow().clone() else {
-            return;
-        };
-        let (mutex, cv) = &*sync.inner;
-        let mut state = mutex.lock().expect("frame runner mutex poisoned");
-        state.state = RunnerState::Waiting;
-        cv.notify_all();
-        state = cv
-            .wait_while(state, |state| {
-                state.state != RunnerState::Running && !state.stop
-            })
-            .expect("frame runner mutex poisoned");
-        let stop = state.stop;
-        if stop {
-            state.state = RunnerState::Done;
-            cv.notify_all();
-        }
-        drop(state);
-        if stop {
-            STOP_REQUESTED.with(|stop| *stop.borrow_mut() = true);
-            panic::panic_any(FrameRunnerStop);
-        }
-    });
+    // Safety: the yielder is valid for the whole coroutine body, which is the
+    // only place this pointer is non-null, and the coroutine runs on this
+    // thread.
+    unsafe { (*yielder).suspend(()) };
     *r = saved;
 }
 
 pub struct FrameRunner {
-    entry: RoutineFn,
+    // `coro` borrows `engine`/`regs` through raw pointers, so it must drop
+    // first (its drop unwinds the suspended game stack); declaration order is
+    // the drop order.
+    coro: Coroutine<(), (), ()>,
     engine: Box<UnsafeCell<Engine>>,
     regs: Box<UnsafeCell<RoutineContext>>,
-    sync: WaitSync,
-    game_thread: Option<JoinHandle<()>>,
+    done: bool,
 }
-
-unsafe impl Send for FrameRunner {}
-unsafe impl Sync for FrameRunner {}
 
 impl FrameRunner {
     pub fn new(engine: Engine, entry: RoutineFn) -> Self {
-        Self {
-            entry,
-            engine: Box::new(UnsafeCell::new(engine)),
-            regs: Box::new(UnsafeCell::new(RoutineContext::default())),
-            sync: WaitSync {
-                inner: Arc::new((
-                    Mutex::new(SyncState {
-                        state: RunnerState::Created,
-                        stop: false,
-                    }),
-                    Condvar::new(),
-                )),
-            },
-            game_thread: None,
-        }
-    }
-
-    pub fn start(&mut self) -> bool {
-        install_stop_panic_hook();
-        {
-            let (mutex, _) = &*self.sync.inner;
-            let mut state = mutex.lock().expect("frame runner mutex poisoned");
-            if state.state == RunnerState::Waiting {
-                return true;
-            }
-            if state.state != RunnerState::Created {
-                return false;
-            }
-            state.state = RunnerState::Running;
-        }
-
-        let entry = self.entry;
-        let engine = self.engine.get() as usize;
-        let regs = self.regs.get() as usize;
-        let sync = self.sync.clone();
-        self.game_thread = Some(thread::spawn(move || {
-            ACTIVE_WAIT.with(|active| *active.borrow_mut() = Some(sync.clone()));
-            STOP_REQUESTED.with(|stop| *stop.borrow_mut() = false);
-            // Safety: the runner only exposes engine/regs to the control thread
-            // while this thread is parked in frame_wait or after it has exited.
-            let result = panic::catch_unwind(AssertUnwindSafe(|| unsafe {
+        let engine = Box::new(UnsafeCell::new(engine));
+        let regs = Box::new(UnsafeCell::new(RoutineContext::default()));
+        // Box gives the engine/regs a stable heap address that survives moving
+        // the FrameRunner, so these raw pointers stay valid for the coroutine.
+        let engine_ptr = engine.get() as usize;
+        let regs_ptr = regs.get() as usize;
+        let coro = Coroutine::new(move |yielder: &Yielder<(), ()>, _input: ()| {
+            let previous = YIELDER.with(|y| y.replace(yielder as *const _));
+            // Safety: engine/regs outlive the coroutine (it drops first), and
+            // the game body holds the only active borrow while running.
+            unsafe {
                 entry(
-                    &mut *(engine as *mut Engine),
-                    &mut *(regs as *mut RoutineContext),
+                    &mut *(engine_ptr as *mut Engine),
+                    &mut *(regs_ptr as *mut RoutineContext),
                 );
-            }));
-            if let Err(payload) = result {
-                if !payload.is::<FrameRunnerStop>() {
-                    panic::resume_unwind(payload);
-                }
             }
-            let (mutex, cv) = &*sync.inner;
-            let mut state = mutex.lock().expect("frame runner mutex poisoned");
-            state.state = RunnerState::Done;
-            cv.notify_all();
-            ACTIVE_WAIT.with(|active| *active.borrow_mut() = None);
-            STOP_REQUESTED.with(|stop| *stop.borrow_mut() = false);
-        }));
-
-        self.wait_until_parked()
+            YIELDER.with(|y| y.set(previous));
+        });
+        Self {
+            coro,
+            engine,
+            regs,
+            done: false,
+        }
     }
 
+    /// Run the game until its first frame wait. Returns true if it parked,
+    /// false if it ran to completion.
+    pub fn start(&mut self) -> bool {
+        self.step()
+    }
+
+    /// Resume the parked game until its next frame wait. Returns false once the
+    /// game has finished.
     pub fn resume_until_wait(&mut self) -> bool {
-        {
-            let (mutex, cv) = &*self.sync.inner;
-            let mut state = mutex.lock().expect("frame runner mutex poisoned");
-            if state.state == RunnerState::Done || state.state != RunnerState::Waiting {
-                return false;
-            }
-            state.state = RunnerState::Running;
-            cv.notify_all();
+        if self.done {
+            return false;
         }
-        self.wait_until_parked()
+        self.step()
+    }
+
+    fn step(&mut self) -> bool {
+        match self.coro.resume(()) {
+            CoroutineResult::Yield(()) => true,
+            CoroutineResult::Return(()) => {
+                self.done = true;
+                false
+            }
+        }
     }
 
     pub fn done(&self) -> bool {
-        let (mutex, _) = &*self.sync.inner;
-        mutex.lock().expect("frame runner mutex poisoned").state == RunnerState::Done
+        self.done
     }
 
     pub fn regs(&self) -> &RoutineContext {
-        // Safety: callers only read while the game thread is parked/done.
+        // Safety: the game coroutine is suspended whenever the control loop
+        // touches regs, so there is no concurrent borrow.
         unsafe { &*self.regs.get() }
     }
 
     pub fn regs_mut(&mut self) -> &mut RoutineContext {
-        // Safety: callers only mutate while the game thread is parked/done.
+        // Safety: see `regs`.
         unsafe { &mut *self.regs.get() }
     }
 
     pub fn engine(&self) -> &Engine {
-        // Safety: callers only read while the game thread is parked/done.
+        // Safety: see `regs`.
         unsafe { &*self.engine.get() }
     }
 
     pub fn engine_mut(&mut self) -> &mut Engine {
-        // Safety: callers only mutate while the game thread is parked/done.
+        // Safety: see `regs`.
         unsafe { &mut *self.engine.get() }
     }
 
@@ -199,36 +133,8 @@ impl FrameRunner {
         &mut self,
         f: impl FnOnce(&mut Engine, &mut RoutineContext) -> R,
     ) -> R {
-        // Safety: callers only invoke this while the game thread is parked/done.
+        // Safety: see `regs`.
         unsafe { f(&mut *self.engine.get(), &mut *self.regs.get()) }
-    }
-
-    fn wait_until_parked(&self) -> bool {
-        let (mutex, cv) = &*self.sync.inner;
-        let state = mutex.lock().expect("frame runner mutex poisoned");
-        let state = cv
-            .wait_while(state, |state| {
-                state.state != RunnerState::Waiting && state.state != RunnerState::Done
-            })
-            .expect("frame runner mutex poisoned");
-        state.state == RunnerState::Waiting
-    }
-}
-
-impl Drop for FrameRunner {
-    fn drop(&mut self) {
-        {
-            let (mutex, cv) = &*self.sync.inner;
-            let mut state = mutex.lock().expect("frame runner mutex poisoned");
-            state.stop = true;
-            if state.state == RunnerState::Waiting {
-                state.state = RunnerState::Running;
-            }
-            cv.notify_all();
-        }
-        if let Some(handle) = self.game_thread.take() {
-            let _ = handle.join();
-        }
     }
 }
 
