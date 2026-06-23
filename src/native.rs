@@ -1,7 +1,7 @@
 use crate::game::{
     CHARACTER_STATS_TABLE, SPAWN_OFFSET_X_TABLE, SPAWN_OFFSET_Y_TABLE, START_ITEM_TABLE,
 };
-use crate::{Engine, RoutineContext, cbool, engine::RoutineFn, frame, u8v, u16v};
+use crate::{Engine, RoutineContext, engine::RoutineFn, frame, u8v, u16v};
 
 fn enter_return_home(engine: &mut Engine, lo: i32, hi: i32) {
     engine.state.set_indirect_ptr_lo(lo);
@@ -198,7 +198,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::draw_player_sprites(engine, r);
         crate::game::draw_room_object_sprites(engine, r);
         r.carry = saved_c;
-        if !cbool(r.carry) && engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
+        if !((r.carry) != 0) && engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
             engine
                 .state
                 .set_main_loop_phase((engine.state.main_loop_phase() + 1) & 0xFF);
@@ -885,12 +885,12 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         crate::game::advance_intro_text_scroll(engine, r);
         crate::game::stage_intro_text_line(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             break;
         }
         crate::game::advance_intro_text_scroll(engine, r);
         crate::game::stage_scrolling_intro_text_line(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             break;
         }
     }
@@ -1712,7 +1712,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     }
 
     find_damageable_actor_overlap(engine, r);
-    if cbool(r.carry) {
+    if ((r.carry) != 0) {
         if engine.state.chr_bank(3) >= 0x30 {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
@@ -1727,7 +1727,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
 
     r.offset = 0x01;
     crate::game::probe_player_solid_tile(engine, r);
-    if cbool(r.carry) {
+    if ((r.carry) != 0) {
         return resolve_player_landing_or_hazard_contact(engine, r);
     }
     if engine.state.player_x_fine() == 0 {
@@ -1739,7 +1739,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
 
     r.offset = 0x0d;
     crate::game::probe_player_solid_tile(engine, r);
-    if cbool(r.carry) {
+    if ((r.carry) != 0) {
         return resolve_player_landing_or_hazard_contact(engine, r);
     }
     engine
@@ -1765,7 +1765,7 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
     if engine.state.fall_frames() == 0 {
         r.offset = 0x01;
         crate::game::apply_hazard_tile_contact(engine, r);
-        if !cbool(r.carry) && engine.state.player_x_fine() != 0 {
+        if !((r.carry) != 0) && engine.state.player_x_fine() != 0 {
             r.offset = 0x0d;
             crate::game::apply_hazard_tile_contact(engine, r);
         }
@@ -1808,13 +1808,13 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             if item == 0x07 {
                 r.index = engine.state.selected_item_slot();
                 crate::game::consume_magic_point(engine, r);
-                if cbool(r.carry) {
+                if ((r.carry) != 0) {
                     r.carry = 1;
                     return;
                 }
             } else {
                 crate::game::consume_key(engine, r);
-                if cbool(r.carry) {
+                if ((r.carry) != 0) {
                     r.carry = 1;
                     return;
                 }
@@ -2133,7 +2133,7 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
 /// only when a key was available and the door event completed.
 pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::consume_key(engine, r);
-    if cbool(r.carry) {
+    if ((r.carry) != 0) {
         engine.state.set_prompt_state(0x06);
         r.carry = 0;
         return;
@@ -2342,7 +2342,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
 
         loop {
             walk_purchase_room_until_action_or_exit(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 crate::game::restore_room_from_checkpoint(engine, r);
                 return;
             }
@@ -2558,7 +2558,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
 
     loop {
         walk_purchase_room_until_action_or_exit(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             crate::game::restore_room_from_checkpoint(engine, r);
             return;
         }
@@ -2582,7 +2582,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
             let price = engine.state.inventory_item(0x21 + x);
             r.value = price;
             crate::game::spend_coins(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 engine.state.set_temp_save(x, 0xff);
                 crate::game::draw_shop_item_sprites(engine, r);
                 engine
@@ -2693,7 +2693,7 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
         engine.state.set_obj_y_vel(a);
         crate::game::project_actor_position(engine, r);
         crate::game::check_position_out_of_bounds(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             engine.state.set_obj_attr(engine.state.obj_attr() | 0x80);
             engine.state.set_obj_move_scratch(0x01);
             return;
@@ -2710,7 +2710,7 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
         .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 2) + 1));
     crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
-    if cbool(r.carry) {
+    if ((r.carry) != 0) {
         engine.state.set_obj_state(0x00);
         engine.state.set_obj_timer(0xf0);
         engine.state.set_pending_special_exit(0x01);
@@ -2824,7 +2824,7 @@ pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut Routi
 pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         walk_loadout_room_until_action_or_exit(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             let e = engine.state.selected_item_slot();
             if engine.state.item_slot(e) == 0x0d {
                 engine.state.set_selected_item_slot(0x03);
@@ -2843,7 +2843,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             if engine.state.inventory_item(x) != 0 {
                 r.value = x;
                 crate::game::load_family_item_permission_bits(engine, r);
-                if cbool(r.carry) {
+                if ((r.carry) != 0) {
                     engine
                         .state
                         .set_inventory_item(x, (engine.state.inventory_item(x) - 1) & 0xFF);
@@ -2943,7 +2943,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
                 .set_obj_y_vel(u8v(0 - engine.state.obj_cooldown()));
             crate::game::project_actor_position(engine, r);
             crate::game::check_position_out_of_bounds(engine, r);
-            if !cbool(r.carry) {
+            if !((r.carry) != 0) {
                 engine.state.set_obj_y_pixel(engine.state.scratch2());
                 return;
             }
@@ -2960,7 +2960,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 2));
     crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
-    if !cbool(r.carry) {
+    if !((r.carry) != 0) {
         engine.state.set_obj_y_pixel(engine.state.scratch2());
         return;
     }

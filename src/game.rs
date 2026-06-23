@@ -7,7 +7,7 @@
 use crate::engine::RoutineFn;
 use crate::frame;
 use crate::native::*;
-use crate::{Engine, RoutineContext, cbool, not, u8v, u16v};
+use crate::{Engine, RoutineContext, u8v, u16v};
 
 // ROM data tables (mapped PRG). Each is the base address of a lookup table the
 // game indexes; reads go through `engine.state.byte(TABLE + index)`.
@@ -426,11 +426,11 @@ mod frame_counters {
     pub fn frame_counters(engine: &mut Engine, r: &mut RoutineContext) {
         let prescaler_after = (engine.state.frame_prescaler() - 1) & 0xFF;
         engine.state.set_frame_prescaler(prescaler_after);
-        if cbool(prescaler_after != 0) {
+        if (prescaler_after != 0) {
             return;
         }
         for timer_index in (0..=7).rev() {
-            if cbool(engine.state.coarse_timer(timer_index) != 0) {
+            if (engine.state.coarse_timer(timer_index) != 0) {
                 engine.state.set_coarse_timer(
                     timer_index,
                     (engine.state.coarse_timer(timer_index) - 1) & 0xFF,
@@ -452,7 +452,7 @@ mod game_update {
             match state {
                 0 => {
                     engine.state.set_slot_index(0xFF);
-                    if cbool(engine.state.pending_special_exit() != 0) {
+                    if (engine.state.pending_special_exit() != 0) {
                         enter_pending_special_exit_room(engine, r);
                         return;
                     }
@@ -461,12 +461,12 @@ mod game_update {
                 }
                 1 => {
                     check_final_exit_trigger(engine, r);
-                    if cbool(engine.state.buttons() & 0x10) {
+                    if ((engine.state.buttons() & 0x10) != 0) {
                         run_character_select_overlay(engine, r);
                         return;
                     }
                     tick_selected_item_effect(engine, r);
-                    if cbool(engine.state.landing_timer() != 0) {
+                    if (engine.state.landing_timer() != 0) {
                         engine
                             .state
                             .set_landing_timer((engine.state.landing_timer() - 1) & 0xFF);
@@ -474,68 +474,68 @@ mod game_update {
                     }
                     {
                         let mut clear_hi: i32 = 1;
-                        if cbool(engine.state.character_index() == 0x04) {
-                            if cbool((engine.state.frame_prescaler() & 0x07) == 0) {
+                        if (engine.state.character_index() == 0x04) {
+                            if ((engine.state.frame_prescaler() & 0x07) == 0) {
                                 clear_hi = 1;
                             } else {
-                                clear_hi = (if cbool(engine.state.buttons() & 0x40) {
+                                clear_hi = (if ((engine.state.buttons() & 0x40) != 0) {
                                     0
                                 } else {
                                     1
                                 });
                             }
                         } else {
-                            clear_hi = (if cbool(engine.state.buttons() & 0x40) {
+                            clear_hi = (if ((engine.state.buttons() & 0x40) != 0) {
                                 0
                             } else {
                                 1
                             });
                         }
-                        if cbool(clear_hi) {
+                        if ((clear_hi) != 0) {
                             engine
                                 .state
                                 .set_direction_latch(engine.state.direction_latch() & 0x0F);
                         }
                     }
                     a = engine.state.buttons() & 0x0F;
-                    if cbool(a != 0) {
+                    if (a != 0) {
                         engine.state.set_scratch0(a);
                         engine
                             .state
                             .set_direction_latch(u8v((engine.state.direction_latch() & 0xF0) | a));
                     }
-                    if cbool(engine.state.buttons() & 0x20) {
+                    if ((engine.state.buttons() & 0x20) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.buttons() & 0x08) {
+                    if ((engine.state.buttons() & 0x08) != 0) {
                         dispatch_overhead_tile_action(engine, r);
-                        if cbool(engine.lotw_nonlocal_handoff) {
+                        if ((engine.lotw_nonlocal_handoff) != 0) {
                             return;
                         }
                     }
                     y = 0x01;
-                    while cbool(engine.state.inventory_item(0x27 + y) != 0) {
+                    while (engine.state.inventory_item(0x27 + y) != 0) {
                         {
                             let __old = y;
                             y += 1;
                             __old
                         };
-                        if cbool(y >= 0x05) {
+                        if (y >= 0x05) {
                             y = 0x06;
                             break;
                         }
                     }
                     r.offset = y;
                     build_input_movement_delta(engine, r);
-                    if cbool(engine.state.fall_frames() != 0) {
+                    if (engine.state.fall_frames() != 0) {
                         engine
                             .state
                             .set_vertical_delta(u8v((engine.state.fall_frames() >> 2) + 1));
                         try_move_player_with_collision(engine, r);
-                        if !cbool(r.carry) {
+                        if !((r.carry) != 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
@@ -544,7 +544,7 @@ mod game_update {
                         engine.state.set_horizontal_subtile_delta(0x00);
                         engine.state.set_player_x_velocity(0x00);
                         try_move_player_with_collision(engine, r);
-                        if !cbool(r.carry) {
+                        if !((r.carry) != 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
@@ -555,15 +555,15 @@ mod game_update {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.jump_timer() != 0) {
+                    if (engine.state.jump_timer() != 0) {
                         tick_player_jump_action(engine, r);
-                        if cbool(engine.lotw_nonlocal_handoff) {
+                        if ((engine.lotw_nonlocal_handoff) != 0) {
                             return;
                         }
                         engine.state.set_jump_timer(0x00);
-                    } else if cbool(engine.state.buttons() & 0x80) {
+                    } else if ((engine.state.buttons() & 0x80) != 0) {
                         tick_player_jump_action(engine, r);
-                        if cbool(engine.lotw_nonlocal_handoff) {
+                        if ((engine.lotw_nonlocal_handoff) != 0) {
                             return;
                         }
                         engine.state.set_jump_timer(0x00);
@@ -572,14 +572,14 @@ mod game_update {
                         engine.state.set_jump_timer(0x00);
                     }
                     try_move_player_with_collision(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
                     try_nudge_player_to_tile_boundary(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -608,7 +608,7 @@ mod game_update {
                         .state
                         .set_player_x_tile(engine.state.indirect_ptr_hi());
                     a = engine.state.scratch2();
-                    if cbool(a >= 0xEF) {
+                    if (a >= 0xEF) {
                         a = 0x00;
                     }
                     engine.state.set_player_y(a);
@@ -635,10 +635,10 @@ mod game_update {
                     engine.state.set_prompt_state(0x10);
                     loop {
                         read_debounced_buttons(engine, r);
-                        if cbool(r.value & 0xF0) {
+                        if ((r.value & 0xF0) != 0) {
                             break;
                         }
-                        if cbool((engine.state.buttons() & 0x03) == 0) {
+                        if ((engine.state.buttons() & 0x03) == 0) {
                             continue;
                         }
                         engine
@@ -654,9 +654,9 @@ mod game_update {
                                 u8v(engine.state.vertical_delta()
                                     + engine.state.selected_item_slot());
                             let mut ni: i32 = 0;
-                            if cbool(t & 0x80) {
+                            if ((t & 0x80) != 0) {
                                 ni = 0x03;
-                            } else if cbool(t < 0x04) {
+                            } else if (t < 0x04) {
                                 ni = t;
                             } else {
                                 ni = 0x00;
@@ -692,7 +692,7 @@ mod increment_selected_music_stream_pointer {
         engine
             .state
             .set_sound_channel_byte(2, channel_pointer_offset, pattern_ptr_lo);
-        if cbool(pattern_ptr_lo == 0) {
+        if (pattern_ptr_lo == 0) {
             engine.state.set_sound_channel_byte(
                 3,
                 channel_pointer_offset,
@@ -813,7 +813,7 @@ mod queue_room_column_vram_upload {
         let attribute_side_mask: i32 = u8v(destination_low_byte & 0x02);
         engine
             .state
-            .set_vram_addr2_lo(if cbool(attribute_side_mask) {
+            .set_vram_addr2_lo(if ((attribute_side_mask) != 0) {
                 0x33
             } else {
                 0xCC
@@ -840,7 +840,7 @@ mod queue_room_column_vram_upload {
             source_attribute_offset += 1;
             attribute_bits = u8v((bottom_metatile_id & 0xC0) | attribute_bits);
 
-            if cbool(attribute_side_mask == 0) {
+            if (attribute_side_mask == 0) {
                 attribute_bits = u8v(attribute_bits >> 2);
             }
             engine
@@ -959,7 +959,7 @@ mod rng_update {
     pub fn rng_update(engine: &mut Engine, r: &mut RoutineContext) {
         let limit: i32 = u8v(r.value);
         engine.state.set_rng_limit(limit);
-        if cbool(limit == 0) {
+        if (limit == 0) {
             r.value = engine.state.rng_high();
             return;
         }
@@ -983,7 +983,7 @@ mod rng_update {
             rng_high = candidate;
             engine.state.set_rng_high(candidate);
             engine.state.set_rng_low(rng_low);
-            if !cbool(candidate >= limit) {
+            if !(candidate >= limit) {
                 break;
             }
         }
@@ -998,7 +998,7 @@ mod advance_scripted_scroll_slice {
     /// sequence. `0xF9` is the source column, `0xFA` counts the remaining slices,
     /// and `0x1D` flips between nametable halves after each 9-slice run.
     pub fn advance_scripted_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_x_tile() == 0) {
+        if (engine.state.obj_x_tile() == 0) {
             engine.state.set_vram_addr_lo(0x0E);
             engine.state.set_vram_addr_hi(0x20);
             engine
@@ -1027,7 +1027,7 @@ mod advance_scripted_scroll_slice {
         engine
             .state
             .set_obj_x_tile(u8v(engine.state.obj_x_tile() - 1));
-        if cbool(engine.state.obj_x_tile() == 0) {
+        if (engine.state.obj_x_tile() == 0) {
             engine
                 .state
                 .set_nametable_select(engine.state.nametable_select() ^ 0x01);
@@ -1046,10 +1046,10 @@ mod update_final_exit_projectiles {
         engine.state.set_obj_slot_ptr_hi(0x04);
         loop {
             let slot_ptr = u16v(engine.state.obj_slot_ptr());
-            if cbool(engine.state.byte(u16v(slot_ptr + 1)) != 0) {
+            if (engine.state.byte(u16v(slot_ptr + 1)) != 0) {
                 update_final_exit_projectile_slot(engine, r);
-            } else if (cbool(engine.state.buttons() & 0x40)
-                && !cbool(engine.state.direction_latch() & 0x40))
+            } else if (((engine.state.buttons() & 0x40) != 0)
+                && !((engine.state.direction_latch() & 0x40) != 0))
             {
                 spawn_final_exit_projectile(engine, r);
             }
@@ -1063,7 +1063,7 @@ mod update_final_exit_projectiles {
                     engine.state.obj_slot_ptr_hi() + (next_slot_ptr >> 8)
                 ));
             }
-            if !cbool(engine.state.slot_index() < 0x04) {
+            if !(engine.state.slot_index() < 0x04) {
                 break;
             }
         }
@@ -1086,7 +1086,7 @@ mod spawn_final_exit_projectile {
         build_final_exit_projectile_velocity(engine, r);
         project_final_exit_projectile_spawn(engine, r);
         check_final_exit_projectile_bounds(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             engine.state.set_obj_x_sub(engine.state.indirect_ptr_lo());
             engine.state.set_obj_y_pixel(engine.state.scratch2());
             engine.state.set_obj_state(0x18);
@@ -1094,7 +1094,7 @@ mod spawn_final_exit_projectile {
             engine.state.set_obj_tile(0x21);
             engine.state.set_prompt_state(0x19);
         }
-        if cbool(engine.state.obj_state() != 0) {
+        if (engine.state.obj_state() != 0) {
             update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -1111,17 +1111,17 @@ mod update_final_exit_projectile_slot {
         engine
             .state
             .set_obj_state(u8v(engine.state.obj_state() - 1));
-        if cbool(engine.state.obj_state() != 0) {
+        if (engine.state.obj_state() != 0) {
             project_final_exit_projectile_motion(engine, r);
             check_final_exit_projectile_bounds(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 engine.state.set_obj_state(0x00);
             } else {
                 engine.state.set_obj_x_sub(engine.state.indirect_ptr_lo());
                 engine.state.set_obj_y_pixel(engine.state.scratch2());
             }
         }
-        if cbool(engine.state.obj_state() != 0) {
+        if (engine.state.obj_state() != 0) {
             update_final_exit_projectile_animation_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -1138,13 +1138,13 @@ mod project_final_exit_projectile_spawn {
             .state
             .set_indirect_ptr_lo(engine.state.player_x_fine());
         engine.state.set_scratch2(engine.state.player_y());
-        if cbool(engine.state.obj_y_vel() != 0) {
+        if (engine.state.obj_y_vel() != 0) {
             let scaled_y_delta = u8v(engine.state.obj_y_vel() << 2);
             engine
                 .state
                 .set_scratch2(u8v(scaled_y_delta + engine.state.scratch2()));
         }
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
+        if (engine.state.obj_x_vel_lo() != 0) {
             let scaled_x_delta = u8v(engine.state.obj_x_vel_lo() << 2);
             engine
                 .state
@@ -1178,13 +1178,13 @@ mod check_final_exit_projectile_bounds {
     /// while still in the scripted vertical range. Other paths intentionally
     /// leave carry untouched to preserve the original branch contract.
     pub fn check_final_exit_projectile_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.scratch2() >= 0xA1) {
+        if (engine.state.scratch2() >= 0xA1) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() < 0xF1) {
+        if (engine.state.indirect_ptr_lo() < 0xF1) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() == 0x00) {
+        if (engine.state.indirect_ptr_lo() == 0x00) {
             return;
         }
         r.carry = 1;
@@ -1199,12 +1199,12 @@ mod project_final_exit_projectile_motion {
     pub fn project_final_exit_projectile_motion(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_indirect_ptr_lo(engine.state.obj_x_sub());
         engine.state.set_scratch2(engine.state.obj_y_pixel());
-        if cbool(engine.state.obj_y_vel() != 0) {
+        if (engine.state.obj_y_vel() != 0) {
             engine
                 .state
                 .set_scratch2(u8v(engine.state.obj_y_vel() + engine.state.scratch2()));
         }
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
+        if (engine.state.obj_x_vel_lo() != 0) {
             engine.state.set_indirect_ptr_lo(u8v(
                 engine.state.obj_x_vel_lo() + engine.state.indirect_ptr_lo()
             ));
@@ -1239,8 +1239,8 @@ mod draw_final_exit_projectile_slot_sprites {
     pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let oam_offset = engine.state.indirect_ptr_hi();
         let slot_offset = engine.state.indirect_ptr_lo();
-        if cbool(engine.state.object_state(slot_offset) == 0)
-            || cbool(engine.state.object_y_pixel(slot_offset) >= 0xBF)
+        if (engine.state.object_state(slot_offset) == 0)
+            || (engine.state.object_y_pixel(slot_offset) >= 0xBF)
         {
             engine.state.set_oam_y(oam_offset, 0xEF);
             engine.state.set_oam_y(0x04 + oam_offset, 0xEF);
@@ -1252,7 +1252,7 @@ mod draw_final_exit_projectile_slot_sprites {
         engine.state.set_oam_attr(0x04 + oam_offset, attributes);
 
         let tile_id = engine.state.object_tile(slot_offset);
-        if cbool(attributes & 0x40) {
+        if ((attributes & 0x40) != 0) {
             engine.state.set_oam_tile(0x04 + oam_offset, tile_id);
             engine.state.set_oam_tile(oam_offset, u8v(tile_id + 2));
         } else {
@@ -1281,12 +1281,12 @@ mod rotate_sprite_zero_from_scripted_oam {
     /// sprite. The sequence cycles through player/projectile sprites via `0x3E`.
     pub fn rotate_sprite_zero_from_scripted_oam(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sprite_index = u8v(engine.state.sprite_index() - 1);
-        if cbool(sprite_index & 0x80) {
+        if ((sprite_index & 0x80) != 0) {
             sprite_index = 0x07;
         }
         engine.state.set_sprite_index(sprite_index);
         let oam_offset = u8v(sprite_index << 2);
-        let source_base = if cbool(sprite_index & 0x06) {
+        let source_base = if ((sprite_index & 0x06) != 0) {
             0x0280
         } else {
             0x0210
@@ -1323,7 +1323,7 @@ mod build_final_exit_projectile_velocity {
                     .state
                     .byte(u16v(MOVE_DELTA_X_TABLE + direction_table_offset)));
             remaining_steps -= 1;
-            if !cbool(remaining_steps != 0) {
+            if !(remaining_steps != 0) {
                 break;
             }
         }
@@ -1337,7 +1337,7 @@ mod build_final_exit_projectile_velocity {
                     .state
                     .byte(u16v(MOVE_DELTA_Y_TABLE + direction_table_offset)));
             remaining_steps -= 1;
-            if !cbool(remaining_steps != 0) {
+            if !(remaining_steps != 0) {
                 break;
             }
         }
@@ -1453,36 +1453,36 @@ mod tick_scripted_player_motion {
 
     /// Ticks the reduced player controller used inside scripted/final-exit
     /// scenes. It mirrors the normal gameplay movement path but only checks the
-    /// scripted screen bounds, not room tiles or object contacts.
+    /// scripted screen bounds room tiles or object contacts.
     pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = engine.state.buttons();
-        if cbool(r.value & 0x10) {
+        if ((r.value & 0x10) != 0) {
             wait_for_start_button_prompt(engine, r);
             return;
         }
 
-        if !cbool(engine.state.buttons() & 0x40) {
+        if !((engine.state.buttons() & 0x40) != 0) {
             engine
                 .state
                 .set_direction_latch(u8v(engine.state.direction_latch() & 0x0F));
         }
         let directional_buttons = u8v(engine.state.buttons() & 0x0F);
         r.value = directional_buttons;
-        if cbool(directional_buttons != 0) {
+        if (directional_buttons != 0) {
             engine.state.set_scratch0(directional_buttons);
             engine.state.set_direction_latch(u8v(
                 (engine.state.direction_latch() & 0xF0) | engine.state.scratch0()
             ));
         }
 
-        if cbool(engine.state.sprite_blink_timer() == 0) {
+        if (engine.state.sprite_blink_timer() == 0) {
             if engine.state.sprite0_hit() {
                 r.index = u8v(engine.state.sprite_index() + 1);
-                if !cbool(r.index & 0x06) {
+                if !((r.index & 0x06) != 0) {
                     let collision_screen_x = u8v(u8v(
                         engine.state.scroll_pixel_x() + engine.state.object_x_sub(r.index)
                     ));
-                    r.value = u8v(if cbool(collision_screen_x < 0xB0) {
+                    r.value = u8v(if (collision_screen_x < 0xB0) {
                         0x0A
                     } else {
                         0x05
@@ -1497,7 +1497,7 @@ mod tick_scripted_player_motion {
             }
         }
 
-        if cbool(engine.state.jump_timer() == 0) && cbool(engine.state.fall_frames() == 0) {
+        if (engine.state.jump_timer() == 0) && (engine.state.fall_frames() == 0) {
             engine.state.set_sprite_blink_timer(0x00);
         } else {
             engine
@@ -1506,18 +1506,18 @@ mod tick_scripted_player_motion {
         }
 
         build_scripted_player_input_delta(engine, r);
-        if cbool(engine.state.fall_frames() != 0) {
+        if (engine.state.fall_frames() != 0) {
             r.value = u8v((engine.state.fall_frames() >> 2) + 1);
             engine.state.set_vertical_delta(r.value);
             try_move_scripted_player_in_bounds(engine, r);
-            if !cbool(r.carry) {
+            if !((r.carry) != 0) {
                 commit_scripted_player_position(engine, r);
                 return;
             }
 
             engine.state.set_horizontal_subtile_delta(0x00);
             try_move_scripted_player_in_bounds(engine, r);
-            if !cbool(r.carry) {
+            if !((r.carry) != 0) {
                 return;
             }
 
@@ -1525,7 +1525,7 @@ mod tick_scripted_player_motion {
             return;
         }
 
-        if cbool(engine.state.jump_timer() != 0) || cbool(engine.state.buttons() & 0x80) {
+        if (engine.state.jump_timer() != 0) || ((engine.state.buttons() & 0x80) != 0) {
             tick_scripted_player_jump_action(engine, r);
             r.value = 0x00;
         } else {
@@ -1535,7 +1535,7 @@ mod tick_scripted_player_motion {
 
         engine.state.set_jump_timer(r.value);
         try_move_scripted_player_in_bounds(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             cancel_scripted_player_motion(engine, r);
             return;
         }
@@ -1551,8 +1551,8 @@ mod tick_scripted_player_jump_action {
     /// helper without item/magic extensions.
     pub fn tick_scripted_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
         let jump_timer = engine.state.jump_timer();
-        if cbool(jump_timer == 0) {
-            if cbool(engine.state.collision_flag() != 0) {
+        if (jump_timer == 0) {
+            if (engine.state.collision_flag() != 0) {
                 return;
             }
             engine.state.set_prompt_state(0x1B);
@@ -1566,11 +1566,11 @@ mod tick_scripted_player_jump_action {
             .state
             .set_vertical_delta(u8v((u8v(jump_timer >> 2) ^ 0xFF) + 1));
         try_move_scripted_player_in_bounds(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             engine.state.set_horizontal_subtile_delta(0x00);
             try_move_scripted_player_in_bounds(engine, r);
         }
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             engine
                 .state
                 .set_player_x_fine(engine.state.indirect_ptr_lo());
@@ -1597,12 +1597,12 @@ mod project_scripted_player_position {
             .state
             .set_indirect_ptr_lo(engine.state.player_x_fine());
         engine.state.set_scratch2(engine.state.player_y());
-        if cbool(engine.state.vertical_delta() != 0) {
+        if (engine.state.vertical_delta() != 0) {
             engine
                 .state
                 .set_scratch2(u8v(engine.state.vertical_delta() + engine.state.scratch2()));
         }
-        if cbool(engine.state.horizontal_subtile_delta() != 0) {
+        if (engine.state.horizontal_subtile_delta() != 0) {
             engine.state.set_indirect_ptr_lo(u8v(
                 engine.state.horizontal_subtile_delta() + engine.state.indirect_ptr_lo()
             ));
@@ -1621,9 +1621,9 @@ mod update_scripted_player_pose_from_motion {
     ) -> bool {
         r.index = pose_bits;
         r.offset = 0x00;
-        if cbool(engine.state.horizontal_subtile_delta() & 0x80) {
+        if ((engine.state.horizontal_subtile_delta() & 0x80) != 0) {
             // Negative horizontal deltas face left with no sprite flip.
-        } else if cbool(engine.state.horizontal_subtile_delta() == 0) {
+        } else if (engine.state.horizontal_subtile_delta() == 0) {
             return false;
         } else {
             r.offset = 0x40;
@@ -1641,21 +1641,21 @@ mod update_scripted_player_pose_from_motion {
     /// jump/fall state, and the action button.
     pub fn update_scripted_player_pose_from_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let jump_pose = 0x09;
-        if cbool(u8v(engine.state.buttons() & 0xBF) == 0x80) {
+        if (u8v(engine.state.buttons() & 0xBF) == 0x80) {
             r.index = jump_pose;
             engine.state.set_player_pose(r.index);
             return;
         }
 
-        if cbool(engine.state.vertical_delta() != 0) {
-            if cbool(engine.state.vertical_delta() & 0x80) {
-                if cbool(engine.state.jump_timer() == 0) {
+        if (engine.state.vertical_delta() != 0) {
+            if ((engine.state.vertical_delta() & 0x80) != 0) {
+                if (engine.state.jump_timer() == 0) {
                     r.index = jump_pose;
                     engine.state.set_player_pose(r.index);
                     return;
                 }
-            } else if cbool(engine.state.fall_frames() == 0) {
-                if cbool(engine.state.buttons() & 0x04) {
+            } else if (engine.state.fall_frames() == 0) {
+                if ((engine.state.buttons() & 0x04) != 0) {
                     r.index = 0x0D;
                     engine.state.set_player_pose(r.index);
                     return;
@@ -1678,28 +1678,28 @@ mod tick_scripted_player_walk_animation {
     /// Applies action-button pose bits and toggles the scripted walk frame every
     /// eight moving frames when not jumping or falling.
     pub fn tick_scripted_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.player_pose() < 0x20) {
+        if (engine.state.player_pose() < 0x20) {
             let mut pose = engine.state.player_pose();
-            if cbool(engine.state.buttons() & 0x40) {
+            if ((engine.state.buttons() & 0x40) != 0) {
                 pose = u8v(pose | 0x10);
             } else {
                 pose = u8v(pose & 0xEF);
             }
             engine.state.set_player_pose(pose);
         }
-        if cbool((engine.state.buttons() & 0x0F) == 0) {
+        if ((engine.state.buttons() & 0x0F) == 0) {
             return;
         }
-        if cbool((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
+        if ((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
             return;
         }
         engine
             .state
             .set_anim_step_counter(u8v(engine.state.anim_step_counter() + 1));
-        if cbool((engine.state.anim_step_counter() & 0x07) != 0) {
+        if ((engine.state.anim_step_counter() & 0x07) != 0) {
             return;
         }
-        if cbool(engine.state.player_pose() & 0x08) {
+        if ((engine.state.player_pose() & 0x08) != 0) {
             engine
                 .state
                 .set_player_facing(engine.state.player_facing() ^ 0x40);
@@ -1717,8 +1717,8 @@ mod draw_scripted_player_sprites {
     /// Draws the two scripted-player sprites into fixed OAM entries
     /// `0x0210/0x0214`, including blink hiding and horizontal tile order.
     pub fn draw_scripted_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.sprite_blink_timer() != 0) {
-            if cbool((engine.state.frame_prescaler() & 0x01) == 0) {
+        if (engine.state.sprite_blink_timer() != 0) {
+            if ((engine.state.frame_prescaler() & 0x01) == 0) {
                 engine.state.set_oam_y(0x10, 0xEF);
                 engine.state.set_oam_y(0x14, 0xEF);
                 return;
@@ -1740,7 +1740,7 @@ mod draw_scripted_player_sprites {
         engine
             .state
             .set_oam_attr(0x14, u8v(engine.state.player_facing() | 0x20));
-        if cbool(engine.state.player_facing() & 0x40) {
+        if ((engine.state.player_facing() & 0x40) != 0) {
             r.index = engine.state.player_pose();
             engine.state.set_oam_tile(0x14, r.index);
             r.index = u8v(r.index + 2);
@@ -1764,22 +1764,22 @@ mod try_move_scripted_player_in_bounds {
         loop {
             project_scripted_player_position(engine, r);
             check_scripted_player_bounds(engine, r);
-            if !cbool(r.carry) {
+            if !((r.carry) != 0) {
                 break;
             }
             {
                 let mut adjusted_y_delta = engine.state.vertical_delta();
-                if cbool(adjusted_y_delta == 0) {
+                if (adjusted_y_delta == 0) {
                     r.carry = 1;
                     break;
                 }
-                if !cbool(adjusted_y_delta & 0x80) {
+                if !((adjusted_y_delta & 0x80) != 0) {
                     adjusted_y_delta = u8v(adjusted_y_delta - 1);
                     adjusted_y_delta = u8v(adjusted_y_delta - 1);
                 }
                 adjusted_y_delta = u8v(adjusted_y_delta + 1);
                 engine.state.set_vertical_delta(adjusted_y_delta);
-                if cbool(adjusted_y_delta != 0) {
+                if (adjusted_y_delta != 0) {
                     continue;
                 }
                 r.carry = 1;
@@ -1797,11 +1797,11 @@ mod update_scripted_player_fall_state {
     /// the player is above the landing Y, and a long fall seeds jump timer
     /// `0x4F` for a bounce prompt.
     pub fn update_scripted_player_fall_state(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.jump_timer() != 0) {
+        if (engine.state.jump_timer() != 0) {
             r.carry = 0;
             return;
         }
-        if cbool(engine.state.player_y() < 0xA0) {
+        if (engine.state.player_y() < 0xA0) {
             engine
                 .state
                 .set_fall_frames(u8v(engine.state.fall_frames() + 1));
@@ -1809,9 +1809,9 @@ mod update_scripted_player_fall_state {
         }
         {
             let mut fall_frames = engine.state.fall_frames();
-            if cbool(fall_frames >= engine.state.jump_strength()) {
+            if (fall_frames >= engine.state.jump_strength()) {
                 fall_frames = u8v(fall_frames - 0x07);
-                if cbool(fall_frames >= engine.state.jump_strength()) {
+                if (fall_frames >= engine.state.jump_strength()) {
                     fall_frames = engine.state.jump_strength();
                 }
                 fall_frames = u8v(fall_frames - 0x01);
@@ -1834,12 +1834,12 @@ mod subtract_scripted_player_health {
         {
             let difference = u16v(current_health) - u16v(engine.state.scratch0());
             let result = u8v(difference);
-            r.carry = if cbool(difference & 0x100) { 0 } else { 1 };
-            r.zero = if cbool(result == 0) { 1 } else { 0 };
+            r.carry = if ((difference & 0x100) != 0) { 0 } else { 1 };
+            r.zero = if (result == 0) { 1 } else { 0 };
             r.negative = (result >> 7) & 1;
             engine.state.set_player_health(result);
         }
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             engine.state.set_player_health(0x00);
         }
     }
@@ -1851,11 +1851,11 @@ mod check_scripted_player_bounds {
     /// Rejects projected scripted-player positions outside the final-exit screen
     /// bounds.
     pub fn check_scripted_player_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.scratch2() >= 0xA1) {
+        if (engine.state.scratch2() >= 0xA1) {
             r.carry = 1;
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() >= 0xF1) {
+        if (engine.state.indirect_ptr_lo() >= 0xF1) {
             r.carry = 1;
             return;
         }
@@ -1893,7 +1893,7 @@ mod choose_random_demo_input {
         r.value = 0x0A;
         rng_update(engine, r);
         r.index = r.value;
-        if cbool(r.index == 0) {
+        if (r.index == 0) {
             engine.state.set_buttons(u8v(engine.state.buttons() | 0x40));
         }
     }
@@ -1933,7 +1933,7 @@ mod blink_demo_oam_sprites {
     /// Toggles the first eight demo sprites on and off from the frame timer.
     pub fn blink_demo_oam_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut sprite_y: i32 = 0xEF;
-        if cbool(engine.state.frame_prescaler() & 0x30) {
+        if ((engine.state.frame_prescaler() & 0x30) != 0) {
             sprite_y = 0x80;
         }
         for oam_offset in (0..=0x1C).step_by(4) {
@@ -1953,13 +1953,13 @@ mod stage_intro_text_line {
         let source_ptr: i32 = u16v(engine.state.data_ptr());
         let mut text_offset: i32 = 0;
         let mut guard: i32 = 0;
-        while cbool(guard < 256) {
+        while (guard < 256) {
             let source_byte: i32 = engine.state.byte(u16v(source_ptr + text_offset));
-            if cbool(source_byte == 0x00) {
+            if (source_byte == 0x00) {
                 r.carry = 1;
                 return;
             }
-            if cbool(source_byte == 0x0D) {
+            if (source_byte == 0x0D) {
                 set_intro_text_vram_address(engine, r);
                 r.value = 0x05;
                 upload_intro_text_scroll_slice(engine, r);
@@ -1989,18 +1989,18 @@ mod stage_scrolling_intro_text_line {
         let source_ptr: i32 = u16v(engine.state.data_ptr());
         let mut text_offset: i32 = 0x00;
         let mut scan_guard: i32 = 0;
-        while cbool(scan_guard < 256) {
+        while (scan_guard < 256) {
             let source_byte: i32 = engine.state.byte(u16v(source_ptr + text_offset));
-            if cbool(source_byte == 0x00) {
+            if (source_byte == 0x00) {
                 r.carry = 1;
                 return;
             }
-            if cbool(source_byte == 0x0D) {
+            if (source_byte == 0x0D) {
                 text_offset += 1;
 
                 let advanced_source: i32 = u16v(text_offset + engine.state.data_ptr_lo());
                 engine.state.set_data_ptr_lo(u8v(advanced_source));
-                if cbool(advanced_source > 0xFF) {
+                if (advanced_source > 0xFF) {
                     engine
                         .state
                         .set_data_ptr_hi(u8v(engine.state.data_ptr_hi() + 1));
@@ -2049,13 +2049,13 @@ mod advance_intro_text_scroll {
             engine
                 .state
                 .set_scratch2((engine.state.scratch2() + 1) & 0xFF);
-            if cbool((engine.state.scratch2() & 0x07) == 0) {
+            if ((engine.state.scratch2() & 0x07) == 0) {
                 break;
             }
             r.value = 0xFF;
             upload_intro_text_scroll_slice(engine, r);
         }
-        if cbool(engine.state.scratch2() == 0xF0) {
+        if (engine.state.scratch2() == 0xF0) {
             engine.state.set_scratch2(0x00);
         }
     }
@@ -2069,7 +2069,7 @@ mod upload_intro_text_scroll_slice {
     pub fn upload_intro_text_scroll_slice(engine: &mut Engine, r: &mut RoutineContext) {
         let first_job_id: i32 = u8v(r.value);
         let mut scroll_upload_row: i32 = u8v(engine.state.scratch2() + 0x06);
-        if cbool(scroll_upload_row >= 0xF0) {
+        if (scroll_upload_row >= 0xF0) {
             scroll_upload_row = u8v(scroll_upload_row + 0x10);
         }
         engine.state.set_scroll_y(scroll_upload_row);
@@ -2230,7 +2230,7 @@ mod encode_inventory_snapshot_item_list {
             .state
             .set_rng_high(engine.state.password_nibbles_b(0x0F));
         let mut scramble_offset: i32 = 0x0E;
-        while cbool(scramble_offset >= 0) {
+        while (scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));
             r.value = 0x20;
             rng_update(engine, r);
@@ -2277,7 +2277,7 @@ mod decode_inventory_item_list_snapshot {
             .state
             .set_rng_high(engine.state.password_scramble_b(0x0F));
         let mut scramble_offset: i32 = 0x0E;
-        while cbool(scramble_offset >= 0) {
+        while (scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));
             r.value = 0x20;
             rng_update(engine, r);
@@ -2333,7 +2333,7 @@ mod decode_inventory_item_list_snapshot {
             additive_checksum =
                 u8v(additive_checksum + engine.state.password_scramble_a(entry_offset));
         }
-        if cbool(additive_checksum != engine.state.password_checksum_add()) {
+        if (additive_checksum != engine.state.password_checksum_add()) {
             engine.state.set_prompt_state(0x1C);
             engine.state.set_prompt_argument(0x1C);
             r.carry = 1;
@@ -2344,7 +2344,7 @@ mod decode_inventory_item_list_snapshot {
         for entry_offset in (0..=0x1F).rev() {
             xor_checksum = u8v(xor_checksum ^ engine.state.password_scramble_a(entry_offset));
         }
-        if cbool(xor_checksum != engine.state.password_checksum_xor()) {
+        if (xor_checksum != engine.state.password_checksum_xor()) {
             engine.state.set_prompt_state(0x1C);
             engine.state.set_prompt_argument(0x1C);
             r.carry = 1;
@@ -2487,12 +2487,12 @@ mod update_camera_scroll_from_player {
         let camera_delta: i32 = u8v(player_world_x - scroll_world_x);
         let mut no_scroll_column_needed: i32 = 0;
         engine.state.set_scratch0(scroll_world_x);
-        if cbool(camera_delta < 0x60) {
-            if cbool((engine.state.scroll_tile_x() | engine.state.scroll_fine_x()) == 0) {
+        if (camera_delta < 0x60) {
+            if ((engine.state.scroll_tile_x() | engine.state.scroll_fine_x()) == 0) {
                 no_scroll_column_needed = 1;
             } else {
                 let left_scroll_tile: i32 = u8v(engine.state.player_x_tile() - 0x06);
-                if cbool(engine.state.player_x_tile() < 0x06) {
+                if (engine.state.player_x_tile() < 0x06) {
                     engine.state.set_scroll_fine_x(0x00);
                     engine.state.set_scroll_tile_x(0x00);
                     no_scroll_column_needed = 0;
@@ -2503,9 +2503,9 @@ mod update_camera_scroll_from_player {
                     no_scroll_column_needed = 0;
                 }
             }
-        } else if cbool(camera_delta < 0x91) {
+        } else if (camera_delta < 0x91) {
             no_scroll_column_needed = 1;
-        } else if cbool(engine.state.scroll_tile_x() >= 0x30) {
+        } else if (engine.state.scroll_tile_x() >= 0x30) {
             engine.state.set_scroll_tile_x(0x30);
             engine.state.set_scroll_fine_x(0x00);
             no_scroll_column_needed = 1;
@@ -2550,8 +2550,8 @@ mod draw_player_sprites {
     /// Player world X is stored in `0x43/0x44`; screen X subtracts the camera at
     /// `0x7B/0x7C`. `0x85`/`0x84` drive the invulnerability blink hide phase.
     pub fn draw_player_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-        if (cbool(engine.state.sprite_blink_timer() != 0)
-            && cbool((engine.state.frame_prescaler() & 0x01) == 0))
+        if ((engine.state.sprite_blink_timer() != 0)
+            && ((engine.state.frame_prescaler() & 0x01) == 0))
         {
             engine.state.set_oam_y(0x10, 0xEF);
             engine.state.set_oam_y(0x14, 0xEF);
@@ -2578,7 +2578,7 @@ mod draw_player_sprites {
             .set_oam_attr(0x14, engine.state.player_facing());
 
         let left_tile: i32 = engine.state.player_pose();
-        if cbool(engine.state.player_facing() & 0x40) {
+        if ((engine.state.player_facing() & 0x40) != 0) {
             engine.state.set_oam_tile(0x14, left_tile);
             engine.state.set_oam_tile(0x10, u8v(left_tile + 2));
         } else {
@@ -2595,7 +2595,7 @@ mod draw_status_item_sprites {
     /// status area. High-bit item ids hide a slot.
     pub fn draw_status_item_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_slot: i32 = engine.state.selected_item_slot();
-        if cbool(selected_slot >= 0x03) {
+        if (selected_slot >= 0x03) {
             engine.state.set_oam_y(0x38, 0xEF);
             engine.state.set_oam_y(0x3C, 0xEF);
         } else {
@@ -2613,7 +2613,7 @@ mod draw_status_item_sprites {
         for item_slot in (0..=0x02).rev() {
             let oam_offset: i32 = item_slot << 3;
             let item_id: i32 = engine.state.item_slot(item_slot);
-            let sprite_y: i32 = if cbool(item_id & 0x80) {
+            let sprite_y: i32 = if ((item_id & 0x80) != 0) {
                 0xEF
             } else {
                 let left_tile: i32 = u8v((item_id << 2) + 0xA1);
@@ -2654,7 +2654,7 @@ mod draw_room_object_sprites {
             oam_offset = u8v((u8v(oam_offset + 0x08)) | 0x80);
             object_offset = u8v(object_offset + 0x30);
             engine.state.set_scratch2(u8v(engine.state.scratch2() - 1));
-            if !cbool(engine.state.scratch2() != 0) {
+            if !(engine.state.scratch2() != 0) {
                 break;
             }
         }
@@ -2679,8 +2679,8 @@ mod draw_object_slot_sprites {
         let object_offset: i32 = u8v(r.offset);
         let object_base: i32 = 0x0400 + object_offset;
 
-        if cbool(engine.state.byte(object_base + 0x01) == 0)
-            || cbool(engine.state.byte(object_base + 0x0E) >= 0xBF)
+        if (engine.state.byte(object_base + 0x01) == 0)
+            || (engine.state.byte(object_base + 0x0E) >= 0xBF)
         {
             engine.state.set_oam_y(oam_offset, 0xEF);
             engine.state.set_oam_y(0x04 + oam_offset, 0xEF);
@@ -2692,7 +2692,7 @@ mod draw_object_slot_sprites {
         engine.state.set_oam_attr(0x04 + oam_offset, attributes);
 
         let left_tile: i32 = engine.state.byte(object_base);
-        if cbool(attributes & 0x40) {
+        if ((attributes & 0x40) != 0) {
             engine.state.set_oam_tile(0x04 + oam_offset, left_tile);
             engine.state.set_oam_tile(oam_offset, u8v(left_tile + 0x02));
         } else {
@@ -2709,7 +2709,7 @@ mod draw_object_slot_sprites {
         let tile_delta: i32 = u8v(u16v(engine.state.byte(object_base + 0x0D)) + tile_borrow
             - engine.state.scroll_tile_x()
             - 1);
-        if cbool(tile_delta >= 0x10) {
+        if (tile_delta >= 0x10) {
             engine.state.set_oam_y(oam_offset, 0xEF);
             engine.state.set_oam_y(0x04 + oam_offset, 0xEF);
             return;
@@ -2718,8 +2718,8 @@ mod draw_object_slot_sprites {
         let mut screen_x: i32 = u8v((tile_delta << 4) | fine_x);
         engine.state.set_scratch0(screen_x);
 
-        if cbool(engine.state.byte(object_base + 0x01) == 0x01)
-            && cbool(engine.state.byte(object_base + 0x0F) != 0)
+        if (engine.state.byte(object_base + 0x01) == 0x01)
+            && (engine.state.byte(object_base + 0x0F) != 0)
         {
             screen_x = u8v(screen_x + engine.state.byte(object_base + 0x0F));
             engine.state.set_scratch0(screen_x);
@@ -2729,7 +2729,7 @@ mod draw_object_slot_sprites {
         let sprite_y: i32 = u8v(engine.state.byte(object_base + 0x0E) + 0x2B);
         engine.state.set_oam_x(oam_offset, screen_x);
         engine.state.set_oam_y(oam_offset, sprite_y);
-        if cbool(screen_x >= 0xEF) {
+        if (screen_x >= 0xEF) {
             engine.state.set_oam_y(0x04 + oam_offset, 0xEF);
             return;
         }
@@ -2810,7 +2810,7 @@ mod dim_palette_range_by_step {
             engine.state.set_scratch0(low_nibble);
             let high_nibble: i32 = color & 0xF0;
             let fade_step: i32 = engine.state.scratch1();
-            let dimmed_color: i32 = if cbool(high_nibble >= fade_step) {
+            let dimmed_color: i32 = if (high_nibble >= fade_step) {
                 u8v(u8v(high_nibble - fade_step) | low_nibble)
             } else {
                 0x0F
@@ -2820,7 +2820,7 @@ mod dim_palette_range_by_step {
                 .set_palette_buffer(palette_offset, dimmed_color);
             palette_offset += 1;
             remaining -= 1;
-            if !cbool(remaining != 0) {
+            if !(remaining != 0) {
                 break;
             }
         }
@@ -2861,7 +2861,7 @@ mod upload_status_panel_template {
         engine.device_write(crate::engine::reg::PPU_ADDR, 0x20);
         {
             i = 0;
-            while cbool(i < 0xA0) {
+            while (i < 0xA0) {
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine.state.byte(u16v(HUD_TEMPLATE_TABLE + i)),
@@ -2876,7 +2876,7 @@ mod upload_status_panel_template {
         engine.device_write(crate::engine::reg::PPU_ADDR, 0xF0);
         {
             i = 0;
-            while cbool(i < 0x10) {
+            while (i < 0x10) {
                 engine.device_write(crate::engine::reg::PPU_DATA, 0x00);
                 {
                     i += 1;
@@ -2955,7 +2955,7 @@ mod upload_room_view_from_tile_pointer {
         p0C = u16v(c0c_save | (c0d_save << 8));
         {
             outer = 0;
-            while cbool(outer < 0x12) {
+            while (outer < 0x12) {
                 let mut inner: i32 = 0;
                 engine.state.set_scratch3(0x0C);
                 engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
@@ -2978,7 +2978,7 @@ mod upload_room_view_from_tile_pointer {
                     engine
                         .state
                         .set_scratch3((engine.state.scratch3() - 1) & 0xFF);
-                    if !cbool(engine.state.scratch3() != 0) {
+                    if !(engine.state.scratch3() != 0) {
                         break;
                     }
                 }
@@ -3004,14 +3004,14 @@ mod upload_room_view_from_tile_pointer {
                     engine
                         .state
                         .set_scratch3((engine.state.scratch3() - 1) & 0xFF);
-                    if !cbool(engine.state.scratch3() != 0) {
+                    if !(engine.state.scratch3() != 0) {
                         break;
                     }
                 }
                 engine
                     .state
                     .set_vram_addr_lo((engine.state.vram_addr_lo() + 2) & 0xFF);
-                if cbool(engine.state.vram_addr_lo() & 0x20) {
+                if ((engine.state.vram_addr_lo() & 0x20) != 0) {
                     engine.state.set_vram_addr_lo(0x00);
                     engine
                         .state
@@ -3051,7 +3051,7 @@ mod upload_room_view_from_tile_pointer {
             let mut x: i32 = 0;
             {
                 x = 6;
-                while cbool(x > 0) {
+                while (x > 0) {
                     let mut a: i32 = 0;
                     a = engine.state.byte(u16v(p0C + 0x0D));
                     {
@@ -3153,7 +3153,7 @@ mod upload_room_view_from_tile_pointer {
                     .set_vram_addr_hi(u8v(engine.state.vram_addr_hi() + 0xFF + (t >> 8)));
             }
             p0C = u16v(engine.state.data_ptr());
-            if cbool(engine.state.vram_addr_lo() & 0x08) {
+            if ((engine.state.vram_addr_lo() & 0x08) != 0) {
                 engine.state.set_vram_addr_lo(0xC0);
                 engine
                     .state
@@ -3162,7 +3162,7 @@ mod upload_room_view_from_tile_pointer {
             engine
                 .state
                 .set_scratch2((engine.state.scratch2() - 1) & 0xFF);
-            if cbool(engine.state.scratch2() == 0) {
+            if (engine.state.scratch2() == 0) {
                 break;
             }
         }
@@ -3199,7 +3199,7 @@ mod upload_room_columns_from_bank9 {
             engine
                 .state
                 .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 2));
-            if cbool(engine.state.vram_addr_lo() & 0x20) {
+            if ((engine.state.vram_addr_lo() & 0x20) != 0) {
                 engine.state.set_vram_addr_lo(0x00);
                 engine
                     .state
@@ -3207,7 +3207,7 @@ mod upload_room_columns_from_bank9 {
             }
             engine.state.set_scratch0(u8v(engine.state.scratch0() + 1));
             engine.state.set_scratch1(u8v(engine.state.scratch1() - 1));
-            if !cbool(engine.state.scratch1() != 0) {
+            if !(engine.state.scratch1() != 0) {
                 break;
             }
         }
@@ -3238,7 +3238,7 @@ mod upload_staged_room_columns {
             engine
                 .state
                 .set_vram_addr_lo(u8v(engine.state.vram_addr_lo() + 2));
-            if cbool(engine.state.vram_addr_lo() & 0x20) {
+            if ((engine.state.vram_addr_lo() & 0x20) != 0) {
                 engine.state.set_vram_addr_lo(0x00);
                 engine
                     .state
@@ -3246,7 +3246,7 @@ mod upload_staged_room_columns {
             }
             engine.state.set_scratch0(u8v(engine.state.scratch0() + 1));
             engine.state.set_scratch1(u8v(engine.state.scratch1() - 1));
-            if !cbool(engine.state.scratch1() != 0) {
+            if !(engine.state.scratch1() != 0) {
                 break;
             }
         }
@@ -3260,7 +3260,7 @@ mod upload_scroll_edge_room_column {
     pub fn upload_scroll_edge_room_column(engine: &mut Engine, r: &mut RoutineContext) {
         let mut col: i32 = 0;
         clear_pending_vram_job(engine, r);
-        if cbool(engine.state.camera_scroll_flag() & 0x80) {
+        if ((engine.state.camera_scroll_flag() & 0x80) != 0) {
             col = engine.state.scroll_tile_x();
         } else {
             col = u8v(engine.state.scroll_tile_x() + 0x10);
@@ -3342,7 +3342,7 @@ mod select_room_data_bank_and_pointers {
     /// Selects the PRG bank and base room data pointers for `0x47/0x48`.
     pub fn select_room_data_bank_and_pointers(engine: &mut Engine, r: &mut RoutineContext) {
         let room_bank: i32 = u8v(engine.state.map_screen_y() >> 1);
-        if cbool(room_bank != engine.state.prg_bank_8000()) {
+        if (room_bank != engine.state.prg_bank_8000()) {
             engine.state.set_prg_bank_8000(room_bank);
             r.value = 0xFF;
             queue_ppu_job_and_wait(engine, r);
@@ -3356,11 +3356,7 @@ mod select_room_data_bank_and_pointers {
         engine.state.set_palette_src_ptr_hi(u8v(room_ptr_lo + 0x03));
         engine.state.set_palette_src_ptr_lo(0x00);
         engine.state.set_room_metadef_lo(0x00);
-        r.carry = u8v(if cbool((room_ptr_lo + 0x03) > 0xFF) {
-            1
-        } else {
-            0
-        });
+        r.carry = u8v(if ((room_ptr_lo + 0x03) > 0xFF) { 1 } else { 0 });
     }
 }
 
@@ -3381,7 +3377,7 @@ mod build_room_palette_buffer {
         }
 
         let family_member: i32 = engine.state.character_index();
-        if cbool(family_member >= 0x06) {
+        if (family_member >= 0x06) {
             r.value = family_member;
             r.carry = 1;
             return;
@@ -3455,7 +3451,7 @@ mod resolve_room_tile_pointer {
             let room_offset: i32 = u16v(tile_row + engine.state.data_ptr_lo());
             engine.state.set_data_ptr_lo(u8v(room_offset));
             engine.state.set_tile_fetch_counter(u8v(room_offset));
-            if cbool(room_offset & 0x100) {
+            if ((room_offset & 0x100) != 0) {
                 engine
                     .state
                     .set_data_ptr_hi(u8v(engine.state.data_ptr_hi() + 1));
@@ -3514,7 +3510,7 @@ mod sync_health_hud {
     /// Clamps the health counter and queues the health HUD digits for redraw.
     pub fn sync_health_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut health: i32 = engine.state.player_health();
-        if cbool(health >= 0x6D) {
+        if (health >= 0x6D) {
             health = 0x6D;
         }
         engine.state.set_player_health(health);
@@ -3533,7 +3529,7 @@ mod sync_magic_hud {
     /// Clamps the magic counter and queues the magic HUD digits for redraw.
     pub fn sync_magic_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut magic: i32 = engine.state.player_magic();
-        if cbool(magic >= 0x6D) {
+        if (magic >= 0x6D) {
             magic = 0x6D;
         }
         engine.state.set_player_magic(magic);
@@ -3552,7 +3548,7 @@ mod sync_key_hud {
     /// Clamps the key counter and queues the key HUD digits for redraw.
     pub fn sync_key_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut keys: i32 = engine.state.keys();
-        if cbool(keys >= 0x6D) {
+        if (keys >= 0x6D) {
             keys = 0x6D;
         }
         engine.state.set_keys(keys);
@@ -3571,7 +3567,7 @@ mod sync_coin_hud {
     /// Clamps the coin counter and queues the coin HUD digits for redraw.
     pub fn sync_coin_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut coins: i32 = engine.state.coins();
-        if cbool(coins >= 0x6D) {
+        if (coins >= 0x6D) {
             coins = 0x6D;
         }
         engine.state.set_coins(coins);
@@ -3614,7 +3610,7 @@ mod build_status_resource_meter_tiles {
         let mut tile_slot: i32 = base_slot;
         loop {
             filled_blocks = u8v(filled_blocks - 1);
-            if cbool(filled_blocks == 0) {
+            if (filled_blocks == 0) {
                 break;
             }
             engine.state.set_byte(
@@ -3622,7 +3618,7 @@ mod build_status_resource_meter_tiles {
                 (engine.state.byte(u16v(STACK_SCRATCH + 1 + tile_slot)) - 1) & 0xFF,
             );
             filled_blocks = u8v(filled_blocks - 1);
-            if cbool(filled_blocks == 0) {
+            if (filled_blocks == 0) {
                 break;
             }
             engine.state.set_byte(
@@ -3636,7 +3632,7 @@ mod build_status_resource_meter_tiles {
         let mut partial_blocks: i32 = engine.state.scratch0();
         loop {
             partial_blocks = u8v(partial_blocks - 1);
-            if cbool(partial_blocks == 0) {
+            if (partial_blocks == 0) {
                 break;
             }
             engine.state.set_byte(
@@ -3644,7 +3640,7 @@ mod build_status_resource_meter_tiles {
                 (engine.state.byte(u16v(STACK_SCRATCH + 0x21 + tile_slot)) - 1) & 0xFF,
             );
             partial_blocks = u8v(partial_blocks - 1);
-            if cbool(partial_blocks == 0) {
+            if (partial_blocks == 0) {
                 break;
             }
             engine.state.set_byte(
@@ -3666,7 +3662,7 @@ mod build_object_health_meter_alt_tiles {
     /// tile pair.
     pub fn build_object_health_meter_alt_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut health: i32 = engine.state.object_health(0x00);
-        if cbool(health >= 0x6D) {
+        if (health >= 0x6D) {
             health = 0x6D;
         }
         engine.state.set_scratch0(health);
@@ -3684,7 +3680,7 @@ mod build_object_health_meter_standard_tiles {
     /// tile pair.
     pub fn build_object_health_meter_standard_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut health: i32 = engine.state.object_health(0x00);
-        if cbool(health >= 0x6D) {
+        if (health >= 0x6D) {
             health = 0x6D;
         }
         engine.state.set_scratch0(health);
@@ -3707,7 +3703,7 @@ mod build_object_health_meter_standard_tiles {
         sprite_slot = u8v(engine.state.scratch1() + 0x18);
         loop {
             filled_blocks = u8v(filled_blocks - 1);
-            if cbool(filled_blocks == 0) {
+            if (filled_blocks == 0) {
                 break;
             }
             engine.state.set_oam_tile(
@@ -3719,7 +3715,7 @@ mod build_object_health_meter_standard_tiles {
                 (engine.state.oam_tile(0x40 + sprite_slot) - 1) & 0xFF,
             );
             filled_blocks = u8v(filled_blocks - 1);
-            if cbool(filled_blocks == 0) {
+            if (filled_blocks == 0) {
                 break;
             }
             engine.state.set_oam_tile(
@@ -3737,7 +3733,7 @@ mod build_object_health_meter_standard_tiles {
         let mut partial_blocks: i32 = engine.state.scratch0();
         loop {
             partial_blocks = u8v(partial_blocks - 1);
-            if cbool(partial_blocks == 0) {
+            if (partial_blocks == 0) {
                 break;
             }
             engine.state.set_oam_tile(
@@ -3749,7 +3745,7 @@ mod build_object_health_meter_standard_tiles {
                 (engine.state.oam_tile(0x40 + sprite_slot) - 1) & 0xFF,
             );
             partial_blocks = u8v(partial_blocks - 1);
-            if cbool(partial_blocks == 0) {
+            if (partial_blocks == 0) {
                 break;
             }
             engine.state.set_oam_tile(
@@ -3775,7 +3771,7 @@ mod build_player_health_meter_sprites {
     /// slot.
     pub fn build_player_health_meter_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut health: i32 = engine.state.player_health();
-        if cbool(health >= 0x6D) {
+        if (health >= 0x6D) {
             health = 0x6D;
         }
         engine.state.set_scratch0(health);
@@ -3814,7 +3810,7 @@ mod build_health_meter_sprites {
             let mut sprite_slot: i32 = u8v(engine.state.scratch1() + 0x18);
             loop {
                 filled_blocks = u8v(filled_blocks - 1);
-                if cbool(filled_blocks == 0) {
+                if (filled_blocks == 0) {
                     break;
                 }
                 engine.state.set_oam_tile(
@@ -3822,7 +3818,7 @@ mod build_health_meter_sprites {
                     (engine.state.oam_tile(0x40 + sprite_slot) - 2) & 0xFF,
                 );
                 filled_blocks = u8v(filled_blocks - 1);
-                if cbool(filled_blocks == 0) {
+                if (filled_blocks == 0) {
                     break;
                 }
                 engine.state.set_oam_tile(
@@ -3837,7 +3833,7 @@ mod build_health_meter_sprites {
             let mut sprite_slot: i32 = u8v(engine.state.scratch1() + 0x2C);
             loop {
                 partial_blocks = u8v(partial_blocks - 1);
-                if cbool(partial_blocks == 0) {
+                if (partial_blocks == 0) {
                     break;
                 }
                 engine.state.set_oam_tile(
@@ -3845,7 +3841,7 @@ mod build_health_meter_sprites {
                     (engine.state.oam_tile(0x40 + sprite_slot) - 2) & 0xFF,
                 );
                 partial_blocks = u8v(partial_blocks - 1);
-                if cbool(partial_blocks == 0) {
+                if (partial_blocks == 0) {
                     break;
                 }
                 engine.state.set_oam_tile(
@@ -3871,8 +3867,8 @@ mod split_meter_value {
             full_blocks = u8v(full_blocks + 1);
             let trial: i32 = (remainder) - 0x0A - (1 - carry);
             remainder = u8v(trial);
-            carry = u8v((if cbool(trial >= 0) { 1 } else { 0 }));
-            if !cbool(carry) {
+            carry = u8v((if (trial >= 0) { 1 } else { 0 }));
+            if !((carry) != 0) {
                 break;
             }
         }
@@ -3917,7 +3913,7 @@ mod build_input_movement_delta {
     pub fn build_input_movement_delta(engine: &mut Engine, r: &mut RoutineContext) {
         let speed: i32 = u8v(r.offset);
         engine.state.set_scratch1(speed);
-        if cbool(speed == 0) {
+        if (speed == 0) {
             engine.state.set_horizontal_subtile_delta(0);
             engine.state.set_player_x_velocity(0);
             engine.state.set_vertical_delta(0);
@@ -3927,7 +3923,7 @@ mod build_input_movement_delta {
         let mut horizontal_delta: i32 = 0;
         {
             let mut steps = speed;
-            while cbool(steps != 0) {
+            while (steps != 0) {
                 horizontal_delta =
                     u8v(horizontal_delta + engine.state.byte(MOVE_DELTA_X_TABLE + direction_index));
                 {
@@ -3940,7 +3936,7 @@ mod build_input_movement_delta {
         engine
             .state
             .set_horizontal_subtile_delta(horizontal_delta & 0x0F);
-        let sign_fill: i32 = (if cbool(horizontal_delta & 0x80) {
+        let sign_fill: i32 = (if ((horizontal_delta & 0x80) != 0) {
             0xF0
         } else {
             0x00
@@ -3952,7 +3948,7 @@ mod build_input_movement_delta {
         let mut vertical_delta: i32 = 0;
         {
             let mut steps = speed;
-            while cbool(steps != 0) {
+            while (steps != 0) {
                 vertical_delta =
                     u8v(vertical_delta + engine.state.byte(MOVE_DELTA_Y_TABLE + direction_index));
                 {
@@ -3974,7 +3970,7 @@ mod build_direction_velocity {
     pub fn build_direction_velocity(engine: &mut Engine, r: &mut RoutineContext) {
         let speed: i32 = u8v(r.offset);
         engine.state.set_scratch1(speed);
-        if cbool(speed == 0) {
+        if (speed == 0) {
             engine.state.set_obj_x_vel_lo(0);
             engine.state.set_obj_x_vel_hi(0);
             engine.state.set_obj_y_vel(0);
@@ -3984,7 +3980,7 @@ mod build_direction_velocity {
         let mut horizontal_delta: i32 = 0;
         {
             let mut steps = speed;
-            while cbool(steps != 0) {
+            while (steps != 0) {
                 horizontal_delta =
                     u8v(horizontal_delta + engine.state.byte(MOVE_DELTA_X_TABLE + direction_index));
                 {
@@ -3995,7 +3991,7 @@ mod build_direction_velocity {
             }
         }
         engine.state.set_obj_x_vel_lo(horizontal_delta & 0x0F);
-        let sign_fill: i32 = (if cbool(horizontal_delta & 0x80) {
+        let sign_fill: i32 = (if ((horizontal_delta & 0x80) != 0) {
             0xF0
         } else {
             0x00
@@ -4007,7 +4003,7 @@ mod build_direction_velocity {
         let mut vertical_delta: i32 = 0;
         {
             let mut steps = speed;
-            while cbool(steps != 0) {
+            while (steps != 0) {
                 vertical_delta =
                     u8v(vertical_delta + engine.state.byte(MOVE_DELTA_Y_TABLE + direction_index));
                 {
@@ -4029,11 +4025,11 @@ mod check_player_overlap {
     pub fn check_player_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_overlap_flag(0x00);
         check_player_y_overlap(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
         check_player_x_overlap(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
         engine.state.set_overlap_flag(0x01);
@@ -4048,25 +4044,25 @@ mod check_player_x_overlap {
     /// in `0x0E/0x0F`.
     pub fn check_player_x_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_delta: i32 = u8v(engine.state.indirect_ptr_hi() - engine.state.player_x_tile());
-        if cbool(tile_delta == 0) {
+        if (tile_delta == 0) {
             return;
         }
-        if cbool(tile_delta < 0x02) {
+        if (tile_delta < 0x02) {
             let subtile_delta: i32 =
                 u8v(engine.state.indirect_ptr_lo() - engine.state.player_x_fine());
-            r.carry = (if cbool(subtile_delta & 0x80) { 1 } else { 0 });
+            r.carry = (if ((subtile_delta & 0x80) != 0) { 1 } else { 0 });
             return;
         }
-        if cbool(tile_delta < 0xFF) {
+        if (tile_delta < 0xFF) {
             return;
         }
         {
             let subtile_delta: i32 =
                 u8v(engine.state.indirect_ptr_lo() - engine.state.player_x_fine());
-            if cbool(subtile_delta == 0) {
+            if (subtile_delta == 0) {
                 return;
             }
-            if cbool(subtile_delta & 0x80) {
+            if ((subtile_delta & 0x80) != 0) {
                 return;
             }
             r.carry = 1;
@@ -4080,9 +4076,9 @@ mod check_player_y_overlap {
     /// Checks vertical player overlap using projected y position in `0x0A`.
     pub fn check_player_y_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         let y_delta: i32 = u8v(engine.state.scratch2() - engine.state.player_y());
-        if cbool(y_delta < 0x10) {
+        if (y_delta < 0x10) {
             r.carry = 1;
-        } else if cbool(y_delta < 0xF1) {
+        } else if (y_delta < 0xF1) {
             r.carry = 0;
         } else {
             r.carry = 1;
@@ -4104,27 +4100,27 @@ mod check_player_overlap_wide {
                 0 => {
                     engine.state.set_overlap_flag(0x00);
                     dy = u8v(engine.state.scratch2() - engine.state.player_y());
-                    if (cbool(dy >= 0x10) && cbool(dy < 0xE1)) {
+                    if ((dy >= 0x10) && (dy < 0xE1)) {
                         r.carry = 0;
                         return;
                     }
                     dx = u8v(engine.state.indirect_ptr_hi() - engine.state.player_x_tile());
-                    if cbool(dx == 0) {
+                    if (dx == 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(dx == 0xFF) {
+                    if (dx == 0xFF) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(dx < 0x02) {
+                    if (dx < 0x02) {
                         let subtile_delta: i32 =
                             u8v(engine.state.indirect_ptr_lo() - engine.state.player_x_fine());
-                        if cbool(subtile_delta & 0x80) {
+                        if ((subtile_delta & 0x80) != 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -4133,16 +4129,16 @@ mod check_player_overlap_wide {
                         r.carry = 0;
                         return;
                     }
-                    if cbool(dx < 0xFE) {
+                    if (dx < 0xFE) {
                         return;
                     }
                     {
                         let subtile_delta: i32 =
                             u8v(engine.state.indirect_ptr_lo() - engine.state.player_x_fine());
-                        if cbool(subtile_delta == 0) {
+                        if (subtile_delta == 0) {
                             return;
                         }
-                        if cbool(subtile_delta & 0x80) {
+                        if ((subtile_delta & 0x80) != 0) {
                             return;
                         }
                         {
@@ -4170,11 +4166,11 @@ mod check_position_out_of_bounds {
     /// Checks projected position against the general playfield bounds. Carry is
     /// set when the position is outside the allowed area.
     pub fn check_position_out_of_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.scratch2() >= 0xC0) {
+        if (engine.state.scratch2() >= 0xC0) {
             r.carry = 1;
-        } else if cbool(engine.state.indirect_ptr_hi() < 0x3F) {
+        } else if (engine.state.indirect_ptr_hi() < 0x3F) {
             r.carry = 0;
-        } else if cbool(engine.state.indirect_ptr_lo() == 0) {
+        } else if (engine.state.indirect_ptr_lo() == 0) {
             r.carry = 0;
         } else {
             r.carry = 1;
@@ -4188,15 +4184,15 @@ mod check_actor_position_out_of_bounds {
     /// Checks projected actor position against the tighter actor playfield
     /// bounds. Carry is set when the position is outside the allowed area.
     pub fn check_actor_position_out_of_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.scratch2() >= 0xB0) {
+        if (engine.state.scratch2() >= 0xB0) {
             r.carry = 1;
             return;
         }
-        if cbool(engine.state.indirect_ptr_hi() < 0x3F) {
+        if (engine.state.indirect_ptr_hi() < 0x3F) {
             r.carry = 0;
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() == 0) {
+        if (engine.state.indirect_ptr_lo() == 0) {
             r.carry = 0;
             return;
         }
@@ -4212,7 +4208,7 @@ mod upload_inventory_count_tiles {
         let mut x: i32 = 0;
         {
             x = 0x0F;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 r.index = u8v(x);
                 r.offset = engine.state.inventory_item(x);
                 upload_inventory_item_count_tiles(engine, r);
@@ -4251,7 +4247,7 @@ mod upload_inventory_item_count_tiles {
             let mut yy: i32 = 0;
             let mut carry: i32 = 0;
             let mut v: i32 = 0;
-            if cbool(in_ >= 0x08) {
+            if (in_ >= 0x08) {
                 {
                     let __old = dx;
                     dx += 1;
@@ -4264,12 +4260,11 @@ mod upload_inventory_item_count_tiles {
             loop {
                 carry = u8v(v >> 7);
                 v = u8v(v << 1);
-                if !cbool(
-                    {
-                        yy -= 1;
-                        yy
-                    } != 0,
-                ) {
+                if !({
+                    yy -= 1;
+                    yy
+                } != 0)
+                {
                     break;
                 }
             }
@@ -4277,7 +4272,7 @@ mod upload_inventory_item_count_tiles {
         }
         r.value = x;
         load_family_item_permission_bits(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             engine
                 .state
                 .set_vram_addr2_lo(u8v(engine.state.vram_addr2_lo() - 0x40));
@@ -4327,7 +4322,7 @@ mod upload_shop_price_tiles {
         let mut c: i32 = 0;
         engine.state.set_vram_addr_lo(0x47);
         engine.state.set_vram_addr_hi(0x22);
-        if cbool(engine.state.scroll_tile_x() & 0x10) {
+        if ((engine.state.scroll_tile_x() & 0x10) != 0) {
             let mut s: i32 = u16v(0x00 + engine.state.vram_addr_lo());
             engine.state.set_vram_addr_lo(u8v(s));
             engine
@@ -4357,7 +4352,7 @@ mod build_decimal_digit_tiles {
     pub fn build_decimal_digit_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let mut a: i32 = u8v(r.value);
         let mut hi: i32 = 0xD0;
-        while cbool(a >= 0x0A) {
+        while (a >= 0x0A) {
             a = u8v(a - 0x0A);
             {
                 hi += 1;
@@ -4366,7 +4361,7 @@ mod build_decimal_digit_tiles {
         }
         a = u8v(a + 0xD0);
         engine.state.set_vram_addr2_lo(a);
-        if cbool(hi == 0xD0) {
+        if (hi == 0xD0) {
             hi = 0xC0;
         }
         engine.state.set_vram_addr2_hi(hi);
@@ -4381,7 +4376,7 @@ mod load_family_item_permission_bits {
     pub fn load_family_item_permission_bits(engine: &mut Engine, r: &mut RoutineContext) {
         let mut in_: i32 = u8v(r.value);
         let mut x: i32 = u8v(engine.state.character_index() << 1);
-        if cbool(in_ >= 0x08) {
+        if (in_ >= 0x08) {
             {
                 let __old = x;
                 x += 1;
@@ -4394,12 +4389,11 @@ mod load_family_item_permission_bits {
         loop {
             carry = u8v(a >> 7);
             a = u8v(a << 1);
-            if !cbool(
-                {
-                    y -= 1;
-                    y
-                } != 0,
-            ) {
+            if !({
+                y -= 1;
+                y
+            } != 0)
+            {
                 break;
             }
         }
@@ -4413,7 +4407,7 @@ mod switch_song_if_needed {
 
     /// Starts `r.value` as the current song only when it differs from `0x8E`.
     pub fn switch_song_if_needed(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(r.value == engine.state.song()) {
+        if (r.value == engine.state.song()) {
             return;
         }
         engine.state.set_song(r.value);
@@ -4430,7 +4424,7 @@ mod load_effective_jump_duration {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.state.item_slot(selected_item_slot);
         r.index = selected_item_slot;
-        if cbool(selected_item == 0x06) && cbool(engine.state.player_magic() != 0) {
+        if (selected_item == 0x06) && (engine.state.player_magic() != 0) {
             let base_jump_duration: i32 = engine.state.jump_strength();
             r.value = u8v((base_jump_duration >> 2) + base_jump_duration);
             r.carry = 0;
@@ -4449,7 +4443,7 @@ mod load_effective_projectile_damage {
     pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.state.item_slot(selected_item_slot);
-        if cbool(selected_item == 0x08) && cbool(engine.state.player_magic() != 0) {
+        if (selected_item == 0x08) && (engine.state.player_magic() != 0) {
             r.value = u8v(engine.state.projectile_damage() << 2);
             r.carry = 0;
         } else {
@@ -4467,8 +4461,8 @@ mod load_effective_projectile_lifetime {
     pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_item_slot: i32 = engine.state.selected_item_slot();
         r.index = selected_item_slot;
-        if cbool(engine.state.item_slot(selected_item_slot) == 0x09)
-            && cbool(engine.state.player_magic() != 0)
+        if (engine.state.item_slot(selected_item_slot) == 0x09)
+            && (engine.state.player_magic() != 0)
         {
             r.value = u8v(engine.state.projectile_lifetime() << 1);
             r.carry = 0;
@@ -4488,7 +4482,7 @@ mod clear_gameplay_object_sprites {
         loop {
             engine.state.set_oam_y(oam_offset, 0xEF);
             oam_offset = u8v(oam_offset + 4);
-            if !cbool(oam_offset != 0) {
+            if !(oam_offset != 0) {
                 break;
             }
         }
@@ -4508,12 +4502,11 @@ mod reset_room_object_slots {
             engine.state.set_object_state(slot_offset, 0x00);
             engine.state.set_object_timer(slot_offset, 0x02);
             slot_offset = u8v(slot_offset + 0x10);
-            if !cbool(
-                {
-                    slots_remaining -= 1;
-                    slots_remaining
-                } != 0,
-            ) {
+            if !({
+                slots_remaining -= 1;
+                slots_remaining
+            } != 0)
+            {
                 break;
             }
         }
@@ -4581,9 +4574,9 @@ mod upload_inventory_item_list {
         loop {
             {
                 let mut chars_in_column: i32 = 0;
-                while cbool(chars_in_column < 4) {
+                while (chars_in_column < 4) {
                     let mut tile: i32 = u8v(engine.state.password_nibbles_a(source_offset) | 0x80);
-                    if cbool(tile >= 0xA0) {
+                    if (tile >= 0xA0) {
                         tile = 0x7F;
                     }
                     engine
@@ -4598,7 +4591,7 @@ mod upload_inventory_item_list {
                 }
             }
             staging_offset = (staging_offset - 1) & 0xFF;
-            if !cbool((staging_offset & 0x80) == 0) {
+            if !((staging_offset & 0x80) == 0) {
                 break;
             }
         }
@@ -4643,22 +4636,22 @@ mod tick_player_jump_action {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.jump_timer() != 0) {
+                    if (engine.state.jump_timer() != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.collision_flag() != 0) {
+                    if (engine.state.collision_flag() != 0) {
                         return;
                     }
                     engine.state.set_prompt_state(0x1B);
                     engine.state.set_jump_timer(engine.state.jump_strength());
                     {
                         let selected_slot: i32 = engine.state.selected_item_slot();
-                        if cbool(engine.state.item_slot(selected_slot) == 0x06) {
+                        if (engine.state.item_slot(selected_slot) == 0x06) {
                             consume_magic_point(engine, r);
-                            if !cbool(r.carry) {
+                            if !((r.carry) != 0) {
                                 let jump_timer: i32 = engine.state.jump_timer();
                                 engine
                                     .state
@@ -4681,7 +4674,7 @@ mod tick_player_jump_action {
                             .set_vertical_delta(u8v((upward_speed ^ 0xFF) + 1));
                     }
                     try_move_player_with_collision(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4690,7 +4683,7 @@ mod tick_player_jump_action {
                     engine.state.set_horizontal_subtile_delta(0x00);
                     engine.state.set_player_x_velocity(0x00);
                     try_move_player_with_collision(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4700,7 +4693,7 @@ mod tick_player_jump_action {
                         .state
                         .set_jump_timer((engine.state.jump_timer() + 1) & 0xFF);
                     try_nudge_player_to_tile_boundary(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4722,7 +4715,7 @@ mod tick_player_jump_action {
                         .set_player_x_tile(engine.state.indirect_ptr_hi());
                     {
                         let mut y: i32 = engine.state.scratch2();
-                        if cbool(y >= 0xEF) {
+                        if (y >= 0xEF) {
                             y = 0x00;
                         }
                         engine.state.set_player_y(y);
@@ -4762,9 +4755,9 @@ mod tick_selected_item_effect {
     pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_slot: i32 = engine.state.selected_item_slot();
         let selected_item: i32 = engine.state.item_slot(selected_slot);
-        if cbool(selected_item >= 0x02) {
-            if cbool(selected_item == 0x0B) {
-                if cbool(engine.state.player_magic() != 0) {
+        if (selected_item >= 0x02) {
+            if (selected_item == 0x0B) {
+                if (engine.state.player_magic() != 0) {
                     return;
                 }
                 engine.state.set_item_slot(selected_slot, 0xFF);
@@ -4772,10 +4765,10 @@ mod tick_selected_item_effect {
                 animate_magic_refill_to_cap(engine, r);
                 return;
             }
-            if cbool(selected_item != 0x0D) {
+            if (selected_item != 0x0D) {
                 return;
             }
-            if cbool(engine.state.map_screen_y() >= 0x11) {
+            if (engine.state.map_screen_y() >= 0x11) {
                 engine.state.set_selected_item_slot(0x03);
                 return;
             }
@@ -4800,18 +4793,18 @@ mod tick_selected_item_effect {
             r.carry = 1;
             return;
         }
-        if cbool(engine.state.inventory_item(0x26 + selected_item) != 0) {
+        if (engine.state.inventory_item(0x26 + selected_item) != 0) {
             return;
         }
         r.index = selected_item;
         consume_magic_point(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             engine.state.set_inventory_item(0x26 + selected_item, 0x02);
             return;
         }
         {
             let continue_timer: i32 = engine.state.continue_timer();
-            if (cbool(continue_timer == 0) || cbool(continue_timer & 0x80)) {
+            if ((continue_timer == 0) || ((continue_timer & 0x80) != 0)) {
                 return;
             }
             engine.state.set_continue_timer(0xFD);
@@ -4836,16 +4829,14 @@ mod enter_room_link_destination {
 
         let player_tile_x: i32 = engine.state.byte(u16v(link_ptr + 0x0E));
         engine.state.set_player_x_tile(player_tile_x);
-        let scroll_x: i32 = if cbool(player_tile_x >= 0x08) {
+        let scroll_x: i32 = if (player_tile_x >= 0x08) {
             u8v(player_tile_x - 0x08)
         } else {
             0x00
         };
-        engine.state.set_scroll_tile_x(if cbool(scroll_x >= 0x31) {
-            0x30
-        } else {
-            scroll_x
-        });
+        engine
+            .state
+            .set_scroll_tile_x(if (scroll_x >= 0x31) { 0x30 } else { scroll_x });
         engine.state.set_player_x_fine(0x00);
         engine.state.set_scroll_fine_x(0x00);
 
@@ -4927,12 +4918,12 @@ mod check_final_exit_trigger {
     /// room/scroll/player position expected by the original game.
     pub fn check_final_exit_trigger(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_slot: i32 = engine.state.selected_item_slot();
-        if (cbool(engine.state.item_slot(selected_slot) == 0x0F)
-            && cbool(engine.state.map_screen_x() == 0x01)
-            && cbool(engine.state.map_screen_y() == 0x05)
-            && cbool(engine.state.scroll_tile_x() == 0x10)
-            && cbool(engine.state.scroll_fine_x() == 0x00)
-            && cbool(engine.state.player_y() == 0xA0))
+        if ((engine.state.item_slot(selected_slot) == 0x0F)
+            && (engine.state.map_screen_x() == 0x01)
+            && (engine.state.map_screen_y() == 0x05)
+            && (engine.state.scroll_tile_x() == 0x10)
+            && (engine.state.scroll_fine_x() == 0x00)
+            && (engine.state.player_y() == 0xA0))
         {
             engine.state.set_final_exit_flag(0x01);
         }
@@ -4949,7 +4940,7 @@ mod run_warp_transition_effect {
         engine.state.set_sprite_blink_timer(0x00);
         draw_player_sprites(engine, r);
         draw_status_item_sprites(engine, r);
-        if cbool(engine.state.scroll_tile_x() >= 0x21) {
+        if (engine.state.scroll_tile_x() >= 0x21) {
             engine.state.set_scroll_tile_x(0x20);
         }
         upload_room_columns_from_bank9(engine, r);
@@ -4963,25 +4954,24 @@ mod run_warp_transition_effect {
             loop {
                 let mut sum: i32 = u16v(engine.state.scroll_pixel_x() + engine.state.scratch0());
                 engine.state.set_scroll_pixel_x(u8v(sum));
-                if cbool(sum & 0x100) {
+                if ((sum & 0x100) != 0) {
                     engine
                         .state
                         .set_nametable_select(u8v(engine.state.nametable_select() ^ 0x01));
                 }
                 r.value = 0xFF;
                 queue_ppu_job_and_wait(engine, r);
-                if !cbool(
-                    {
-                        x -= 1;
-                        x
-                    } != 0,
-                ) {
+                if !({
+                    x -= 1;
+                    x
+                } != 0)
+                {
                     break;
                 }
             }
             engine.state.set_scratch0(u8v(engine.state.scratch0() + 1));
             outer = engine.state.scratch0();
-            if !cbool(outer < 0x20) {
+            if !(outer < 0x20) {
                 break;
             }
         }
@@ -5023,12 +5013,12 @@ mod handle_player_room_transition {
     /// transition while moving the map-space room coordinate.
     pub fn handle_player_room_transition(engine: &mut Engine, r: &mut RoutineContext) {
         let player_y: i32 = engine.state.player_y();
-        if cbool(player_y < 0x10) {
+        if (player_y < 0x10) {
             check_top_boundary_exit_clear(engine, r);
-            if cbool(r.carry == 0) {
+            if (r.carry == 0) {
                 return;
             }
-            if cbool(engine.state.map_screen_y() == 0x00) {
+            if (engine.state.map_screen_y() == 0x00) {
                 engine.state.set_map_screen_y(0x10);
                 engine.state.set_map_screen_x(0x03);
                 engine.state.set_scroll_tile_x(0x12);
@@ -5039,7 +5029,7 @@ mod handle_player_room_transition {
                 scene_rebuild_full(engine, r);
                 return;
             }
-            if cbool(engine.state.map_screen_y() == 0x10) {
+            if (engine.state.map_screen_y() == 0x10) {
                 return;
             }
             engine
@@ -5049,8 +5039,8 @@ mod handle_player_room_transition {
             scene_rebuild_vert(engine, r);
             return;
         }
-        if cbool(player_y >= 0xA1) {
-            if cbool(engine.state.map_screen_y() == 0x10) {
+        if (player_y >= 0xA1) {
+            if (engine.state.map_screen_y() == 0x10) {
                 engine.state.set_map_screen_y(0x00);
                 engine.state.set_map_screen_x(0x00);
                 engine.state.set_scroll_tile_x(0x00);
@@ -5061,7 +5051,7 @@ mod handle_player_room_transition {
                 scene_rebuild_full(engine, r);
                 return;
             }
-            if cbool(u8v(engine.state.map_screen_y() + 1) >= 0x10) {
+            if (u8v(engine.state.map_screen_y() + 1) >= 0x10) {
                 return;
             }
             engine
@@ -5071,7 +5061,7 @@ mod handle_player_room_transition {
             scene_rebuild_vert(engine, r);
             return;
         }
-        if cbool(engine.state.map_screen_y() == 0x10) {
+        if (engine.state.map_screen_y() == 0x10) {
             return;
         }
         update_player_terrain_contact(engine, r);
@@ -5079,8 +5069,8 @@ mod handle_player_room_transition {
         engine
             .state
             .set_player_pose(u8v(engine.state.player_pose() & 0x07));
-        if cbool(engine.state.player_x_tile() == 0x00) {
-            if cbool(u8v((engine.state.map_screen_x() - 1)) & 0x80) {
+        if (engine.state.player_x_tile() == 0x00) {
+            if ((u8v((engine.state.map_screen_x() - 1)) & 0x80) != 0) {
                 return;
             }
             engine
@@ -5092,10 +5082,10 @@ mod handle_player_room_transition {
             engine.state.set_player_x_tile(0x3F);
             engine.state.set_player_x_fine(0x00);
         } else {
-            if cbool(engine.state.player_x_tile() < 0x3E) {
+            if (engine.state.player_x_tile() < 0x3E) {
                 return;
             }
-            if cbool(u8v(engine.state.map_screen_x() + 1) >= 0x04) {
+            if (u8v(engine.state.map_screen_x() + 1) >= 0x04) {
                 return;
             }
             engine
@@ -5113,7 +5103,7 @@ mod handle_player_room_transition {
         scene_assemble(engine, r);
         upload_room_columns_from_bank9(engine, r);
         upload_palette_buffer(engine, r);
-        if cbool(engine.state.player_x_tile() != 0x00) {
+        if (engine.state.player_x_tile() != 0x00) {
             engine.state.set_nametable_select(0x01);
             engine.state.set_scroll_pixel_x(0x00);
             engine.state.set_oam_x(0x10, 0x00);
@@ -5122,14 +5112,14 @@ mod handle_player_room_transition {
             loop {
                 engine.state.set_scratch3(0x03);
                 loop {
-                    if cbool(engine.state.scratch3() == 0) {
+                    if (engine.state.scratch3() == 0) {
                         engine
                             .state
                             .set_oam_x(0x10, u8v(engine.state.oam_x(0x10) - 1));
                         engine
                             .state
                             .set_oam_x(0x14, u8v(engine.state.oam_x(0x14) - 1));
-                        if cbool((engine.state.fall_frames() | engine.state.jump_timer()) == 0) {
+                        if ((engine.state.fall_frames() | engine.state.jump_timer()) == 0) {
                             engine
                                 .state
                                 .set_oam_tile(0x10, engine.state.oam_tile(0x10) ^ 0x04);
@@ -5150,12 +5140,12 @@ mod handle_player_room_transition {
                     r.value = 0xFF;
                     queue_ppu_job_and_wait(engine, r);
                     engine.state.set_scratch3(u8v(engine.state.scratch3() - 1));
-                    if !cbool((engine.state.scratch3() & 0x80) == 0) {
+                    if !((engine.state.scratch3() & 0x80) == 0) {
                         break;
                     }
                 }
                 engine.state.set_scratch2(u8v(engine.state.scratch2() - 1));
-                if !cbool((engine.state.scratch2() & 0x80) == 0) {
+                if !((engine.state.scratch2() & 0x80) == 0) {
                     break;
                 }
             }
@@ -5175,14 +5165,14 @@ mod handle_player_room_transition {
         loop {
             engine.state.set_scratch3(0x03);
             loop {
-                if cbool(engine.state.scratch3() == 0) {
+                if (engine.state.scratch3() == 0) {
                     engine
                         .state
                         .set_oam_x(0x10, u8v(engine.state.oam_x(0x10) + 1));
                     engine
                         .state
                         .set_oam_x(0x14, u8v(engine.state.oam_x(0x14) + 1));
-                    if cbool((engine.state.fall_frames() | engine.state.jump_timer()) == 0) {
+                    if ((engine.state.fall_frames() | engine.state.jump_timer()) == 0) {
                         engine
                             .state
                             .set_oam_tile(0x10, engine.state.oam_tile(0x10) ^ 0x04);
@@ -5203,12 +5193,12 @@ mod handle_player_room_transition {
                 r.value = 0xFF;
                 queue_ppu_job_and_wait(engine, r);
                 engine.state.set_scratch3(u8v(engine.state.scratch3() - 1));
-                if !cbool((engine.state.scratch3() & 0x80) == 0) {
+                if !((engine.state.scratch3() & 0x80) == 0) {
                     break;
                 }
             }
             engine.state.set_scratch2(u8v(engine.state.scratch2() - 1));
-            if !cbool((engine.state.scratch2() & 0x80) == 0) {
+            if !((engine.state.scratch2() & 0x80) == 0) {
                 break;
             }
         }
@@ -5235,13 +5225,13 @@ mod project_player_position {
             .state
             .set_indirect_ptr_hi(engine.state.player_x_tile());
         engine.state.set_scratch2(engine.state.player_y());
-        if cbool(engine.state.vertical_delta() != 0) {
+        if (engine.state.vertical_delta() != 0) {
             engine
                 .state
                 .set_scratch2(u8v(engine.state.vertical_delta() + engine.state.scratch2()));
         }
         let horizontal_subtile_delta: i32 = engine.state.horizontal_subtile_delta();
-        if cbool(horizontal_subtile_delta != 0) {
+        if (horizontal_subtile_delta != 0) {
             let sum: i32 = u8v(horizontal_subtile_delta + engine.state.indirect_ptr_lo());
             engine.state.set_indirect_ptr_lo(u8v(sum & 0x0F));
             let carry: i32 = u8v((sum >> 4) & 1);
@@ -5268,36 +5258,36 @@ mod update_player_pose_from_motion {
             match state {
                 0 => {
                     x = 0x3D;
-                    if cbool(engine.state.landing_timer() != 0) {
+                    if (engine.state.landing_timer() != 0) {
                         return;
                     }
                     x = 0x09;
-                    if cbool(engine.state.pose_state() != 0) {
+                    if (engine.state.pose_state() != 0) {
                         return;
                     }
-                    if cbool((engine.state.buttons() & 0xBF) == 0x80) {
+                    if ((engine.state.buttons() & 0xBF) == 0x80) {
                         return;
                     }
                     a = engine.state.vertical_delta();
-                    if cbool(a == 0) {
+                    if (a == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(a & 0x80) {
+                    if ((a & 0x80) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.fall_frames() != 0) {
+                    if (engine.state.fall_frames() != 0) {
                         {
                             state = 4;
                             continue 'dispatch;
                         }
                     }
-                    if cbool((engine.state.buttons() & 0x04) == 0) {
+                    if ((engine.state.buttons() & 0x04) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -5310,7 +5300,7 @@ mod update_player_pose_from_motion {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.state.jump_timer() == 0) {
+                    if (engine.state.jump_timer() == 0) {
                         return;
                     }
                     {
@@ -5323,13 +5313,13 @@ mod update_player_pose_from_motion {
                 2 => {
                     x = 0x01;
                     y = 0x00;
-                    if cbool(engine.state.player_x_velocity() & 0x80) {
+                    if ((engine.state.player_x_velocity() & 0x80) != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.horizontal_subtile_delta() == 0) {
+                    if (engine.state.horizontal_subtile_delta() == 0) {
                         return;
                     }
                     y = 0x40;
@@ -5350,13 +5340,13 @@ mod update_player_pose_from_motion {
                     x = 0x39;
                     y = 0x00;
                     a = engine.state.player_x_velocity() | engine.state.horizontal_subtile_delta();
-                    if cbool(a & 0x80) {
+                    if ((a & 0x80) != 0) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(a != 0) {
+                    if (a != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -5391,9 +5381,9 @@ mod tick_player_walk_animation {
     /// Advances the walking animation every eight movement ticks and folds the
     /// current action/facing button into the pose byte.
     pub fn tick_player_walk_animation(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.landing_timer() == 0) {
-            if cbool(engine.state.player_pose() < 0x20) {
-                if cbool(engine.state.buttons() & 0x40) {
+        if (engine.state.landing_timer() == 0) {
+            if (engine.state.player_pose() < 0x20) {
+                if ((engine.state.buttons() & 0x40) != 0) {
                     engine
                         .state
                         .set_player_pose(u8v(engine.state.player_pose() | 0x10));
@@ -5404,19 +5394,19 @@ mod tick_player_walk_animation {
                 }
             }
         }
-        if cbool((engine.state.buttons() & 0x0F) == 0) {
+        if ((engine.state.buttons() & 0x0F) == 0) {
             return;
         }
-        if cbool((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
+        if ((engine.state.jump_timer() | engine.state.fall_frames()) != 0) {
             return;
         }
         engine
             .state
             .set_anim_step_counter(u8v(engine.state.anim_step_counter() + 1));
-        if cbool((engine.state.anim_step_counter() & 0x07) != 0) {
+        if ((engine.state.anim_step_counter() & 0x07) != 0) {
             return;
         }
-        if cbool(engine.state.player_pose() & 0x08) {
+        if ((engine.state.player_pose() & 0x08) != 0) {
             engine
                 .state
                 .set_player_facing(u8v(engine.state.player_facing() ^ 0x40));
@@ -5445,9 +5435,9 @@ mod try_move_player_with_collision {
                 1 => {
                     project_player_position(engine, r);
                     check_position_out_of_bounds(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         handle_player_room_transition(engine, r);
-                        if cbool(r.carry) {
+                        if ((r.carry) != 0) {
                             {
                                 state = 7;
                                 continue 'dispatch;
@@ -5459,27 +5449,27 @@ mod try_move_player_with_collision {
                         }
                     }
                     dispatch_projected_tile_actions(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
                         }
                     }
                     find_player_object_overlap(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 8;
                             continue 'dispatch;
                         }
                     }
                     a = engine.state.scratch0();
-                    if cbool(a == 0x09) {
+                    if (a == 0x09) {
                         {
                             state = 5;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(a < 0x09) {
+                    if (a < 0x09) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -5489,7 +5479,7 @@ mod try_move_player_with_collision {
                     r.index = x;
                     v = engine.state.object_state(x);
                     r.value = v;
-                    if cbool(v == 0x01) {
+                    if (v == 0x01) {
                         unlock_door_with_key(engine, r);
                         {
                             state = 8;
@@ -5510,13 +5500,13 @@ mod try_move_player_with_collision {
                     r.index = x;
                     v = engine.state.object_state(x);
                     r.value = v;
-                    if cbool(v == 0x01) {
+                    if (v == 0x01) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(v >= 0x1A) {
+                    if (v >= 0x1A) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -5545,27 +5535,27 @@ mod try_move_player_with_collision {
                     continue 'dispatch;
                 }
                 5 => {
-                    if cbool(engine.state.displaced_timer() == 0) {
+                    if (engine.state.displaced_timer() == 0) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
                     a = engine.state.horizontal_subtile_delta();
-                    if cbool(a == 0) {
+                    if (a == 0) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
                     x = a;
-                    if !cbool(a & 0x08) {
+                    if !((a & 0x08) != 0) {
                         x = u8v(x - 2);
                     }
                     x = u8v(x + 1);
                     a = u8v(x & 0x0F);
                     engine.state.set_horizontal_subtile_delta(a);
-                    if cbool(a != 0) {
+                    if (a != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -5579,18 +5569,18 @@ mod try_move_player_with_collision {
                         .state
                         .set_horizontal_subtile_delta(saved_horizontal_subtile_delta);
                     x = engine.state.vertical_delta();
-                    if cbool(x == 0) {
+                    if (x == 0) {
                         {
                             state = 7;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(x & 0x80) {
+                    if !((x & 0x80) != 0) {
                         x = u8v(x - 2);
                     }
                     x = u8v(x + 1);
                     engine.state.set_vertical_delta(x);
-                    if cbool(x != 0) {
+                    if (x != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -5623,9 +5613,9 @@ mod try_trigger_magic_contact_actor {
     /// Marks the contacted actor for its high-bit behavior when the selected
     /// magic-contact timer is active and magic remains.
     pub fn try_trigger_magic_contact_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if (cbool(engine.state.chr_bank(3) < 0x30)
-            && cbool(engine.state.magic_contact_flag() != 0)
-            && cbool(engine.state.player_magic() != 0))
+        if ((engine.state.chr_bank(3) < 0x30)
+            && (engine.state.magic_contact_flag() != 0)
+            && (engine.state.player_magic() != 0))
         {
             let hit_slot: i32 = engine.state.scratch1();
             engine.state.set_object_state(hit_slot, 0x80);
@@ -5641,11 +5631,11 @@ mod apply_event_collectible_reward {
     pub fn apply_event_collectible_reward(engine: &mut Engine, r: &mut RoutineContext) {
         let reward_id: i32 = u8v(u8v(r.value - 0x02));
         engine.state.set_object_state(0xA0, 0x00);
-        if cbool(reward_id >= 0x18) {
+        if (reward_id >= 0x18) {
             engine.state.set_prompt_state(0x06);
             return;
         }
-        if cbool(reward_id < 0x08) {
+        if (reward_id < 0x08) {
             const EVENT_REWARD_TEXT: [i32; 8] = [
                 0xD16A, 0xD199, 0xDB47, 0xDB52, 0xDB66, 0xDB7B, 0xDBB7, 0xDB9B,
             ];
@@ -5688,7 +5678,7 @@ mod apply_event_collectible_reward {
         }
         {
             let inventory_item_id: i32 = u8v(reward_id - 0x08);
-            if cbool(engine.state.inventory_item(inventory_item_id) >= 0x0B) {
+            if (engine.state.inventory_item(inventory_item_id) >= 0x0B) {
                 engine.state.set_prompt_state(0x1D);
                 return;
             }
@@ -5697,7 +5687,7 @@ mod apply_event_collectible_reward {
                 (engine.state.inventory_item(inventory_item_id) + 1) & 0xFF,
             );
             engine.state.set_prompt_state(0x13);
-            if cbool(inventory_item_id == 0x0E) {
+            if (inventory_item_id == 0x0E) {
                 clear_room_persistent_flag(engine, r);
                 enter_fragment_pickup_room(engine, r);
             }
@@ -5711,7 +5701,7 @@ mod collect_room_pickup_object {
     /// Clears the touched room object slot/OAM entry and applies its reward.
     pub fn collect_room_pickup_object(engine: &mut Engine, r: &mut RoutineContext) {
         let reward_id: i32 = u8v(u8v(r.value - 0x02));
-        if cbool(reward_id >= 0x18) {
+        if (reward_id >= 0x18) {
             return;
         }
         {
@@ -5725,7 +5715,7 @@ mod collect_room_pickup_object {
             engine.state.set_oam_y(0x04 + oam_offset, 0xEF);
             r.index = oam_offset;
         }
-        if cbool(reward_id < 0x08) {
+        if (reward_id < 0x08) {
             const PICKUP_REWARD_TEXT: [i32; 8] = [
                 0xDB26, 0xDB31, 0xDB3C, 0xDB52, 0xDB5D, 0xDB71, 0xDBB7, 0xDB85,
             ];
@@ -5768,7 +5758,7 @@ mod collect_room_pickup_object {
         }
         {
             let inventory_item_id: i32 = u8v(reward_id - 0x08);
-            if cbool(engine.state.inventory_item(inventory_item_id) >= 0x0B) {
+            if (engine.state.inventory_item(inventory_item_id) >= 0x0B) {
                 engine.state.set_prompt_state(0x1D);
                 return;
             }
@@ -5777,7 +5767,7 @@ mod collect_room_pickup_object {
                 (engine.state.inventory_item(inventory_item_id) + 1) & 0xFF,
             );
             engine.state.set_prompt_state(0x13);
-            if cbool(inventory_item_id == 0x0E) {
+            if (inventory_item_id == 0x0E) {
                 clear_room_persistent_flag(engine, r);
                 enter_fragment_pickup_room(engine, r);
             }
@@ -5892,9 +5882,9 @@ mod grant_short_speed_boost {
         let mut displaced_timer: i32 = 0;
         engine.state.set_prompt_state(0x13);
         displaced_timer = engine.state.displaced_timer();
-        if cbool(displaced_timer != 0) {
+        if (displaced_timer != 0) {
             displaced_timer = engine.state.boost_timer();
-            if cbool(displaced_timer != 0) {
+            if (displaced_timer != 0) {
                 engine.state.set_short_boost_timer(boost_duration);
             }
             engine.state.set_boost_timer(boost_duration);
@@ -5914,11 +5904,11 @@ mod grant_long_speed_boost {
         let mut displaced_timer: i32 = 0;
         engine.state.set_prompt_state(0x13);
         displaced_timer = engine.state.displaced_timer();
-        if cbool(displaced_timer != 0) {
+        if (displaced_timer != 0) {
             displaced_timer = engine.state.boost_timer();
-            if cbool(displaced_timer != 0) {
+            if (displaced_timer != 0) {
                 displaced_timer = engine.state.short_boost_timer();
-                if cbool(displaced_timer != 0) {
+                if (displaced_timer != 0) {
                     engine.state.set_long_boost_timer(boost_duration);
                 }
                 engine.state.set_short_boost_timer(boost_duration);
@@ -5938,7 +5928,7 @@ mod defeat_active_room_actors {
     pub fn defeat_active_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
         let mut slot_offset: i32 = 0x00;
         for _ in 0..9 {
-            if cbool(engine.state.object_state(slot_offset) == 0x01) {
+            if (engine.state.object_state(slot_offset) == 0x01) {
                 engine.state.set_object_state(slot_offset, 0x80);
             }
             slot_offset = u8v(slot_offset + 0x10);
@@ -6134,7 +6124,7 @@ mod dispatch_projected_tile_actions {
     ) -> bool {
         r.offset = offset;
         dispatch_room_tile_action(engine, r);
-        cbool(r.carry)
+        ((r.carry) != 0)
     }
 }
 
@@ -6145,13 +6135,13 @@ mod seed_object_position_from_tile_offset {
     /// object scratch position `0xF9..0xFC`.
     pub fn seed_object_position_from_tile_offset(engine: &mut Engine, r: &mut RoutineContext) {
         let mut tile_offset: i32 = engine.state.scratch3();
-        if cbool(tile_offset >= 0x0C) {
+        if (tile_offset >= 0x0C) {
             tile_offset = u8v(tile_offset - 0x0C);
             engine
                 .state
                 .set_indirect_ptr_hi((engine.state.indirect_ptr_hi() + 1) & 0xFF);
         }
-        if cbool(tile_offset != 0) {
+        if (tile_offset != 0) {
             engine
                 .state
                 .set_scratch2(u8v(engine.state.scratch2() + 0x10));
@@ -6199,7 +6189,7 @@ mod read_room_tile_action_value {
         let tile_id: i32 = room_tile & 0x3F;
         r.index = tile_id;
         r.offset = tile_offset;
-        if cbool(tile_id == 0x3E) {
+        if (tile_id == 0x3E) {
             r.value = engine.state.room_tile_action();
         } else {
             r.value = room_tile;
@@ -6220,7 +6210,7 @@ mod try_nudge_player_to_tile_boundary {
                 0 => {
                     engine.state.set_horizontal_subtile_delta(0x00);
                     engine.state.set_player_x_velocity(0x00);
-                    if cbool(horizontal_delta == 0) {
+                    if (horizontal_delta == 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -6228,14 +6218,14 @@ mod try_nudge_player_to_tile_boundary {
                     }
                     {
                         let mut a: i32 = u8v(engine.state.player_y() & 0x0F);
-                        if cbool(a == 0) {
+                        if (a == 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(a < 0x06) {
-                            if cbool(engine.state.buttons() & 0x04) {
+                        if (a < 0x06) {
+                            if ((engine.state.buttons() & 0x04) != 0) {
                                 {
                                     state = 3;
                                     continue 'dispatch;
@@ -6248,8 +6238,8 @@ mod try_nudge_player_to_tile_boundary {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(a >= 0x0B) {
-                            if cbool(engine.state.buttons() & 0x08) {
+                        if (a >= 0x0B) {
+                            if ((engine.state.buttons() & 0x08) != 0) {
                                 {
                                     state = 3;
                                     continue 'dispatch;
@@ -6275,21 +6265,21 @@ mod try_nudge_player_to_tile_boundary {
                         let mut v4B: i32 = engine.state.vertical_delta();
                         engine.state.set_vertical_delta(0x00);
                         engine.state.set_nudge_pending(0x00);
-                        if cbool(v4B == 0) {
+                        if (v4B == 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
                             }
                         }
                         let mut a: i32 = engine.state.player_x_fine();
-                        if cbool(a == 0) {
+                        if (a == 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(a < 0x06) {
-                            if cbool(engine.state.buttons() & 0x01) {
+                        if (a < 0x06) {
+                            if ((engine.state.buttons() & 0x01) != 0) {
                                 {
                                     state = 3;
                                     continue 'dispatch;
@@ -6302,8 +6292,8 @@ mod try_nudge_player_to_tile_boundary {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(a >= 0x0B) {
-                            if cbool(engine.state.buttons() & 0x02) {
+                        if (a >= 0x0B) {
+                            if ((engine.state.buttons() & 0x02) != 0) {
                                 {
                                     state = 3;
                                     continue 'dispatch;
@@ -6349,7 +6339,7 @@ mod close_inventory_item_menu {
         engine.state.set_indirect_ptr_lo(0x77);
         engine.state.set_indirect_ptr_hi(0xB5);
         decode_inventory_item_list_snapshot(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         engine.state.set_prompt_state(0x10);
@@ -6376,26 +6366,26 @@ mod select_inventory_grid_entry {
             match state {
                 0 => {
                     grid_value = u8v(grid_value + engine.state.obj_y_vel());
-                    if cbool(grid_value == 0x20) {
+                    if (grid_value == 0x20) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(grid_value == 0x21) {
+                    if (grid_value == 0x21) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(grid_value == 0x22) {
+                    if (grid_value == 0x22) {
                         close_inventory_item_menu(engine, r);
                         return;
                     }
                     r.value = grid_value;
                     set_inventory_list_buffer_index(engine, r);
                     engine.state.set_password_nibbles_a(r.index, grid_value);
-                    if cbool(r.index == 0x1F) {
+                    if (r.index == 0x1F) {
                         close_inventory_item_menu(engine, r);
                         return;
                     }
@@ -6431,7 +6421,7 @@ mod move_inventory_cursor_right {
     /// column zero.
     pub fn move_inventory_cursor_right(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.state.obj_x_vel_lo() + 1);
-        if cbool(x >= 0x07) {
+        if (x >= 0x07) {
             x = 0x00;
         }
         engine.state.set_obj_x_vel_lo(x);
@@ -6446,7 +6436,7 @@ mod move_inventory_cursor_left {
     /// column six.
     pub fn move_inventory_cursor_left(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.state.obj_x_vel_lo() - 1);
-        if cbool(x & 0x80) {
+        if ((x & 0x80) != 0) {
             x = 0x06;
         }
         engine.state.set_obj_x_vel_lo(x);
@@ -6461,7 +6451,7 @@ mod move_inventory_cursor_up {
     /// four.
     pub fn move_inventory_cursor_up(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.state.obj_y_vel() - 1);
-        if cbool(x & 0x80) {
+        if ((x & 0x80) != 0) {
             x = 0x04;
         }
         engine.state.set_obj_y_vel(x);
@@ -6476,7 +6466,7 @@ mod move_inventory_cursor_down {
     /// zero.
     pub fn move_inventory_cursor_down(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = u8v(engine.state.obj_y_vel() + 1);
-        if cbool(x >= 0x05) {
+        if (x >= 0x05) {
             x = 0x00;
         }
         engine.state.set_obj_y_vel(x);
@@ -6492,7 +6482,7 @@ mod update_inventory_list_cursor_sprites {
     pub fn update_inventory_list_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let mut list_slot: i32 = engine.state.obj_x_sub() & 0x1F;
         let mut cursor_tile: i32 = 0x61;
-        if cbool(list_slot >= 0x10) {
+        if (list_slot >= 0x10) {
             list_slot = u8v(list_slot - 0x10);
             cursor_tile = 0x69;
         }
@@ -6587,7 +6577,7 @@ mod enter_temporary_room_page {
         engine.state.set_scroll_fine_x(0x00);
         clear_gameplay_object_sprites(engine, r);
         prepare_room_metadata_and_palette(engine, r);
-        if cbool(a == 0x04) {
+        if (a == 0x04) {
             engine.state.set_tile_table_ptr_hi(u8v(0x1F + 0xA0));
         }
         upload_staged_room_view(engine, r);
@@ -6619,7 +6609,7 @@ mod refresh_temporary_room_page {
         engine.state.set_scroll_fine_x(0x00);
         clear_gameplay_object_sprites(engine, r);
         prepare_room_metadata_and_palette(engine, r);
-        if cbool(a == 0x04) {
+        if (a == 0x04) {
             engine.state.set_tile_table_ptr_hi(u8v(0x1F + 0xA0));
         }
         upload_staged_room_view(engine, r);
@@ -6641,9 +6631,9 @@ mod draw_carried_item_sprites {
         engine.state.set_scratch0(0x58);
         {
             x = 2;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 let mut item: i32 = engine.state.item_slot(x);
-                if cbool(item & 0x80) {
+                if ((item & 0x80) != 0) {
                     a = 0xEF;
                 } else {
                     let mut t: i32 = u8v((u8v(item << 2)) + 0xA1);
@@ -6688,13 +6678,13 @@ mod draw_shop_item_sprites {
                 0 => {
                     a = 0xEF;
                     x = engine.state.temp_save(0);
-                    if cbool(x & 0x80) {
+                    if ((x & 0x80) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.inventory_item(x) >= 0x0B) {
+                    if (engine.state.inventory_item(x) >= 0x0B) {
                         engine.state.set_temp_save(0, 0xEF);
                         a = 0xEF;
                         {
@@ -6720,13 +6710,13 @@ mod draw_shop_item_sprites {
                     engine.state.set_oam_attr(0x44, 0x01);
                     a = 0xEF;
                     x = engine.state.temp_save(2);
-                    if cbool(x & 0x80) {
+                    if ((x & 0x80) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.inventory_item(x) >= 0x0B) {
+                    if (engine.state.inventory_item(x) >= 0x0B) {
                         engine.state.set_temp_save(2, 0xEF);
                         a = 0xEF;
                         {
@@ -6799,7 +6789,7 @@ mod restore_status_sprite_template {
         let mut x: i32 = 0;
         {
             x = 0x37;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 engine
                     .state
                     .set_oam_y(0x80 + x, engine.state.byte(u16v(SPRITE_Y_TABLE_G + x)));
@@ -6826,7 +6816,7 @@ mod consume_health_point {
     /// empty.
     pub fn consume_health_point(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = engine.state.player_health();
-        if cbool(r.value == 0) {
+        if (r.value == 0) {
             r.carry = 1;
             return;
         }
@@ -6848,7 +6838,7 @@ mod subtract_health_points {
         engine.state.set_scratch0(damage);
         let health: i32 = engine.state.player_health();
         let enough_health: i32 = u8v(health >= damage);
-        if cbool(enough_health) {
+        if ((enough_health) != 0) {
             engine.state.set_player_health(u8v(health - damage));
         } else {
             engine.state.set_player_health(0x00);
@@ -6867,7 +6857,7 @@ mod consume_magic_point {
         let saved_index: i32 = u8v(r.index);
         r.value = engine.state.player_magic();
         r.carry = 1;
-        if cbool(engine.state.player_magic() != 0) {
+        if (engine.state.player_magic() != 0) {
             engine
                 .state
                 .set_player_magic(u8v(engine.state.player_magic() - 1));
@@ -6884,9 +6874,9 @@ mod add_health_points {
     /// Adds `r.value` health and clamps it to the HUD/resource maximum.
     pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
         let total: i32 = u8v(u16v(r.value) + engine.state.player_health());
-        let capped_total: i32 = if cbool(total > 0xFF) {
+        let capped_total: i32 = if (total > 0xFF) {
             0x6D
-        } else if cbool(u8v(total) >= 0x6E) {
+        } else if (u8v(total) >= 0x6E) {
             0x6D
         } else {
             u8v(total)
@@ -6902,9 +6892,9 @@ mod add_magic_points {
     /// Adds `r.value` magic and clamps it to the HUD/resource maximum.
     pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
         let total: i32 = u8v(u16v(r.value) + engine.state.player_magic());
-        let capped_total: i32 = if cbool(total > 0xFF) {
+        let capped_total: i32 = if (total > 0xFF) {
             0x6D
-        } else if cbool(u8v(total) >= 0x6E) {
+        } else if (u8v(total) >= 0x6E) {
             0x6D
         } else {
             u8v(total)
@@ -6920,9 +6910,9 @@ mod add_coins {
     /// Adds `r.value` coins and clamps them to the HUD/resource maximum.
     pub fn add_coins(engine: &mut Engine, r: &mut RoutineContext) {
         let total: i32 = u8v(u16v(r.value) + engine.state.coins());
-        let capped_total: i32 = if cbool(total > 0xFF) {
+        let capped_total: i32 = if (total > 0xFF) {
             0x6D
-        } else if cbool(u8v(total) >= 0x6E) {
+        } else if (u8v(total) >= 0x6E) {
             0x6D
         } else {
             u8v(total)
@@ -6941,7 +6931,7 @@ mod spend_coins {
         engine.state.set_scratch0(r.value);
         let remaining_coins: i32 = u16v(engine.state.coins()) - u16v(engine.state.scratch0());
         r.value = u8v(remaining_coins);
-        if cbool(remaining_coins & 0x100) {
+        if ((remaining_coins & 0x100) != 0) {
             r.carry = 0;
             return;
         }
@@ -6968,9 +6958,9 @@ mod add_keys {
     /// Adds `r.value` keys and clamps them to the HUD/resource maximum.
     pub fn add_keys(engine: &mut Engine, r: &mut RoutineContext) {
         let total: i32 = u8v(u16v(r.value) + engine.state.keys());
-        let capped_total: i32 = if cbool(total > 0xFF) {
+        let capped_total: i32 = if (total > 0xFF) {
             0x6D
-        } else if cbool(u8v(total) >= 0x6E) {
+        } else if (u8v(total) >= 0x6E) {
             0x6D
         } else {
             u8v(total)
@@ -6986,7 +6976,7 @@ mod consume_key {
     /// Spends one key, returning carry set when no key was available.
     pub fn consume_key(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = engine.state.keys();
-        if cbool(r.value == 0) {
+        if (r.value == 0) {
             r.carry = 1;
             return;
         }
@@ -7006,10 +6996,10 @@ mod update_room_actors {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.map_screen_y() == 0x10) {
+                    if (engine.state.map_screen_y() == 0x10) {
                         return;
                     }
-                    if cbool(engine.state.chr_bank(3) >= 0x30) {
+                    if (engine.state.chr_bank(3) >= 0x30) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -7035,13 +7025,13 @@ mod update_room_actors {
                         let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
                         actor_state = engine.state.obj_state();
-                        if cbool(actor_state == 0) {
+                        if (actor_state == 0) {
                             tick_inactive_actor_slot(engine, r);
-                        } else if cbool(actor_state & 0x80) {
+                        } else if ((actor_state & 0x80) != 0) {
                             tick_defeated_actor_reward_drop(engine, r);
-                        } else if cbool(actor_state == 0x01) {
+                        } else if (actor_state == 0x01) {
                             dispatch_actor_behavior(engine, r);
-                        } else if cbool(actor_state >= 0x18) {
+                        } else if (actor_state >= 0x18) {
                             tick_actor_materialize_delay(engine, r);
                         } else {
                             tick_standard_actor(engine, r);
@@ -7058,14 +7048,14 @@ mod update_room_actors {
                             .set_actor_record_ptr_lo(
                                 u8v(engine.state.actor_record_ptr_lo() + 0x10),
                             );
-                        if !cbool(engine.state.slot_index() < engine.state.slot_index_limit()) {
+                        if !(engine.state.slot_index() < engine.state.slot_index_limit()) {
                             break;
                         }
                     }
                     {
                         let mut next_scheduler_phase: i32 = u8v(engine.state.scheduler_phase() + 1);
                         engine.state.set_scheduler_phase(
-                            (if cbool(next_scheduler_phase >= 0x03) {
+                            (if (next_scheduler_phase >= 0x03) {
                                 0x00
                             } else {
                                 next_scheduler_phase
@@ -7077,7 +7067,7 @@ mod update_room_actors {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.state.scheduler_phase() & 0x01) {
+                    if ((engine.state.scheduler_phase() & 0x01) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -7093,9 +7083,9 @@ mod update_room_actors {
                     load_object_slot_scratch(engine, r);
                     {
                         let mut actor_state: i32 = engine.state.obj_state();
-                        if cbool(actor_state == 0) {
+                        if (actor_state == 0) {
                             initialize_large_actor_slot(engine, r);
-                        } else if cbool(actor_state & 0x80) {
+                        } else if ((actor_state & 0x80) != 0) {
                             update_large_actor_facing_from_velocity(engine, r);
                             animate_large_actor_body_tiles(engine, r);
                         } else {
@@ -7123,7 +7113,7 @@ mod update_room_actors {
                         let mut actor_state: i32 = 0;
                         load_object_slot_scratch(engine, r);
                         actor_state = engine.state.obj_state();
-                        if (cbool(actor_state == 0) || cbool(actor_state & 0x80)) {
+                        if ((actor_state == 0) || ((actor_state & 0x80) != 0)) {
                             engine.state.set_obj_state(0x00);
                             maybe_spawn_pursuer_actor(engine, r);
                         } else {
@@ -7141,7 +7131,7 @@ mod update_room_actors {
                             .set_actor_record_ptr_lo(
                                 u8v(engine.state.actor_record_ptr_lo() + 0x10),
                             );
-                        if !cbool(engine.state.slot_index() < 0x09) {
+                        if !(engine.state.slot_index() < 0x09) {
                             break;
                         }
                     }
@@ -7204,11 +7194,10 @@ mod tick_inactive_actor_slot {
             .set_obj_timer(u8v(engine.state.obj_timer() - 1));
         let actor_timer: i32 = engine.state.obj_timer();
         let actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-        if cbool(
-            (engine.state.byte(u16v(actor_data_ptr + 2))
-                | engine.state.byte(u16v(actor_data_ptr + 3)))
-                == 0,
-        ) {
+        if ((engine.state.byte(u16v(actor_data_ptr + 2))
+            | engine.state.byte(u16v(actor_data_ptr + 3)))
+            == 0)
+        {
             r.value = 0x0C;
             rng_update(engine, r);
             engine.state.set_scratch2(u8v(r.value << 4));
@@ -7226,9 +7215,9 @@ mod tick_inactive_actor_slot {
         engine.state.set_indirect_ptr_lo(0x00);
         engine.state.set_scratch3(0x00);
         check_player_overlap(engine, r);
-        if cbool(r.carry) {}
+        if ((r.carry) != 0) {}
         check_projected_terrain_collision(engine, r);
-        if cbool(r.carry) {}
+        if ((r.carry) != 0) {}
         engine.state.set_obj_x_sub(engine.state.indirect_ptr_lo());
         engine.state.set_obj_x_tile(engine.state.indirect_ptr_hi());
         engine.state.set_obj_y_pixel(engine.state.scratch2());
@@ -7251,16 +7240,16 @@ mod tick_inactive_actor_slot {
                 current_member_bit = u8v((current_member_bit << 1) | carry_bit);
                 carry_bit = next_carry_bit;
                 member_index = u8v(member_index - 1);
-                if !cbool((member_index & 0x80) == 0) {
+                if !((member_index & 0x80) == 0) {
                     break;
                 }
             }
             current_member_bit = u8v(current_member_bit & engine.state.family_member_mask());
-            if cbool(current_member_bit == 0) {
+            if (current_member_bit == 0) {
                 let mut contact_damage: i32 = engine.state.obj_damage();
                 let mut damage_overflow: i32 = u8v((contact_damage >> 7) & 1);
                 engine.state.set_obj_damage(u8v(contact_damage << 1));
-                if cbool(damage_overflow) {
+                if ((damage_overflow) != 0) {
                     engine.state.set_obj_damage(0xFF);
                 }
             }
@@ -7268,7 +7257,7 @@ mod tick_inactive_actor_slot {
         engine.state.set_obj_state(0x7F);
         engine.state.set_obj_tile(0xF9);
         engine.state.set_obj_attr(0x01);
-        if cbool(actor_timer == 0) {
+        if (actor_timer == 0) {
             engine.state.set_obj_state(0x01);
             engine
                 .state
@@ -7277,7 +7266,7 @@ mod tick_inactive_actor_slot {
                 .state
                 .set_obj_attr(engine.state.byte(u16v(actor_data_ptr + 1)));
         } else {
-            if cbool((engine.state.obj_timer() & 0x03) == 0) {
+            if ((engine.state.obj_timer() & 0x03) == 0) {
                 engine
                     .state
                     .set_obj_attr(u8v(engine.state.obj_attr() ^ 0x40));
@@ -7293,14 +7282,14 @@ mod tick_actor_materialize_delay {
     pub fn tick_actor_materialize_delay(engine: &mut Engine, r: &mut RoutineContext) {
         let mut actor_timer: i32 = u8v(engine.state.obj_timer() - 1);
         engine.state.set_obj_timer(actor_timer);
-        if cbool(actor_timer == 0) {
+        if (actor_timer == 0) {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
             engine.state.set_obj_state(0x01);
             engine.state.set_obj_tile(engine.state.byte(actor_data_ptr));
             engine
                 .state
                 .set_obj_attr(engine.state.byte(u16v(actor_data_ptr + 1)));
-        } else if cbool((actor_timer & 0x03) == 0) {
+        } else if ((actor_timer & 0x03) == 0) {
             engine.state.set_obj_attr(engine.state.obj_attr() ^ 0x40);
         }
     }
@@ -7313,14 +7302,14 @@ mod maybe_spawn_pursuer_actor {
     pub fn maybe_spawn_pursuer_actor(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x1E;
         rng_update(engine, r);
-        if cbool(r.value != 0) {
+        if (r.value != 0) {
             r.index = r.value;
             return;
         }
         r.index = 0;
         let mut scratch_offset: i32 = 0x03;
         let mut source_slot_offset: i32 = 0x03;
-        if cbool(engine.state.object_attr(0x00) & 0x40) {
+        if ((engine.state.object_attr(0x00) & 0x40) != 0) {
             source_slot_offset = 0x13;
         }
         loop {
@@ -7329,13 +7318,12 @@ mod maybe_spawn_pursuer_actor {
                 engine.state.object_x_sub(source_slot_offset),
             );
             source_slot_offset = u8v(source_slot_offset - 1);
-            if cbool(
-                ({
-                    let __old = scratch_offset;
-                    scratch_offset -= 1;
-                    __old
-                }) == 0,
-            ) {
+            if (({
+                let __old = scratch_offset;
+                scratch_offset -= 1;
+                __old
+            }) == 0)
+            {
                 break;
             }
         }
@@ -7371,7 +7359,7 @@ mod dispatch_actor_behavior {
     pub fn dispatch_actor_behavior(engine: &mut Engine, r: &mut RoutineContext) {
         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
         let mut behavior_id: i32 = engine.state.byte(u16v(actor_data_ptr + 8));
-        if cbool(behavior_id >= 0x09) {
+        if (behavior_id >= 0x09) {
             behavior_id = 0x00;
         }
         engine
@@ -7425,15 +7413,15 @@ mod tick_standard_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.obj_move_scratch() == 0) {
-                        if cbool(engine.state.obj_cooldown() == 0) {
+                    if (engine.state.obj_move_scratch() == 0) {
+                        if (engine.state.obj_cooldown() == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
                         try_actor_jump_arc_motion(engine, r);
-                        if cbool(r.carry) {
+                        if ((r.carry) != 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -7442,7 +7430,7 @@ mod tick_standard_actor {
                         commit_actor_projected_position(engine, r);
                     }
                     try_actor_gravity_motion(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -7454,17 +7442,17 @@ mod tick_standard_actor {
                 }
                 1 => {
                     actor_timer = u8v(engine.state.obj_timer() - 1);
-                    if cbool(actor_timer == 0) {
+                    if (actor_timer == 0) {
                         engine.state.set_obj_state(0x00);
                         engine.state.set_obj_timer(0xF0);
                         r.index = actor_timer;
                         return;
                     }
                     engine.state.set_obj_timer(actor_timer);
-                    if cbool(actor_timer < 0x3C) {
+                    if (actor_timer < 0x3C) {
                         actor_timer = 0xEF;
                         saved_tile_y = engine.state.obj_y_pixel();
-                        if cbool(saved_tile_y == 0xEF) {
+                        if (saved_tile_y == 0xEF) {
                             actor_timer = engine.state.obj_y_extra();
                         }
                         engine.state.set_obj_y_pixel(actor_timer);
@@ -7490,13 +7478,13 @@ mod tick_wandering_jump_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.obj_timer() >= 0x20) {
-                    } else if cbool(engine.state.obj_cooldown() != 0) {
+                    if (engine.state.obj_timer() >= 0x20) {
+                    } else if (engine.state.obj_cooldown() != 0) {
                         keep_existing_motion = 1;
-                    } else if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
+                    } else if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
                         keep_existing_motion = 1;
                     }
-                    if !cbool(keep_existing_motion) {
+                    if !((keep_existing_motion) != 0) {
                         engine.state.set_obj_timer(0x00);
                         choose_random_cardinal_actor_direction(engine, r);
                         r.value = 0x06;
@@ -7505,7 +7493,7 @@ mod tick_wandering_jump_actor {
                         r.value = 0x04;
                         rng_update(engine, r);
                         r.index = r.value;
-                        if cbool(r.value == 0) {
+                        if (r.value == 0) {
                             engine
                                 .state
                                 .set_obj_move_state(u8v(0x80 | engine.state.obj_move_state()));
@@ -7515,9 +7503,9 @@ mod tick_wandering_jump_actor {
                     r.offset = engine.state.obj_x_vel_hi();
                     r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
-                    if cbool(engine.state.obj_move_scratch() != 0) {
+                    if (engine.state.obj_move_scratch() != 0) {
                         try_actor_gravity_motion(engine, r);
-                        if cbool(r.carry) {
+                        if ((r.carry) != 0) {
                             {
                                 state = 4;
                                 continue 'dispatch;
@@ -7528,13 +7516,13 @@ mod tick_wandering_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_cooldown() != 0) {
+                    if (engine.state.obj_cooldown() != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.state.obj_move_state() & 0x80) {
+                    if !((engine.state.obj_move_state() & 0x80) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -7545,7 +7533,7 @@ mod tick_wandering_jump_actor {
                 }
                 1 => {
                     try_actor_jump_arc_motion(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -7557,7 +7545,7 @@ mod tick_wandering_jump_actor {
                 2 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -7593,7 +7581,7 @@ mod tick_random_floating_actor {
     // Chooses a random direction when stationary, then moves without terrain
     // collision. Bounds/player contact can stop the motion.
     pub fn tick_random_floating_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+        if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
@@ -7604,7 +7592,7 @@ mod tick_random_floating_actor {
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             stop_actor_motion(engine, r);
         } else {
             commit_actor_projected_position(engine, r);
@@ -7621,12 +7609,12 @@ mod tick_ledge_walking_actor {
         let mut should_commit_position: i32 = 0;
         let mut should_stop_motion: i32 = 0;
         let mut skip_resolution: i32 = 0;
-        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+        if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             reverse_actor_horizontal_direction(engine, r);
         }
-        if cbool(engine.state.obj_move_scratch() != 0) {
+        if (engine.state.obj_move_scratch() != 0) {
             try_actor_gravity_motion(engine, r);
-            if cbool(r.carry == 0) {
+            if (r.carry == 0) {
                 should_commit_position = 1;
             } else {
                 skip_resolution = 1;
@@ -7637,19 +7625,19 @@ mod tick_ledge_walking_actor {
             r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
             try_move_actor_with_terrain(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 should_stop_motion = 1;
             } else {
                 r.offset = 0x01;
                 probe_object_solid_tile(engine, r);
-                if cbool(r.carry == 0) {
+                if (r.carry == 0) {
                     should_stop_motion = 1;
-                } else if cbool(engine.state.indirect_ptr_lo() == 0) {
+                } else if (engine.state.indirect_ptr_lo() == 0) {
                     should_commit_position = 1;
                 } else {
                     r.offset = 0x0D;
                     probe_object_solid_tile(engine, r);
-                    if cbool(r.carry == 0) {
+                    if (r.carry == 0) {
                         should_stop_motion = 1;
                     } else {
                         should_commit_position = 1;
@@ -7657,10 +7645,10 @@ mod tick_ledge_walking_actor {
                 }
             }
         }
-        if !cbool(skip_resolution) {
-            if cbool(should_stop_motion) {
+        if !((skip_resolution) != 0) {
+            if ((should_stop_motion) != 0) {
                 stop_actor_motion(engine, r);
-            } else if cbool(should_commit_position) {
+            } else if ((should_commit_position) != 0) {
                 commit_actor_projected_position(engine, r);
             }
         }
@@ -7681,8 +7669,8 @@ mod tick_chasing_jump_actor {
                     engine
                         .state
                         .set_obj_move_state(engine.state.obj_move_state() & 0x0F);
-                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
-                        if cbool(engine.state.obj_timer() < 0x10) {
+                    if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
+                        if (engine.state.obj_timer() < 0x10) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -7693,33 +7681,33 @@ mod tick_chasing_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_x_sub() == 0) {
+                    if (engine.state.obj_x_sub() == 0) {
                         let mut room_tile_ptr: i32 = 0;
                         engine.state.set_data_ptr_lo(engine.state.obj_x_tile());
                         engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
                         resolve_room_tile_pointer(engine, r);
                         room_tile_ptr = u16v(engine.state.data_ptr());
-                        if cbool((engine.state.byte(room_tile_ptr) & 0x3F) == 0) {
+                        if ((engine.state.byte(room_tile_ptr) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool((engine.state.byte(u16v(room_tile_ptr + 1)) & 0x3F) == 0) {
+                        if ((engine.state.byte(u16v(room_tile_ptr + 1)) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
                             }
                         }
                     }
-                    if cbool((engine.state.obj_move_state() & 0x03) == 0) {
+                    if ((engine.state.obj_move_state() & 0x03) == 0) {
                         engine.state.set_obj_move_state(0x01);
                     }
                     {
                         let mut turn_timer: i32 = u8v(engine.state.obj_timer() - 1);
                         engine.state.set_obj_timer(0x00);
-                        if cbool(turn_timer == 0) {
-                            if cbool((engine.state.obj_move_state() & 0x03) == 0) {
+                        if (turn_timer == 0) {
+                            if ((engine.state.obj_move_state() & 0x03) == 0) {
                                 {
                                     state = 1;
                                     continue 'dispatch;
@@ -7758,9 +7746,9 @@ mod tick_chasing_jump_actor {
                     }
                     r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
-                    if cbool(engine.state.obj_move_scratch() != 0) {
+                    if (engine.state.obj_move_scratch() != 0) {
                         try_actor_gravity_motion(engine, r);
-                        if cbool(r.carry) {
+                        if ((r.carry) != 0) {
                             {
                                 state = 6;
                                 continue 'dispatch;
@@ -7771,13 +7759,13 @@ mod tick_chasing_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_cooldown() != 0) {
+                    if (engine.state.obj_cooldown() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.state.obj_move_state() & 0x80) {
+                    if !((engine.state.obj_move_state() & 0x80) != 0) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -7788,7 +7776,7 @@ mod tick_chasing_jump_actor {
                 }
                 3 => {
                     try_actor_jump_arc_motion(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -7800,7 +7788,7 @@ mod tick_chasing_jump_actor {
                 4 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -7835,10 +7823,11 @@ mod tick_reflecting_chase_actor {
     // Aims from player overlap, moves without terrain, and asks the velocity
     // reflection helper to bounce away when blocked.
     pub fn tick_reflecting_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut keep_current_direction: i32 = u8v((cbool(
-            (engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0,
-        ) && cbool(engine.state.obj_timer() < 0x20)));
-        if !cbool(keep_current_direction) {
+        let mut keep_current_direction: i32 = u8v((((engine.state.obj_x_vel_lo()
+            | engine.state.obj_y_vel())
+            != 0)
+            && (engine.state.obj_timer() < 0x20)));
+        if !((keep_current_direction) != 0) {
             aim_actor_from_player_overlap(engine, r);
         }
         {
@@ -7848,9 +7837,9 @@ mod tick_reflecting_chase_actor {
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             try_reflect_object_velocity(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 stop_actor_motion(engine, r);
                 update_actor_animation(engine, r);
                 return;
@@ -7870,13 +7859,13 @@ mod tick_overhead_probe_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.obj_move_scratch() != 0) {
+                    if (engine.state.obj_move_scratch() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_cooldown() != 0) {
+                    if (engine.state.obj_cooldown() != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -7886,7 +7875,7 @@ mod tick_overhead_probe_actor {
                     engine.state.set_indirect_ptr_lo(engine.state.obj_x_sub());
                     engine.state.set_scratch2(engine.state.obj_y_pixel());
                     probe_actor_overhead_step(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -7906,11 +7895,11 @@ mod tick_overhead_probe_actor {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+                    if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
                         reverse_actor_horizontal_direction(engine, r);
                     }
                     check_player_x_overlap(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -7923,14 +7912,14 @@ mod tick_overhead_probe_actor {
                     r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
                     try_move_actor_with_terrain(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 6;
                             continue 'dispatch;
                         }
                     }
                     probe_actor_overhead_step(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 6;
                             continue 'dispatch;
@@ -7947,7 +7936,7 @@ mod tick_overhead_probe_actor {
                     engine.state.set_obj_x_vel_lo(0x00);
                     engine.state.set_obj_x_vel_hi(0x00);
                     update_object_terrain_probe(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 6;
                             continue 'dispatch;
@@ -7962,7 +7951,7 @@ mod tick_overhead_probe_actor {
                     {
                         let mut saved_fall_counter: i32 = engine.state.obj_move_scratch();
                         update_object_terrain_probe(engine, r);
-                        if !cbool(r.carry) {
+                        if !((r.carry) != 0) {
                             {
                                 state = 4;
                                 continue 'dispatch;
@@ -7990,7 +7979,7 @@ mod tick_overhead_probe_actor {
                 }
                 5 => {
                     try_actor_jump_arc_motion(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 6;
                             continue 'dispatch;
@@ -8028,13 +8017,13 @@ mod tick_contact_trigger_actor {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.obj_move_state() != 0) {
+                    if (engine.state.obj_move_state() != 0) {
                         tick_chasing_jump_actor(engine, r);
                         return;
                     }
                     r.value = 0x01;
                     check_actor_direction_contact(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8042,7 +8031,7 @@ mod tick_contact_trigger_actor {
                     }
                     r.value = 0x02;
                     check_actor_direction_contact(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8050,7 +8039,7 @@ mod tick_contact_trigger_actor {
                     }
                     r.value = 0x04;
                     check_actor_direction_contact(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8058,7 +8047,7 @@ mod tick_contact_trigger_actor {
                     }
                     r.value = 0x08;
                     check_actor_direction_contact(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8094,7 +8083,7 @@ mod check_actor_direction_contact {
         build_direction_velocity(engine, r);
         project_actor_position(engine, r);
         check_player_overlap(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
         apply_actor_player_contact_damage(engine, r);
@@ -8107,7 +8096,7 @@ mod tick_contact_recoil_actor {
     // Random floating behavior that turns into a high-bit/contact recoil state
     // when movement was blocked specifically by player overlap.
     pub fn tick_contact_recoil_actor(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+        if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
             choose_random_actor_direction(engine, r);
         }
         {
@@ -8117,8 +8106,8 @@ mod tick_contact_recoil_actor {
             build_direction_velocity(engine, r);
         }
         try_move_actor_without_terrain(engine, r);
-        if cbool(r.carry) {
-            if cbool(engine.state.overlap_flag() != 0) {
+        if ((r.carry) != 0) {
+            if (engine.state.overlap_flag() != 0) {
                 r.value = 0x80;
                 engine.state.set_obj_state(0x80);
                 return;
@@ -8142,16 +8131,16 @@ mod tick_timed_chase_actor {
             match state {
                 0 => {
                     engine.state.set_obj_cooldown(chase_timer);
-                    if cbool(chase_timer == 0) {
+                    if (chase_timer == 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_move_state() == 0) {
+                    if (engine.state.obj_move_state() == 0) {
                         aim_actor_from_player_overlap(engine, r);
                     } else {
-                        if cbool(engine.state.obj_timer() >= 0x08) {
+                        if (engine.state.obj_timer() >= 0x08) {
                             let mut direction_diff: i32 = 0;
                             let mut bit_count: i32 = 0;
                             let mut changed_bits: i32 = 0;
@@ -8164,19 +8153,18 @@ mod tick_timed_chase_actor {
                             loop {
                                 let mut bit: i32 = direction_diff & 1;
                                 direction_diff >>= 1;
-                                if cbool(bit) {
+                                if ((bit) != 0) {
                                     {
                                         let __old = changed_bits;
                                         changed_bits += 1;
                                         __old
                                     };
                                 }
-                                if !cbool(
-                                    {
-                                        bit_count -= 1;
-                                        bit_count
-                                    } != 0,
-                                ) {
+                                if !({
+                                    bit_count -= 1;
+                                    bit_count
+                                } != 0)
+                                {
                                     break;
                                 }
                             }
@@ -8185,7 +8173,7 @@ mod tick_timed_chase_actor {
                                 changed_bits -= 1;
                                 __old
                             };
-                            if cbool(changed_bits != 0) {
+                            if (changed_bits != 0) {
                                 engine.state.set_obj_move_state(engine.state.scratch0());
                             }
                         }
@@ -8197,7 +8185,7 @@ mod tick_timed_chase_actor {
                         build_direction_velocity(engine, r);
                     }
                     try_move_actor_without_terrain(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -8225,7 +8213,7 @@ mod probe_actor_overhead_step {
     // Probes the projected tile one row above the actor when the projected Y
     // position is tile-aligned. Carry is left from the solid-tile probe.
     pub fn probe_actor_overhead_step(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.state.scratch2() & 0x0F) != 0) {
+        if ((engine.state.scratch2() & 0x0F) != 0) {
             return;
         }
         engine.state.set_data_ptr_lo(engine.state.indirect_ptr_hi());
@@ -8235,15 +8223,15 @@ mod probe_actor_overhead_step {
         resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
         probe_projected_solid_tile(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() == 0) {
+        if (engine.state.indirect_ptr_lo() == 0) {
             return;
         }
         r.offset = 0x0C;
         probe_projected_solid_tile(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
     }
@@ -8256,12 +8244,12 @@ mod aim_actor_toward_player {
     pub fn aim_actor_toward_player(engine: &mut Engine, r: &mut RoutineContext) {
         let mut direction_bits: i32 = 0x00;
         let mut dx: i32 = u16v(u16v(engine.state.obj_x_tile()) - engine.state.player_x_tile());
-        if cbool(u8v(dx) != 0) {
+        if (u8v(dx) != 0) {
             {
                 direction_bits += 1;
                 direction_bits
             };
-            if !cbool(dx & 0x100) {
+            if !((dx & 0x100) != 0) {
                 {
                     direction_bits += 1;
                     direction_bits
@@ -8271,14 +8259,14 @@ mod aim_actor_toward_player {
         engine.state.set_obj_move_state(direction_bits);
         {
             let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.state.player_y());
-            if !cbool(dy & 0x100) {
+            if !((dy & 0x100) != 0) {
                 let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
                 let mut vertical_bias_enabled: i32 = engine.state.byte(u16v(actor_data_ptr + 0x09));
-                if cbool(vertical_bias_enabled != 0) {
+                if (vertical_bias_enabled != 0) {
                     r.value = 0x03;
                     rng_update(engine, r);
                     r.index = r.value;
-                    if cbool(r.index == 0) {
+                    if (r.index == 0) {
                         engine
                             .state
                             .set_obj_move_state(u8v(engine.state.obj_move_state() | 0x80));
@@ -8288,7 +8276,7 @@ mod aim_actor_toward_player {
                 r.value = 0x03;
                 rng_update(engine, r);
                 r.index = r.value;
-                if cbool(r.index == 0) {
+                if (r.index == 0) {
                     engine.state.set_obj_move_state(0x04);
                 }
             }
@@ -8307,32 +8295,32 @@ mod aim_actor_from_player_overlap {
         engine.state.set_scratch2(engine.state.obj_y_pixel());
         check_player_x_overlap(engine, r);
         direction_bits = 0x00;
-        if cbool(r.carry == 0) {
-            let mut actor_is_right_of_player: i32 = u8v((if cbool(
-                engine.state.obj_x_tile() >= engine.state.player_x_tile(),
-            ) {
+        if (r.carry == 0) {
+            let mut actor_is_right_of_player: i32 = u8v((if (engine.state.obj_x_tile()
+                >= engine.state.player_x_tile())
+            {
                 1
             } else {
                 0
             }));
             direction_bits = 0x01;
-            if cbool(actor_is_right_of_player) {
+            if ((actor_is_right_of_player) != 0) {
                 direction_bits = 0x02;
             }
         }
         engine.state.set_obj_move_state(direction_bits);
         check_player_y_overlap(engine, r);
         direction_bits = 0x00;
-        if cbool(r.carry == 0) {
-            let mut actor_is_below_player: i32 = u8v((if cbool(
-                engine.state.obj_y_pixel() >= engine.state.player_y(),
-            ) {
+        if (r.carry == 0) {
+            let mut actor_is_below_player: i32 = u8v((if (engine.state.obj_y_pixel()
+                >= engine.state.player_y())
+            {
                 1
             } else {
                 0
             }));
             direction_bits = 0x04;
-            if cbool(actor_is_below_player) {
+            if ((actor_is_below_player) != 0) {
                 direction_bits = 0x08;
             }
         }
@@ -8347,7 +8335,7 @@ mod reverse_actor_horizontal_direction {
     use super::*;
     pub fn reverse_actor_horizontal_direction(engine: &mut Engine, r: &mut RoutineContext) {
         let mut direction_bits: i32 = engine.state.obj_move_state() & 0x03;
-        if cbool(direction_bits == 0) {
+        if (direction_bits == 0) {
             direction_bits = 0x01;
         }
         direction_bits ^= 0x03;
@@ -8394,13 +8382,13 @@ mod try_actor_gravity_motion {
             .state
             .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 0x02));
         try_move_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_y_vel(0x00);
@@ -8412,7 +8400,7 @@ mod try_actor_jump_arc_motion {
     // Uses `0xF1` as a jump-arc countdown and converts it into upward velocity.
     pub fn try_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut jump_counter: i32 = engine.state.obj_cooldown();
-        if cbool(jump_counter == 0) {
+        if (jump_counter == 0) {
             jump_counter = 0x0F;
         }
         jump_counter = u8v(jump_counter - 1);
@@ -8422,13 +8410,13 @@ mod try_actor_jump_arc_motion {
             .state
             .set_obj_y_vel(u8v(((jump_counter >> 1) ^ 0xFF) + 1));
         try_move_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine
@@ -8471,13 +8459,13 @@ mod project_actor_position {
         engine.state.set_indirect_ptr_lo(engine.state.obj_x_sub());
         engine.state.set_indirect_ptr_hi(engine.state.obj_x_tile());
         engine.state.set_scratch2(engine.state.obj_y_pixel());
-        if cbool(engine.state.obj_y_vel() != 0) {
+        if (engine.state.obj_y_vel() != 0) {
             engine
                 .state
                 .set_scratch2(u8v(engine.state.obj_y_vel() + engine.state.scratch2()));
         }
         subtile_dx = engine.state.obj_x_vel_lo();
-        if cbool(subtile_dx != 0) {
+        if (subtile_dx != 0) {
             subtile_sum = u8v(subtile_dx + engine.state.indirect_ptr_lo());
             engine.state.set_indirect_ptr_lo(u8v(subtile_sum & 0x0F));
             tile_carry = u8v((subtile_sum >> 4) & 1);
@@ -8532,7 +8520,7 @@ mod animate_actor_flip_toggle {
             .state
             .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
         animation_phase = engine.state.obj_timer() & 0x03;
-        if cbool(animation_phase == 0) {
+        if (animation_phase == 0) {
             animation_phase = engine.state.obj_attr() ^ 0x40;
             engine.state.set_obj_attr(animation_phase);
         }
@@ -8545,8 +8533,8 @@ mod animate_actor_walk_toggle {
     // Faces the actor from horizontal velocity and toggles the sprite tile bit
     // every four animation ticks.
     pub fn animate_actor_walk_toggle(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
+        if (engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if ((engine.state.obj_x_vel_hi() & 0x80) != 0) {
                 0x00
             } else {
                 0x40
@@ -8559,7 +8547,7 @@ mod animate_actor_walk_toggle {
         engine
             .state
             .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
-        if cbool((engine.state.obj_timer() & 0x03) == 0) {
+        if ((engine.state.obj_timer() & 0x03) == 0) {
             engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
         }
     }
@@ -8570,8 +8558,8 @@ mod animate_actor_directional_walk {
     // Similar to `animate_actor_walk_toggle`, with a separate vertical-motion
     // tile bit so climbing/falling frames differ from horizontal frames.
     pub fn animate_actor_directional_walk(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
+        if (engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if ((engine.state.obj_x_vel_hi() & 0x80) != 0) {
                 0x00
             } else {
                 0x40
@@ -8584,7 +8572,7 @@ mod animate_actor_directional_walk {
                 .state
                 .set_obj_tile(u8v(engine.state.obj_tile() & 0xF7));
         } else {
-            if cbool(engine.state.obj_y_vel() != 0) {
+            if (engine.state.obj_y_vel() != 0) {
                 engine
                     .state
                     .set_obj_tile(u8v((engine.state.obj_tile() & 0xF3) | 0x08));
@@ -8593,8 +8581,8 @@ mod animate_actor_directional_walk {
         engine
             .state
             .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
-        if cbool((engine.state.obj_timer() & 0x03) == 0) {
-            if cbool((engine.state.obj_tile() & 0x08) != 0) {
+        if ((engine.state.obj_timer() & 0x03) == 0) {
+            if ((engine.state.obj_tile() & 0x08) != 0) {
                 engine.state.set_obj_attr(engine.state.obj_attr() ^ 0x40);
             } else {
                 engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
@@ -8607,8 +8595,8 @@ mod animate_actor_cycle_tiles {
     use super::*;
     // Cycles the two sprite-tile animation bits from the frame timer.
     pub fn animate_actor_cycle_tiles(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
-            let mut facing_bit: i32 = (if cbool(engine.state.obj_x_vel_hi() & 0x80) {
+        if (engine.state.obj_x_vel_lo() != 0) {
+            let mut facing_bit: i32 = (if ((engine.state.obj_x_vel_hi() & 0x80) != 0) {
                 0x00
             } else {
                 0x40
@@ -8640,35 +8628,35 @@ mod try_move_actor_with_terrain {
         loop {
             project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 engine.state.set_obj_state(0x00);
                 engine.state.set_obj_timer(0xF0);
                 blocked = 1;
                 break;
             }
-            if cbool(u8v(engine.state.obj_state() - 1) == 0) {
+            if (u8v(engine.state.obj_state() - 1) == 0) {
                 check_player_overlap(engine, r);
-                if cbool(r.carry) {
+                if ((r.carry) != 0) {
                     apply_actor_player_contact_damage(engine, r);
                 }
             }
             check_projected_terrain_collision(engine, r);
-            if cbool(r.carry == 0) {
+            if (r.carry == 0) {
                 blocked = 0;
                 break;
             }
             {
                 let mut adjusted_vertical_velocity: i32 = engine.state.obj_y_vel();
-                if cbool(adjusted_vertical_velocity == 0) {
+                if (adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
-                if !cbool(adjusted_vertical_velocity & 0x80) {
+                if !((adjusted_vertical_velocity & 0x80) != 0) {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
                 engine.state.set_obj_y_vel(adjusted_vertical_velocity);
-                if cbool(adjusted_vertical_velocity == 0) {
+                if (adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
@@ -8686,13 +8674,13 @@ mod try_move_actor_without_terrain {
     pub fn try_move_actor_without_terrain(engine: &mut Engine, r: &mut RoutineContext) {
         project_actor_position(engine, r);
         check_player_overlap(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             apply_actor_player_contact_damage(engine, r);
             r.carry = 1;
             return;
         }
         check_position_out_of_bounds(engine, r);
-        if cbool(r.carry == 0) {
+        if (r.carry == 0) {
             return;
         }
         engine.state.set_obj_state(0x00);
@@ -8705,22 +8693,22 @@ mod apply_actor_player_contact_damage {
     // Applies contact damage unless the player is already invulnerable or a
     // special character/item state suppresses the hit.
     pub fn apply_actor_player_contact_damage(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.sprite_blink_timer() != 0) {
+        if (engine.state.sprite_blink_timer() != 0) {
             return;
         }
-        if cbool(u8v(engine.state.obj_state() - 1) != 0) {
+        if (u8v(engine.state.obj_state() - 1) != 0) {
             return;
         }
-        if cbool(engine.state.chr_bank(3) >= 0x30) {
-            if cbool(engine.state.slot_index() != 0) {
+        if (engine.state.chr_bank(3) >= 0x30) {
+            if (engine.state.slot_index() != 0) {
                 let mut selected_item_slot: i32 = engine.state.selected_item_slot();
-                if cbool(engine.state.item_slot(selected_item_slot) == 0x0A) {
+                if (engine.state.item_slot(selected_item_slot) == 0x0A) {
                     engine.state.set_prompt_state(0x01);
                     return;
                 }
             }
         } else {
-            if cbool(engine.state.character_index() == 0x04) {
+            if (engine.state.character_index() == 0x04) {
                 return;
             }
         }
@@ -8748,7 +8736,7 @@ mod update_object_terrain_probe {
     /// When the checked footprint stays clear, the object terrain counter
     /// `0xF0` advances and carry is clear.
     pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_cooldown() != 0) {
+        if (engine.state.obj_cooldown() != 0) {
             return;
         }
         engine.state.set_data_ptr_lo(engine.state.obj_x_tile());
@@ -8756,44 +8744,44 @@ mod update_object_terrain_probe {
         engine.state.set_indirect_ptr_lo(engine.state.obj_x_sub());
         let mut tile_y: i32 = engine.state.obj_y_pixel();
         let active_state: i32 = u8v(engine.state.obj_state() - 1);
-        if cbool(active_state == 0) {
-            if cbool(tile_y >= 0xB0) {
+        if (active_state == 0) {
+            if (tile_y >= 0xB0) {
                 return;
             }
             engine.state.set_data_ptr_hi(tile_y);
             tile_y = u8v(tile_y + 1);
             engine.state.set_scratch2(tile_y);
             check_player_overlap(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 return;
             }
         } else {
-            if cbool(tile_y == 0xEF) {
+            if (tile_y == 0xEF) {
                 tile_y = engine.state.obj_y_extra();
             }
             engine.state.set_data_ptr_hi(tile_y);
         }
         resolve_room_tile_pointer(engine, r);
-        if cbool(engine.state.obj_x_sub() == 0) {
+        if (engine.state.obj_x_sub() == 0) {
             let tile_ptr: i32 = u16v(engine.state.data_ptr());
-            if cbool((engine.state.byte(tile_ptr) & 0x3F) == 0) {
+            if ((engine.state.byte(tile_ptr) & 0x3F) == 0) {
                 return;
             }
-            if cbool((engine.state.byte(u16v(tile_ptr + 1)) & 0x3F) == 0) {
+            if ((engine.state.byte(u16v(tile_ptr + 1)) & 0x3F) == 0) {
                 return;
             }
         }
         r.offset = 0x01;
         probe_object_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
-        if cbool(engine.state.obj_x_sub() == 0) {
+        if (engine.state.obj_x_sub() == 0) {
             return;
         }
         r.offset = 0x0D;
         probe_object_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         mark_probe_clear(engine, r);
@@ -8807,7 +8795,7 @@ mod update_wide_object_terrain_probe {
     /// lower footprint and advances `0xF0` when no solid tile or player overlap
     /// blocks movement.
     pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_cooldown() != 0) {
+        if (engine.state.obj_cooldown() != 0) {
             return;
         }
         engine.state.set_data_ptr_lo(engine.state.obj_x_tile());
@@ -8818,30 +8806,30 @@ mod update_wide_object_terrain_probe {
             .state
             .set_scratch2(u8v(engine.state.obj_y_pixel() + 1));
         resolve_room_tile_pointer(engine, r);
-        if cbool(engine.state.obj_y_pixel() >= 0xA0) {
+        if (engine.state.obj_y_pixel() >= 0xA0) {
             engine
                 .state
                 .set_obj_move_scratch(u8v(engine.state.obj_move_scratch() + 1));
             return;
         }
         check_player_overlap_wide(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         r.offset = 0x02;
         probe_object_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         r.offset = 0x0E;
         probe_object_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
-        if cbool(engine.state.obj_x_sub() != 0) {
+        if (engine.state.obj_x_sub() != 0) {
             r.offset = 0x1A;
             probe_object_solid_tile(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 return;
             }
         }
@@ -8874,33 +8862,33 @@ mod check_projected_terrain_collision {
         resolve_room_tile_pointer(engine, r);
         r.offset = 0x00;
         probe_projected_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() != 0) {
+        if (engine.state.indirect_ptr_lo() != 0) {
             r.offset = 0x0C;
             probe_projected_solid_tile(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 return;
             }
         }
-        if cbool(engine.state.scratch2() >= 0xB0) {
+        if (engine.state.scratch2() >= 0xB0) {
             return;
         }
-        if cbool((engine.state.scratch2() & 0x0F) == 0) {
+        if ((engine.state.scratch2() & 0x0F) == 0) {
             return;
         }
         r.offset = 0x01;
         probe_projected_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() == 0) {
+        if (engine.state.indirect_ptr_lo() == 0) {
             return;
         }
         r.offset = 0x0D;
         probe_projected_solid_tile(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         r.carry = 0;
@@ -8921,42 +8909,42 @@ mod check_projected_wide_terrain_collision {
         engine.state.set_data_ptr_lo(engine.state.indirect_ptr_hi());
         engine.state.set_data_ptr_hi(engine.state.scratch2());
         resolve_room_tile_pointer(engine, r);
-        if cbool(probe(engine, r, 0x00)) {
+        if ((probe(engine, r, 0x00)) != 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x01)) {
+        if ((probe(engine, r, 0x01)) != 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x0C)) {
+        if ((probe(engine, r, 0x0C)) != 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x0D)) {
+        if ((probe(engine, r, 0x0D)) != 0) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() != 0) {
-            if cbool(probe(engine, r, 0x18)) {
+        if (engine.state.indirect_ptr_lo() != 0) {
+            if ((probe(engine, r, 0x18)) != 0) {
                 return;
             }
-            if cbool(probe(engine, r, 0x19)) {
+            if ((probe(engine, r, 0x19)) != 0) {
                 return;
             }
         }
-        if cbool(engine.state.scratch2() >= 0xB0) {
+        if (engine.state.scratch2() >= 0xB0) {
             return;
         }
-        if cbool((engine.state.scratch2() & 0x0F) == 0) {
+        if ((engine.state.scratch2() & 0x0F) == 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x02)) {
+        if ((probe(engine, r, 0x02)) != 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x0E)) {
+        if ((probe(engine, r, 0x0E)) != 0) {
             return;
         }
-        if cbool(engine.state.indirect_ptr_lo() == 0) {
+        if (engine.state.indirect_ptr_lo() == 0) {
             return;
         }
-        if cbool(probe(engine, r, 0x1A)) {
+        if ((probe(engine, r, 0x1A)) != 0) {
             return;
         }
         r.carry = 0;
@@ -8988,17 +8976,17 @@ mod try_reflect_object_velocity {
             match state {
                 0 => {
                     engine.state.set_obj_x_vel_hi(0x00);
-                    if cbool(engine.state.obj_x_vel_lo() != 0) {
+                    if (engine.state.obj_x_vel_lo() != 0) {
                         engine.state.set_obj_x_vel_lo(0x00);
                         edge_nibble = engine.state.obj_y_pixel() & 0x0F;
-                        if cbool(edge_nibble == 0) {
+                        if (edge_nibble == 0) {
                             {
                                 state = 2;
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(edge_nibble < 0x06) {
-                            if cbool(engine.state.obj_move_state() & 0x04) {
+                        if (edge_nibble < 0x06) {
+                            if ((engine.state.obj_move_state() & 0x04) != 0) {
                                 {
                                     state = 2;
                                     continue 'dispatch;
@@ -9010,8 +8998,8 @@ mod try_reflect_object_velocity {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(edge_nibble >= 0x0B) {
-                            if cbool(engine.state.obj_move_state() & 0x08) {
+                        if (edge_nibble >= 0x0B) {
+                            if ((engine.state.obj_move_state() & 0x08) != 0) {
                                 {
                                     state = 2;
                                     continue 'dispatch;
@@ -9028,7 +9016,7 @@ mod try_reflect_object_velocity {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_y_vel() == 0) {
+                    if (engine.state.obj_y_vel() == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -9036,14 +9024,14 @@ mod try_reflect_object_velocity {
                     }
                     engine.state.set_obj_y_vel(0x00);
                     edge_nibble = engine.state.obj_x_sub();
-                    if cbool(edge_nibble == 0) {
+                    if (edge_nibble == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(edge_nibble < 0x06) {
-                        if cbool(engine.state.obj_move_state() & 0x01) {
+                    if (edge_nibble < 0x06) {
+                        if ((engine.state.obj_move_state() & 0x01) != 0) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -9056,8 +9044,8 @@ mod try_reflect_object_velocity {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(edge_nibble >= 0x0B) {
-                        if cbool(engine.state.obj_move_state() & 0x02) {
+                    if (edge_nibble >= 0x0B) {
+                        if ((engine.state.obj_move_state() & 0x02) != 0) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -9114,7 +9102,7 @@ mod initialize_large_actor_slot {
         engine.state.set_indirect_ptr_lo(0x00);
         engine.state.set_scratch3(0x00);
         check_projected_wide_terrain_collision(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_x_sub(engine.state.indirect_ptr_lo());
@@ -9159,17 +9147,17 @@ mod tick_large_chasing_actor {
                     engine
                         .state
                         .set_obj_move_state(engine.state.obj_move_state() & 0x0F);
-                    if cbool((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
-                        if cbool((engine.state.obj_move_state() & 0x03) == 0) {
+                    if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) == 0) {
+                        if ((engine.state.obj_move_state() & 0x03) == 0) {
                             engine.state.set_obj_move_state(0x01);
                         }
                         {
                             let mut turn_timer: i32 = engine.state.obj_timer();
                             engine.state.set_obj_timer(0x00);
                             turn_timer = u8v(turn_timer - 1);
-                            if cbool(turn_timer == 0) {
+                            if (turn_timer == 0) {
                                 horizontal_direction = engine.state.obj_move_state() & 0x03;
-                                if cbool(horizontal_direction != 0) {
+                                if (horizontal_direction != 0) {
                                     engine
                                         .state
                                         .set_obj_move_state(u8v(horizontal_direction ^ 0x03));
@@ -9193,7 +9181,7 @@ mod tick_large_chasing_actor {
                             }
                         }
                     } else {
-                        if cbool(engine.state.obj_timer() < 0x32) {
+                        if (engine.state.obj_timer() < 0x32) {
                             {
                                 state = 2;
                                 continue 'dispatch;
@@ -9213,9 +9201,9 @@ mod tick_large_chasing_actor {
                     r.value = engine.state.obj_move_state();
                     r.offset = 0x02;
                     build_direction_velocity(engine, r);
-                    if cbool(engine.state.obj_move_scratch() != 0) {
+                    if (engine.state.obj_move_scratch() != 0) {
                         try_large_actor_gravity_motion(engine, r);
-                        if cbool(r.carry) {
+                        if ((r.carry) != 0) {
                             {
                                 state = 6;
                                 continue 'dispatch;
@@ -9226,13 +9214,13 @@ mod tick_large_chasing_actor {
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.obj_cooldown() != 0) {
+                    if (engine.state.obj_cooldown() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if !cbool(engine.state.obj_move_state() & 0x80) {
+                    if !((engine.state.obj_move_state() & 0x80) != 0) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -9243,7 +9231,7 @@ mod tick_large_chasing_actor {
                 }
                 3 => {
                     try_large_actor_jump_arc_motion(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -9255,7 +9243,7 @@ mod tick_large_chasing_actor {
                 4 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_large_actor_with_terrain(engine, r);
-                    if !cbool(r.carry) {
+                    if !((r.carry) != 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -9296,14 +9284,14 @@ mod try_large_actor_gravity_motion {
         engine.state.set_obj_y_vel(fall_velocity);
         r.value = fall_velocity;
         try_move_large_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         r.value = 0x00;
         try_move_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_y_vel(0x00);
@@ -9318,7 +9306,7 @@ mod try_large_actor_jump_arc_motion {
     /// when horizontal motion collides with terrain.
     pub fn try_large_actor_jump_arc_motion(engine: &mut Engine, r: &mut RoutineContext) {
         let mut jump_counter: i32 = engine.state.obj_cooldown();
-        if cbool(jump_counter == 0) {
+        if (jump_counter == 0) {
             jump_counter = 0x19;
         }
         jump_counter = u8v(jump_counter - 1);
@@ -9328,7 +9316,7 @@ mod try_large_actor_jump_arc_motion {
             .state
             .set_obj_y_vel(u8v(((jump_counter >> 2) ^ 0xFF) + 1));
         try_move_large_actor_with_terrain(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
@@ -9348,33 +9336,33 @@ mod try_move_large_actor_with_terrain {
         loop {
             project_actor_position(engine, r);
             check_position_out_of_bounds(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 engine.state.set_obj_state(0x00);
                 engine.state.set_obj_timer(0xF0);
                 blocked = 1;
                 break;
             }
             check_player_overlap_wide(engine, r);
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 apply_actor_player_contact_damage(engine, r);
             }
             check_projected_wide_terrain_collision(engine, r);
-            if cbool(r.carry == 0) {
+            if (r.carry == 0) {
                 blocked = 0;
                 break;
             }
             {
                 let mut adjusted_vertical_velocity: i32 = engine.state.obj_y_vel();
-                if cbool(adjusted_vertical_velocity == 0) {
+                if (adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
-                if !cbool(adjusted_vertical_velocity & 0x80) {
+                if !((adjusted_vertical_velocity & 0x80) != 0) {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
                 engine.state.set_obj_y_vel(adjusted_vertical_velocity);
-                if cbool(adjusted_vertical_velocity == 0) {
+                if (adjusted_vertical_velocity == 0) {
                     blocked = 1;
                     break;
                 }
@@ -9391,8 +9379,8 @@ mod update_large_actor_facing_from_velocity {
     /// Updates the large actor's facing bit from horizontal velocity.
     pub fn update_large_actor_facing_from_velocity(engine: &mut Engine, r: &mut RoutineContext) {
         let mut facing_bit: i32 = 0x00;
-        if cbool(engine.state.obj_x_vel_hi() & 0x80) {
-        } else if cbool(engine.state.obj_x_vel_lo() == 0) {
+        if ((engine.state.obj_x_vel_hi() & 0x80) != 0) {
+        } else if (engine.state.obj_x_vel_lo() == 0) {
             return;
         } else {
             facing_bit = 0x40;
@@ -9464,13 +9452,13 @@ mod compose_large_actor_body_slots {
         }
         {
             let mut actor_state: i32 = engine.state.obj_state();
-            if !cbool(actor_state & 0x80) {
-                if cbool(
-                    (engine.state.object_state(0x10)
-                        | engine.state.object_state(0x20)
-                        | engine.state.object_state(0x30))
-                        & 0x80,
-                ) {
+            if !((actor_state & 0x80) != 0) {
+                if (((engine.state.object_state(0x10)
+                    | engine.state.object_state(0x20)
+                    | engine.state.object_state(0x30))
+                    & 0x80)
+                    != 0)
+                {
                     actor_state = 0x80;
                 }
             }
@@ -9481,13 +9469,13 @@ mod compose_large_actor_body_slots {
         }
         {
             let mut minimum_health: i32 = engine.state.obj_health();
-            if cbool(minimum_health >= engine.state.object_health(0x10)) {
+            if (minimum_health >= engine.state.object_health(0x10)) {
                 minimum_health = engine.state.object_health(0x10);
             }
-            if cbool(minimum_health >= engine.state.object_health(0x20)) {
+            if (minimum_health >= engine.state.object_health(0x20)) {
                 minimum_health = engine.state.object_health(0x20);
             }
-            if cbool(minimum_health >= engine.state.object_health(0x30)) {
+            if (minimum_health >= engine.state.object_health(0x30)) {
                 minimum_health = engine.state.object_health(0x30);
             }
             engine.state.set_object_health(0x00, minimum_health);
@@ -9506,11 +9494,11 @@ mod compose_large_actor_body_slots {
             engine.state.set_object_attr(0x10, sprite_attrs);
             engine.state.set_object_attr(0x20, sprite_attrs);
             engine.state.set_object_attr(0x30, sprite_attrs);
-            if cbool(sprite_attrs & 0x40) {
+            if ((sprite_attrs & 0x40) != 0) {
                 swap_slot_sprite_id(engine, 0x0400, 0x0410);
                 swap_slot_sprite_id(engine, 0x0420, 0x0430);
             }
-            if cbool(sprite_attrs & 0x80) {
+            if ((sprite_attrs & 0x80) != 0) {
                 swap_slot_sprite_id(engine, 0x0400, 0x0420);
                 swap_slot_sprite_id(engine, 0x0410, 0x0430);
             }
@@ -9535,13 +9523,13 @@ mod update_player_projectiles {
         loop {
             let slot_ptr: i32 = u16v(engine.state.obj_slot_ptr());
             let active_lifetime: i32 = engine.state.byte(u16v(slot_ptr + 1));
-            if cbool(active_lifetime != 0) {
+            if (active_lifetime != 0) {
                 r.value = active_lifetime;
                 r.offset = 0x01;
                 update_player_projectile_slot(engine, r);
             } else {
-                if cbool(engine.state.buttons() & 0x40) {
-                    if !cbool(engine.state.direction_latch() & 0x40) {
+                if ((engine.state.buttons() & 0x40) != 0) {
+                    if !((engine.state.direction_latch() & 0x40) != 0) {
                         r.value = 0x00;
                         r.offset = 0x01;
                         spawn_player_projectile(engine, r);
@@ -9558,7 +9546,7 @@ mod update_player_projectiles {
                     .state
                     .set_obj_slot_ptr_hi(u8v(engine.state.obj_slot_ptr_hi() + (next_slot_lo >> 8)));
             }
-            if !cbool(u8v(engine.state.slot_index() - 0x0B) < engine.state.projectile_count()) {
+            if !(u8v(engine.state.slot_index() - 0x0B) < engine.state.projectile_count()) {
                 break;
             }
         }
@@ -9579,7 +9567,7 @@ mod spawn_player_projectile {
                     engine.state.set_direction_latch(u8v(
                         (engine.state.buttons() & 0x40) | engine.state.direction_latch()
                     ));
-                    r.offset = u8v((if cbool(engine.state.displaced_timer() != 0) {
+                    r.offset = u8v((if (engine.state.displaced_timer() != 0) {
                         0x04
                     } else {
                         0x02
@@ -9588,14 +9576,14 @@ mod spawn_player_projectile {
                     build_direction_velocity(engine, r);
                     project_player_projectile_position(engine, r);
                     check_position_out_of_bounds(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     consume_magic_point(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -9606,12 +9594,12 @@ mod spawn_player_projectile {
                     engine.state.set_obj_y_pixel(engine.state.scratch2());
                     load_effective_projectile_lifetime(engine, r);
                     engine.state.set_obj_state(r.value);
-                    if cbool(r.carry == 0) {
+                    if (r.carry == 0) {
                         consume_magic_point(engine, r);
                     }
                     load_effective_projectile_damage(engine, r);
                     engine.state.set_obj_damage(r.value);
-                    if cbool(r.carry == 0) {
+                    if (r.carry == 0) {
                         consume_magic_point(engine, r);
                     }
                     engine.state.set_obj_attr(0x00);
@@ -9623,7 +9611,7 @@ mod spawn_player_projectile {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.state.obj_state() != 0) {
+                    if (engine.state.obj_state() != 0) {
                         apply_projectile_direction_bits(engine, r);
                     }
                     store_object_slot_scratch(engine, r);
@@ -9645,7 +9633,7 @@ mod update_player_projectile_slot {
     }
 
     fn finish_projectile_slot_update(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.obj_state() != 0) {
+        if (engine.state.obj_state() != 0) {
             apply_projectile_direction_bits(engine, r);
         }
         store_object_slot_scratch(engine, r);
@@ -9658,24 +9646,24 @@ mod update_player_projectile_slot {
         engine
             .state
             .set_obj_state(u8v(engine.state.obj_state() - 1));
-        if cbool(engine.state.obj_state() == 0) {
+        if (engine.state.obj_state() == 0) {
             finish_projectile_slot_update(engine, r);
             return;
         }
         project_actor_position(engine, r);
         check_position_out_of_bounds(engine, r);
-        if cbool(r.carry) {
+        if ((r.carry) != 0) {
             engine.state.set_obj_state(0x00);
             finish_projectile_slot_update(engine, r);
             return;
         }
         find_damageable_actor_overlap(engine, r);
-        if !cbool(r.carry) {
+        if !((r.carry) != 0) {
             store_projectile_position(engine, r);
             finish_projectile_slot_update(engine, r);
             return;
         }
-        if (cbool(engine.state.chr_bank(3) >= 0x30) && cbool(engine.state.scratch0() >= 0x04)) {
+        if ((engine.state.chr_bank(3) >= 0x30) && (engine.state.scratch0() >= 0x04)) {
             let hit_slot: i32 = engine.state.scratch1();
             engine.state.set_object_state(hit_slot, 0x80);
             engine.state.set_obj_state(0x01);
@@ -9686,14 +9674,14 @@ mod update_player_projectile_slot {
         }
         {
             let mut hit_slot: i32 = engine.state.scratch1();
-            if cbool(u8v(engine.state.object_state(hit_slot) - 1) != 0) {
+            if (u8v(engine.state.object_state(hit_slot) - 1) != 0) {
                 store_projectile_position(engine, r);
                 finish_projectile_slot_update(engine, r);
                 return;
             }
             hit_slot = engine.state.scratch1();
             {
-                let knockback: i32 = (if cbool(engine.state.obj_state() & 0x01) {
+                let knockback: i32 = (if ((engine.state.obj_state() & 0x01) != 0) {
                     0x02
                 } else {
                     0xFE
@@ -9707,7 +9695,7 @@ mod update_player_projectile_slot {
                     0xE3 + hit_slot,
                     u8v(target_health - projectile_damage),
                 );
-                if cbool(target_health >= projectile_damage) {
+                if (target_health >= projectile_damage) {
                     engine.state.set_prompt_state(0x06);
                 } else {
                     engine.state.set_object_state(hit_slot, 0x80);
@@ -9733,12 +9721,12 @@ mod project_player_projectile_position {
             .state
             .set_indirect_ptr_hi(engine.state.player_x_tile());
         engine.state.set_scratch2(engine.state.player_y());
-        if cbool(engine.state.obj_y_vel() != 0) {
+        if (engine.state.obj_y_vel() != 0) {
             let mut a: i32 = u8v(engine.state.obj_y_vel() << 2);
             a = u8v(a + engine.state.scratch2());
             engine.state.set_scratch2(a);
         }
-        if cbool(engine.state.obj_x_vel_lo() != 0) {
+        if (engine.state.obj_x_vel_lo() != 0) {
             let projected_subtile: i32 = u8v(
                 u8v((engine.state.obj_x_vel_lo() << 2) & 0x0F) + engine.state.indirect_ptr_lo()
             );
@@ -9773,7 +9761,7 @@ mod update_tile_projectile {
     /// Updates the singleton tile-removal projectile stored at `0x0490` and
     /// restores its saved background tile when it expires.
     pub fn update_tile_projectile(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool(engine.state.object_state(0x90) == 0) {
+        if (engine.state.object_state(0x90) == 0) {
             return;
         }
         engine.state.set_obj_slot_ptr_lo(0x90);
@@ -9782,12 +9770,12 @@ mod update_tile_projectile {
         engine
             .state
             .set_obj_timer(u8v(engine.state.obj_timer() - 1));
-        if cbool(engine.state.obj_timer() != 0) {
+        if (engine.state.obj_timer() != 0) {
             update_tile_projectile_motion(engine, r);
             return;
         }
-        if cbool((engine.state.obj_tile() & 0x01) == 0) {
-            if cbool(u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0) {
+        if ((engine.state.obj_tile() & 0x01) == 0) {
+            if (u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0) {
                 engine
                     .state
                     .set_obj_timer(u8v(engine.state.obj_timer() + 1));
@@ -9796,7 +9784,7 @@ mod update_tile_projectile {
             }
         }
         engine.state.set_obj_state(0x00);
-        if cbool(engine.state.obj_move_scratch() != 0) {
+        if (engine.state.obj_move_scratch() != 0) {
             engine.state.set_data_ptr_lo(engine.state.obj_x_tile());
             engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
             resolve_room_tile_pointer(engine, r);
@@ -9805,7 +9793,7 @@ mod update_tile_projectile {
                 .state
                 .set_byte(tile_ptr, engine.state.obj_move_scratch());
             let screen_diff: i32 = u8v(engine.state.obj_x_tile() - engine.state.scroll_tile_x());
-            if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
+            if ((screen_diff < 0x11) || (screen_diff >= 0xFE)) {
                 let tile_x: i32 = engine.state.obj_x_tile();
                 engine.state.set_data_ptr_lo(tile_x);
                 engine.state.set_vram_addr_lo(u8v((tile_x << 1) & 0x1F));
@@ -9839,7 +9827,7 @@ mod update_tile_projectile_motion {
                         let mut i: i32 = 0;
                         {
                             i = 0x0800;
-                            while cbool(i < 0xA000) {
+                            while (i < 0xA000) {
                                 engine.state.set_byte(i, 0);
                                 {
                                     i += 1;
@@ -9848,8 +9836,8 @@ mod update_tile_projectile_motion {
                             }
                         }
                     }
-                    if cbool(engine.state.obj_tile() & 0x01) {
-                        if cbool((engine.state.obj_timer() & 0x03) == 0) {
+                    if ((engine.state.obj_tile() & 0x01) != 0) {
+                        if ((engine.state.obj_timer() & 0x03) == 0) {
                             engine.state.set_obj_tile(engine.state.obj_tile() ^ 0x04);
                         }
                         {
@@ -9860,28 +9848,28 @@ mod update_tile_projectile_motion {
                     engine.state.set_slot_index(0x09);
                     project_actor_position(engine, r);
                     check_actor_position_out_of_bounds(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
                     check_projected_terrain_collision(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
                     check_player_overlap(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     find_damageable_actor_overlap(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         let hit_slot: i32 = engine.state.scratch1();
                         engine.state.set_object_state(hit_slot, 0x80);
                     }
@@ -9897,13 +9885,13 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.state.obj_move_state() != 0) {
+                    if (engine.state.obj_move_state() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
                         }
                     }
-                    if cbool(engine.state.sprite_blink_timer() != 0) {
+                    if (engine.state.sprite_blink_timer() != 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -9916,7 +9904,7 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 2 => {
-                    if cbool(engine.state.obj_move_state() != 0) {
+                    if (engine.state.obj_move_state() != 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -9925,7 +9913,7 @@ mod update_tile_projectile_motion {
                     engine
                         .state
                         .set_obj_move_state(u8v(engine.state.obj_move_state() + 1));
-                    if cbool(engine.state.obj_x_vel_lo() != 0) {
+                    if (engine.state.obj_x_vel_lo() != 0) {
                         engine
                             .state
                             .set_obj_x_vel_lo(u8v((0 - engine.state.obj_x_vel_lo()) & 0x0F));
@@ -9936,7 +9924,7 @@ mod update_tile_projectile_motion {
                     engine
                         .state
                         .set_obj_y_vel(u8v(u8v(!engine.state.obj_y_vel()) + 1));
-                    if cbool(engine.state.prompt_state() == 0) {
+                    if (engine.state.prompt_state() == 0) {
                         engine.state.set_prompt_state(0x06);
                     }
                     {
@@ -9947,9 +9935,7 @@ mod update_tile_projectile_motion {
                     continue 'dispatch;
                 }
                 3 => {
-                    if cbool(
-                        u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0,
-                    ) {
+                    if (u8v((engine.state.obj_y_pixel() & 0x0F) | engine.state.obj_x_sub()) != 0) {
                         engine
                             .state
                             .set_obj_timer(u8v(engine.state.obj_timer() + 1));
@@ -9960,7 +9946,7 @@ mod update_tile_projectile_motion {
                     }
                     {
                         engine.state.set_obj_state(0x00);
-                        if cbool(engine.state.obj_move_scratch() != 0) {
+                        if (engine.state.obj_move_scratch() != 0) {
                             engine.state.set_data_ptr_lo(engine.state.obj_x_tile());
                             engine.state.set_data_ptr_hi(engine.state.obj_y_pixel());
                             resolve_room_tile_pointer(engine, r);
@@ -9970,7 +9956,7 @@ mod update_tile_projectile_motion {
                                 .set_byte(tile_ptr, engine.state.obj_move_scratch());
                             let screen_diff: i32 =
                                 u8v(engine.state.obj_x_tile() - engine.state.scroll_tile_x());
-                            if (cbool(screen_diff < 0x11) || cbool(screen_diff >= 0xFE)) {
+                            if ((screen_diff < 0x11) || (screen_diff >= 0xFE)) {
                                 let tile_x: i32 = engine.state.obj_x_tile();
                                 engine.state.set_data_ptr_lo(tile_x);
                                 engine.state.set_vram_addr_lo(u8v((tile_x << 1) & 0x1F));
@@ -10020,11 +10006,11 @@ mod tick_pulse1_channel {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((engine.state.sound_channel_byte(1, 0x00) & 0x80) == 0) {
+                    if ((engine.state.sound_channel_byte(1, 0x00) & 0x80) == 0) {
                         silence_pulse1(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x00)) != 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(0, 0x00)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -10036,12 +10022,12 @@ mod tick_pulse1_channel {
                                 | (engine.state.sound_channel_byte(3, 0x00) << 8),
                         );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
-                        if cbool(note_byte == 0) {
+                        if (note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_pulse1(engine, r);
                             return;
                         }
-                        if cbool(note_byte == 0xFF) {
+                        if (note_byte == 0xFF) {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
@@ -10049,7 +10035,7 @@ mod tick_pulse1_channel {
                         engine
                             .state
                             .set_sound_channel_byte(0, 0x00, u8v(note_byte & 0x7F));
-                        if cbool(note_byte & 0x80) {
+                        if ((note_byte & 0x80) != 0) {
                             start_rest_envelope(engine, r);
                         } else {
                             load_note_period(engine, r);
@@ -10078,15 +10064,15 @@ mod tick_pulse1_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.state.sound_status_flags() & 0x01) == 0) {
+                    if ((engine.state.sound_status_flags() & 0x01) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x00)) == 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(10, 0x00)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(crate::engine::reg::SQ1_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         silence_pulse1(engine, r);
                     }
                     break 'dispatch;
@@ -10115,14 +10101,14 @@ mod tick_pulse2_channel {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((channel_flags & 0x80) == 0) {
-                        if cbool(channel_flags & 0x40) {
+                    if ((channel_flags & 0x80) == 0) {
+                        if ((channel_flags & 0x40) != 0) {
                             return;
                         }
                         silence_pulse2(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x10)) != 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(0, 0x10)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -10134,12 +10120,12 @@ mod tick_pulse2_channel {
                                 | (engine.state.sound_channel_byte(3, 0x10) << 8),
                         );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
-                        if cbool(note_byte == 0) {
+                        if (note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_pulse2(engine, r);
                             return;
                         }
-                        if cbool(note_byte == 0xFF) {
+                        if (note_byte == 0xFF) {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
@@ -10147,8 +10133,8 @@ mod tick_pulse2_channel {
                         engine
                             .state
                             .set_sound_channel_byte(0, 0x10, u8v(note_byte & 0x7F));
-                        if cbool(note_byte & 0x80) {
-                            if cbool(engine.state.sound_channel_flags() & 0x40) {
+                        if ((note_byte & 0x80) != 0) {
+                            if ((engine.state.sound_channel_flags() & 0x40) != 0) {
                                 return;
                             }
                             start_rest_envelope(engine, r);
@@ -10157,7 +10143,7 @@ mod tick_pulse2_channel {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool(engine.state.sound_channel_flags() & 0x40) {
+                        if ((engine.state.sound_channel_flags() & 0x40) != 0) {
                             increment_selected_music_stream_pointer(engine, r);
                             return;
                         }
@@ -10186,18 +10172,18 @@ mod tick_pulse2_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool(engine.state.sound_channel_flags() & 0x40) {
+                    if ((engine.state.sound_channel_flags() & 0x40) != 0) {
                         return;
                     }
-                    if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
+                    if ((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x10)) == 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(10, 0x10)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(crate::engine::reg::SQ2_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         silence_pulse2(engine, r);
                     }
                     break 'dispatch;
@@ -10220,11 +10206,11 @@ mod tick_triangle_channel {
     }
 
     pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.state.sound_channel_byte(1, 0x20) & 0x80) == 0) {
+        if ((engine.state.sound_channel_byte(1, 0x20) & 0x80) == 0) {
             silence_triangle(engine, r);
             return;
         }
-        if cbool(u8v(engine.state.triangle_timer() - 1) != 0) {
+        if (u8v(engine.state.triangle_timer() - 1) != 0) {
             engine
                 .state
                 .set_triangle_timer(u8v(engine.state.triangle_timer() - 1));
@@ -10239,18 +10225,18 @@ mod tick_triangle_channel {
                     | (engine.state.sound_channel_byte(3, 0x20) << 8),
             );
             let mut note_byte: i32 = engine.state.byte(stream_ptr);
-            if cbool(note_byte == 0) {
+            if (note_byte == 0) {
                 rewind_or_stop_audio_stream(engine, r);
                 silence_triangle(engine, r);
                 return;
             }
-            if cbool(note_byte != 0xFF) {
+            if (note_byte != 0xFF) {
                 let mut is_rest: i32 = u8v(note_byte & 0x80);
                 r.value = note_byte;
                 increment_selected_music_stream_pointer(engine, r);
                 r.value = u8v(note_byte & 0x7F);
                 engine.state.set_triangle_timer(r.value);
-                if cbool(is_rest) {
+                if ((is_rest) != 0) {
                     silence_triangle(engine, r);
                     return;
                 }
@@ -10286,11 +10272,11 @@ mod tick_noise_channel {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((engine.state.sound_channel_byte(1, 0x30) & 0x80) == 0) {
+                    if ((engine.state.sound_channel_byte(1, 0x30) & 0x80) == 0) {
                         silence_noise(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x30)) != 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(0, 0x30)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
@@ -10302,12 +10288,12 @@ mod tick_noise_channel {
                                 | (engine.state.sound_channel_byte(3, 0x30) << 8),
                         );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
-                        if cbool(note_byte == 0) {
+                        if (note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
                             silence_noise(engine, r);
                             return;
                         }
-                        if cbool(note_byte == 0xFF) {
+                        if (note_byte == 0xFF) {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
@@ -10315,7 +10301,7 @@ mod tick_noise_channel {
                         engine
                             .state
                             .set_sound_channel_byte(0, 0x30, u8v(note_byte & 0x7F));
-                        if cbool(note_byte & 0x80) {
+                        if ((note_byte & 0x80) != 0) {
                             start_rest_envelope(engine, r);
                         } else {
                             engine
@@ -10336,15 +10322,15 @@ mod tick_noise_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.state.sound_status_flags() & 0x08) == 0) {
+                    if ((engine.state.sound_status_flags() & 0x08) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x30)) == 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(10, 0x30)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(crate::engine::reg::NOISE_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         silence_noise(engine, r);
                     }
                     break 'dispatch;
@@ -10381,7 +10367,7 @@ mod dispatch_audio_stream_command {
         }
         increment_selected_music_stream_pointer(engine, r);
         let mut command_id: i32 = engine.state.sound_command();
-        if cbool(command_id >= 0x05) {
+        if (command_id >= 0x05) {
             return;
         }
         const ORIGINAL_COMMAND_HANDLERS: [i32; 5] = [0xFBC5, 0xFBE2, 0xFBFF, 0xFC02, 0xFC05];
@@ -10450,9 +10436,9 @@ mod audio_cmd_set_volume_scale {
     // 0..15 volume accumulator is updated.
     pub fn audio_cmd_set_volume_scale(engine: &mut Engine, r: &mut RoutineContext) {
         let mut channel_offset: i32 = u8v(r.index);
-        if !cbool(engine.state.sound_channel_offset() == 0x40) {
+        if !(engine.state.sound_channel_offset() == 0x40) {
             let mut music_volume_override: i32 = engine.state.music_volume_override();
-            if cbool(music_volume_override != 0) {
+            if (music_volume_override != 0) {
                 r.value = music_volume_override;
                 r.index = channel_offset;
                 return;
@@ -10460,7 +10446,7 @@ mod audio_cmd_set_volume_scale {
         }
         {
             let mut adjusted_command: i32 = u8v(0x0F + engine.state.sound_length());
-            let mut scale: i32 = if cbool(adjusted_command >= 0x08) {
+            let mut scale: i32 = if (adjusted_command >= 0x08) {
                 u8v(adjusted_command - 0x08)
             } else {
                 0x00
@@ -10523,13 +10509,13 @@ mod load_note_period {
                 let mut sub: i32 =
                     u16v(u16v(lo) - engine.state.sound_channel_byte(14, channel_offset));
                 lo = u8v(sub);
-                if cbool(sub & 0x100) {
+                if ((sub & 0x100) != 0) {
                     hi = u8v(hi - 1);
                 }
             }
             {
                 let mut octave_shift_count: i32 = u8v(note_byte >> 4);
-                while cbool(octave_shift_count != 0) {
+                while (octave_shift_count != 0) {
                     let mut carry_from_hi: i32 = u8v(hi & 1);
                     hi = u8v(hi >> 1);
                     lo = u8v((lo >> 1) | (carry_from_hi << 7));
@@ -10555,7 +10541,7 @@ mod scale_envelope_volume {
         loop {
             scaled_volume = u8v(scaled_volume + engine.state.audio_duty_work());
             multiplier = u8v(multiplier - 1);
-            if !cbool(multiplier != 0) {
+            if !(multiplier != 0) {
                 break;
             }
         }
@@ -10662,7 +10648,7 @@ mod rewind_or_stop_audio_stream {
         engine
             .state
             .set_sound_channel_byte(3, channel_offset, loop_pointer_hi);
-        if cbool(loop_pointer_hi != 0) {
+        if (loop_pointer_hi != 0) {
             engine.state.set_sound_channel_byte(0, channel_offset, 0x01);
         } else {
             engine.state.set_sound_channel_byte(
@@ -10692,12 +10678,12 @@ mod next_envelope_volume {
             let mut envelope_delta: i32 = engine.state.sound_channel_byte(9, channel_offset);
             let mut accumulator: i32 =
                 u8v(envelope_delta + engine.state.sound_channel_byte(12, channel_offset));
-            if cbool(envelope_delta & 0x80) {
-                if cbool(accumulator >= 0x10) {
+            if ((envelope_delta & 0x80) != 0) {
+                if (accumulator >= 0x10) {
                     accumulator = 0x00;
                 }
             } else {
-                if cbool(accumulator >= 0x10) {
+                if (accumulator >= 0x10) {
                     accumulator = 0x0F;
                 }
             }
@@ -10730,13 +10716,13 @@ mod advance_envelope_phase {
         engine
             .state
             .set_sound_channel_byte(11, channel_offset, phase_timer);
-        if cbool(phase_timer != 0) {
+        if (phase_timer != 0) {
             r.index = channel_offset;
             r.carry = 0;
             return;
         }
         phase_low_nibble = engine.state.sound_channel_byte(8, channel_offset) & 0x0F;
-        if cbool(phase_low_nibble >= 0x0C) {
+        if (phase_low_nibble >= 0x0C) {
             r.index = channel_offset;
             r.value = phase_low_nibble;
             r.carry = 1;
@@ -10772,13 +10758,11 @@ mod scene_assemble {
     pub fn scene_assemble(engine: &mut Engine, r: &mut RoutineContext) {
         select_room_data_bank_and_pointers(engine, r);
         copy_room_tile_pages(engine, r);
-        r.carry = u8v(u8v(
-            (if cbool((engine.state.room_metadef_hi() + 0x03) > 0xFF) {
-                1
-            } else {
-                0
-            }),
-        ));
+        r.carry = u8v(u8v((if ((engine.state.room_metadef_hi() + 0x03) > 0xFF) {
+            1
+        } else {
+            0
+        })));
         text_attr_build(engine, r);
         build_room_palette_buffer(engine, r);
     }
@@ -10802,23 +10786,21 @@ mod sfx_overlay_voice {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool(engine.state.prompt_state() != 0) {
-                        if cbool((engine.state.sfx_voice_active() & 0x80) == 0) {
+                    if (engine.state.prompt_state() != 0) {
+                        if ((engine.state.sfx_voice_active() & 0x80) == 0) {
                             start = 1;
-                        } else if cbool(
-                            engine.state.prompt_argument() >= engine.state.sfx_priority(),
-                        ) {
+                        } else if (engine.state.prompt_argument() >= engine.state.sfx_priority()) {
                             start = 1;
                         } else {
                             engine.state.set_prompt_argument(0x00);
                             engine.state.set_prompt_state(0x00);
                         }
                     }
-                    if !cbool(start) {
-                        if cbool((engine.state.sfx_voice_active() & 0x80) == 0) {
+                    if !((start) != 0) {
+                        if ((engine.state.sfx_voice_active() & 0x80) == 0) {
                             return;
                         }
-                        if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x40)) != 0) {
+                        if (u8v(engine.state.dec_sound_channel_byte(0, 0x40)) != 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -10857,7 +10839,7 @@ mod sfx_overlay_voice {
                                 | (engine.state.sound_channel_byte(3, 0x40) << 8),
                         );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
-                        if cbool(note_byte == 0) {
+                        if (note_byte == 0) {
                             engine.state.set_sfx_voice_active(0x00);
                             engine.state.set_sfx_priority(0x00);
                             engine
@@ -10868,7 +10850,7 @@ mod sfx_overlay_voice {
                             silence_sfx_pulse2(engine, r);
                             return;
                         }
-                        if cbool(note_byte == 0xFF) {
+                        if (note_byte == 0xFF) {
                             dispatch_audio_stream_command(engine, r);
                             continue;
                         }
@@ -10876,7 +10858,7 @@ mod sfx_overlay_voice {
                         engine
                             .state
                             .set_sound_channel_byte(0, 0x40, u8v(note_byte & 0x7F));
-                        if cbool(note_byte & 0x80) {
+                        if ((note_byte & 0x80) != 0) {
                             start_rest_envelope(engine, r);
                         } else {
                             load_note_period(engine, r);
@@ -10903,15 +10885,15 @@ mod sfx_overlay_voice {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
+                    if ((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x40)) == 0) {
+                    if (u8v(engine.state.dec_sound_channel_byte(10, 0x40)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(crate::engine::reg::SQ2_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
-                    if cbool(r.carry) {
+                    if ((r.carry) != 0) {
                         silence_sfx_pulse2(engine, r);
                     }
                     break 'dispatch;
@@ -10929,13 +10911,13 @@ mod song_init {
         let mut idx: i32 = 0;
         let mut x: i32 = 0;
         let mut blk: i32 = 0;
-        x = u8v((if cbool(song < 0x0A) { 0x0A } else { 0x0C }));
+        x = u8v((if (song < 0x0A) { 0x0A } else { 0x0C }));
         engine.state.set_song_ptr_lo(x);
         engine.state.set_song_ptr_hi(u8v(x + 1));
         sound_set_song_banks(engine, r);
         engine.state.set_music_volume_override(0x00);
         engine.state.set_prompt_state(0x00);
-        idx = u8v((if cbool(song < 0x0A) {
+        idx = u8v((if (song < 0x0A) {
             song
         } else {
             u8v(song - 0x0A)
@@ -10953,13 +10935,13 @@ mod song_init {
         engine.state.set_data_ptr_hi(0x00);
         {
             blk = 0;
-            while cbool(blk < 4) {
+            while (blk < 4) {
                 let mut y: i32 = 0;
                 let mut s: i32 = u16v(engine.state.indirect_ptr());
                 let mut d: i32 = u16v(engine.state.data_ptr());
                 {
                     y = 7;
-                    while cbool(y >= 0) {
+                    while (y >= 0) {
                         engine
                             .state
                             .set_byte(u16v(d + y), engine.state.byte(u16v(s + y)));
@@ -10978,7 +10960,7 @@ mod song_init {
                 d = u16v(engine.state.data_ptr());
                 {
                     y = 7;
-                    while cbool(y >= 0) {
+                    while (y >= 0) {
                         engine.state.set_byte(u16v(d + y), 0x00);
                         {
                             let __old = y;
@@ -11063,8 +11045,8 @@ mod sound_tick {
         engine.state.set_sound_channel_offset(0x40);
         r.value = 0x40;
         sfx_overlay_voice(engine, r);
-        if cbool(engine.state.sound_paused() != 0) {
-            if !cbool(engine.state.sfx_voice_active() & 0x80) {
+        if (engine.state.sound_paused() != 0) {
+            if !((engine.state.sfx_voice_active() & 0x80) != 0) {
                 engine.device_write(
                     (0x4004),
                     (engine.state.sound_channel_byte(6, 0x10) & 0xC0) | 0x30,
@@ -11109,7 +11091,7 @@ mod statusbar_split {
             engine.state.scroll_pixel_x(),
         );
         engine.device_write(crate::engine::reg::PPU_SCROLL, engine.state.scroll_y());
-        if cbool(engine.state.statusbar_split_flag() != 0) {
+        if (engine.state.statusbar_split_flag() != 0) {
             let _ = engine.device_read(crate::engine::reg::PPU_STATUS);
             engine.device_write(
                 crate::engine::reg::PPU_CTRL,
@@ -11125,7 +11107,7 @@ mod statusbar_split {
             engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x3F);
         }
         sound_tick(engine, r);
-        if cbool(engine.state.statusbar_split_flag() == 0) {
+        if (engine.state.statusbar_split_flag() == 0) {
             return;
         }
         engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x01);
@@ -11174,12 +11156,11 @@ mod text_attr_build {
             loop {
                 c = u8v((a >> 7) & 1);
                 a = u8v(a << 1);
-                if !cbool(
-                    {
-                        cnt -= 1;
-                        cnt
-                    } != 0,
-                ) {
+                if !({
+                    cnt -= 1;
+                    cnt
+                } != 0)
+                {
                     break;
                 }
             }
@@ -11189,13 +11170,13 @@ mod text_attr_build {
         {
             let mut y: i32 = 0x07;
             let mut a: i32 = 0;
-            if cbool(r.carry) {
+            if ((r.carry) != 0) {
                 a = engine.state.byte(u16v(p + y));
             } else {
                 a = 0;
             }
             engine.state.set_object_state(0xA0, a);
-            if cbool(a != 0) {
+            if (a != 0) {
                 engine.state.set_object_attr(0xA0, 0x01);
                 {
                     let __old = y;
@@ -11220,7 +11201,7 @@ mod text_attr_build {
                     __old
                 };
                 b = engine.state.byte(u16v(p + y));
-                if cbool(b == 0x17) {
+                if (b == 0x17) {
                     engine.state.set_object_state(0xA0, 0x19);
                     engine.state.set_object_tile(0xA0, 0xDD);
                 } else {
@@ -11231,7 +11212,7 @@ mod text_attr_build {
         {
             let mut x: i32 = engine.state.song();
             let mut do_d02e: i32 = 1;
-            if cbool(x < 0x05) {
+            if (x < 0x05) {
                 let mut a: i32 = 0x00;
                 let mut c: i32 = 1;
                 let mut i: i32 = (x);
@@ -11243,16 +11224,16 @@ mod text_attr_build {
                         i -= 1;
                         i
                     };
-                    if !cbool(i >= 0) {
+                    if !(i >= 0) {
                         break;
                     }
                 }
                 a = u8v(a & engine.state.byte(u16v(p + 0x15)));
-                if cbool(a != 0) {
+                if (a != 0) {
                     do_d02e = 0;
                 }
             }
-            if cbool(do_d02e) {
+            if ((do_d02e) != 0) {
                 r.value = engine.state.byte(u16v(p + 0x0B));
                 switch_song_if_needed(engine, r);
             }
@@ -11280,14 +11261,14 @@ mod vblank_commit {
     pub fn vblank_commit(engine: &mut Engine, r: &mut RoutineContext) {
         let save = *r;
         {
-            engine.ppu.set_vblank(cbool(1));
-            engine.ppu.set_sprite0(cbool(
-                (if cbool(engine.state.ppu_mask_shadow() & 0x18) {
+            engine.ppu.set_vblank(((1) != 0));
+            engine.ppu.set_sprite0(
+                ((if ((engine.state.ppu_mask_shadow() & 0x18) != 0) {
                     1
                 } else {
                     0
-                }),
-            ));
+                }) != 0),
+            );
             engine.ppu.eval_sprite_overflow();
         }
         {
@@ -11297,7 +11278,7 @@ mod vblank_commit {
         engine.device_write(crate::engine::reg::OAM_ADDR, 0x00);
         engine.device_write(crate::engine::reg::OAM_DMA, 0x02);
         let mut req: i32 = engine.state.nmi_vram_req();
-        if cbool(req == 0) {
+        if (req == 0) {
             vblank_commit_tail(engine, r);
             {
                 *r = save;
@@ -11305,7 +11286,7 @@ mod vblank_commit {
             }
         }
         engine.state.set_nmi_vram_req(0x00);
-        if cbool(req >= 0x07) {
+        if (req >= 0x07) {
             vblank_commit_tail(engine, r);
             {
                 *r = save;
@@ -11355,7 +11336,7 @@ mod vblank_commit_tail {
     pub fn vblank_commit_tail(engine: &mut Engine, r: &mut RoutineContext) {
         ppu_commit_banks(engine, r);
         statusbar_split(engine, r);
-        if cbool(engine.state.frame_counter() != 0) {
+        if (engine.state.frame_counter() != 0) {
             engine
                 .state
                 .set_frame_counter((engine.state.frame_counter() - 1) & 0xFF);
@@ -11373,7 +11354,7 @@ mod vram_blit_stack {
     pub fn vram_blit_stack(engine: &mut Engine, r: &mut RoutineContext) {
         {
             let mut i: i32 = 0;
-            while cbool(i < 0x40) {
+            while (i < 0x40) {
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine.state.inventory_item(0xA0 + i),
@@ -11405,12 +11386,11 @@ mod vram_copy_indirect {
                 y += 1;
                 __old
             };
-            if !cbool(
-                {
-                    x -= 1;
-                    x
-                } != 0,
-            ) {
+            if !({
+                x -= 1;
+                x
+            } != 0)
+            {
                 break;
             }
         }
@@ -11425,12 +11405,11 @@ mod vram_fill_run {
         let mut a: i32 = engine.state.vram_addr2_lo();
         loop {
             engine.device_write(crate::engine::reg::PPU_DATA, a);
-            if !cbool(
-                {
-                    x -= 1;
-                    x
-                } != 0,
-            ) {
+            if !({
+                x -= 1;
+                x
+            } != 0)
+            {
                 break;
             }
         }
@@ -11457,7 +11436,7 @@ mod vram_upload_hud {
         );
         {
             x = 0x17;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 engine.device_write(crate::engine::reg::PPU_DATA, engine.state.vram_stage(x));
                 {
                     let __old = x;
@@ -11473,7 +11452,7 @@ mod vram_upload_hud {
         );
         {
             x = 0x17;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine.state.vram_stage(0x18 + x),
@@ -11487,7 +11466,7 @@ mod vram_upload_hud {
         }
         {
             x = 0x0A;
-            while cbool(x >= 0) {
+            while (x >= 0) {
                 engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr2_hi());
                 engine.device_write(
                     crate::engine::reg::PPU_ADDR,
@@ -11520,7 +11499,7 @@ mod vram_upload_palette {
         engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
         {
             y = 0;
-            while cbool(y < 0x20) {
+            while (y < 0x20) {
                 engine.device_write(crate::engine::reg::PPU_DATA, engine.state.palette_buffer(y));
                 {
                     let __old = y;

@@ -22,44 +22,6 @@ pub mod state;
 pub use engine::{Engine, PPU_H, PPU_W, RoutineContext};
 pub use state::GameState;
 
-pub trait CTruth {
-    fn c_truth(self) -> bool;
-}
-
-impl CTruth for bool {
-    fn c_truth(self) -> bool {
-        self
-    }
-}
-
-impl CTruth for i32 {
-    fn c_truth(self) -> bool {
-        self != 0
-    }
-}
-
-impl CTruth for u8 {
-    fn c_truth(self) -> bool {
-        self != 0
-    }
-}
-
-impl CTruth for u16 {
-    fn c_truth(self) -> bool {
-        self != 0
-    }
-}
-
-impl CTruth for usize {
-    fn c_truth(self) -> bool {
-        self != 0
-    }
-}
-
-pub fn cbool<T: CTruth>(value: T) -> bool {
-    value.c_truth()
-}
-
 pub trait CByte {
     fn c_byte(self) -> i32;
 }
@@ -100,8 +62,4 @@ pub fn u8v<T: CByte>(value: T) -> i32 {
 
 pub fn u16v<T: CByte>(value: T) -> i32 {
     value.c_byte() & 0xffff
-}
-
-pub fn not<T: CTruth>(value: T) -> bool {
-    !value.c_truth()
 }
