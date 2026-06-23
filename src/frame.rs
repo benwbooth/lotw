@@ -25,7 +25,7 @@ pub fn frame_runner_stop_requested() -> bool {
     false
 }
 
-pub fn frame_wait(_engine: &mut Engine, r: &mut RoutineContext) {
+pub fn frame_wait(engine: &mut Engine, r: &mut RoutineContext) {
     let yielder = YIELDER.with(|y| y.get());
     if yielder.is_null() {
         return;
@@ -34,10 +34,17 @@ pub fn frame_wait(_engine: &mut Engine, r: &mut RoutineContext) {
     // suspended (e.g. vblank work), so save and restore the game's registers
     // across the suspension point.
     let saved = *r;
+    // Force the engine pointer to escape to opaque code at every suspend. The
+    // game holds a single `&mut Engine` live across all suspends; without this,
+    // a release build assumes that `&mut` is unaliased and elides the game's
+    // writes (the control loop's reads then see a blank engine and render
+    // black). The volatile `byte()` RAM accesses used to mask this implicitly.
+    std::hint::black_box(engine as *mut Engine);
     // Safety: the yielder is valid for the whole coroutine body, which is the
     // only place this pointer is non-null, and the coroutine runs on this
     // thread.
     unsafe { (*yielder).suspend(()) };
+    std::hint::black_box(engine as *mut Engine);
     *r = saved;
 }
 
@@ -57,17 +64,23 @@ impl FrameRunner {
         let regs = Box::new(UnsafeCell::new(RoutineContext::default()));
         // Box gives the engine/regs a stable heap address that survives moving
         // the FrameRunner, so these raw pointers stay valid for the coroutine.
-        let engine_ptr = engine.get() as usize;
-        let regs_ptr = regs.get() as usize;
+        //
+        // Keep them as real pointers (not a `usize` round-trip): the pointers
+        // alias `self.engine`/`self.regs` through the same `UnsafeCell`, and
+        // casting through `usize` strips that provenance, so a release-optimized
+        // build treats the coroutine's writes and `engine()`'s reads as
+        // non-aliasing and the game's state never becomes visible to rendering.
+        // A `usize` is `Send` but a raw pointer is not, so wrap to capture it.
+        struct Ptrs(*mut Engine, *mut RoutineContext);
+        unsafe impl Send for Ptrs {}
+        let ptrs = Ptrs(engine.get(), regs.get());
         let coro = Coroutine::new(move |yielder: &Yielder<(), ()>, _input: ()| {
+            let Ptrs(engine_ptr, regs_ptr) = ptrs;
             let previous = YIELDER.with(|y| y.replace(yielder as *const _));
             // Safety: engine/regs outlive the coroutine (it drops first), and
             // the game body holds the only active borrow while running.
             unsafe {
-                entry(
-                    &mut *(engine_ptr as *mut Engine),
-                    &mut *(regs_ptr as *mut RoutineContext),
-                );
+                entry(&mut *engine_ptr, &mut *regs_ptr);
             }
             YIELDER.with(|y| y.set(previous));
         });
@@ -95,7 +108,14 @@ impl FrameRunner {
     }
 
     fn step(&mut self) -> bool {
-        match self.coro.resume(()) {
+        let result = self.coro.resume(());
+        // The coroutine ran the game on its own stack and mutated the engine via
+        // raw pointers; make those pointers escape through an opaque barrier so
+        // the optimizer cannot assume the heap engine/regs are unchanged and
+        // must reload them for `engine()`/`regs()` (otherwise a release build
+        // renders a blank engine).
+        std::hint::black_box((self.engine.get(), self.regs.get()));
+        match result {
             CoroutineResult::Yield(()) => true,
             CoroutineResult::Return(()) => {
                 self.done = true;
