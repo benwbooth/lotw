@@ -294,8 +294,8 @@ impl Engine {
     }
 
     pub fn prg_map_shadow(&mut self) {
-        self.ppu_map_prg(32768, self.state.prg_bank_8000());
-        self.ppu_map_prg(40960, self.state.prg_bank_a000());
+        self.ppu_map_prg(32768, ((self.state.prg_bank_8000) as i32));
+        self.ppu_map_prg(40960, ((self.state.prg_bank_a000) as i32));
     }
 
     pub fn load_ines(&mut self, rom: &[u8], init_ram_pattern: bool) -> Result<(), String> {

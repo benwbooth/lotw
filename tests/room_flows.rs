@@ -23,8 +23,8 @@ fn room_tile_page_copy_copies_three_source_pages() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_room_metadef_lo(0x00);
-    engine.state.set_room_metadef_hi(0x90);
+    engine.state.room_metadef_lo = 0x00;
+    engine.state.room_metadef_hi = 0x90;
     for page in 0..=2 {
         for offset in 0..0x100 {
             engine.state.set_byte(
@@ -41,8 +41,8 @@ fn room_tile_page_copy_copies_three_source_pages() {
     assert_eq!(engine.state.room_buffer(0x100), 0x40);
     assert_eq!(engine.state.room_buffer(0x200), 0x80);
     assert_eq!(engine.state.room_buffer(0x2FF), 0xBF);
-    assert_eq!(engine.state.palette_src_ptr_lo(), 0x00);
-    assert_eq!(engine.state.palette_src_ptr_hi(), 0x93);
+    assert_eq!(engine.state.palette_src_ptr_lo, 0x00);
+    assert_eq!(engine.state.palette_src_ptr_hi, 0x93);
     assert_eq!(r.offset, 0x00);
 }
 
@@ -55,16 +55,16 @@ fn room_checkpoint_stack_round_trips_room_state_lifo() {
     let second = [0x10, 0x32, 0x54, 0x76, 0x98, 0x0C, 0x0D];
 
     set_room_state(&mut engine, first);
-    engine.state.set_song(0x11);
+    engine.state.song = 0x11;
     native::push_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 1);
-    assert_eq!(engine.state.room_restore_scratch(), 0x11);
+    assert_eq!(engine.state.room_restore_scratch, 0x11);
 
     set_room_state(&mut engine, second);
-    engine.state.set_song(0x22);
+    engine.state.song = 0x22;
     native::push_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 2);
-    assert_eq!(engine.state.room_restore_scratch(), 0x22);
+    assert_eq!(engine.state.room_restore_scratch, 0x22);
 
     set_room_state(&mut engine, [0; 7]);
 

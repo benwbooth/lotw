@@ -175,14 +175,14 @@ pub fn build_path(parts: &[&str]) -> PathBuf {
 pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     game::ram_state_init(engine, r);
     game::farcall_bank_0C0D_seed(engine, r);
-    engine.state.set_song(9);
-    engine.state.set_family_member_mask(255);
-    engine.state.set_rng_seed_scratch(197);
-    engine.state.set_rng_low(23);
-    engine.state.set_rng_high(66);
-    engine.state.set_map_screen_x(1);
-    engine.state.set_map_screen_y(5);
-    engine.state.set_character_index(0);
+    engine.state.song = 9;
+    engine.state.family_member_mask = 255;
+    engine.state.rng_seed_scratch = 197;
+    engine.state.rng_low = 23;
+    engine.state.rng_high = 66;
+    engine.state.map_screen_x = 1;
+    engine.state.map_screen_y = 5;
+    engine.state.character_index = 0;
     for i in 0..4 {
         engine
             .state
@@ -191,20 +191,20 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine
         .state
         .set_item_slot(0, engine.state.byte(game::START_ITEM_TABLE));
-    engine.state.set_selected_item_slot(0);
+    engine.state.selected_item_slot = 0;
     engine.state.set_chr_bank(2, 56);
     engine.state.set_chr_bank(4, 62);
     engine.state.set_chr_bank(5, 32);
-    engine.state.set_player_pose(13);
-    engine.state.set_player_facing(0);
-    engine.state.set_title_timer(1);
+    engine.state.player_pose = 13;
+    engine.state.player_facing = 0;
+    engine.state.title_timer = 1;
     engine.state.player_health = 100;
     engine.state.player_magic = 100;
-    engine.state.set_pending_special_exit(0);
-    engine.state.set_player_x_tile(32);
-    engine.state.set_player_y(128);
-    engine.state.set_player_x_fine(0);
-    engine.state.set_scroll_tile_x(24);
-    engine.state.set_scroll_fine_x(0);
+    engine.state.pending_special_exit = 0;
+    engine.state.player_x_tile = 32;
+    engine.state.player_y = 128;
+    engine.state.player_x_fine = 0;
+    engine.state.scroll_tile_x = 24;
+    engine.state.scroll_fine_x = 0;
     game::scene_assemble(engine, r);
 }

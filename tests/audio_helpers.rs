@@ -5,7 +5,7 @@ fn dispatch_audio_stream_command_sets_pitch_offset_and_advances_stream() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x00);
+    engine.state.sound_channel_offset = 0x00;
     engine.state.set_sound_channel_byte(2, 0x00, 0x00);
     engine.state.set_sound_channel_byte(3, 0x00, 0x20);
     engine.state.set_byte(0x2000, 0xFF);
@@ -24,7 +24,7 @@ fn rewind_or_stop_audio_stream_restarts_loop_or_clears_active_flag() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x10);
+    engine.state.sound_channel_offset = 0x10;
     engine.state.set_sound_channel_byte(4, 0x10, 0x34);
     engine.state.set_sound_channel_byte(5, 0x10, 0x12);
 
@@ -35,7 +35,7 @@ fn rewind_or_stop_audio_stream_restarts_loop_or_clears_active_flag() {
     assert_eq!(engine.state.sound_channel_byte(0, 0x10), 0x01);
     assert_eq!(r.index, 0x10);
 
-    engine.state.set_sound_channel_offset(0x00);
+    engine.state.sound_channel_offset = 0x00;
     engine.state.set_sound_channel_byte(4, 0x00, 0x00);
     engine.state.set_sound_channel_byte(5, 0x00, 0x00);
     engine.state.set_sound_channel_byte(1, 0x00, 0xC0);
@@ -50,7 +50,7 @@ fn load_note_period_applies_pitch_offset_and_octave_shift() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x00);
+    engine.state.sound_channel_offset = 0x00;
     engine.state.set_sound_channel_byte(2, 0x00, 0x00);
     engine.state.set_sound_channel_byte(3, 0x00, 0x20);
     engine.state.set_byte(0x2000, 0x11);
@@ -64,8 +64,8 @@ fn load_note_period_applies_pitch_offset_and_octave_shift() {
 
     game::load_note_period(&mut engine, &mut r);
 
-    assert_eq!(engine.state.sound_command(), 0x18);
-    assert_eq!(engine.state.sound_length(), 0x01);
+    assert_eq!(engine.state.sound_command, 0x18);
+    assert_eq!(engine.state.sound_length, 0x01);
     assert_eq!(engine.state.sound_channel_byte(2, 0x00), 0x01);
     assert_eq!(engine.state.sound_channel_byte(3, 0x00), 0x20);
 }
@@ -75,7 +75,7 @@ fn start_note_envelope_loads_phase_state_for_selected_channel() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x10);
+    engine.state.sound_channel_offset = 0x10;
     engine.state.set_sound_channel_byte(15, 0x10, 0x04);
     engine.state.set_byte(lotw::game::ENVELOPE_TABLE + 4, 0x81);
     engine.state.set_byte(lotw::game::ENVELOPE_TABLE + 5, 0x02);
@@ -98,7 +98,7 @@ fn next_envelope_volume_scales_accumulator_into_apu_volume_byte() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x00);
+    engine.state.sound_channel_offset = 0x00;
     engine.state.set_sound_channel_byte(8, 0x00, 0x04);
     engine.state.set_sound_channel_byte(9, 0x00, 0x01);
     engine.state.set_sound_channel_byte(12, 0x00, 0x05);
@@ -110,7 +110,7 @@ fn next_envelope_volume_scales_accumulator_into_apu_volume_byte() {
 
     assert_eq!(engine.state.sound_channel_byte(10, 0x00), 0x02);
     assert_eq!(engine.state.sound_channel_byte(12, 0x00), 0x06);
-    assert_eq!(engine.state.audio_duty_work(), 0x01);
+    assert_eq!(engine.state.audio_duty_work, 0x01);
     assert_eq!(r.value, 0xB1);
 }
 
@@ -119,7 +119,7 @@ fn advance_envelope_phase_moves_to_next_phase_or_reports_terminal_phase() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_sound_channel_offset(0x00);
+    engine.state.sound_channel_offset = 0x00;
     engine.state.set_sound_channel_byte(8, 0x00, 0x04);
     engine.state.set_sound_channel_byte(11, 0x00, 0x01);
     engine.state.set_byte(lotw::game::SUSTAIN_TABLE + 1, 0x82);

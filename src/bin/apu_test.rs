@@ -14,8 +14,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut r = RoutineContext::default();
     game::ram_state_init(&mut engine, &mut r);
     game::farcall_bank_0C0D_seed(&mut engine, &mut r);
-    engine.state.set_song(song);
-    engine.state.set_sound_paused(0);
+    engine.state.song = ((song) as u8);
+    engine.state.sound_paused = 0;
     eprintln!("song_init({song})...");
     game::song_init(&mut engine, &mut r);
 

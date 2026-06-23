@@ -11,11 +11,11 @@ fn split_meter_value_returns_full_blocks_and_partial_block() {
         (0x0A, 0x01, 0x02),
         (0x17, 0x04, 0x03),
     ] {
-        engine.state.set_scratch0(value);
+        engine.state.scratch0 = value;
         game::split_meter_value(&mut engine, &mut r);
 
-        assert_eq!(engine.state.scratch0(), expected_partial, "value {value}");
-        assert_eq!(r.value as i32, expected_partial, "value {value}");
+        assert_eq!(engine.state.scratch0, expected_partial, "value {value}");
+        assert_eq!(r.value as i32, ((expected_partial) as i32), "value {value}");
         assert_eq!(r.offset as i32, expected_blocks, "value {value}");
     }
 }
@@ -30,14 +30,14 @@ fn decimal_digit_tiles_encode_ones_and_tens() {
 
     game::build_decimal_digit_tiles(&mut engine, &mut r);
 
-    assert_eq!(engine.state.vram_addr2_lo(), 0xD4);
-    assert_eq!(engine.state.vram_addr2_hi(), 0xD1);
+    assert_eq!(engine.state.vram_addr2_lo, 0xD4);
+    assert_eq!(engine.state.vram_addr2_hi, 0xD1);
 
     r.value = 0x09;
     game::build_decimal_digit_tiles(&mut engine, &mut r);
 
-    assert_eq!(engine.state.vram_addr2_lo(), 0xD9);
-    assert_eq!(engine.state.vram_addr2_hi(), 0xC0);
+    assert_eq!(engine.state.vram_addr2_lo, 0xD9);
+    assert_eq!(engine.state.vram_addr2_hi, 0xC0);
 }
 
 #[test]
@@ -49,8 +49,8 @@ fn build_health_meter_sprites_initializes_full_and_empty_tiles() {
         ..RoutineContext::default()
     };
 
-    engine.state.set_scratch0(0x00);
-    engine.state.set_scratch1(0x00);
+    engine.state.scratch0 = 0x00;
+    engine.state.scratch1 = 0x00;
 
     game::build_health_meter_sprites(&mut engine, &mut r);
 

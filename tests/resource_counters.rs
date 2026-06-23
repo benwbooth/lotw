@@ -13,7 +13,7 @@ fn add_health_points_clamps_and_marks_hud_dirty() {
     game::add_health_points(&mut engine, &mut r);
 
     assert_eq!(engine.state.player_health, 0x6D);
-    assert_eq!(engine.state.hud_refresh_flag(), 0x01);
+    assert_eq!(engine.state.hud_refresh_flag, 0x01);
 }
 
 #[test]
@@ -64,16 +64,16 @@ fn spend_coins_updates_balance_only_when_affordable() {
         ..RoutineContext::default()
     };
 
-    engine.state.set_coins(0x0A);
+    engine.state.coins = 0x0A;
     game::spend_coins(&mut engine, &mut r);
 
-    assert_eq!(engine.state.coins(), 0x04);
+    assert_eq!(engine.state.coins, 0x04);
     assert_eq!(r.carry, 1);
 
     r.value = 0x05;
     game::spend_coins(&mut engine, &mut r);
 
-    assert_eq!(engine.state.coins(), 0x04);
+    assert_eq!(engine.state.coins, 0x04);
     assert_eq!(r.carry, 0);
 }
 
@@ -82,14 +82,14 @@ fn consume_key_decrements_or_reports_empty() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_keys(0x01);
+    engine.state.keys = 0x01;
     game::consume_key(&mut engine, &mut r);
 
-    assert_eq!(engine.state.keys(), 0x00);
+    assert_eq!(engine.state.keys, 0x00);
     assert_eq!(r.carry, 0);
 
     game::consume_key(&mut engine, &mut r);
 
-    assert_eq!(engine.state.keys(), 0x00);
+    assert_eq!(engine.state.keys, 0x00);
     assert_eq!(r.carry, 1);
 }

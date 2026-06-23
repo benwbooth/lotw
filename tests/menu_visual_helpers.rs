@@ -54,7 +54,7 @@ fn demo_oam_blink_toggles_first_eight_sprite_y_positions() {
     }
     assert_eq!(r.index, 0xEF);
 
-    engine.state.set_frame_prescaler(0x10);
+    engine.state.frame_prescaler = 0x10;
     game::blink_demo_oam_sprites(&mut engine, &mut r);
 
     for offset in (0..=0x1C).step_by(4) {
@@ -106,20 +106,20 @@ fn intro_text_vram_address_tracks_scroll_offset() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_scratch2(0x40);
+    engine.state.scratch2 = 0x40;
 
     game::set_intro_text_vram_address(&mut engine, &mut r);
 
-    assert_eq!(engine.state.vram_addr_hi(), 0x21);
-    assert_eq!(engine.state.vram_addr_lo(), 0x00);
+    assert_eq!(engine.state.vram_addr_hi, 0x21);
+    assert_eq!(engine.state.vram_addr_lo, 0x00);
     assert_eq!(r.value, 0x00);
 
-    engine.state.set_scratch2(0xF0);
+    engine.state.scratch2 = 0xF0;
 
     game::set_intro_text_vram_address(&mut engine, &mut r);
 
-    assert_eq!(engine.state.vram_addr_hi(), 0x23);
-    assert_eq!(engine.state.vram_addr_lo(), 0xC0);
+    assert_eq!(engine.state.vram_addr_hi, 0x23);
+    assert_eq!(engine.state.vram_addr_lo, 0xC0);
     assert_eq!(r.value, 0xC0);
 }
 
@@ -131,8 +131,8 @@ fn intro_text_line_terminator_sets_carry_without_upload() {
     for offset in 0..=0x1F {
         engine.state.set_vram_stage(offset, 0x55);
     }
-    engine.state.set_data_ptr_lo(0x00);
-    engine.state.set_data_ptr_hi(0xB0);
+    engine.state.data_ptr_lo = 0x00;
+    engine.state.data_ptr_hi = 0xB0;
     engine
         .state
         .set_byte(lotw::game::PALETTE_DATA_TABLE + 0, 0x00);
@@ -140,7 +140,7 @@ fn intro_text_line_terminator_sets_carry_without_upload() {
     game::stage_intro_text_line(&mut engine, &mut r);
 
     assert_eq!(r.carry, 1);
-    assert_eq!(engine.state.nmi_vram_req(), 0);
+    assert_eq!(engine.state.nmi_vram_req, 0);
     for offset in 0..=0x1F {
         assert_eq!(engine.state.vram_stage(offset), 0xC0);
     }
@@ -151,8 +151,8 @@ fn intro_text_line_stages_encoded_tiles_until_terminator() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_data_ptr_lo(0x00);
-    engine.state.set_data_ptr_hi(0xB0);
+    engine.state.data_ptr_lo = 0x00;
+    engine.state.data_ptr_hi = 0xB0;
     engine
         .state
         .set_byte(lotw::game::PALETTE_DATA_TABLE + 0, 0x12);
@@ -168,9 +168,9 @@ fn intro_text_line_stages_encoded_tiles_until_terminator() {
     assert_eq!(engine.state.vram_stage(0x00), encoded_intro_tile(0x12));
     assert_eq!(engine.state.vram_stage(0x01), encoded_intro_tile(0x34));
     assert_eq!(engine.state.vram_stage(0x02), 0xC0);
-    assert_eq!(engine.state.nmi_vram_req(), 0x00);
-    assert_eq!(engine.state.data_ptr_lo(), 0x00);
-    assert_eq!(engine.state.data_ptr_hi(), 0xB0);
+    assert_eq!(engine.state.nmi_vram_req, 0x00);
+    assert_eq!(engine.state.data_ptr_lo, 0x00);
+    assert_eq!(engine.state.data_ptr_hi, 0xB0);
     assert_eq!(r.carry, 1);
 }
 
@@ -179,8 +179,8 @@ fn scrolling_intro_text_line_offsets_staged_tiles_until_terminator() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_data_ptr_lo(0xFE);
-    engine.state.set_data_ptr_hi(0xB0);
+    engine.state.data_ptr_lo = 0xFE;
+    engine.state.data_ptr_hi = 0xB0;
     engine.state.set_byte(lotw::game::DEMO_INPUT_TABLE, 0x12);
     engine
         .state
@@ -193,8 +193,8 @@ fn scrolling_intro_text_line_offsets_staged_tiles_until_terminator() {
         (encoded_intro_tile(0x12) + 0x10) & 0xFF
     );
     assert_eq!(engine.state.vram_stage(0x01), 0xC0);
-    assert_eq!(engine.state.data_ptr_lo(), 0xFE);
-    assert_eq!(engine.state.data_ptr_hi(), 0xB0);
-    assert_eq!(engine.state.nmi_vram_req(), 0x00);
+    assert_eq!(engine.state.data_ptr_lo, 0xFE);
+    assert_eq!(engine.state.data_ptr_hi, 0xB0);
+    assert_eq!(engine.state.nmi_vram_req, 0x00);
     assert_eq!(r.carry, 1);
 }

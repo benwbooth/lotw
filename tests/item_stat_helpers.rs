@@ -5,10 +5,10 @@ fn load_effective_jump_duration_boosts_selected_jump_item_when_magic_available()
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_selected_item_slot(0x01);
+    engine.state.selected_item_slot = 0x01;
     engine.state.set_item_slot(1, 0x06);
     engine.state.player_magic = 0x01;
-    engine.state.set_jump_strength(0x10);
+    engine.state.jump_strength = 0x10;
 
     game::load_effective_jump_duration(&mut engine, &mut r);
 
@@ -28,10 +28,10 @@ fn load_effective_projectile_stats_apply_magic_boost_items() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_selected_item_slot(0x00);
+    engine.state.selected_item_slot = 0x00;
     engine.state.set_item_slot(0, 0x08);
     engine.state.player_magic = 0x02;
-    engine.state.set_projectile_damage(0x03);
+    engine.state.projectile_damage = 0x03;
 
     game::load_effective_projectile_damage(&mut engine, &mut r);
 
@@ -39,7 +39,7 @@ fn load_effective_projectile_stats_apply_magic_boost_items() {
     assert_eq!(r.carry, 0);
 
     engine.state.set_item_slot(0, 0x09);
-    engine.state.set_projectile_lifetime(0x12);
+    engine.state.projectile_lifetime = 0x12;
     game::load_effective_projectile_lifetime(&mut engine, &mut r);
 
     assert_eq!(r.index, 0x00);
@@ -81,7 +81,7 @@ fn reset_room_object_slots_clears_active_state_and_scheduler() {
         engine.state.set_object_state(slot_offset, 0x80 + slot);
         engine.state.set_object_timer(slot_offset, 0xF0);
     }
-    engine.state.set_scheduler_phase(0x02);
+    engine.state.scheduler_phase = 0x02;
 
     game::reset_room_object_slots(&mut engine, &mut r);
 
@@ -90,7 +90,7 @@ fn reset_room_object_slots_clears_active_state_and_scheduler() {
         assert_eq!(engine.state.object_state(slot_offset), 0x00);
         assert_eq!(engine.state.object_timer(slot_offset), 0x02);
     }
-    assert_eq!(engine.state.scheduler_phase(), 0x00);
+    assert_eq!(engine.state.scheduler_phase, 0x00);
     assert_eq!(r.value, 0x00);
     assert_eq!(r.index, 0x00);
     assert_eq!(r.offset, 0x00);

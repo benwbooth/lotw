@@ -39,7 +39,7 @@ fn shop_item_sprites_hide_overstocked_items() {
 
     engine.state.set_temp_save(0, 0x01);
     engine.state.set_temp_save(2, 0x02);
-    engine.state.set_shop_active(0x0A);
+    engine.state.shop_active = 0x0A;
     engine.state.set_inventory_item(2, 0x0B);
 
     game::draw_shop_item_sprites(&mut engine, &mut r);

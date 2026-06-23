@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for frame in 1..=max_frame {
         *apu_frame.lock().unwrap() = frame;
         let buttons = input.get(frame).copied().unwrap_or(0);
-        runner.engine_mut().ppu.set_buttons(buttons as i32);
+        runner.engine_mut().ppu.buttons = ((buttons as i32) as u8);
         if !common::step_frame(&mut runner) {
             eprintln!("game loop returned at frame {frame}");
             break;
@@ -66,15 +66,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             let e = runner.engine();
             eprintln!(
                 "captured f{frame} char={:02X} map={:02X},{:02X} px={:02X} py={:02X} scroll={:02X},{:02X} song={:02X} item={:02X} inv0={:02X} mirror={}",
-                e.state.character_index(),
-                e.state.map_screen_x(),
-                e.state.map_screen_y(),
-                e.state.player_x_tile(),
-                e.state.player_y(),
-                e.state.scroll_pixel_x(),
-                e.state.scroll_y(),
-                e.state.song(),
-                e.state.selected_item_slot(),
+                e.state.character_index,
+                e.state.map_screen_x,
+                e.state.map_screen_y,
+                e.state.player_x_tile,
+                e.state.player_y,
+                e.state.scroll_pixel_x,
+                e.state.scroll_y,
+                e.state.song,
+                e.state.selected_item_slot,
                 e.state.inventory_item(0),
                 e.ppu.mirror,
             );

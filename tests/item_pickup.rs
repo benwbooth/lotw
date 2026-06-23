@@ -14,12 +14,12 @@ fn item_pickup_updates_inventory_and_clears_object() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_player_x_fine(0x00);
-    engine.state.set_player_x_tile(0x10);
-    engine.state.set_player_y(0x50);
-    engine.state.set_horizontal_subtile_delta(0x00);
-    engine.state.set_vertical_delta(0x00);
-    engine.state.set_slot_index(0xff);
+    engine.state.player_x_fine = 0x00;
+    engine.state.player_x_tile = 0x10;
+    engine.state.player_y = 0x50;
+    engine.state.horizontal_subtile_delta = 0x00;
+    engine.state.vertical_delta = 0x00;
+    engine.state.slot_index = 0xff;
 
     engine.state.set_object_tile(0x80, 0x02);
     engine.state.set_object_state(0x80, 0x0a);
@@ -27,10 +27,10 @@ fn item_pickup_updates_inventory_and_clears_object() {
     engine.state.set_object_x_sub(0x80, 0x00);
     engine
         .state
-        .set_object_x_tile(0x80, engine.state.player_x_tile());
+        .set_object_x_tile(0x80, ((engine.state.player_x_tile) as i32));
     engine
         .state
-        .set_object_y_pixel(0x80, engine.state.player_y());
+        .set_object_y_pixel(0x80, ((engine.state.player_y) as i32));
 
     r.value = 0x00;
     game::try_move_player_with_collision(&mut engine, &mut r);

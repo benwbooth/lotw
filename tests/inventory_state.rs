@@ -11,8 +11,8 @@ fn snapshot_and_restore_inventory_state_round_trips_progress_inventory_and_curre
     for offset in 0..16 {
         engine.state.set_inventory_item(offset, 0x40 + offset);
     }
-    engine.state.set_coins(0x12);
-    engine.state.set_keys(0x34);
+    engine.state.coins = 0x12;
+    engine.state.keys = 0x34;
 
     game::snapshot_inventory_state(&mut engine, &mut r);
 
@@ -22,8 +22,8 @@ fn snapshot_and_restore_inventory_state_round_trips_progress_inventory_and_curre
     for offset in 0..16 {
         engine.state.set_inventory_item(offset, 0x00);
     }
-    engine.state.set_coins(0x00);
-    engine.state.set_keys(0x00);
+    engine.state.coins = 0x00;
+    engine.state.keys = 0x00;
 
     game::restore_inventory_state_snapshot(&mut engine, &mut r);
 
@@ -33,8 +33,8 @@ fn snapshot_and_restore_inventory_state_round_trips_progress_inventory_and_curre
     for offset in 0..16 {
         assert_eq!(engine.state.inventory_item(offset), 0x40 + offset);
     }
-    assert_eq!(engine.state.coins(), 0x12);
-    assert_eq!(engine.state.keys(), 0x34);
+    assert_eq!(engine.state.coins, 0x12);
+    assert_eq!(engine.state.keys, 0x34);
     assert_eq!(r.index, 0xFF);
 }
 
@@ -118,6 +118,6 @@ fn inventory_item_list_decoder_rejects_checksum_mismatch() {
     game::decode_inventory_item_list_snapshot(&mut engine, &mut r);
 
     assert_eq!(r.carry, 1);
-    assert_eq!(engine.state.prompt_state(), 0x1C);
-    assert_eq!(engine.state.prompt_argument(), 0x1C);
+    assert_eq!(engine.state.prompt_state, 0x1C);
+    assert_eq!(engine.state.prompt_argument, 0x1C);
 }

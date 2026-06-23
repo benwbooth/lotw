@@ -143,7 +143,7 @@ pub fn wait_frame(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_frame_counter(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.state.frame_counter() != 0 {
+    while engine.state.frame_counter != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;
@@ -152,7 +152,7 @@ pub fn wait_for_frame_counter(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_ppu_job_idle(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.state.nmi_vram_req() != 0 {
+    while engine.state.nmi_vram_req != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;
@@ -161,7 +161,7 @@ pub fn wait_for_ppu_job_idle(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn wait_for_countdown_timer(engine: &mut Engine, r: &mut RoutineContext) {
-    while engine.state.countdown_timer() != 0 {
+    while engine.state.countdown_timer != 0 {
         wait_frame(engine, r);
         if frame_runner_stop_requested() {
             return;
@@ -170,25 +170,25 @@ pub fn wait_for_countdown_timer(engine: &mut Engine, r: &mut RoutineContext) {
 }
 
 pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
-    if engine.state.main_loop_phase() != 0 {
-        engine.state.set_main_loop_phase(0);
+    if engine.state.main_loop_phase != 0 {
+        engine.state.main_loop_phase = 0;
         crate::game::upload_scroll_edge_room_column(engine, r);
-    } else if engine.state.hud_refresh_flag() != 0 {
-        engine.state.set_hud_refresh_flag(0);
+    } else if engine.state.hud_refresh_flag != 0 {
+        engine.state.hud_refresh_flag = 0;
         crate::game::upload_resource_hud(engine, r);
-    } else if engine.state.frame_counter() != 0 {
+    } else if engine.state.frame_counter != 0 {
         crate::game::upload_palette_buffer(engine, r);
     }
 }
 
 pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     crate::game::read_controllers(engine, r);
-    r.value = ((engine.state.buttons()) as u8);
+    r.value = ((engine.state.buttons) as u8);
     ((r.value) as i32)
 }
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
-    engine.state.set_frame_counter(1);
+    engine.state.frame_counter = 1;
     crate::game::draw_player_sprites(engine, r);
     crate::game::draw_room_object_sprites(engine, r);
     crate::game::draw_status_item_sprites(engine, r);
@@ -198,6 +198,6 @@ pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext
 }
 
 pub fn set_frame_counter_and_wait(engine: &mut Engine, r: &mut RoutineContext, frames: i32) {
-    engine.state.set_frame_counter(frames);
+    engine.state.frame_counter = ((frames) as u8);
     wait_for_frame_counter(engine, r);
 }

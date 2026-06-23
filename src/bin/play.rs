@@ -318,7 +318,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        runner.engine_mut().ppu.set_buttons(buttons);
+        runner.engine_mut().ppu.buttons = buttons as u8;
 
         if !common::step_frame(&mut runner) {
             eprintln!("game loop returned at frame {frames}");

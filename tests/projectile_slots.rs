@@ -5,8 +5,8 @@ fn expired_player_projectile_clears_its_object_slot() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_obj_slot_ptr_lo(0xB0);
-    engine.state.set_obj_slot_ptr_hi(0x04);
+    engine.state.obj_slot_ptr_lo = 0xB0;
+    engine.state.obj_slot_ptr_hi = 0x04;
     engine.state.set_object_tile(0xB0, 0x21);
     engine.state.set_object_state(0xB0, 0x01);
 
