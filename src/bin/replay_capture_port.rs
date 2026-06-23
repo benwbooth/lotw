@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 e.state.scroll_y(),
                 e.state.song(),
                 e.state.selected_item_slot(),
-                e.mem(0x60),
+                e.state.inventory_item(0),
                 e.ppu.mirror,
             );
         }

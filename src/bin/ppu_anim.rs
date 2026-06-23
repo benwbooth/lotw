@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::upload_status_panel_template(&mut engine, &mut r);
     game::upload_inventory_item_list(&mut engine, &mut r);
     engine.state.set_song(0);
-    engine.set_mem(0x8d, 0);
+    engine.state.set_sound_paused(0);
     game::song_init(&mut engine, &mut r);
 
     for fr in 0..frames {

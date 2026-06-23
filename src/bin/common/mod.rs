@@ -176,7 +176,7 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     game::ram_state_init(engine, r);
     game::farcall_bank_0C0D_seed(engine, r);
     engine.state.set_song(0x09);
-    engine.set_mem(0x41, 0xff);
+    engine.state.set_family_member_mask(0xff);
     engine.state.set_rng_seed_scratch(0xc5);
     engine.state.set_rng_low(0x17);
     engine.state.set_rng_high(0x42);
@@ -196,11 +196,11 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_chr_bank(4, 0x3e);
     engine.state.set_chr_bank(5, 0x20);
     engine.state.set_player_pose(0x0d);
-    engine.set_mem(0x57, 0);
-    engine.set_mem(0x42, 1);
+    engine.state.set_player_facing(0);
+    engine.state.set_title_timer(1);
     engine.state.set_player_health(0x64);
     engine.state.set_player_magic(0x64);
-    engine.set_mem(0xeb, 0);
+    engine.state.set_pending_special_exit(0);
     engine.state.set_player_x_tile(0x20);
     engine.state.set_player_y(0x80);
     engine.state.set_player_x_fine(0);

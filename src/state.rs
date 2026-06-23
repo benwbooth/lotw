@@ -1305,6 +1305,253 @@ impl GameState {
         self.set_byte(0x0180 + i, value);
     }
 
+    /// Saved audio stream command handler pointer, low/high (`$06`/`$07`).
+    #[inline]
+    pub fn saved_audio_handler_lo(&self) -> i32 {
+        self.byte(0x06)
+    }
+    #[inline]
+    pub fn set_saved_audio_handler_lo(&mut self, value: i32) {
+        self.set_byte(0x06, value);
+    }
+    #[inline]
+    pub fn saved_audio_handler_hi(&self) -> i32 {
+        self.byte(0x07)
+    }
+    #[inline]
+    pub fn set_saved_audio_handler_hi(&mut self, value: i32) {
+        self.set_byte(0x07, value);
+    }
+
+    /// Row cursor while uploading the inventory item list (`$1B`).
+    #[inline]
+    pub fn inventory_upload_row(&self) -> i32 {
+        self.byte(0x1B)
+    }
+    #[inline]
+    pub fn set_inventory_upload_row(&mut self, value: i32) {
+        self.set_byte(0x1B, value);
+    }
+
+    /// Collision/blocked flag set during movement resolution (`$22`).
+    #[inline]
+    pub fn collision_flag(&self) -> i32 {
+        self.byte(0x22)
+    }
+    #[inline]
+    pub fn set_collision_flag(&mut self, value: i32) {
+        self.set_byte(0x22, value);
+    }
+
+    /// Current song pointer low/high used by `song_init` (`$34`/`$35`).
+    #[inline]
+    pub fn song_ptr_lo(&self) -> i32 {
+        self.byte(0x34)
+    }
+    #[inline]
+    pub fn set_song_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x34, value);
+    }
+    #[inline]
+    pub fn song_ptr_hi(&self) -> i32 {
+        self.byte(0x35)
+    }
+    #[inline]
+    pub fn set_song_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x35, value);
+    }
+
+    /// Main-loop dispatch phase counter (`$3D`).
+    #[inline]
+    pub fn main_loop_phase(&self) -> i32 {
+        self.byte(0x3D)
+    }
+    #[inline]
+    pub fn set_main_loop_phase(&mut self, value: i32) {
+        self.set_byte(0x3D, value);
+    }
+
+    /// "Nudge to tile boundary" pending flag (`$4C`).
+    #[inline]
+    pub fn nudge_pending(&self) -> i32 {
+        self.byte(0x4C)
+    }
+    #[inline]
+    pub fn set_nudge_pending(&mut self, value: i32) {
+        self.set_byte(0x4C, value);
+    }
+
+    /// Effective projectile damage / count / lifetime parameters
+    /// (`$5D`/`$5E`/`$5F`).
+    #[inline]
+    pub fn projectile_damage(&self) -> i32 {
+        self.byte(0x5D)
+    }
+    #[inline]
+    pub fn set_projectile_damage(&mut self, value: i32) {
+        self.set_byte(0x5D, value);
+    }
+    #[inline]
+    pub fn projectile_count(&self) -> i32 {
+        self.byte(0x5E)
+    }
+    #[inline]
+    pub fn set_projectile_count(&mut self, value: i32) {
+        self.set_byte(0x5E, value);
+    }
+    #[inline]
+    pub fn projectile_lifetime(&self) -> i32 {
+        self.byte(0x5F)
+    }
+    #[inline]
+    pub fn set_projectile_lifetime(&mut self, value: i32) {
+        self.set_byte(0x5F, value);
+    }
+
+    /// Shop room active flag (`$61`).
+    #[inline]
+    pub fn shop_active(&self) -> i32 {
+        self.byte(0x61)
+    }
+    #[inline]
+    pub fn set_shop_active(&mut self, value: i32) {
+        self.set_byte(0x61, value);
+    }
+
+    /// Remaining fragment-pickup count (`$6E`).
+    #[inline]
+    pub fn fragment_count(&self) -> i32 {
+        self.byte(0x6E)
+    }
+    #[inline]
+    pub fn set_fragment_count(&mut self, value: i32) {
+        self.set_byte(0x6E, value);
+    }
+
+    /// Text attribute source pointer low/high (`$70`/`$71`).
+    #[inline]
+    pub fn text_attr_ptr_lo(&self) -> i32 {
+        self.byte(0x70)
+    }
+    #[inline]
+    pub fn set_text_attr_ptr_lo(&mut self, value: i32) {
+        self.set_byte(0x70, value);
+    }
+    #[inline]
+    pub fn text_attr_ptr_hi(&self) -> i32 {
+        self.byte(0x71)
+    }
+    #[inline]
+    pub fn set_text_attr_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x71, value);
+    }
+
+    /// Decoded room tile action value (`$74`).
+    #[inline]
+    pub fn room_tile_action(&self) -> i32 {
+        self.byte(0x74)
+    }
+    #[inline]
+    pub fn set_room_tile_action(&mut self, value: i32) {
+        self.set_byte(0x74, value);
+    }
+
+    /// Room metatile-definition pointer low/high (`$75`/`$76`).
+    #[inline]
+    pub fn room_metadef_lo(&self) -> i32 {
+        self.byte(0x75)
+    }
+    #[inline]
+    pub fn set_room_metadef_lo(&mut self, value: i32) {
+        self.set_byte(0x75, value);
+    }
+    #[inline]
+    pub fn room_metadef_hi(&self) -> i32 {
+        self.byte(0x76)
+    }
+    #[inline]
+    pub fn set_room_metadef_hi(&mut self, value: i32) {
+        self.set_byte(0x76, value);
+    }
+
+    /// Saved horizontal scroll tile during the main loop (`$7E`).
+    #[inline]
+    pub fn saved_scroll_tile(&self) -> i32 {
+        self.byte(0x7E)
+    }
+    #[inline]
+    pub fn set_saved_scroll_tile(&mut self, value: i32) {
+        self.set_byte(0x7E, value);
+    }
+
+    /// Camera scroll-pending flag (`$7F`).
+    #[inline]
+    pub fn camera_scroll_flag(&self) -> i32 {
+        self.byte(0x7F)
+    }
+    #[inline]
+    pub fn set_camera_scroll_flag(&mut self, value: i32) {
+        self.set_byte(0x7F, value);
+    }
+
+    /// Airborne/falling flag for the top-boundary exit check (`$86`).
+    #[inline]
+    pub fn airborne_flag(&self) -> i32 {
+        self.byte(0x86)
+    }
+    #[inline]
+    pub fn set_airborne_flag(&mut self, value: i32) {
+        self.set_byte(0x86, value);
+    }
+
+    /// Magic-contact-with-actor flag (`$87`).
+    #[inline]
+    pub fn magic_contact_flag(&self) -> i32 {
+        self.byte(0x87)
+    }
+    #[inline]
+    pub fn set_magic_contact_flag(&mut self, value: i32) {
+        self.set_byte(0x87, value);
+    }
+
+    /// Short / long speed-boost timers (`$8A`/`$8B`).
+    #[inline]
+    pub fn short_boost_timer(&self) -> i32 {
+        self.byte(0x8A)
+    }
+    #[inline]
+    pub fn set_short_boost_timer(&mut self, value: i32) {
+        self.set_byte(0x8A, value);
+    }
+    #[inline]
+    pub fn long_boost_timer(&self) -> i32 {
+        self.byte(0x8B)
+    }
+    #[inline]
+    pub fn set_long_boost_timer(&mut self, value: i32) {
+        self.set_byte(0x8B, value);
+    }
+
+    /// Active SFX priority threshold (`$91`).
+    #[inline]
+    pub fn sfx_priority(&self) -> i32 {
+        self.byte(0x91)
+    }
+    #[inline]
+    pub fn set_sfx_priority(&mut self, value: i32) {
+        self.set_byte(0x91, value);
+    }
+
+    /// Pending special-exit-room flag checked by `game_update` (`$EB`).
+    #[inline]
+    pub fn pending_special_exit(&self) -> i32 {
+        self.byte(0xEB)
+    }
+    #[inline]
+    pub fn set_pending_special_exit(&mut self, value: i32) {
+        self.set_byte(0xEB, value);
+    }
+
     /// Sound paused/disabled flag checked at the top of `sound_tick` (`$8D`).
     #[inline]
     pub fn sound_paused(&self) -> i32 {
