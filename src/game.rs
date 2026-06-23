@@ -37,6 +37,10 @@ pub const MOVE_DELTA_X_TABLE: i32 = 0xFE8B;
 pub const MOVE_DELTA_Y_TABLE: i32 = 0xFE8C;
 /// Drasle-family palette table (`$FFC5`).
 pub const FAMILY_PALETTE_TABLE: i32 = 0xFFC5;
+/// Note period table for the sound engine, 16-bit LE entries (`0xFDB1`).
+pub const NOTE_PERIOD_TABLE: i32 = 0xFDB1;
+/// Sound envelope table, 4 bytes per entry (`0xFDCB`).
+pub const ENVELOPE_TABLE: i32 = 0xFDCB;
 /// Per-character starting-item table used by the warp-in test scaffolding (`0xB0AC`).
 pub const START_ITEM_TABLE: i32 = 0xB0AC;
 /// Per-character base-stats table (health/magic/jump etc.) at boot (`0xFFA7`).
@@ -1281,7 +1285,10 @@ mod build_final_exit_projectile_velocity {
         let mut x_velocity = 0x00;
         let mut remaining_steps = step_count;
         loop {
-            x_velocity = u8v(x_velocity + engine.mem(u16v(0xFE8B + direction_table_offset)));
+            x_velocity = u8v(x_velocity
+                + engine
+                    .state
+                    .byte(u16v(MOVE_DELTA_X_TABLE + direction_table_offset)));
             remaining_steps -= 1;
             if !cbool(remaining_steps != 0) {
                 break;
@@ -1292,7 +1299,10 @@ mod build_final_exit_projectile_velocity {
         let mut y_velocity = 0x00;
         remaining_steps = step_count;
         loop {
-            y_velocity = u8v(y_velocity + engine.mem(u16v(0xFE8C + direction_table_offset)));
+            y_velocity = u8v(y_velocity
+                + engine
+                    .state
+                    .byte(u16v(MOVE_DELTA_Y_TABLE + direction_table_offset)));
             remaining_steps -= 1;
             if !cbool(remaining_steps != 0) {
                 break;
@@ -1828,10 +1838,10 @@ mod build_scripted_player_input_delta {
         r.index = u8v((engine.state.buttons() & 0x0F) << 1);
         engine
             .state
-            .set_horizontal_subtile_delta(engine.mem(u16v(0xFE8B + r.index)));
+            .set_horizontal_subtile_delta(engine.state.byte(u16v(MOVE_DELTA_X_TABLE + r.index)));
         engine
             .state
-            .set_vertical_delta(engine.mem(u16v(0xFE8C + r.index)));
+            .set_vertical_delta(engine.state.byte(u16v(MOVE_DELTA_Y_TABLE + r.index)));
     }
 }
 
@@ -1843,7 +1853,9 @@ mod choose_random_demo_input {
         r.value = 0x04;
         rng_update(engine, r);
         r.index = r.value;
-        engine.state.set_buttons(engine.mem(u16v(0xB0FE + r.index)));
+        engine
+            .state
+            .set_buttons(engine.state.byte(u16v(DEMO_INPUT_TABLE + r.index)));
         r.value = 0x0A;
         rng_update(engine, r);
         r.index = r.value;
@@ -10328,8 +10340,10 @@ mod load_note_period {
         increment_selected_music_stream_pointer(engine, r);
         {
             let mut pitch_index: i32 = u8v((note_byte & 0x0F) << 1);
-            let mut lo: i32 = engine.mem(u16v(0xFDB1 + pitch_index));
-            let mut hi: i32 = engine.mem(u16v(0xFDB2 + pitch_index));
+            let mut lo: i32 = engine.state.byte(u16v(NOTE_PERIOD_TABLE + pitch_index));
+            let mut hi: i32 = engine
+                .state
+                .byte(u16v((NOTE_PERIOD_TABLE + 1) + pitch_index));
             channel_offset = engine.state.sound_channel_offset();
             {
                 let mut sub: i32 = u16v(u16v(lo) - engine.mem(u8v(0xA1 + channel_offset)));
@@ -10388,19 +10402,25 @@ mod start_note_envelope {
             .set_sound_channel_byte(8, channel_offset, envelope_offset);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCB + envelope_offset)),
+            engine.state.byte(u16v(ENVELOPE_TABLE + envelope_offset)),
         );
         engine.set_mem(
             (0x9D + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCC + envelope_offset)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 1) + envelope_offset)),
         );
         engine.set_mem(
             (0x9E + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCD + envelope_offset)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 2) + envelope_offset)),
         );
         engine.set_mem(
             (0x9F + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCE + envelope_offset)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 3) + envelope_offset)),
         );
         r.index = channel_offset;
         r.offset = envelope_offset;
@@ -10420,19 +10440,27 @@ mod start_rest_envelope {
             .set_sound_channel_byte(8, channel_offset, rest_envelope_offset);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCB + rest_envelope_offset)),
+            engine
+                .state
+                .byte(u16v(ENVELOPE_TABLE + rest_envelope_offset)),
         );
         engine.set_mem(
             (0x9D + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCC + rest_envelope_offset)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 1) + rest_envelope_offset)),
         );
         engine.set_mem(
             (0x9E + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCD + rest_envelope_offset)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 2) + rest_envelope_offset)),
         );
         r.index = channel_offset;
         r.offset = rest_envelope_offset;
-        r.value = engine.mem(u16v(0xFDCD + rest_envelope_offset));
+        r.value = engine
+            .state
+            .byte(u16v((ENVELOPE_TABLE + 2) + rest_envelope_offset));
     }
 }
 
@@ -10473,7 +10501,9 @@ mod next_envelope_volume {
         let mut envelope_phase: i32 = engine.mem(u8v(0x9B + channel_offset));
         engine.set_mem(
             u8v(0x9D + channel_offset),
-            engine.mem(u16v(0xFDCC + envelope_phase)),
+            engine
+                .state
+                .byte(u16v((ENVELOPE_TABLE + 1) + envelope_phase)),
         );
         {
             let mut envelope_delta: i32 = engine.mem(u8v(0x9C + channel_offset));
@@ -10530,15 +10560,15 @@ mod advance_envelope_phase {
             .set_sound_channel_byte(8, channel_offset, next_phase);
         engine.set_mem(
             (0x9C + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCB + next_phase)),
+            engine.state.byte(u16v(ENVELOPE_TABLE + next_phase)),
         );
         engine.set_mem(
             (0x9D + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCC + next_phase)),
+            engine.state.byte(u16v((ENVELOPE_TABLE + 1) + next_phase)),
         );
         engine.set_mem(
             (0x9E + channel_offset) & 0xFF,
-            engine.mem(u16v(0xFDCD + next_phase)),
+            engine.state.byte(u16v((ENVELOPE_TABLE + 2) + next_phase)),
         );
         r.index = channel_offset;
         r.offset = next_phase;
