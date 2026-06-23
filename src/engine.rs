@@ -316,7 +316,7 @@ impl Engine {
         self.ppu_load_chr(&rom[16 + prg..16 + prg + chr]);
         self.ppu.reset();
         self.apu.reset();
-        self.state.ram[49152..0x10000].copy_from_slice(&rom[16 + prg - 16384..16 + prg]);
+        self.state.ram[49152..65536].copy_from_slice(&rom[16 + prg - 16384..16 + prg]);
         self.ppu_map_prg(32768, 12);
         self.ppu_map_prg(40960, 13);
         self.ppu.set_vblank(true);

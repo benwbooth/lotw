@@ -83,13 +83,13 @@ pub struct Ppu {
     pub vaddr: u16,
     pub wtoggle: u8,
     pub readbuf: u8,
-    pub chr: [u8; 0x10000],
+    pub chr: [u8; 65536],
     pub chr_len: usize,
     pub chr_win: [i32; 8],
     pub mmc3_sel: u8,
     pub mmc3_bank: [u8; 8],
     pub mirror: i32,
-    pub prg: [u8; 0x40000],
+    pub prg: [u8; 262144],
     pub prg_len: usize,
     pub buttons: u8,
     pub ctrl_latch: u8,
@@ -118,13 +118,13 @@ impl Ppu {
             vaddr: 0,
             wtoggle: 0,
             readbuf: 0,
-            chr: [0; 0x10000],
+            chr: [0; 65536],
             chr_len: 0,
             chr_win: [0; 8],
             mmc3_sel: 0,
             mmc3_bank: [0; 8],
             mirror: 0,
-            prg: [0; 0x40000],
+            prg: [0; 262144],
             prg_len: 0,
             buttons: 0,
             ctrl_latch: 0,
@@ -284,7 +284,7 @@ impl Ppu {
         }
     }
 
-    pub fn render(&mut self, memory: &[u8; 0x10000], out: &mut [u8]) {
+    pub fn render(&mut self, memory: &[u8; 65536], out: &mut [u8]) {
         let bg_pt = if (self.ctrl & 16) != 0 { 4096 } else { 0 };
         let sp_pt = if (self.ctrl & 8) != 0 { 4096 } else { 0 };
         let tall = (self.ctrl & 32) != 0;
