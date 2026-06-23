@@ -51,6 +51,8 @@ pub const OBJECT_TABLE_BASE: i32 = 0x0400;
 pub const ROOM_BUFFER_BASE: i32 = 0x0500;
 /// PPU nametable 0 base address in VRAM ($2000).
 pub const VRAM_NAMETABLE0: i32 = 0x2000;
+/// Base ROM address of the four character-palette source pages (stride 256).
+pub const PALETTE_SOURCE_BASE: i32 = 0x9EC9;
 /// Per-character base-stats table (health/magic/jump etc.) at boot (`0xFFA7`).
 pub const CHARACTER_STATS_TABLE: i32 = 0xFFA7;
 /// Per-direction actor spawn X/Y offset tables (`0xFEAB`/`0xFEAC`).
@@ -1284,9 +1286,9 @@ mod rotate_sprite_zero_from_scripted_oam {
         engine.state.set_sprite_index(sprite_index);
         let oam_offset = ((sprite_index << 2) as u8 as i32);
         let source_base = if ((sprite_index & crate::bits::BITS_1_2) != 0) {
-            0x0280
+            640
         } else {
-            0x0210
+            528
         };
         engine.state.set_oam_y(
             0,
@@ -2467,8 +2469,9 @@ mod upload_title_screen_nametables {
         engine.device_write(crate::engine::reg::PPU_ADDR, 32);
         engine.device_write(crate::engine::reg::PPU_ADDR, 0);
 
-        for source_page in [0x9EC9, 0x9FC9, 0xA0C9, 0xA1C9] {
-            for offset in 0..0x100 {
+        for page in 0..4 {
+            let source_page = PALETTE_SOURCE_BASE + page * 256;
+            for offset in 0..256 {
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine.state.byte(((source_page + offset) as u16 as i32)),
@@ -2725,7 +2728,7 @@ mod draw_object_slot_sprites {
             engine.state.set_oam_tile(4 + oam_offset, left_tile + 2);
         }
 
-        let subtile_delta: i32 = ((engine.state.byte(object_base + 12)) as u16 as i32) + 0x100
+        let subtile_delta: i32 = ((engine.state.byte(object_base + 12)) as u16 as i32) + 256
             - engine.state.scroll_fine_x();
         let fine_x: i32 = ((subtile_delta) as u8 as i32) & crate::bits::LOW_NIBBLE;
         let tile_borrow: i32 = ((subtile_delta >> 8) as u8 as i32);
@@ -3378,7 +3381,7 @@ mod copy_room_tile_pages {
         for page_index in 0..=2 {
             let source_ptr: i32 = ((source_lo | (source_hi << 8)) as u16 as i32);
             let dest_base: i32 = ROOM_BUFFER_BASE + (page_index << 8);
-            for page_offset in 0..0x100 {
+            for page_offset in 0..256 {
                 engine.state.set_byte(
                     dest_base + page_offset,
                     engine
@@ -9932,8 +9935,8 @@ mod update_tile_projectile_motion {
                     {
                         let mut i: i32 = 0;
                         {
-                            i = 0x0800;
-                            while (i < 0xA000) {
+                            i = 2048;
+                            while (i < 40960) {
                                 engine.state.set_byte(i, 0);
                                 {
                                     i += 1;
