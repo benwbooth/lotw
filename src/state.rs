@@ -1660,6 +1660,13 @@ impl GameState {
     pub fn set_sound_channel_byte(&mut self, field: i32, ch: i32, value: i32) {
         self.set_byte(0x93 + field + ch, value);
     }
+    /// Decrement a sound channel field (wrapping) and return the new value.
+    #[inline]
+    pub fn dec_sound_channel_byte(&mut self, field: i32, ch: i32) -> i32 {
+        let v = (self.sound_channel_byte(field, ch) - 1) & 0xFF;
+        self.set_sound_channel_byte(field, ch, v);
+        v
+    }
 
     /// Sound channel byte offset currently being processed (`$02`).
     #[inline]

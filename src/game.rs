@@ -9957,7 +9957,10 @@ mod update_tile_projectile_motion {
 mod tick_pulse1_channel {
     use super::*;
     fn silence_pulse1(engine: &mut Engine, _r: &mut RoutineContext) {
-        engine.device_write(0x4000, (engine.mem(0x99) & 0xC0) | 0x30);
+        engine.device_write(
+            0x4000,
+            (engine.state.sound_channel_byte(6, 0x00) & 0xC0) | 0x30,
+        );
         engine
             .state
             .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFE));
@@ -9968,18 +9971,21 @@ mod tick_pulse1_channel {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((engine.mem(0x94) & 0x80) == 0) {
+                    if cbool((engine.state.sound_channel_byte(1, 0x00) & 0x80) == 0) {
                         silence_pulse1(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0x93)) != 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x00)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     loop {
-                        let mut stream_ptr: i32 = u16v(engine.mem(0x95) | (engine.mem(0x96) << 8));
+                        let mut stream_ptr: i32 = u16v(
+                            engine.state.sound_channel_byte(2, 0x00)
+                                | (engine.state.sound_channel_byte(3, 0x00) << 8),
+                        );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
@@ -9991,7 +9997,9 @@ mod tick_pulse1_channel {
                             continue;
                         }
                         increment_selected_music_stream_pointer(engine, r);
-                        engine.set_mem(0x93, u8v(note_byte & 0x7F));
+                        engine
+                            .state
+                            .set_sound_channel_byte(0, 0x00, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
                         } else {
@@ -10001,7 +10009,7 @@ mod tick_pulse1_channel {
                                 .set_sound_status_flags(u8v(
                                     engine.state.sound_status_flags() | 0x01
                                 ));
-                            engine.device_write(0x4001, engine.mem(0x9A));
+                            engine.device_write(0x4001, engine.state.sound_channel_byte(7, 0x00));
                             engine.device_write(0x4002, engine.state.sound_command());
                             engine
                                 .device_write(0x4003, (engine.state.sound_length() & 0x07) | 0x18);
@@ -10016,7 +10024,7 @@ mod tick_pulse1_channel {
                     if cbool((engine.state.sound_status_flags() & 0x01) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0x9D)) == 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x00)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(0x4000, r.value);
                     }
@@ -10035,7 +10043,10 @@ mod tick_pulse1_channel {
 mod tick_pulse2_channel {
     use super::*;
     fn silence_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
-        engine.device_write(0x4004, (engine.mem(0xA9) & 0xC0) | 0x30);
+        engine.device_write(
+            0x4004,
+            (engine.state.sound_channel_byte(6, 0x10) & 0xC0) | 0x30,
+        );
         engine
             .state
             .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFD));
@@ -10054,14 +10065,17 @@ mod tick_pulse2_channel {
                         silence_pulse2(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0xA3)) != 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x10)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     loop {
-                        let mut stream_ptr: i32 = u16v(engine.mem(0xA5) | (engine.mem(0xA6) << 8));
+                        let mut stream_ptr: i32 = u16v(
+                            engine.state.sound_channel_byte(2, 0x10)
+                                | (engine.state.sound_channel_byte(3, 0x10) << 8),
+                        );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
@@ -10073,7 +10087,9 @@ mod tick_pulse2_channel {
                             continue;
                         }
                         increment_selected_music_stream_pointer(engine, r);
-                        engine.set_mem(0xA3, u8v(note_byte & 0x7F));
+                        engine
+                            .state
+                            .set_sound_channel_byte(0, 0x10, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             if cbool(engine.state.sound_channel_flags() & 0x40) {
                                 return;
@@ -10092,8 +10108,8 @@ mod tick_pulse2_channel {
                         engine
                             .state
                             .set_sound_status_flags(u8v(engine.state.sound_status_flags() | 0x02));
-                        engine.device_write(0x4004, engine.mem(0xA9));
-                        engine.device_write(0x4005, engine.mem(0xAA));
+                        engine.device_write(0x4004, engine.state.sound_channel_byte(6, 0x10));
+                        engine.device_write(0x4005, engine.state.sound_channel_byte(7, 0x10));
                         engine.device_write(0x4006, engine.state.sound_command());
                         engine.device_write(0x4007, (engine.state.sound_length() & 0x07) | 0x18);
                         start_note_envelope(engine, r);
@@ -10109,7 +10125,7 @@ mod tick_pulse2_channel {
                     if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0xAD)) == 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x10)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(0x4004, r.value);
                     }
@@ -10137,7 +10153,7 @@ mod tick_triangle_channel {
     }
 
     pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
-        if cbool((engine.mem(0xB4) & 0x80) == 0) {
+        if cbool((engine.state.sound_channel_byte(1, 0x20) & 0x80) == 0) {
             silence_triangle(engine, r);
             return;
         }
@@ -10151,7 +10167,10 @@ mod tick_triangle_channel {
             .state
             .set_triangle_timer(u8v(engine.state.triangle_timer() - 1));
         loop {
-            let mut stream_ptr: i32 = u16v(engine.mem(0xB5) | (engine.mem(0xB6) << 8));
+            let mut stream_ptr: i32 = u16v(
+                engine.state.sound_channel_byte(2, 0x20)
+                    | (engine.state.sound_channel_byte(3, 0x20) << 8),
+            );
             let mut note_byte: i32 = engine.state.byte(stream_ptr);
             if cbool(note_byte == 0) {
                 rewind_or_stop_audio_stream(engine, r);
@@ -10172,7 +10191,7 @@ mod tick_triangle_channel {
                 engine
                     .state
                     .set_sound_status_flags(engine.state.sound_status_flags() | 0x04);
-                engine.device_write((0x4008), engine.mem(0xBA));
+                engine.device_write((0x4008), engine.state.sound_channel_byte(7, 0x20));
                 engine.device_write((0x400A), engine.state.sound_command());
                 r.value = u8v((engine.state.sound_length() & 0x07) | 0xF8);
                 engine.device_write((0x400B), r.value);
@@ -10197,18 +10216,21 @@ mod tick_noise_channel {
         'dispatch: loop {
             match state {
                 0 => {
-                    if cbool((engine.mem(0xC4) & 0x80) == 0) {
+                    if cbool((engine.state.sound_channel_byte(1, 0x30) & 0x80) == 0) {
                         silence_noise(engine, r);
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0xC3)) != 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x30)) != 0) {
                         {
                             state = 1;
                             continue 'dispatch;
                         }
                     }
                     loop {
-                        let mut stream_ptr: i32 = u16v(engine.mem(0xC5) | (engine.mem(0xC6) << 8));
+                        let mut stream_ptr: i32 = u16v(
+                            engine.state.sound_channel_byte(2, 0x30)
+                                | (engine.state.sound_channel_byte(3, 0x30) << 8),
+                        );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             rewind_or_stop_audio_stream(engine, r);
@@ -10220,7 +10242,9 @@ mod tick_noise_channel {
                             continue;
                         }
                         increment_selected_music_stream_pointer(engine, r);
-                        engine.set_mem(0xC3, u8v(note_byte & 0x7F));
+                        engine
+                            .state
+                            .set_sound_channel_byte(0, 0x30, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
                         } else {
@@ -10229,7 +10253,7 @@ mod tick_noise_channel {
                                 .set_sound_status_flags(u8v(
                                     engine.state.sound_status_flags() | 0x08
                                 ));
-                            engine.device_write(0x400E, engine.mem(0xCA));
+                            engine.device_write(0x400E, engine.state.sound_channel_byte(7, 0x30));
                             engine.device_write(0x400F, 0x80);
                             start_note_envelope(engine, r);
                         }
@@ -10242,7 +10266,7 @@ mod tick_noise_channel {
                     if cbool((engine.state.sound_status_flags() & 0x08) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0xCD)) == 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x30)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(0x400C, r.value);
                     }
@@ -10665,7 +10689,10 @@ mod scene_assemble {
 mod sfx_overlay_voice {
     use super::*;
     fn silence_sfx_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
-        engine.device_write(0x4004, (engine.mem(0xD9) & 0xC0) | 0x30);
+        engine.device_write(
+            0x4004,
+            (engine.state.sound_channel_byte(6, 0x40) & 0xC0) | 0x30,
+        );
         engine
             .state
             .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFD));
@@ -10691,7 +10718,7 @@ mod sfx_overlay_voice {
                         if cbool((engine.state.sfx_voice_active() & 0x80) == 0) {
                             return;
                         }
-                        if cbool(u8v(engine.dec_mem(0xD3)) != 0) {
+                        if cbool(u8v(engine.state.dec_sound_channel_byte(0, 0x40)) != 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -10701,8 +10728,16 @@ mod sfx_overlay_voice {
                         let mut sfx_table_index: i32 = 0;
                         engine.set_mem(0x91, engine.state.prompt_argument());
                         sfx_table_index = u8v(engine.state.prompt_state() << 1);
-                        engine.set_mem(0xD5, engine.mem(u16v(0x8014 + sfx_table_index)));
-                        engine.set_mem(0xD6, engine.mem(u16v(0x8015 + sfx_table_index)));
+                        engine.state.set_sound_channel_byte(
+                            2,
+                            0x40,
+                            engine.mem(u16v(0x8014 + sfx_table_index)),
+                        );
+                        engine.state.set_sound_channel_byte(
+                            3,
+                            0x40,
+                            engine.mem(u16v(0x8015 + sfx_table_index)),
+                        );
                         engine.state.set_sfx_voice_active(0x80);
                         engine
                             .state
@@ -10713,7 +10748,10 @@ mod sfx_overlay_voice {
                         engine.state.set_prompt_argument(0x00);
                     }
                     loop {
-                        let mut stream_ptr: i32 = u16v(engine.mem(0xD5) | (engine.mem(0xD6) << 8));
+                        let mut stream_ptr: i32 = u16v(
+                            engine.state.sound_channel_byte(2, 0x40)
+                                | (engine.state.sound_channel_byte(3, 0x40) << 8),
+                        );
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
                             engine.state.set_sfx_voice_active(0x00);
@@ -10731,7 +10769,9 @@ mod sfx_overlay_voice {
                             continue;
                         }
                         increment_selected_music_stream_pointer(engine, r);
-                        engine.set_mem(0xD3, u8v(note_byte & 0x7F));
+                        engine
+                            .state
+                            .set_sound_channel_byte(0, 0x40, u8v(note_byte & 0x7F));
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
                         } else {
@@ -10739,7 +10779,7 @@ mod sfx_overlay_voice {
                             engine.state.set_sound_status_flags(u8v(
                                 0x02 | engine.state.sound_status_flags()
                             ));
-                            engine.device_write(0x4005, engine.mem(0xDA));
+                            engine.device_write(0x4005, engine.state.sound_channel_byte(7, 0x40));
                             engine.device_write(0x4006, engine.state.sound_command());
                             engine
                                 .device_write(0x4007, (engine.state.sound_length() & 0x07) | 0xC0);
@@ -10754,7 +10794,7 @@ mod sfx_overlay_voice {
                     if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
-                    if cbool(u8v(engine.dec_mem(0xDD)) == 0) {
+                    if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x40)) == 0) {
                         next_envelope_volume(engine, r);
                         engine.device_write(0x4004, r.value);
                     }
@@ -10901,9 +10941,15 @@ mod sound_tick {
         sfx_overlay_voice(engine, r);
         if cbool(engine.state.sound_paused() != 0) {
             if !cbool(engine.state.sfx_voice_active() & 0x80) {
-                engine.device_write((0x4004), (engine.mem(0xA9) & 0xC0) | 0x30);
+                engine.device_write(
+                    (0x4004),
+                    (engine.state.sound_channel_byte(6, 0x10) & 0xC0) | 0x30,
+                );
             }
-            engine.device_write((0x4000), (engine.mem(0x99) & 0xC0) | 0x30);
+            engine.device_write(
+                (0x4000),
+                (engine.state.sound_channel_byte(6, 0x00) & 0xC0) | 0x30,
+            );
             engine.device_write((0x4008), 0x00);
             engine.device_write((0x400C), 0x30);
             r.value = 0x30;

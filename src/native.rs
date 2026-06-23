@@ -891,10 +891,10 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_frame_counter(0x3c);
     frame::wait_for_frame_counter(engine, r);
 
-    engine.set_mem(0x94, 0x00);
+    engine.state.set_sound_channel_byte(1, 0x00, 0x00);
     engine.state.set_sound_channel_flags(0x00);
-    engine.set_mem(0xb4, 0x00);
-    engine.set_mem(0xc4, 0x00);
+    engine.state.set_sound_channel_byte(1, 0x20, 0x00);
+    engine.state.set_sound_channel_byte(1, 0x30, 0x00);
     engine.state.set_prompt_state(0x18);
 
     let mut cnt = 0x0a;
@@ -1171,17 +1171,17 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
 /// Waits through a fixed object-render loop while draining active audio/sfx
 /// timers used by the story/final-exit transitions.
 pub fn drain_audio_timers_with_object_frames(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.set_mem(0xb4, 0);
+    engine.state.set_sound_channel_byte(1, 0x20, 0);
     engine.state.set_data_ptr_hi(0x10);
     loop {
-        if engine.mem(0xa0) != 0 {
-            engine.dec_mem(0xa0);
+        if engine.state.sound_channel_byte(13, 0x00) != 0 {
+            engine.state.dec_sound_channel_byte(13, 0x00);
         }
-        if engine.mem(0xb0) != 0 {
-            engine.dec_mem(0xb0);
+        if engine.state.sound_channel_byte(13, 0x10) != 0 {
+            engine.state.dec_sound_channel_byte(13, 0x10);
         }
-        if engine.mem(0xd0) != 0 {
-            engine.dec_mem(0xd0);
+        if engine.state.sound_channel_byte(13, 0x30) != 0 {
+            engine.state.dec_sound_channel_byte(13, 0x30);
         }
         engine.state.set_data_ptr_lo(0x14);
         loop {
@@ -1939,7 +1939,7 @@ pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineCon
         engine.shr_mem(0xa0, 1);
         engine.shr_mem(0xb0, 1);
         engine.shr_mem(0xd0, 1);
-        engine.set_mem(0xb4, 0);
+        engine.state.set_sound_channel_byte(1, 0x20, 0);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
         y -= 1;
@@ -1948,9 +1948,9 @@ pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineCon
         }
     }
     engine.state.set_song(0xff);
-    engine.set_mem(0x94, 0);
+    engine.state.set_sound_channel_byte(1, 0x00, 0);
     engine.state.set_sound_channel_flags(0);
-    engine.set_mem(0xc4, 0);
+    engine.state.set_sound_channel_byte(1, 0x30, 0);
     engine.state.set_music_volume_override(0);
 }
 
