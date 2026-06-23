@@ -1019,7 +1019,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             if t == engine.mem(0x70) {
                 continue;
             }
-            t = engine.mem(u16v(p + 1)) & 0x3f;
+            t = engine.state.byte(u16v(p + 1)) & 0x3f;
             if t < 0x30 {
                 continue;
             }
@@ -1424,7 +1424,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         engine.state.set_frame_counter(0x05);
         for y in 0xe0..0xe4 {
-            engine.set_mem(u16v(0x00a0 + y), engine.mem(u16v(ptr + y)));
+            engine.set_mem(u16v(0x00a0 + y), engine.state.byte(u16v(ptr + y)));
         }
         r.index = 0x00;
         r.offset = 0x04;
@@ -1448,10 +1448,10 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
     loop {
         engine.state.set_frame_counter(0x05);
         for y in 0xe0..0xe4 {
-            engine.set_mem(u16v(0x00a0 + y), engine.mem(u16v(ptr + y)));
+            engine.set_mem(u16v(0x00a0 + y), engine.state.byte(u16v(ptr + y)));
         }
         for y in 0xf0..0xf4 {
-            engine.set_mem(u16v(0x00a0 + y), engine.mem(u16v(ptr + y)));
+            engine.set_mem(u16v(0x00a0 + y), engine.state.byte(u16v(ptr + y)));
         }
         r.index = 0x00;
         r.offset = 0x04;
@@ -1655,7 +1655,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         engine.set_mem(0x50, 0x01);
         r.offset = 0x00;
         let tile_ptr = u16v(engine.state.data_ptr());
-        if (engine.mem(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
+        if (engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
     }
@@ -1736,7 +1736,7 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
 pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     let tile_ptr = u16v(engine.state.data_ptr());
     let tile_offset = r.offset;
-    let tile = engine.mem(u16v(tile_ptr + tile_offset)) & 0x3f;
+    let tile = engine.state.byte(u16v(tile_ptr + tile_offset)) & 0x3f;
     if tile == engine.mem(0x70) {
         if engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
@@ -1834,15 +1834,15 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     let p79 = u16v(engine.state.tile_table_ptr());
                     engine
                         .state
-                        .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
+                        .set_obj_tile(engine.state.byte(u16v(p79 + 0xf8)) & 0xfe);
                     engine.state.set_obj_state(0x01);
                     engine.state.set_obj_attr(0x03);
                     r.offset = engine.state.scratch3();
-                    let b = engine.mem(u16v(tile_ptr + r.offset));
+                    let b = engine.state.byte(u16v(tile_ptr + r.offset));
                     engine.state.set_obj_move_scratch(b);
                     engine.state.set_obj_timer(0x10);
                     crate::game::read_room_tile_action_value(engine, r);
-                    engine.set_mem(u16v(tile_ptr + r.offset), r.value);
+                    engine.state.set_byte(u16v(tile_ptr + r.offset), r.value);
                     crate::game::seed_object_position_from_tile_offset(engine, r);
                     crate::game::redraw_room_tile_column(engine, r);
                     crate::game::update_tile_projectile_motion(engine, r);
@@ -1865,15 +1865,15 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         let p79 = u16v(engine.state.tile_table_ptr());
                         engine
                             .state
-                            .set_obj_tile(engine.mem(u16v(p79 + 0xf8)) & 0xfe);
+                            .set_obj_tile(engine.state.byte(u16v(p79 + 0xf8)) & 0xfe);
                         engine.state.set_obj_state(0x01);
                         engine.state.set_obj_attr(0x03);
                         r.offset = engine.state.scratch3();
-                        let b = engine.mem(u16v(tile_ptr + r.offset));
+                        let b = engine.state.byte(u16v(tile_ptr + r.offset));
                         engine.state.set_obj_move_scratch(b);
                         engine.state.set_obj_timer(0x00);
                         crate::game::read_room_tile_action_value(engine, r);
-                        engine.set_mem(u16v(tile_ptr + r.offset), r.value);
+                        engine.state.set_byte(u16v(tile_ptr + r.offset), r.value);
                         crate::game::seed_object_position_from_tile_offset(engine, r);
                         crate::game::redraw_room_tile_column(engine, r);
                         crate::game::update_tile_projectile_motion(engine, r);
@@ -2079,7 +2079,7 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     let ptr = u16v(engine.state.palette_src_ptr());
-    let door = engine.mem(u16v(ptr + 0x0a));
+    let door = engine.state.byte(u16v(ptr + 0x0a));
     if door < 0x08 {
         engine.state.set_object_attr(0xA0, 0x00);
     }
@@ -2862,7 +2862,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
         let ptr =
             u16v(engine.state.actor_record_ptr_lo() | (engine.state.actor_record_ptr_hi() << 8));
-        engine.state.set_obj_tile(engine.mem(u16v(ptr + 6)));
+        engine.state.set_obj_tile(engine.state.byte(u16v(ptr + 6)));
         engine.and_mem(0xef, 0x03);
     }
     if engine.state.obj_move_scratch() == 0 {

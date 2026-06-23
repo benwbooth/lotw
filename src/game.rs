@@ -706,23 +706,33 @@ mod queue_room_column_vram_upload {
 
         engine.state.set_scratch3(0x00);
         for staging_offset in (0..=0x16).rev().step_by(2) {
-            let metatile_id: i32 = engine.mem(u16v(source_ptr + engine.state.scratch3()));
+            let metatile_id: i32 = engine
+                .state
+                .byte(u16v(source_ptr + engine.state.scratch3()));
             let tile_quad_offset: i32 = u16v(u8v(metatile_id << 2));
             engine.set_mem(
                 0x0141 + staging_offset,
-                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 0) & 0xFF))),
+                engine
+                    .state
+                    .byte(u16v(tileset_quads_ptr + ((tile_quad_offset + 0) & 0xFF))),
             );
             engine.set_mem(
                 0x0140 + staging_offset,
-                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 1) & 0xFF))),
+                engine
+                    .state
+                    .byte(u16v(tileset_quads_ptr + ((tile_quad_offset + 1) & 0xFF))),
             );
             engine.set_mem(
                 0x0159 + staging_offset,
-                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 2) & 0xFF))),
+                engine
+                    .state
+                    .byte(u16v(tileset_quads_ptr + ((tile_quad_offset + 2) & 0xFF))),
             );
             engine.set_mem(
                 0x0158 + staging_offset,
-                engine.mem(u16v(tileset_quads_ptr + ((tile_quad_offset + 3) & 0xFF))),
+                engine
+                    .state
+                    .byte(u16v(tileset_quads_ptr + ((tile_quad_offset + 3) & 0xFF))),
             );
             engine
                 .state
@@ -754,11 +764,15 @@ mod queue_room_column_vram_upload {
                 .state
                 .set_scratch3(u8v(engine.state.scratch3() + 0x08));
 
-            let top_metatile_id: i32 = engine.mem(u16v(source_ptr + source_attribute_offset));
+            let top_metatile_id: i32 = engine
+                .state
+                .byte(u16v(source_ptr + source_attribute_offset));
             source_attribute_offset += 1;
             let mut attribute_bits: i32 = u8v((top_metatile_id & 0xC0) >> 4);
 
-            let bottom_metatile_id: i32 = engine.mem(u16v(source_ptr + source_attribute_offset));
+            let bottom_metatile_id: i32 = engine
+                .state
+                .byte(u16v(source_ptr + source_attribute_offset));
             source_attribute_offset += 1;
             attribute_bits = u8v((bottom_metatile_id & 0xC0) | attribute_bits);
 
@@ -961,7 +975,7 @@ mod update_final_exit_projectiles {
         engine.state.set_obj_slot_ptr_hi(0x04);
         loop {
             let slot_ptr = u16v(engine.state.obj_slot_ptr());
-            if cbool(engine.mem(u16v(slot_ptr + 1)) != 0) {
+            if cbool(engine.state.byte(u16v(slot_ptr + 1)) != 0) {
                 update_final_exit_projectile_slot(engine, r);
             } else if (cbool(engine.state.buttons() & 0x40) && !cbool(engine.mem(0xFD) & 0x40)) {
                 spawn_final_exit_projectile(engine, r);
@@ -1205,17 +1219,17 @@ mod rotate_sprite_zero_from_scripted_oam {
         };
         engine
             .state
-            .set_oam_y(0x00, engine.mem(u16v(source_base + oam_offset)));
+            .set_oam_y(0x00, engine.state.byte(u16v(source_base + oam_offset)));
         engine
             .state
-            .set_oam_tile(0x00, engine.mem(u16v(source_base + 1 + oam_offset)));
+            .set_oam_tile(0x00, engine.state.byte(u16v(source_base + 1 + oam_offset)));
         engine
             .state
-            .set_oam_attr(0x00, engine.mem(u16v(source_base + 2 + oam_offset)));
+            .set_oam_attr(0x00, engine.state.byte(u16v(source_base + 2 + oam_offset)));
         engine
             .state
-            .set_oam_x(0x00, engine.mem(u16v(source_base + 3 + oam_offset)));
-        engine.set_mem(u16v(source_base + oam_offset), 0xEF);
+            .set_oam_x(0x00, engine.state.byte(u16v(source_base + 3 + oam_offset)));
+        engine.state.set_byte(u16v(source_base + oam_offset), 0xEF);
     }
 }
 
@@ -1854,7 +1868,7 @@ mod stage_intro_text_line {
         let mut text_offset: i32 = 0;
         let mut guard: i32 = 0;
         while cbool(guard < 256) {
-            let source_byte: i32 = engine.mem(u16v(source_ptr + text_offset));
+            let source_byte: i32 = engine.state.byte(u16v(source_ptr + text_offset));
             if cbool(source_byte == 0x00) {
                 r.carry = 1;
                 return;
@@ -1890,7 +1904,7 @@ mod stage_scrolling_intro_text_line {
         let mut text_offset: i32 = 0x00;
         let mut scan_guard: i32 = 0;
         while cbool(scan_guard < 256) {
-            let source_byte: i32 = engine.mem(u16v(source_ptr + text_offset));
+            let source_byte: i32 = engine.state.byte(u16v(source_ptr + text_offset));
             if cbool(source_byte == 0x00) {
                 r.carry = 1;
                 return;
@@ -2324,7 +2338,7 @@ mod upload_title_screen_nametables {
 
         for source_page in [0x9EC9, 0x9FC9, 0xA0C9, 0xA1C9] {
             for offset in 0..0x100 {
-                engine.device_write(0x2007, engine.mem(u16v(source_page + offset)));
+                engine.device_write(0x2007, engine.state.byte(u16v(source_page + offset)));
             }
         }
 
@@ -2830,10 +2844,10 @@ mod upload_room_view_from_tile_pointer {
                 engine.device_write(0x2006, engine.state.vram_addr_lo());
                 engine.state.set_scratch0(0x00);
                 loop {
-                    let mut idx: i32 = engine.mem(u16v(p0C + engine.state.scratch0()));
+                    let mut idx: i32 = engine.state.byte(u16v(p0C + engine.state.scratch0()));
                     let mut y: i32 = u8v(idx << 2);
-                    engine.device_write(0x2007, engine.mem(u16v(p79 + y)));
-                    engine.device_write(0x2007, engine.mem(u16v(p79 + u8v(y + 1))));
+                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + y)));
+                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + u8v(y + 1))));
                     engine
                         .state
                         .set_scratch0((engine.state.scratch0() + 1) & 0xFF);
@@ -2850,10 +2864,10 @@ mod upload_room_view_from_tile_pointer {
                 engine.device_write(0x2006, inner);
                 engine.state.set_scratch0(0x00);
                 loop {
-                    let mut idx: i32 = engine.mem(u16v(p0C + engine.state.scratch0()));
+                    let mut idx: i32 = engine.state.byte(u16v(p0C + engine.state.scratch0()));
                     let mut y: i32 = u8v((idx << 2) + 2);
-                    engine.device_write(0x2007, engine.mem(u16v(p79 + y)));
-                    engine.device_write(0x2007, engine.mem(u16v(p79 + u8v(y + 1))));
+                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + y)));
+                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + u8v(y + 1))));
                     engine
                         .state
                         .set_scratch0((engine.state.scratch0() + 1) & 0xFF);
@@ -2909,7 +2923,7 @@ mod upload_room_view_from_tile_pointer {
                 x = 6;
                 while cbool(x > 0) {
                     let mut a: i32 = 0;
-                    a = engine.mem(u16v(p0C + 0x0D));
+                    a = engine.state.byte(u16v(p0C + 0x0D));
                     {
                         let mut c1: i32 = (a >> 7) & 1;
                         a = u8v(a << 1);
@@ -2924,7 +2938,7 @@ mod upload_room_view_from_tile_pointer {
                             .state
                             .set_scratch0(u8v((engine.state.scratch0() << 1) | c1));
                     }
-                    a = engine.mem(u16v(p0C + 0x01));
+                    a = engine.state.byte(u16v(p0C + 0x01));
                     {
                         let mut c1: i32 = (a >> 7) & 1;
                         a = u8v(a << 1);
@@ -2939,7 +2953,7 @@ mod upload_room_view_from_tile_pointer {
                             .state
                             .set_scratch0(u8v((engine.state.scratch0() << 1) | c1));
                     }
-                    a = engine.mem(u16v(p0C + 0x0C));
+                    a = engine.state.byte(u16v(p0C + 0x0C));
                     {
                         let mut c1: i32 = (a >> 7) & 1;
                         a = u8v(a << 1);
@@ -2954,7 +2968,7 @@ mod upload_room_view_from_tile_pointer {
                             .state
                             .set_scratch0(u8v((engine.state.scratch0() << 1) | c1));
                     }
-                    a = engine.mem(u16v(p0C + 0x00));
+                    a = engine.state.byte(u16v(p0C + 0x00));
                     {
                         let mut c1: i32 = (a >> 7) & 1;
                         a = u8v(a << 1);
@@ -3176,9 +3190,9 @@ mod copy_room_tile_pages {
             let source_ptr: i32 = u16v(source_lo | (source_hi << 8));
             let dest_base: i32 = 0x0500 + (page_index << 8);
             for page_offset in 0..0x100 {
-                engine.set_mem(
+                engine.state.set_byte(
                     dest_base + page_offset,
-                    engine.mem(u16v(source_ptr + page_offset)),
+                    engine.state.byte(u16v(source_ptr + page_offset)),
                 );
             }
             source_hi += 1;
@@ -3226,7 +3240,9 @@ mod build_room_palette_buffer {
         for room_palette_offset in 0xE0..=0xFF {
             engine.set_mem(
                 0x00A0 + room_palette_offset,
-                engine.mem(u16v(room_palette_ptr + room_palette_offset)),
+                engine
+                    .state
+                    .byte(u16v(room_palette_ptr + room_palette_offset)),
             );
         }
 
@@ -4652,12 +4668,12 @@ mod enter_room_link_destination {
         let link_ptr: i32 = u16v(engine.state.palette_src_ptr());
         engine
             .state
-            .set_map_screen_x(engine.mem(u16v(link_ptr + 0x0C)));
+            .set_map_screen_x(engine.state.byte(u16v(link_ptr + 0x0C)));
         engine
             .state
-            .set_map_screen_y(engine.mem(u16v(link_ptr + 0x0D)));
+            .set_map_screen_y(engine.state.byte(u16v(link_ptr + 0x0D)));
 
-        let player_tile_x: i32 = engine.mem(u16v(link_ptr + 0x0E));
+        let player_tile_x: i32 = engine.state.byte(u16v(link_ptr + 0x0E));
         engine.state.set_player_x_tile(player_tile_x);
         let scroll_x: i32 = if cbool(player_tile_x >= 0x08) {
             u8v(player_tile_x - 0x08)
@@ -4675,7 +4691,7 @@ mod enter_room_link_destination {
         engine.state.set_player_x_fine(0x00);
         engine.state.set_scroll_fine_x(0x00);
 
-        r.value = engine.mem(u16v(link_ptr + 0x0F));
+        r.value = engine.state.byte(u16v(link_ptr + 0x0F));
         engine.state.set_player_y(r.value);
         fade_room_palette_out_reset_audio(engine, r);
         reset_room_object_slots(engine, r);
@@ -5802,7 +5818,7 @@ mod apply_hazard_tile_contact {
     /// the short recoil timer and one-hit invulnerability latch.
     pub fn apply_hazard_tile_contact(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_ptr = u16v(engine.state.data_ptr());
-        let tile = engine.mem(u16v(tile_ptr + r.offset)) & 0x3F;
+        let tile = engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3F;
         if tile != 0x30 {
             r.carry = 0;
             return;
@@ -5826,7 +5842,7 @@ mod probe_player_solid_tile {
     /// Empty tiles only count as contact when the player is tile-aligned.
     pub fn probe_player_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_ptr = u16v(engine.state.data_ptr());
-        let tile = engine.mem(u16v(tile_ptr + r.offset)) & 0x3F;
+        let tile = engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3F;
         if tile == 0 {
             if engine.state.player_x_fine() == 0 {
                 r.carry = 1;
@@ -5873,7 +5889,7 @@ mod dispatch_overhead_tile_action {
         offset: i32,
     ) -> bool {
         r.offset = offset;
-        match engine.mem(u16v(tile_ptr + r.offset)) & 0x3F {
+        match engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3F {
             0x05 => {
                 run_character_select_room_flow(engine, r);
                 engine.lotw_nonlocal_handoff = 1;
@@ -6018,7 +6034,7 @@ mod read_room_tile_action_value {
     pub fn read_room_tile_action_value(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_offset: i32 = engine.state.scratch3();
         let room_ptr: i32 = u16v(engine.mem(0x10) | (engine.mem(0x11) << 8));
-        let room_tile: i32 = engine.mem(u16v(room_ptr + tile_offset));
+        let room_tile: i32 = engine.state.byte(u16v(room_ptr + tile_offset));
         let tile_id: i32 = room_tile & 0x3F;
         r.index = tile_id;
         r.offset = tile_offset;
@@ -7024,8 +7040,11 @@ mod tick_inactive_actor_slot {
             .set_obj_timer(u8v(engine.state.obj_timer() - 1));
         let actor_timer: i32 = engine.state.obj_timer();
         let actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-        if cbool((engine.mem(u16v(actor_data_ptr + 2)) | engine.mem(u16v(actor_data_ptr + 3))) == 0)
-        {
+        if cbool(
+            (engine.state.byte(u16v(actor_data_ptr + 2))
+                | engine.state.byte(u16v(actor_data_ptr + 3)))
+                == 0,
+        ) {
             r.value = 0x0C;
             rng_update(engine, r);
             engine.state.set_scratch2(u8v(r.value << 4));
@@ -7035,10 +7054,10 @@ mod tick_inactive_actor_slot {
         } else {
             engine
                 .state
-                .set_scratch2(engine.mem(u16v(actor_data_ptr + 3)));
+                .set_scratch2(engine.state.byte(u16v(actor_data_ptr + 3)));
             engine
                 .state
-                .set_indirect_ptr_hi(engine.mem(u16v(actor_data_ptr + 2)));
+                .set_indirect_ptr_hi(engine.state.byte(u16v(actor_data_ptr + 2)));
         }
         engine.state.set_indirect_ptr_lo(0x00);
         engine.state.set_scratch3(0x00);
@@ -7055,10 +7074,10 @@ mod tick_inactive_actor_slot {
         engine.state.set_obj_y_extra(0x00);
         engine
             .state
-            .set_obj_health(engine.mem(u16v(actor_data_ptr + 4)));
+            .set_obj_health(engine.state.byte(u16v(actor_data_ptr + 4)));
         engine
             .state
-            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
+            .set_obj_damage(engine.state.byte(u16v(actor_data_ptr + 5)));
         {
             let mut current_member_bit: i32 = 0x00;
             let mut carry_bit: i32 = 1;
@@ -7089,10 +7108,10 @@ mod tick_inactive_actor_slot {
             engine.state.set_obj_state(0x01);
             engine
                 .state
-                .set_obj_tile(engine.mem(u16v(actor_data_ptr + 0)));
+                .set_obj_tile(engine.state.byte(u16v(actor_data_ptr + 0)));
             engine
                 .state
-                .set_obj_attr(engine.mem(u16v(actor_data_ptr + 1)));
+                .set_obj_attr(engine.state.byte(u16v(actor_data_ptr + 1)));
         } else {
             if cbool((engine.state.obj_timer() & 0x03) == 0) {
                 engine
@@ -7116,7 +7135,7 @@ mod tick_actor_materialize_delay {
             engine.state.set_obj_tile(engine.state.byte(actor_data_ptr));
             engine
                 .state
-                .set_obj_attr(engine.mem(u16v(actor_data_ptr + 1)));
+                .set_obj_attr(engine.state.byte(u16v(actor_data_ptr + 1)));
         } else if cbool((actor_timer & 0x03) == 0) {
             engine.state.set_obj_attr(engine.state.obj_attr() ^ 0x40);
         }
@@ -7162,10 +7181,10 @@ mod maybe_spawn_pursuer_actor {
         let actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
         engine
             .state
-            .set_obj_health(engine.mem(u16v(actor_data_ptr + 4)));
+            .set_obj_health(engine.state.byte(u16v(actor_data_ptr + 4)));
         engine
             .state
-            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
+            .set_obj_damage(engine.state.byte(u16v(actor_data_ptr + 5)));
         engine.state.set_obj_state(0x01);
         engine.state.set_obj_tile(0x81);
         r.value = 0x04;
@@ -7187,7 +7206,7 @@ mod dispatch_actor_behavior {
     // handler address is mirrored into 0x0E/0x0F for trace-compatible scratch.
     pub fn dispatch_actor_behavior(engine: &mut Engine, r: &mut RoutineContext) {
         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-        let mut behavior_id: i32 = engine.mem(u16v(actor_data_ptr + 8));
+        let mut behavior_id: i32 = engine.state.byte(u16v(actor_data_ptr + 8));
         if cbool(behavior_id >= 0x09) {
             behavior_id = 0x00;
         }
@@ -7417,7 +7436,7 @@ mod tick_random_floating_actor {
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-            let mut speed: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
+            let mut speed: i32 = engine.state.byte(u16v(actor_data_ptr + 0x09));
             r.offset = speed;
             r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
@@ -7452,7 +7471,7 @@ mod tick_ledge_walking_actor {
             }
         } else {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-            r.offset = engine.mem(u16v(actor_data_ptr + 9));
+            r.offset = engine.state.byte(u16v(actor_data_ptr + 9));
             r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
             try_move_actor_with_terrain(engine, r);
@@ -7524,7 +7543,7 @@ mod tick_chasing_jump_actor {
                                 continue 'dispatch;
                             }
                         }
-                        if cbool((engine.mem(u16v(room_tile_ptr + 1)) & 0x3F) == 0) {
+                        if cbool((engine.state.byte(u16v(room_tile_ptr + 1)) & 0x3F) == 0) {
                             {
                                 state = 1;
                                 continue 'dispatch;
@@ -7573,7 +7592,7 @@ mod tick_chasing_jump_actor {
                 2 => {
                     {
                         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
+                        r.offset = engine.state.byte(u16v(actor_data_ptr + 0x09));
                     }
                     r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
@@ -7662,7 +7681,7 @@ mod tick_reflecting_chase_actor {
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-            r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
+            r.offset = engine.state.byte(u16v(actor_data_ptr + 0x09));
             r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
         }
@@ -7737,7 +7756,7 @@ mod tick_overhead_probe_actor {
                     }
                     {
                         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
+                        r.offset = engine.state.byte(u16v(actor_data_ptr + 0x09));
                     }
                     r.value = engine.state.obj_move_state();
                     build_direction_velocity(engine, r);
@@ -7885,7 +7904,7 @@ mod tick_contact_trigger_actor {
                     }
                     {
                         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-                        let mut actor_type: i32 = engine.mem(u16v(actor_data_ptr + 4));
+                        let mut actor_type: i32 = engine.state.byte(u16v(actor_data_ptr + 4));
                         engine.state.set_obj_health(actor_type);
                         r.value = 0x00;
                         engine.state.set_obj_y_extra(0x00);
@@ -7931,7 +7950,7 @@ mod tick_contact_recoil_actor {
         }
         {
             let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-            r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
+            r.offset = engine.state.byte(u16v(actor_data_ptr + 0x09));
             r.value = engine.state.obj_move_state();
             build_direction_velocity(engine, r);
         }
@@ -8011,7 +8030,7 @@ mod tick_timed_chase_actor {
                     }
                     {
                         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-                        r.offset = engine.mem(u16v(actor_data_ptr + 0x09));
+                        r.offset = engine.state.byte(u16v(actor_data_ptr + 0x09));
                         r.value = engine.state.obj_move_state();
                         build_direction_velocity(engine, r);
                     }
@@ -8092,7 +8111,7 @@ mod aim_actor_toward_player {
             let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.state.player_y());
             if !cbool(dy & 0x100) {
                 let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-                let mut vertical_bias_enabled: i32 = engine.mem(u16v(actor_data_ptr + 0x09));
+                let mut vertical_bias_enabled: i32 = engine.state.byte(u16v(actor_data_ptr + 0x09));
                 if cbool(vertical_bias_enabled != 0) {
                     r.value = 0x03;
                     rng_update(engine, r);
@@ -8315,7 +8334,7 @@ mod update_actor_animation {
     // Dispatches the animation mode stored in room actor data byte 7.
     pub fn update_actor_animation(engine: &mut Engine, r: &mut RoutineContext) {
         let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
-        let mut animation_id: i32 = u8v(engine.mem(u16v(actor_data_ptr + 7)) & 0x03);
+        let mut animation_id: i32 = u8v(engine.state.byte(u16v(actor_data_ptr + 7)) & 0x03);
         let mut original_handler: i32 = ANIMATION_HANDLERS[animation_id as usize];
         engine
             .state
@@ -8597,7 +8616,7 @@ mod update_object_terrain_probe {
             if cbool((engine.state.byte(tile_ptr) & 0x3F) == 0) {
                 return;
             }
-            if cbool((engine.mem(u16v(tile_ptr + 1)) & 0x3F) == 0) {
+            if cbool((engine.state.byte(u16v(tile_ptr + 1)) & 0x3F) == 0) {
                 return;
             }
         }
@@ -8676,7 +8695,7 @@ mod probe_object_solid_tile {
     /// when the low six tile bits are in the solid range `>= 0x30`.
     pub fn probe_object_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_ptr: i32 = u16v(engine.state.data_ptr());
-        let tile_id: i32 = u8v(engine.mem(u16v(tile_ptr + r.offset)) & 0x3F);
+        let tile_id: i32 = u8v(engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3F);
         r.carry = u8v(u8v(tile_id >= 0x30));
     }
 }
@@ -8788,7 +8807,7 @@ mod probe_projected_solid_tile {
     /// Carry is set when the low six tile bits are in the solid range.
     pub fn probe_projected_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_ptr: i32 = u16v(engine.state.data_ptr());
-        let tile_id: i32 = u8v(engine.mem(u16v(tile_ptr + r.offset)) & 0x3F);
+        let tile_id: i32 = u8v(engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3F);
         r.carry = u8v(u8v(tile_id >= 0x30));
     }
 }
@@ -8925,10 +8944,10 @@ mod initialize_large_actor_slot {
         engine.state.set_chr_bank(4, 0x3D);
         engine
             .state
-            .set_scratch2(engine.mem(u16v(actor_data_ptr + 3)));
+            .set_scratch2(engine.state.byte(u16v(actor_data_ptr + 3)));
         engine
             .state
-            .set_indirect_ptr_hi(engine.mem(u16v(actor_data_ptr + 2)));
+            .set_indirect_ptr_hi(engine.state.byte(u16v(actor_data_ptr + 2)));
         engine.state.set_indirect_ptr_lo(0x00);
         engine.state.set_scratch3(0x00);
         check_projected_wide_terrain_collision(engine, r);
@@ -8946,9 +8965,9 @@ mod initialize_large_actor_slot {
         engine.state.set_obj_attr(0x02);
         engine
             .state
-            .set_obj_damage(engine.mem(u16v(actor_data_ptr + 5)));
+            .set_obj_damage(engine.state.byte(u16v(actor_data_ptr + 5)));
         {
-            let actor_health: i32 = engine.mem(u16v(actor_data_ptr + 4));
+            let actor_health: i32 = engine.state.byte(u16v(actor_data_ptr + 4));
             engine.state.set_obj_health(actor_health);
             engine.state.set_object_health(0x10, actor_health);
             engine.state.set_object_health(0x20, actor_health);
@@ -9352,7 +9371,7 @@ mod update_player_projectiles {
         engine.state.set_obj_slot_ptr_hi(0x04);
         loop {
             let slot_ptr: i32 = u16v(engine.state.obj_slot_ptr());
-            let active_lifetime: i32 = engine.mem(u16v(slot_ptr + 1));
+            let active_lifetime: i32 = engine.state.byte(u16v(slot_ptr + 1));
             if cbool(active_lifetime != 0) {
                 r.value = active_lifetime;
                 r.offset = 0x01;
@@ -10106,7 +10125,7 @@ mod dispatch_audio_stream_command {
         let mut channel_offset: i32 = u8v(r.index);
         let mut lo: i32 = engine.state.sound_channel_byte(2, channel_offset);
         let mut hi: i32 = engine.state.sound_channel_byte(3, channel_offset);
-        return engine.mem(u16v(lo | (hi << 8)));
+        return engine.state.byte(u16v(lo | (hi << 8)));
     }
 
     // A 0xFF stream byte is followed by command id and value bytes. The command
@@ -10626,7 +10645,9 @@ mod song_init {
                 {
                     y = 7;
                     while cbool(y >= 0) {
-                        engine.set_mem(u16v(d + y), engine.mem(u16v(s + y)));
+                        engine
+                            .state
+                            .set_byte(u16v(d + y), engine.state.byte(u16v(s + y)));
                         {
                             let __old = y;
                             y -= 1;
@@ -10643,7 +10664,7 @@ mod song_init {
                 {
                     y = 7;
                     while cbool(y >= 0) {
-                        engine.set_mem(u16v(d + y), 0x00);
+                        engine.state.set_byte(u16v(d + y), 0x00);
                         {
                             let __old = y;
                             y -= 1;
@@ -10789,12 +10810,12 @@ mod text_attr_build {
         b = engine.state.byte(p);
         engine.state.set_tile_table_ptr_hi(u8v(b + 0xA0 + carry_in));
         engine.state.set_tile_table_ptr_lo(0);
-        engine.state.set_chr_bank(3, engine.mem(u16v(p + 1)));
-        engine.set_mem(0x70, engine.mem(u16v(p + 2)));
-        engine.set_mem(0x71, engine.mem(u16v(p + 3)));
-        engine.set_mem(0x74, engine.mem(u16v(p + 4)));
-        engine.state.set_chr_bank(0, engine.mem(u16v(p + 5)));
-        engine.state.set_chr_bank(1, engine.mem(u16v(p + 6)));
+        engine.state.set_chr_bank(3, engine.state.byte(u16v(p + 1)));
+        engine.set_mem(0x70, engine.state.byte(u16v(p + 2)));
+        engine.set_mem(0x71, engine.state.byte(u16v(p + 3)));
+        engine.set_mem(0x74, engine.state.byte(u16v(p + 4)));
+        engine.state.set_chr_bank(0, engine.state.byte(u16v(p + 5)));
+        engine.state.set_chr_bank(1, engine.state.byte(u16v(p + 6)));
         {
             let mut ms_y: i32 = engine.state.map_screen_y();
             let mut ms_x: i32 = engine.state.map_screen_x();
@@ -10821,7 +10842,7 @@ mod text_attr_build {
             let mut y: i32 = 0x07;
             let mut a: i32 = 0;
             if cbool(r.carry) {
-                a = engine.mem(u16v(p + y));
+                a = engine.state.byte(u16v(p + y));
             } else {
                 a = 0;
             }
@@ -10835,7 +10856,7 @@ mod text_attr_build {
                 };
                 engine
                     .state
-                    .set_object_x_tile(0xA0, engine.mem(u16v(p + y)));
+                    .set_object_x_tile(0xA0, engine.state.byte(u16v(p + y)));
                 engine.state.set_object_x_sub(0xA0, 0x00);
                 {
                     let __old = y;
@@ -10844,13 +10865,13 @@ mod text_attr_build {
                 };
                 engine
                     .state
-                    .set_object_y_pixel(0xA0, engine.mem(u16v(p + y)));
+                    .set_object_y_pixel(0xA0, engine.state.byte(u16v(p + y)));
                 {
                     let __old = y;
                     y += 1;
                     __old
                 };
-                b = engine.mem(u16v(p + y));
+                b = engine.state.byte(u16v(p + y));
                 if cbool(b == 0x17) {
                     engine.state.set_object_state(0xA0, 0x19);
                     engine.state.set_object_tile(0xA0, 0xDD);
@@ -10878,21 +10899,21 @@ mod text_attr_build {
                         break;
                     }
                 }
-                a = u8v(a & engine.mem(u16v(p + 0x15)));
+                a = u8v(a & engine.state.byte(u16v(p + 0x15)));
                 if cbool(a != 0) {
                     do_d02e = 0;
                 }
             }
             if cbool(do_d02e) {
-                r.value = engine.mem(u16v(p + 0x0B));
+                r.value = engine.state.byte(u16v(p + 0x0B));
                 switch_song_if_needed(engine, r);
             }
         }
-        engine.set_mem(0x80, engine.mem(u16v(p + 0x10)));
-        engine.set_mem(0x81, engine.mem(u16v(p + 0x11)));
-        engine.set_mem(0x82, engine.mem(u16v(p + 0x12)));
-        engine.set_mem(0x83, engine.mem(u16v(p + 0x13)));
-        engine.set_mem(0x41, engine.mem(u16v(p + 0x14)));
+        engine.set_mem(0x80, engine.state.byte(u16v(p + 0x10)));
+        engine.set_mem(0x81, engine.state.byte(u16v(p + 0x11)));
+        engine.set_mem(0x82, engine.state.byte(u16v(p + 0x12)));
+        engine.set_mem(0x83, engine.state.byte(u16v(p + 0x13)));
+        engine.set_mem(0x41, engine.state.byte(u16v(p + 0x14)));
     }
 }
 
@@ -11008,7 +11029,7 @@ mod vram_copy_indirect {
         let mut src: i32 = u16v(engine.state.vram_addr2_lo() | (engine.state.vram_addr2_hi() << 8));
         let mut y: i32 = 0;
         loop {
-            engine.device_write(0x2007, engine.mem(u16v(src + y)));
+            engine.device_write(0x2007, engine.state.byte(u16v(src + y)));
             {
                 let __old = y;
                 y += 1;
