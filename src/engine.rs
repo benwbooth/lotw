@@ -195,7 +195,7 @@ impl Engine {
                 let base = (value as usize) << 8;
                 for i in 0..256 {
                     let dst = self.ppu.oamaddr.wrapping_add(i as u8) as usize;
-                    self.ppu.oam[dst] = self.state.ram[(base + i) & 65535];
+                    self.ppu.oam[dst] = self.state.ram_bytes()[(base + i) & 65535];
                 }
             }
             reg::MMC3_BANK_SELECT => {
@@ -290,7 +290,7 @@ impl Engine {
         let nbanks = self.ppu.prg_len / 8192;
         let off = ((bank8k as usize) % nbanks) * 8192;
         let dst = (cpu_base as usize) & 65535;
-        self.state.ram[dst..dst + 8192].copy_from_slice(&self.ppu.prg[off..off + 8192]);
+        self.state.ram_bytes_mut()[dst..dst + 8192].copy_from_slice(&self.ppu.prg[off..off + 8192]);
     }
 
     pub fn prg_map_shadow(&mut self) {
@@ -309,14 +309,14 @@ impl Engine {
         }
         if init_ram_pattern {
             for a in 0..2048 {
-                self.state.ram[a] = if (a & 4) != 0 { 255 } else { 0 };
+                self.state.ram_bytes_mut()[a] = if (a & 4) != 0 { 255 } else { 0 };
             }
         }
         self.ppu_load_prg(&rom[16..16 + prg]);
         self.ppu_load_chr(&rom[16 + prg..16 + prg + chr]);
         self.ppu.reset();
         self.apu.reset();
-        self.state.ram[49152..65536].copy_from_slice(&rom[16 + prg - 16384..16 + prg]);
+        self.state.ram_bytes_mut()[49152..65536].copy_from_slice(&rom[16 + prg - 16384..16 + prg]);
         self.ppu_map_prg(32768, 12);
         self.ppu_map_prg(40960, 13);
         self.ppu.set_vblank(true);

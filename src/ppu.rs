@@ -284,7 +284,7 @@ impl Ppu {
         }
     }
 
-    pub fn render(&mut self, memory: &[u8; 65536], out: &mut [u8]) {
+    pub fn render(&mut self, memory: &[u8], out: &mut [u8]) {
         let bg_pt = if (self.ctrl & 16) != 0 { 4096 } else { 0 };
         let sp_pt = if (self.ctrl & 8) != 0 { 4096 } else { 0 };
         let tall = (self.ctrl & 32) != 0;

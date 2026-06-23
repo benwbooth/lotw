@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             eprintln!("lockstep_port: game loop returned at frame {frame}");
             break;
         }
-        out.write_all(&runner.engine().state.ram[..2048])?;
+        out.write_all(runner.engine().state.ram_bytes()[..2048].as_ref())?;
     }
     if let Some(consumed) = consumed {
         eprintln!(

@@ -43,7 +43,7 @@ pub fn step_frame(runner: &mut FrameRunner) -> bool {
 
 pub fn render_frame(engine: &mut Engine) -> Vec<u8> {
     let mut fb = vec![0; PPU_W * PPU_H * 3];
-    let memory = engine.state.ram;
+    let memory = engine.state.ram_bytes().to_vec();
     engine.ppu.render(&memory, &mut fb);
     fb
 }
@@ -62,7 +62,7 @@ pub fn write_wav(path: impl AsRef<Path>, samples: &[i16]) -> Result<(), Box<dyn 
 
 pub fn write_ram(path: impl AsRef<Path>, engine: &Engine) -> Result<(), Box<dyn Error>> {
     ensure_parent(&path)?;
-    fs::write(path, &engine.state.ram[..2048])?;
+    fs::write(path, engine.state.ram_bytes()[..2048].as_ref())?;
     Ok(())
 }
 

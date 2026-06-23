@@ -335,7 +335,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        let memory = runner.engine().state.ram;
+        let memory = runner.engine().state.ram_bytes().to_vec();
         runner.engine_mut().ppu.render(&memory, &mut fb);
         texture.update(None, &fb, PPU_W * 3)?;
         canvas.clear();
