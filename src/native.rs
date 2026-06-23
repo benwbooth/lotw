@@ -294,7 +294,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_object_state(0x30, 0x00);
     engine.state.set_obj_health(0x00);
     engine.state.set_sprite_blink_timer(0x00);
-    engine.set_mem(0x88, 0x00);
+    engine.state.set_displaced_timer(0x00);
     crate::game::draw_scripted_player_sprites(engine, r);
     crate::game::draw_final_exit_projectile_sprites(engine, r);
     engine.state.set_oam_y(0x00, 0xef);
@@ -1800,7 +1800,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     let mut t = engine.state.player_y() & 0x0f;
                     t |= engine.state.player_x_fine();
                     if t == 0 {
-                        let x2 = u8v((engine.mem(0xfd) & 0x0f) << 1);
+                        let x2 = u8v((engine.state.direction_latch() & 0x0f) << 1);
                         let lo = u8v(engine.state.player_x_tile() + engine.mem(u16v(0xfeab + x2)));
                         engine.state.set_object_x_tile(0x90, lo);
                         engine.state.set_data_ptr_lo(lo);
@@ -1829,7 +1829,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                 return;
             }
             if idx == 2 {
-                if (engine.mem(0xfd) & 0x0f) != 0 {
+                if (engine.state.direction_latch() & 0x0f) != 0 {
                     r.offset = 0x01;
                     crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
@@ -1860,7 +1860,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             }
             if idx == 3 {
                 if engine.state.player_magic() != 0 {
-                    if (engine.mem(0xfd) & 0x0f) != 0 {
+                    if (engine.state.direction_latch() & 0x0f) != 0 {
                         r.offset = 0x08;
                         crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;

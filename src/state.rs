@@ -1305,6 +1305,37 @@ impl GameState {
         self.set_byte(0x0180 + i, value);
     }
 
+    /// Sound engine status flag bits (`$27`).
+    #[inline]
+    pub fn sound_status_flags(&self) -> i32 {
+        self.byte(0x27)
+    }
+    #[inline]
+    pub fn set_sound_status_flags(&mut self, value: i32) {
+        self.set_byte(0x27, value);
+    }
+
+    /// Displaced-block / temporary-tile restore timer (`$88`).
+    #[inline]
+    pub fn displaced_timer(&self) -> i32 {
+        self.byte(0x88)
+    }
+    #[inline]
+    pub fn set_displaced_timer(&mut self, value: i32) {
+        self.set_byte(0x88, value);
+    }
+
+    /// Direction latch (`$FD`): low nibble holds the current movement
+    /// direction, high nibble the previously latched one.
+    #[inline]
+    pub fn direction_latch(&self) -> i32 {
+        self.byte(0xFD)
+    }
+    #[inline]
+    pub fn set_direction_latch(&mut self, value: i32) {
+        self.set_byte(0xFD, value);
+    }
+
     // ---- NMI VRAM request -------------------------------------------------
 
     /// Pending NMI VRAM upload request id (`$28`); foreground code sets it and

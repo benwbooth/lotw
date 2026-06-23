@@ -470,13 +470,17 @@ mod game_update {
                             });
                         }
                         if cbool(clear_hi) {
-                            engine.and_mem(0xFD, 0x0F);
+                            engine
+                                .state
+                                .set_direction_latch(engine.state.direction_latch() & 0x0F);
                         }
                     }
                     a = engine.state.buttons() & 0x0F;
                     if cbool(a != 0) {
                         engine.state.set_scratch0(a);
-                        engine.set_mem(0xFD, u8v((engine.mem(0xFD) & 0xF0) | a));
+                        engine
+                            .state
+                            .set_direction_latch(u8v((engine.state.direction_latch() & 0xF0) | a));
                     }
                     if cbool(engine.state.buttons() & 0x20) {
                         {
@@ -709,7 +713,7 @@ mod main_init {
         engine.device_write(0x2000, 0x00);
         engine.device_write(0x2001, 0x00);
         engine.device_write(0x4010, 0x00);
-        engine.set_mem(0x0027, 0x1F);
+        engine.state.set_sound_status_flags(0x1F);
         engine.device_write(0x4015, 0x1F);
         engine.device_write(0x4017, 0xC0);
         engine.device_write(0xA000, 0x00);
@@ -1022,7 +1026,9 @@ mod update_final_exit_projectiles {
             let slot_ptr = u16v(engine.state.obj_slot_ptr());
             if cbool(engine.state.byte(u16v(slot_ptr + 1)) != 0) {
                 update_final_exit_projectile_slot(engine, r);
-            } else if (cbool(engine.state.buttons() & 0x40) && !cbool(engine.mem(0xFD) & 0x40)) {
+            } else if (cbool(engine.state.buttons() & 0x40)
+                && !cbool(engine.state.direction_latch() & 0x40))
+            {
                 spawn_final_exit_projectile(engine, r);
             }
             engine.set_mem(0xE3, u8v(engine.mem(0xE3) + 1));
@@ -1050,9 +1056,9 @@ mod spawn_final_exit_projectile {
         load_object_slot_scratch(engine, r);
         engine.set_mem(
             0xFD,
-            u8v((engine.state.buttons() & 0x40) | engine.mem(0xFD)),
+            u8v((engine.state.buttons() & 0x40) | engine.state.direction_latch()),
         );
-        r.value = engine.mem(0xFD);
+        r.value = engine.state.direction_latch();
         r.offset = 0x02;
         build_final_exit_projectile_velocity(engine, r);
         project_final_exit_projectile_spawn(engine, r);
@@ -1433,7 +1439,9 @@ mod tick_scripted_player_motion {
         }
 
         if !cbool(engine.state.buttons() & 0x40) {
-            engine.set_mem(0xFD, u8v(engine.mem(0xFD) & 0x0F));
+            engine
+                .state
+                .set_direction_latch(u8v(engine.state.direction_latch() & 0x0F));
         }
         let directional_buttons = u8v(engine.state.buttons() & 0x0F);
         r.value = directional_buttons;
@@ -1441,7 +1449,7 @@ mod tick_scripted_player_motion {
             engine.state.set_scratch0(directional_buttons);
             engine.set_mem(
                 0xFD,
-                u8v((engine.mem(0xFD) & 0xF0) | engine.state.scratch0()),
+                u8v((engine.state.direction_latch() & 0xF0) | engine.state.scratch0()),
             );
         }
 
@@ -5468,7 +5476,7 @@ mod try_move_player_with_collision {
                     continue 'dispatch;
                 }
                 5 => {
-                    if cbool(engine.mem(0x88) == 0) {
+                    if cbool(engine.state.displaced_timer() == 0) {
                         {
                             state = 6;
                             continue 'dispatch;
@@ -5814,7 +5822,7 @@ mod grant_short_speed_boost {
         let boost_duration: i32 = 0x1E;
         let mut displaced_timer: i32 = 0;
         engine.state.set_prompt_state(0x13);
-        displaced_timer = engine.mem(0x88);
+        displaced_timer = engine.state.displaced_timer();
         if cbool(displaced_timer != 0) {
             displaced_timer = engine.mem(0x89);
             if cbool(displaced_timer != 0) {
@@ -5822,7 +5830,7 @@ mod grant_short_speed_boost {
             }
             engine.set_mem(0x89, boost_duration);
         }
-        engine.set_mem(0x88, boost_duration);
+        engine.state.set_displaced_timer(boost_duration);
         r.value = displaced_timer;
         r.index = boost_duration;
     }
@@ -5836,7 +5844,7 @@ mod grant_long_speed_boost {
         let boost_duration: i32 = 0x3C;
         let mut displaced_timer: i32 = 0;
         engine.state.set_prompt_state(0x13);
-        displaced_timer = engine.mem(0x88);
+        displaced_timer = engine.state.displaced_timer();
         if cbool(displaced_timer != 0) {
             displaced_timer = engine.mem(0x89);
             if cbool(displaced_timer != 0) {
@@ -5848,7 +5856,7 @@ mod grant_long_speed_boost {
             }
             engine.set_mem(0x89, boost_duration);
         }
-        engine.set_mem(0x88, boost_duration);
+        engine.state.set_displaced_timer(boost_duration);
         r.value = displaced_timer;
         r.index = boost_duration;
     }
@@ -9461,7 +9469,7 @@ mod update_player_projectiles {
                 update_player_projectile_slot(engine, r);
             } else {
                 if cbool(engine.state.buttons() & 0x40) {
-                    if !cbool(engine.mem(0xFD) & 0x40) {
+                    if !cbool(engine.state.direction_latch() & 0x40) {
                         r.value = 0x00;
                         r.offset = 0x01;
                         spawn_player_projectile(engine, r);
@@ -9496,14 +9504,14 @@ mod spawn_player_projectile {
                     load_object_slot_scratch(engine, r);
                     engine.set_mem(
                         0xFD,
-                        u8v((engine.state.buttons() & 0x40) | engine.mem(0xFD)),
+                        u8v((engine.state.buttons() & 0x40) | engine.state.direction_latch()),
                     );
-                    r.offset = u8v((if cbool(engine.mem(0x88) != 0) {
+                    r.offset = u8v((if cbool(engine.state.displaced_timer() != 0) {
                         0x04
                     } else {
                         0x02
                     }));
-                    r.value = engine.mem(0xFD);
+                    r.value = engine.state.direction_latch();
                     build_direction_velocity(engine, r);
                     project_player_projectile_position(engine, r);
                     check_position_out_of_bounds(engine, r);
@@ -9927,7 +9935,9 @@ mod tick_pulse1_channel {
     use super::*;
     fn silence_pulse1(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4000, (engine.mem(0x99) & 0xC0) | 0x30);
-        engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFE));
+        engine
+            .state
+            .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFE));
     }
 
     pub fn tick_pulse1_channel(engine: &mut Engine, r: &mut RoutineContext) {
@@ -9963,7 +9973,11 @@ mod tick_pulse1_channel {
                             start_rest_envelope(engine, r);
                         } else {
                             load_note_period(engine, r);
-                            engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x01));
+                            engine
+                                .state
+                                .set_sound_status_flags(u8v(
+                                    engine.state.sound_status_flags() | 0x01
+                                ));
                             engine.device_write(0x4001, engine.mem(0x9A));
                             engine.device_write(0x4002, engine.state.sound_command());
                             engine.device_write(0x4003, (engine.mem(0x05) & 0x07) | 0x18);
@@ -9975,7 +9989,7 @@ mod tick_pulse1_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.mem(0x27) & 0x01) == 0) {
+                    if cbool((engine.state.sound_status_flags() & 0x01) == 0) {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0x9D)) == 0) {
@@ -9998,7 +10012,9 @@ mod tick_pulse2_channel {
     use super::*;
     fn silence_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4004, (engine.mem(0xA9) & 0xC0) | 0x30);
-        engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFD));
+        engine
+            .state
+            .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFD));
     }
 
     pub fn tick_pulse2_channel(engine: &mut Engine, r: &mut RoutineContext) {
@@ -10049,7 +10065,9 @@ mod tick_pulse2_channel {
                             return;
                         }
                         load_note_period(engine, r);
-                        engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x02));
+                        engine
+                            .state
+                            .set_sound_status_flags(u8v(engine.state.sound_status_flags() | 0x02));
                         engine.device_write(0x4004, engine.mem(0xA9));
                         engine.device_write(0x4005, engine.mem(0xAA));
                         engine.device_write(0x4006, engine.state.sound_command());
@@ -10064,7 +10082,7 @@ mod tick_pulse2_channel {
                     if cbool(engine.state.sound_channel_flags() & 0x40) {
                         return;
                     }
-                    if cbool((engine.mem(0x27) & 0x02) == 0) {
+                    if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xAD)) == 0) {
@@ -10088,8 +10106,10 @@ mod tick_triangle_channel {
     fn silence_triangle(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x00;
         engine.device_write((0x4008), 0x00);
-        engine.set_mem(0x27, engine.mem(0x27) & 0xFB);
-        r.value = engine.mem(0x27);
+        engine
+            .state
+            .set_sound_status_flags(engine.state.sound_status_flags() & 0xFB);
+        r.value = engine.state.sound_status_flags();
     }
 
     pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
@@ -10121,7 +10141,9 @@ mod tick_triangle_channel {
                     return;
                 }
                 load_note_period(engine, r);
-                engine.set_mem(0x27, engine.mem(0x27) | 0x04);
+                engine
+                    .state
+                    .set_sound_status_flags(engine.state.sound_status_flags() | 0x04);
                 engine.device_write((0x4008), engine.mem(0xBA));
                 engine.device_write((0x400A), engine.state.sound_command());
                 r.value = u8v((engine.mem(0x05) & 0x07) | 0xF8);
@@ -10137,7 +10159,9 @@ mod tick_noise_channel {
     use super::*;
     fn silence_noise(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x400C, 0x30);
-        engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xF7));
+        engine
+            .state
+            .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xF7));
     }
 
     pub fn tick_noise_channel(engine: &mut Engine, r: &mut RoutineContext) {
@@ -10172,7 +10196,11 @@ mod tick_noise_channel {
                         if cbool(note_byte & 0x80) {
                             start_rest_envelope(engine, r);
                         } else {
-                            engine.set_mem(0x27, u8v(engine.mem(0x27) | 0x08));
+                            engine
+                                .state
+                                .set_sound_status_flags(u8v(
+                                    engine.state.sound_status_flags() | 0x08
+                                ));
                             engine.device_write(0x400E, engine.mem(0xCA));
                             engine.device_write(0x400F, 0x80);
                             start_note_envelope(engine, r);
@@ -10183,7 +10211,7 @@ mod tick_noise_channel {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.mem(0x27) & 0x08) == 0) {
+                    if cbool((engine.state.sound_status_flags() & 0x08) == 0) {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xCD)) == 0) {
@@ -10609,7 +10637,9 @@ mod sfx_overlay_voice {
     use super::*;
     fn silence_sfx_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(0x4004, (engine.mem(0xD9) & 0xC0) | 0x30);
-        engine.set_mem(0x27, u8v(engine.mem(0x27) & 0xFD));
+        engine
+            .state
+            .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xFD));
     }
 
     pub fn sfx_overlay_voice(engine: &mut Engine, r: &mut RoutineContext) {
@@ -10677,7 +10707,9 @@ mod sfx_overlay_voice {
                             start_rest_envelope(engine, r);
                         } else {
                             load_note_period(engine, r);
-                            engine.set_mem(0x27, u8v(0x02 | engine.mem(0x27)));
+                            engine.state.set_sound_status_flags(u8v(
+                                0x02 | engine.state.sound_status_flags()
+                            ));
                             engine.device_write(0x4005, engine.mem(0xDA));
                             engine.device_write(0x4006, engine.state.sound_command());
                             engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0xC0);
@@ -10689,7 +10721,7 @@ mod sfx_overlay_voice {
                     continue 'dispatch;
                 }
                 1 => {
-                    if cbool((engine.mem(0x27) & 0x02) == 0) {
+                    if cbool((engine.state.sound_status_flags() & 0x02) == 0) {
                         return;
                     }
                     if cbool(u8v(engine.dec_mem(0xDD)) == 0) {
