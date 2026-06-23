@@ -21,6 +21,33 @@
 /// Indexing is uniform across the whole 64 KiB address space because the
 /// translated 6502 code performs cross-field indexing, aliasing, and pointer
 /// dereferences that a struct of typed fields could not reproduce byte-for-byte.
+macro_rules! byte_field {
+    ($get:ident, $set:ident, $addr:expr, $doc:expr) => {
+        #[doc = $doc]
+        #[inline]
+        pub fn $get(&self) -> i32 {
+            self.byte($addr)
+        }
+        #[inline]
+        pub fn $set(&mut self, value: i32) {
+            self.set_byte($addr, value);
+        }
+    };
+}
+macro_rules! array_field {
+    ($get:ident, $set:ident, $base:expr, $doc:expr) => {
+        #[doc = $doc]
+        #[inline]
+        pub fn $get(&self, i: i32) -> i32 {
+            self.byte($base + i)
+        }
+        #[inline]
+        pub fn $set(&mut self, i: i32, value: i32) {
+            self.set_byte($base + i, value);
+        }
+    };
+}
+
 pub struct GameState {
     /// Flat backing store for the entire CPU address space:
     /// `$0000-$07FF` RAM (+ mirrors), `$0100` stack page, `$0200` OAM DMA
@@ -148,126 +175,86 @@ impl GameState {
     // Far calls into a switchable bank stash the live PRG banks in `$32`/`$33`
     // and restore them on return.
 
-    /// MMC3 bank-select shadow (`$25`): which register R0-R7 the next bank
-    /// write targets, plus the PRG/CHR mode bits.
-    #[inline]
-    pub fn mmc3_bank_select(&self) -> i32 {
-        self.byte(0x25)
-    }
-    #[inline]
-    pub fn set_mmc3_bank_select(&mut self, value: i32) {
-        self.set_byte(0x25, value);
-    }
+    byte_field!(
+        mmc3_bank_select,
+        set_mmc3_bank_select,
+        0x25,
+        "MMC3 bank-select shadow (`$25`): which register R0-R7 the next bank write targets, plus the PRG/CHR mode bits."
+    );
 
-    /// PRG bank mapped at `$8000` — MMC3 R6 shadow (`$30`).
-    #[inline]
-    pub fn prg_bank_8000(&self) -> i32 {
-        self.byte(0x30)
-    }
-    #[inline]
-    pub fn set_prg_bank_8000(&mut self, value: i32) {
-        self.set_byte(0x30, value);
-    }
+    byte_field!(
+        prg_bank_8000,
+        set_prg_bank_8000,
+        0x30,
+        "PRG bank mapped at `$8000` — MMC3 R6 shadow (`$30`)."
+    );
 
-    /// PRG bank mapped at `$A000` — MMC3 R7 shadow (`$31`).
-    #[inline]
-    pub fn prg_bank_a000(&self) -> i32 {
-        self.byte(0x31)
-    }
-    #[inline]
-    pub fn set_prg_bank_a000(&mut self, value: i32) {
-        self.set_byte(0x31, value);
-    }
+    byte_field!(
+        prg_bank_a000,
+        set_prg_bank_a000,
+        0x31,
+        "PRG bank mapped at `$A000` — MMC3 R7 shadow (`$31`)."
+    );
 
-    /// Saved R6/`$8000` PRG bank stashed across a far call (`$32`).
-    #[inline]
-    pub fn saved_prg_bank_8000(&self) -> i32 {
-        self.byte(0x32)
-    }
-    #[inline]
-    pub fn set_saved_prg_bank_8000(&mut self, value: i32) {
-        self.set_byte(0x32, value);
-    }
+    byte_field!(
+        saved_prg_bank_8000,
+        set_saved_prg_bank_8000,
+        0x32,
+        "Saved R6/`$8000` PRG bank stashed across a far call (`$32`)."
+    );
 
-    /// Saved R7/`$A000` PRG bank stashed across a far call (`$33`).
-    #[inline]
-    pub fn saved_prg_bank_a000(&self) -> i32 {
-        self.byte(0x33)
-    }
-    #[inline]
-    pub fn set_saved_prg_bank_a000(&mut self, value: i32) {
-        self.set_byte(0x33, value);
-    }
+    byte_field!(
+        saved_prg_bank_a000,
+        set_saved_prg_bank_a000,
+        0x33,
+        "Saved R7/`$A000` PRG bank stashed across a far call (`$33`)."
+    );
 
-    /// MMC3 CHR bank shadow for register `reg` (R0-R5), shadowed at
-    /// `$2A..$2F`. R0/R1 select 2 KiB CHR windows; R2-R5 select 1 KiB windows.
-    /// A per-frame committer replays these to `$8001`.
-    #[inline]
-    pub fn chr_bank(&self, reg: i32) -> i32 {
-        self.byte(0x2A + reg)
-    }
-    #[inline]
-    pub fn set_chr_bank(&mut self, reg: i32, value: i32) {
-        self.set_byte(0x2A + reg, value);
-    }
+    array_field!(
+        chr_bank,
+        set_chr_bank,
+        0x2A,
+        "MMC3 CHR bank shadow for register `reg` (R0-R5), shadowed at `$2A..$2F`. R0/R1 select 2 KiB CHR windows; R2-R5 select 1 KiB windows. A per-frame committer replays these to `$8001`."
+    );
 
-    /// PPUCTRL ($2000) shadow (`$23`): nametable/increment/sprite-size and
-    /// pattern-table selection bits replayed to the PPU each frame.
-    #[inline]
-    pub fn ppu_ctrl_shadow(&self) -> i32 {
-        self.byte(0x23)
-    }
-    #[inline]
-    pub fn set_ppu_ctrl_shadow(&mut self, value: i32) {
-        self.set_byte(0x23, value);
-    }
+    byte_field!(
+        ppu_ctrl_shadow,
+        set_ppu_ctrl_shadow,
+        0x23,
+        "PPUCTRL ($2000) shadow (`$23`): nametable/increment/sprite-size and pattern-table selection bits replayed to the PPU each frame."
+    );
 
-    /// PPUMASK ($2001) shadow (`$24`): rendering-enable and emphasis bits.
-    #[inline]
-    pub fn ppu_mask_shadow(&self) -> i32 {
-        self.byte(0x24)
-    }
-    #[inline]
-    pub fn set_ppu_mask_shadow(&mut self, value: i32) {
-        self.set_byte(0x24, value);
-    }
+    byte_field!(
+        ppu_mask_shadow,
+        set_ppu_mask_shadow,
+        0x24,
+        "PPUMASK ($2001) shadow (`$24`): rendering-enable and emphasis bits."
+    );
 
     // ---- Controller input -------------------------------------------------
 
-    /// Buttons held this frame (`$20`). Bit layout, LSB first:
-    /// `0`=Right `1`=Left `2`=Down `3`=Up `4`=Start `5`=Select `6`=B `7`=A.
-    #[inline]
-    pub fn buttons(&self) -> i32 {
-        self.byte(0x20)
-    }
-    #[inline]
-    pub fn set_buttons(&mut self, value: i32) {
-        self.set_byte(0x20, value);
-    }
+    byte_field!(
+        buttons,
+        set_buttons,
+        0x20,
+        "Buttons held this frame (`$20`). Bit layout, LSB first: `0`=Right `1`=Left `2`=Down `3`=Up `4`=Start `5`=Select `6`=B `7`=A."
+    );
 
-    /// Buttons newly pressed this frame (`$21`): the rising edge of
-    /// [`Self::buttons`], used for one-shot actions like menu confirms.
-    #[inline]
-    pub fn button_chord(&self) -> i32 {
-        self.byte(0x21)
-    }
-    #[inline]
-    pub fn set_button_chord(&mut self, value: i32) {
-        self.set_byte(0x21, value);
-    }
+    byte_field!(
+        button_chord,
+        set_button_chord,
+        0x21,
+        "Buttons newly pressed this frame (`$21`): the rising edge of [`Self::buttons`], used for one-shot actions like menu confirms."
+    );
 
     // ---- Frame sync / timers ----------------------------------------------
 
-    /// PPUSTATUS shadow captured by the NMI (`$26`): bit7 = vblank,
-    /// bit6 = sprite-0 hit (the status-bar split marker).
-    #[inline]
-    pub fn frame_status(&self) -> i32 {
-        self.byte(0x26)
-    }
-    #[inline]
-    pub fn set_frame_status(&mut self, value: i32) {
-        self.set_byte(0x26, value);
-    }
+    byte_field!(
+        frame_status,
+        set_frame_status,
+        0x26,
+        "PPUSTATUS shadow captured by the NMI (`$26`): bit7 = vblank, bit6 = sprite-0 hit (the status-bar split marker)."
+    );
 
     /// True when the captured PPUSTATUS shadow reports a sprite-0 hit (`$26`
     /// bit6) — i.e. rendering reached the status-bar split this frame.
@@ -276,55 +263,37 @@ impl GameState {
         (self.frame_status() & 0x40) != 0
     }
 
-    /// Foreground frame-wait countdown (`$36`): foreground code sets it to N
-    /// and spins on [`Self::frame_counter_active`]; the NMI tail decrements it
-    /// once per frame, so the spin releases after N frames.
-    #[inline]
-    pub fn frame_counter(&self) -> i32 {
-        self.byte(0x36)
-    }
-    #[inline]
-    pub fn set_frame_counter(&mut self, value: i32) {
-        self.set_byte(0x36, value);
-    }
+    byte_field!(
+        frame_counter,
+        set_frame_counter,
+        0x36,
+        "Foreground frame-wait countdown (`$36`): foreground code sets it to N and spins on [`Self::frame_counter_active`]; the NMI tail decrements it once per frame, so the spin releases after N frames."
+    );
     #[inline]
     pub fn frame_counter_active(&self) -> bool {
         self.frame_counter() != 0
     }
 
-    /// Coarse timer slot `i` (0-7) in the `$85..$8C` array, each decremented
-    /// once per 60 frames by `frame_counters`. Slot 0 is the sprite-blink
-    /// timer ([`Self::sprite_blink_timer`]); slot 7 is the countdown timer
-    /// ([`Self::countdown_timer`]).
-    #[inline]
-    pub fn coarse_timer(&self, i: i32) -> i32 {
-        self.byte(0x85 + i)
-    }
-    #[inline]
-    pub fn set_coarse_timer(&mut self, i: i32, value: i32) {
-        self.set_byte(0x85 + i, value);
-    }
+    array_field!(
+        coarse_timer,
+        set_coarse_timer,
+        0x85,
+        "Coarse timer slot `i` (0-7) in the `$85..$8C` array, each decremented once per 60 frames by `frame_counters`. Slot 0 is the sprite-blink timer ([`Self::sprite_blink_timer`]); slot 7 is the countdown timer ([`Self::countdown_timer`])."
+    );
 
-    /// Sprite blink/invulnerability timer (`$85`), one of the coarse timer
-    /// slots ticked once per 60 frames by the frame counters.
-    #[inline]
-    pub fn sprite_blink_timer(&self) -> i32 {
-        self.byte(0x85)
-    }
-    #[inline]
-    pub fn set_sprite_blink_timer(&mut self, value: i32) {
-        self.set_byte(0x85, value);
-    }
+    byte_field!(
+        sprite_blink_timer,
+        set_sprite_blink_timer,
+        0x85,
+        "Sprite blink/invulnerability timer (`$85`), one of the coarse timer slots ticked once per 60 frames by the frame counters."
+    );
 
-    /// Coarse countdown timer (`$8C`), e.g. the title-screen attract timeout.
-    #[inline]
-    pub fn countdown_timer(&self) -> i32 {
-        self.byte(0x8C)
-    }
-    #[inline]
-    pub fn set_countdown_timer(&mut self, value: i32) {
-        self.set_byte(0x8C, value);
-    }
+    byte_field!(
+        countdown_timer,
+        set_countdown_timer,
+        0x8C,
+        "Coarse countdown timer (`$8C`), e.g. the title-screen attract timeout."
+    );
     #[inline]
     pub fn countdown_timer_active(&self) -> bool {
         self.countdown_timer() != 0
@@ -332,59 +301,44 @@ impl GameState {
 
     // ---- Player vitals ----------------------------------------------------
 
-    /// Player health/life points (`$58`).
-    #[inline]
-    pub fn player_health(&self) -> i32 {
-        self.byte(0x58)
-    }
-    #[inline]
-    pub fn set_player_health(&mut self, value: i32) {
-        self.set_byte(0x58, value);
-    }
+    byte_field!(
+        player_health,
+        set_player_health,
+        0x58,
+        "Player health/life points (`$58`)."
+    );
 
-    /// Player magic points (`$59`).
-    #[inline]
-    pub fn player_magic(&self) -> i32 {
-        self.byte(0x59)
-    }
-    #[inline]
-    pub fn set_player_magic(&mut self, value: i32) {
-        self.set_byte(0x59, value);
-    }
+    byte_field!(
+        player_magic,
+        set_player_magic,
+        0x59,
+        "Player magic points (`$59`)."
+    );
 
     // ---- Audio ------------------------------------------------------------
 
-    /// Current/requested song id for the sound engine (`$8E`).
-    #[inline]
-    pub fn song(&self) -> i32 {
-        self.byte(0x8E)
-    }
-    #[inline]
-    pub fn set_song(&mut self, value: i32) {
-        self.set_byte(0x8E, value);
-    }
+    byte_field!(
+        song,
+        set_song,
+        0x8E,
+        "Current/requested song id for the sound engine (`$8E`)."
+    );
 
     // ---- Text/prompt UI ---------------------------------------------------
 
-    /// Prompt/message state machine selector (`$8F`).
-    #[inline]
-    pub fn prompt_state(&self) -> i32 {
-        self.byte(0x8F)
-    }
-    #[inline]
-    pub fn set_prompt_state(&mut self, value: i32) {
-        self.set_byte(0x8F, value);
-    }
+    byte_field!(
+        prompt_state,
+        set_prompt_state,
+        0x8F,
+        "Prompt/message state machine selector (`$8F`)."
+    );
 
-    /// Argument byte for the active prompt/message (`$90`).
-    #[inline]
-    pub fn prompt_argument(&self) -> i32 {
-        self.byte(0x90)
-    }
-    #[inline]
-    pub fn set_prompt_argument(&mut self, value: i32) {
-        self.set_byte(0x90, value);
-    }
+    byte_field!(
+        prompt_argument,
+        set_prompt_argument,
+        0x90,
+        "Argument byte for the active prompt/message (`$90`)."
+    );
 
     // ---- Current object scratch slot (`$ED..$FC`) -------------------------
     //
@@ -397,177 +351,124 @@ impl GameState {
     /// Base address of the 16-byte object scratch window.
     pub const OBJ_SCRATCH_BASE: i32 = 0x00ED;
 
-    /// Read scratch byte at slot `offset` (`0x00..=0x0F`). For the whole-slot
-    /// copy helpers; prefer the named field accessors for individual fields.
-    #[inline]
-    pub fn obj_scratch_byte(&self, offset: i32) -> i32 {
-        self.byte(Self::OBJ_SCRATCH_BASE + offset)
-    }
-    #[inline]
-    pub fn set_obj_scratch_byte(&mut self, offset: i32, value: i32) {
-        self.set_byte(Self::OBJ_SCRATCH_BASE + offset, value);
-    }
+    array_field!(
+        obj_scratch_byte,
+        set_obj_scratch_byte,
+        Self::OBJ_SCRATCH_BASE,
+        "Read scratch byte at slot `offset` (`0x00..=0x0F`). For the whole-slot copy helpers; prefer the named field accessors for individual fields."
+    );
 
-    /// Sprite/tile id and animation bits — slot `+0x00` (`$ED`).
-    #[inline]
-    pub fn obj_tile(&self) -> i32 {
-        self.byte(0xED)
-    }
-    #[inline]
-    pub fn set_obj_tile(&mut self, value: i32) {
-        self.set_byte(0xED, value);
-    }
+    byte_field!(
+        obj_tile,
+        set_obj_tile,
+        0xED,
+        "Sprite/tile id and animation bits — slot `+0x00` (`$ED`)."
+    );
 
-    /// Active/state/lifetime byte — slot `+0x01` (`$EE`).
-    #[inline]
-    pub fn obj_state(&self) -> i32 {
-        self.byte(0xEE)
-    }
-    #[inline]
-    pub fn set_obj_state(&mut self, value: i32) {
-        self.set_byte(0xEE, value);
-    }
+    byte_field!(
+        obj_state,
+        set_obj_state,
+        0xEE,
+        "Active/state/lifetime byte — slot `+0x01` (`$EE`)."
+    );
 
-    /// Attribute/direction bits — slot `+0x02` (`$EF`).
-    #[inline]
-    pub fn obj_attr(&self) -> i32 {
-        self.byte(0xEF)
-    }
-    #[inline]
-    pub fn set_obj_attr(&mut self, value: i32) {
-        self.set_byte(0xEF, value);
-    }
+    byte_field!(
+        obj_attr,
+        set_obj_attr,
+        0xEF,
+        "Attribute/direction bits — slot `+0x02` (`$EF`)."
+    );
 
-    /// Tile-replacement / movement scratch — slot `+0x03` (`$F0`).
-    #[inline]
-    pub fn obj_move_scratch(&self) -> i32 {
-        self.byte(0xF0)
-    }
-    #[inline]
-    pub fn set_obj_move_scratch(&mut self, value: i32) {
-        self.set_byte(0xF0, value);
-    }
+    byte_field!(
+        obj_move_scratch,
+        set_obj_move_scratch,
+        0xF0,
+        "Tile-replacement / movement scratch — slot `+0x03` (`$F0`)."
+    );
 
-    /// Cooldown / path scratch — slot `+0x04` (`$F1`).
-    #[inline]
-    pub fn obj_cooldown(&self) -> i32 {
-        self.byte(0xF1)
-    }
-    #[inline]
-    pub fn set_obj_cooldown(&mut self, value: i32) {
-        self.set_byte(0xF1, value);
-    }
+    byte_field!(
+        obj_cooldown,
+        set_obj_cooldown,
+        0xF1,
+        "Cooldown / path scratch — slot `+0x04` (`$F1`)."
+    );
 
-    /// Health / damage threshold — slot `+0x05` (`$F2`).
-    #[inline]
-    pub fn obj_health(&self) -> i32 {
-        self.byte(0xF2)
-    }
-    #[inline]
-    pub fn set_obj_health(&mut self, value: i32) {
-        self.set_byte(0xF2, value);
-    }
+    byte_field!(
+        obj_health,
+        set_obj_health,
+        0xF2,
+        "Health / damage threshold — slot `+0x05` (`$F2`)."
+    );
 
-    /// Timer / animation phase — slot `+0x06` (`$F3`).
-    #[inline]
-    pub fn obj_timer(&self) -> i32 {
-        self.byte(0xF3)
-    }
-    #[inline]
-    pub fn set_obj_timer(&mut self, value: i32) {
-        self.set_byte(0xF3, value);
-    }
+    byte_field!(
+        obj_timer,
+        set_obj_timer,
+        0xF3,
+        "Timer / animation phase — slot `+0x06` (`$F3`)."
+    );
 
-    /// Movement/direction state bits — slot `+0x07` (`$F4`); high bit and the
-    /// low two bits encode turn/animation direction state.
-    #[inline]
-    pub fn obj_move_state(&self) -> i32 {
-        self.byte(0xF4)
-    }
-    #[inline]
-    pub fn set_obj_move_state(&mut self, value: i32) {
-        self.set_byte(0xF4, value);
-    }
+    byte_field!(
+        obj_move_state,
+        set_obj_move_state,
+        0xF4,
+        "Movement/direction state bits — slot `+0x07` (`$F4`); high bit and the low two bits encode turn/animation direction state."
+    );
 
-    /// X velocity, low nibble — slot `+0x08` (`$F5`).
-    #[inline]
-    pub fn obj_x_vel_lo(&self) -> i32 {
-        self.byte(0xF5)
-    }
-    #[inline]
-    pub fn set_obj_x_vel_lo(&mut self, value: i32) {
-        self.set_byte(0xF5, value);
-    }
+    byte_field!(
+        obj_x_vel_lo,
+        set_obj_x_vel_lo,
+        0xF5,
+        "X velocity, low nibble — slot `+0x08` (`$F5`)."
+    );
 
-    /// X velocity carry/sign — slot `+0x09` (`$F6`).
-    #[inline]
-    pub fn obj_x_vel_hi(&self) -> i32 {
-        self.byte(0xF6)
-    }
-    #[inline]
-    pub fn set_obj_x_vel_hi(&mut self, value: i32) {
-        self.set_byte(0xF6, value);
-    }
+    byte_field!(
+        obj_x_vel_hi,
+        set_obj_x_vel_hi,
+        0xF6,
+        "X velocity carry/sign — slot `+0x09` (`$F6`)."
+    );
 
-    /// Y velocity — slot `+0x0A` (`$F7`).
-    #[inline]
-    pub fn obj_y_vel(&self) -> i32 {
-        self.byte(0xF7)
-    }
-    #[inline]
-    pub fn set_obj_y_vel(&mut self, value: i32) {
-        self.set_byte(0xF7, value);
-    }
+    byte_field!(
+        obj_y_vel,
+        set_obj_y_vel,
+        0xF7,
+        "Y velocity — slot `+0x0A` (`$F7`)."
+    );
 
-    /// Damage / effect strength — slot `+0x0B` (`$F8`).
-    #[inline]
-    pub fn obj_damage(&self) -> i32 {
-        self.byte(0xF8)
-    }
-    #[inline]
-    pub fn set_obj_damage(&mut self, value: i32) {
-        self.set_byte(0xF8, value);
-    }
+    byte_field!(
+        obj_damage,
+        set_obj_damage,
+        0xF8,
+        "Damage / effect strength — slot `+0x0B` (`$F8`)."
+    );
 
-    /// X sub-tile fraction — slot `+0x0C` (`$F9`).
-    #[inline]
-    pub fn obj_x_sub(&self) -> i32 {
-        self.byte(0xF9)
-    }
-    #[inline]
-    pub fn set_obj_x_sub(&mut self, value: i32) {
-        self.set_byte(0xF9, value);
-    }
+    byte_field!(
+        obj_x_sub,
+        set_obj_x_sub,
+        0xF9,
+        "X sub-tile fraction — slot `+0x0C` (`$F9`)."
+    );
 
-    /// X tile coordinate — slot `+0x0D` (`$FA`).
-    #[inline]
-    pub fn obj_x_tile(&self) -> i32 {
-        self.byte(0xFA)
-    }
-    #[inline]
-    pub fn set_obj_x_tile(&mut self, value: i32) {
-        self.set_byte(0xFA, value);
-    }
+    byte_field!(
+        obj_x_tile,
+        set_obj_x_tile,
+        0xFA,
+        "X tile coordinate — slot `+0x0D` (`$FA`)."
+    );
 
-    /// Y pixel coordinate — slot `+0x0E` (`$FB`).
-    #[inline]
-    pub fn obj_y_pixel(&self) -> i32 {
-        self.byte(0xFB)
-    }
-    #[inline]
-    pub fn set_obj_y_pixel(&mut self, value: i32) {
-        self.set_byte(0xFB, value);
-    }
+    byte_field!(
+        obj_y_pixel,
+        set_obj_y_pixel,
+        0xFB,
+        "Y pixel coordinate — slot `+0x0E` (`$FB`)."
+    );
 
-    /// Extra y / sprite scratch — slot `+0x0F` (`$FC`).
-    #[inline]
-    pub fn obj_y_extra(&self) -> i32 {
-        self.byte(0xFC)
-    }
-    #[inline]
-    pub fn set_obj_y_extra(&mut self, value: i32) {
-        self.set_byte(0xFC, value);
-    }
+    byte_field!(
+        obj_y_extra,
+        set_obj_y_extra,
+        0xFC,
+        "Extra y / sprite scratch — slot `+0x0F` (`$FC`)."
+    );
 
     // ---- Zero-page pointer pairs ------------------------------------------
     //
@@ -587,22 +488,8 @@ impl GameState {
         self.set_byte(0xE5, value & 0xFF);
         self.set_byte(0xE6, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn obj_slot_ptr_lo(&self) -> i32 {
-        self.byte(0xE5)
-    }
-    #[inline]
-    pub fn set_obj_slot_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0xE5, value);
-    }
-    #[inline]
-    pub fn obj_slot_ptr_hi(&self) -> i32 {
-        self.byte(0xE6)
-    }
-    #[inline]
-    pub fn set_obj_slot_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0xE6, value);
-    }
+    byte_field!(obj_slot_ptr_lo, set_obj_slot_ptr_lo, 0xE5, "");
+    byte_field!(obj_slot_ptr_hi, set_obj_slot_ptr_hi, 0xE6, "");
 
     /// Pointer to the room actor record feeding the current slot (`$E7`/`$E8`).
     #[inline]
@@ -614,22 +501,8 @@ impl GameState {
         self.set_byte(0xE7, value & 0xFF);
         self.set_byte(0xE8, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn actor_record_ptr_lo(&self) -> i32 {
-        self.byte(0xE7)
-    }
-    #[inline]
-    pub fn set_actor_record_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0xE7, value);
-    }
-    #[inline]
-    pub fn actor_record_ptr_hi(&self) -> i32 {
-        self.byte(0xE8)
-    }
-    #[inline]
-    pub fn set_actor_record_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0xE8, value);
-    }
+    byte_field!(actor_record_ptr_lo, set_actor_record_ptr_lo, 0xE7, "");
+    byte_field!(actor_record_ptr_hi, set_actor_record_ptr_hi, 0xE8, "");
 
     /// Pointer to the active palette source data (`$77`/`$78`).
     #[inline]
@@ -641,22 +514,8 @@ impl GameState {
         self.set_byte(0x77, value & 0xFF);
         self.set_byte(0x78, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn palette_src_ptr_lo(&self) -> i32 {
-        self.byte(0x77)
-    }
-    #[inline]
-    pub fn set_palette_src_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x77, value);
-    }
-    #[inline]
-    pub fn palette_src_ptr_hi(&self) -> i32 {
-        self.byte(0x78)
-    }
-    #[inline]
-    pub fn set_palette_src_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x78, value);
-    }
+    byte_field!(palette_src_ptr_lo, set_palette_src_ptr_lo, 0x77, "");
+    byte_field!(palette_src_ptr_hi, set_palette_src_ptr_hi, 0x78, "");
 
     /// Pointer to the current room's metatile table (`$79`/`$7A`).
     #[inline]
@@ -668,145 +527,89 @@ impl GameState {
         self.set_byte(0x79, value & 0xFF);
         self.set_byte(0x7A, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn tile_table_ptr_lo(&self) -> i32 {
-        self.byte(0x79)
-    }
-    #[inline]
-    pub fn set_tile_table_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x79, value);
-    }
-    #[inline]
-    pub fn tile_table_ptr_hi(&self) -> i32 {
-        self.byte(0x7A)
-    }
-    #[inline]
-    pub fn set_tile_table_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x7A, value);
-    }
+    byte_field!(tile_table_ptr_lo, set_tile_table_ptr_lo, 0x79, "");
+    byte_field!(tile_table_ptr_hi, set_tile_table_ptr_hi, 0x7A, "");
 
     // ---- Player position / motion -----------------------------------------
 
-    /// Player X fine (sub-tile) position (`$43`).
-    #[inline]
-    pub fn player_x_fine(&self) -> i32 {
-        self.byte(0x43)
-    }
-    #[inline]
-    pub fn set_player_x_fine(&mut self, value: i32) {
-        self.set_byte(0x43, value);
-    }
+    byte_field!(
+        player_x_fine,
+        set_player_x_fine,
+        0x43,
+        "Player X fine (sub-tile) position (`$43`)."
+    );
 
-    /// Player X tile position (`$44`).
-    #[inline]
-    pub fn player_x_tile(&self) -> i32 {
-        self.byte(0x44)
-    }
-    #[inline]
-    pub fn set_player_x_tile(&mut self, value: i32) {
-        self.set_byte(0x44, value);
-    }
+    byte_field!(
+        player_x_tile,
+        set_player_x_tile,
+        0x44,
+        "Player X tile position (`$44`)."
+    );
 
-    /// Player Y position (`$45`).
-    #[inline]
-    pub fn player_y(&self) -> i32 {
-        self.byte(0x45)
-    }
-    #[inline]
-    pub fn set_player_y(&mut self, value: i32) {
-        self.set_byte(0x45, value);
-    }
+    byte_field!(player_y, set_player_y, 0x45, "Player Y position (`$45`).");
 
-    /// Post-landing recovery/stun countdown (`$46`); seeded from the fall
-    /// distance and decremented each frame while nonzero.
-    #[inline]
-    pub fn landing_timer(&self) -> i32 {
-        self.byte(0x46)
-    }
-    #[inline]
-    pub fn set_landing_timer(&mut self, value: i32) {
-        self.set_byte(0x46, value);
-    }
+    byte_field!(
+        landing_timer,
+        set_landing_timer,
+        0x46,
+        "Post-landing recovery/stun countdown (`$46`); seeded from the fall distance and decremented each frame while nonzero."
+    );
 
-    /// Map screen X (which room column the player occupies) (`$47`).
-    #[inline]
-    pub fn map_screen_x(&self) -> i32 {
-        self.byte(0x47)
-    }
-    #[inline]
-    pub fn set_map_screen_x(&mut self, value: i32) {
-        self.set_byte(0x47, value);
-    }
+    byte_field!(
+        map_screen_x,
+        set_map_screen_x,
+        0x47,
+        "Map screen X (which room column the player occupies) (`$47`)."
+    );
 
-    /// Map screen Y (which room row the player occupies) (`$48`).
-    #[inline]
-    pub fn map_screen_y(&self) -> i32 {
-        self.byte(0x48)
-    }
-    #[inline]
-    pub fn set_map_screen_y(&mut self, value: i32) {
-        self.set_byte(0x48, value);
-    }
+    byte_field!(
+        map_screen_y,
+        set_map_screen_y,
+        0x48,
+        "Map screen Y (which room row the player occupies) (`$48`)."
+    );
 
-    /// Horizontal sub-tile movement delta for this frame (`$49`).
-    #[inline]
-    pub fn horizontal_subtile_delta(&self) -> i32 {
-        self.byte(0x49)
-    }
-    #[inline]
-    pub fn set_horizontal_subtile_delta(&mut self, value: i32) {
-        self.set_byte(0x49, value);
-    }
+    byte_field!(
+        horizontal_subtile_delta,
+        set_horizontal_subtile_delta,
+        0x49,
+        "Horizontal sub-tile movement delta for this frame (`$49`)."
+    );
 
-    /// Vertical movement delta for this frame (`$4B`).
-    #[inline]
-    pub fn vertical_delta(&self) -> i32 {
-        self.byte(0x4B)
-    }
-    #[inline]
-    pub fn set_vertical_delta(&mut self, value: i32) {
-        self.set_byte(0x4B, value);
-    }
+    byte_field!(
+        vertical_delta,
+        set_vertical_delta,
+        0x4B,
+        "Vertical movement delta for this frame (`$4B`)."
+    );
 
-    /// Frames the player has been falling (`$4E`).
-    #[inline]
-    pub fn fall_frames(&self) -> i32 {
-        self.byte(0x4E)
-    }
-    #[inline]
-    pub fn set_fall_frames(&mut self, value: i32) {
-        self.set_byte(0x4E, value);
-    }
+    byte_field!(
+        fall_frames,
+        set_fall_frames,
+        0x4E,
+        "Frames the player has been falling (`$4E`)."
+    );
 
-    /// Remaining jump/ascent timer (`$4F`).
-    #[inline]
-    pub fn jump_timer(&self) -> i32 {
-        self.byte(0x4F)
-    }
-    #[inline]
-    pub fn set_jump_timer(&mut self, value: i32) {
-        self.set_byte(0x4F, value);
-    }
+    byte_field!(
+        jump_timer,
+        set_jump_timer,
+        0x4F,
+        "Remaining jump/ascent timer (`$4F`)."
+    );
 
-    /// Room horizontal scroll, fine (sub-tile) component (`$7B`).
-    #[inline]
-    pub fn scroll_fine_x(&self) -> i32 {
-        self.byte(0x7B)
-    }
-    #[inline]
-    pub fn set_scroll_fine_x(&mut self, value: i32) {
-        self.set_byte(0x7B, value);
-    }
+    byte_field!(
+        scroll_fine_x,
+        set_scroll_fine_x,
+        0x7B,
+        "Room horizontal scroll, fine (sub-tile) component (`$7B`)."
+    );
 
-    /// Room horizontal scroll, tile component (`$7C`).
-    #[inline]
-    pub fn scroll_tile_x(&self) -> i32 {
-        self.byte(0x7C)
-    }
-    #[inline]
-    pub fn set_scroll_tile_x(&mut self, value: i32) {
-        self.set_byte(0x7C, value);
-    }
+    byte_field!(
+        scroll_tile_x,
+        set_scroll_tile_x,
+        0x7C,
+        "Room horizontal scroll, tile component (`$7C`)."
+    );
 
     // ---- VRAM upload address ($16/$17) ------------------------------------
     //
@@ -814,24 +617,18 @@ impl GameState {
     // are written separately to PPUADDR ($2006), so the byte accessors are the
     // primary form; `vram_addr` folds the pair when a full address is handy.
 
-    /// VRAM upload address, low byte (`$16`).
-    #[inline]
-    pub fn vram_addr_lo(&self) -> i32 {
-        self.byte(0x16)
-    }
-    #[inline]
-    pub fn set_vram_addr_lo(&mut self, value: i32) {
-        self.set_byte(0x16, value);
-    }
-    /// VRAM upload address, high byte (`$17`).
-    #[inline]
-    pub fn vram_addr_hi(&self) -> i32 {
-        self.byte(0x17)
-    }
-    #[inline]
-    pub fn set_vram_addr_hi(&mut self, value: i32) {
-        self.set_byte(0x17, value);
-    }
+    byte_field!(
+        vram_addr_lo,
+        set_vram_addr_lo,
+        0x16,
+        "VRAM upload address, low byte (`$16`)."
+    );
+    byte_field!(
+        vram_addr_hi,
+        set_vram_addr_hi,
+        0x17,
+        "VRAM upload address, high byte (`$17`)."
+    );
     /// VRAM upload address as a 16-bit value (`$16` low, `$17` high).
     #[inline]
     pub fn vram_addr(&self) -> i32 {
@@ -845,58 +642,32 @@ impl GameState {
 
     // ---- Resource counters / character params -----------------------------
 
-    /// Gold/coin count (`$5A`).
-    #[inline]
-    pub fn coins(&self) -> i32 {
-        self.byte(0x5A)
-    }
-    #[inline]
-    pub fn set_coins(&mut self, value: i32) {
-        self.set_byte(0x5A, value);
-    }
+    byte_field!(coins, set_coins, 0x5A, "Gold/coin count (`$5A`).");
 
-    /// Key count (`$5B`).
-    #[inline]
-    pub fn keys(&self) -> i32 {
-        self.byte(0x5B)
-    }
-    #[inline]
-    pub fn set_keys(&mut self, value: i32) {
-        self.set_byte(0x5B, value);
-    }
+    byte_field!(keys, set_keys, 0x5B, "Key count (`$5B`).");
 
-    /// Current character's jump strength / fall-duration parameter (`$5C`):
-    /// seeds the jump timer and caps accumulated fall frames.
-    #[inline]
-    pub fn jump_strength(&self) -> i32 {
-        self.byte(0x5C)
-    }
-    #[inline]
-    pub fn set_jump_strength(&mut self, value: i32) {
-        self.set_byte(0x5C, value);
-    }
+    byte_field!(
+        jump_strength,
+        set_jump_strength,
+        0x5C,
+        "Current character's jump strength / fall-duration parameter (`$5C`): seeds the jump timer and caps accumulated fall frames."
+    );
 
     // ---- Audio / scheduler ------------------------------------------------
 
-    /// Music volume override flag (`$92`).
-    #[inline]
-    pub fn music_volume_override(&self) -> i32 {
-        self.byte(0x92)
-    }
-    #[inline]
-    pub fn set_music_volume_override(&mut self, value: i32) {
-        self.set_byte(0x92, value);
-    }
+    byte_field!(
+        music_volume_override,
+        set_music_volume_override,
+        0x92,
+        "Music volume override flag (`$92`)."
+    );
 
-    /// Actor scheduler phase counter (`$E9`).
-    #[inline]
-    pub fn scheduler_phase(&self) -> i32 {
-        self.byte(0xE9)
-    }
-    #[inline]
-    pub fn set_scheduler_phase(&mut self, value: i32) {
-        self.set_byte(0xE9, value);
-    }
+    byte_field!(
+        scheduler_phase,
+        set_scheduler_phase,
+        0xE9,
+        "Actor scheduler phase counter (`$E9`)."
+    );
 
     // ---- General indirect pointers ----------------------------------------
     //
@@ -916,22 +687,8 @@ impl GameState {
         self.set_byte(0x0C, value & 0xFF);
         self.set_byte(0x0D, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn data_ptr_lo(&self) -> i32 {
-        self.byte(0x0C)
-    }
-    #[inline]
-    pub fn set_data_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x0C, value);
-    }
-    #[inline]
-    pub fn data_ptr_hi(&self) -> i32 {
-        self.byte(0x0D)
-    }
-    #[inline]
-    pub fn set_data_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x0D, value);
-    }
+    byte_field!(data_ptr_lo, set_data_ptr_lo, 0x0C, "");
+    byte_field!(data_ptr_hi, set_data_ptr_hi, 0x0D, "");
 
     /// General indirect / far-call target pointer (`$0E`/`$0F`).
     #[inline]
@@ -943,22 +700,8 @@ impl GameState {
         self.set_byte(0x0E, value & 0xFF);
         self.set_byte(0x0F, (value >> 8) & 0xFF);
     }
-    #[inline]
-    pub fn indirect_ptr_lo(&self) -> i32 {
-        self.byte(0x0E)
-    }
-    #[inline]
-    pub fn set_indirect_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x0E, value);
-    }
-    #[inline]
-    pub fn indirect_ptr_hi(&self) -> i32 {
-        self.byte(0x0F)
-    }
-    #[inline]
-    pub fn set_indirect_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x0F, value);
-    }
+    byte_field!(indirect_ptr_lo, set_indirect_ptr_lo, 0x0E, "");
+    byte_field!(indirect_ptr_hi, set_indirect_ptr_hi, 0x0F, "");
 
     // ---- General-purpose scratch bytes ($08..$0B) -------------------------
     //
@@ -967,81 +710,54 @@ impl GameState {
     // no persistent meaning; a given write/read is local to its routine, so
     // the names are intentionally generic.
 
-    /// General-purpose scratch byte 0 (`$08`).
-    #[inline]
-    pub fn scratch0(&self) -> i32 {
-        self.byte(0x08)
-    }
-    #[inline]
-    pub fn set_scratch0(&mut self, value: i32) {
-        self.set_byte(0x08, value);
-    }
+    byte_field!(
+        scratch0,
+        set_scratch0,
+        0x08,
+        "General-purpose scratch byte 0 (`$08`)."
+    );
 
-    /// General-purpose scratch byte 1 (`$09`).
-    #[inline]
-    pub fn scratch1(&self) -> i32 {
-        self.byte(0x09)
-    }
-    #[inline]
-    pub fn set_scratch1(&mut self, value: i32) {
-        self.set_byte(0x09, value);
-    }
+    byte_field!(
+        scratch1,
+        set_scratch1,
+        0x09,
+        "General-purpose scratch byte 1 (`$09`)."
+    );
 
-    /// General-purpose scratch byte 2 (`$0A`).
-    #[inline]
-    pub fn scratch2(&self) -> i32 {
-        self.byte(0x0A)
-    }
-    #[inline]
-    pub fn set_scratch2(&mut self, value: i32) {
-        self.set_byte(0x0A, value);
-    }
+    byte_field!(
+        scratch2,
+        set_scratch2,
+        0x0A,
+        "General-purpose scratch byte 2 (`$0A`)."
+    );
 
-    /// General-purpose scratch byte 3 (`$0B`).
-    #[inline]
-    pub fn scratch3(&self) -> i32 {
-        self.byte(0x0B)
-    }
-    #[inline]
-    pub fn set_scratch3(&mut self, value: i32) {
-        self.set_byte(0x0B, value);
-    }
+    byte_field!(
+        scratch3,
+        set_scratch3,
+        0x0B,
+        "General-purpose scratch byte 3 (`$0B`)."
+    );
 
     // ---- Scroll / nametable / status-bar split ----------------------------
 
-    /// Horizontal scroll position in pixels (`$1C`); added to object positions
-    /// to convert room coordinates to on-screen coordinates.
-    #[inline]
-    pub fn scroll_pixel_x(&self) -> i32 {
-        self.byte(0x1C)
-    }
-    #[inline]
-    pub fn set_scroll_pixel_x(&mut self, value: i32) {
-        self.set_byte(0x1C, value);
-    }
+    byte_field!(
+        scroll_pixel_x,
+        set_scroll_pixel_x,
+        0x1C,
+        "Horizontal scroll position in pixels (`$1C`); added to object positions to convert room coordinates to on-screen coordinates."
+    );
 
-    /// Active nametable selection bit (`$1D`), toggled as the camera crosses
-    /// nametable boundaries.
-    #[inline]
-    pub fn nametable_select(&self) -> i32 {
-        self.byte(0x1D)
-    }
-    #[inline]
-    pub fn set_nametable_select(&mut self, value: i32) {
-        self.set_byte(0x1D, value);
-    }
+    byte_field!(
+        nametable_select,
+        set_nametable_select,
+        0x1D,
+        "Active nametable selection bit (`$1D`), toggled as the camera crosses nametable boundaries."
+    );
 
     /// Status-bar sprite-0 split enable flag (`$29`); nonzero makes the
     /// renderer split the screen for the HUD band.
     pub const STATUSBAR_SPLIT_FLAG: i32 = 0x29;
-    #[inline]
-    pub fn statusbar_split_flag(&self) -> i32 {
-        self.byte(0x29)
-    }
-    #[inline]
-    pub fn set_statusbar_split_flag(&mut self, value: i32) {
-        self.set_byte(0x29, value);
-    }
+    byte_field!(statusbar_split_flag, set_statusbar_split_flag, 0x29, "");
 
     // ---- OAM sprite buffer ($0200-$02FF) ----------------------------------
     //
@@ -1049,42 +765,30 @@ impl GameState {
     // per sprite (Y, tile, attribute, X). Accessors take the entry's byte
     // offset (`sprite * 4`); the field name selects the byte within the entry.
 
-    /// Sprite Y position, entry at byte offset `off` (`$0200 + off`).
-    #[inline]
-    pub fn oam_y(&self, off: i32) -> i32 {
-        self.byte(0x0200 + off)
-    }
-    #[inline]
-    pub fn set_oam_y(&mut self, off: i32, value: i32) {
-        self.set_byte(0x0200 + off, value);
-    }
-    /// Sprite tile index (`$0201 + off`).
-    #[inline]
-    pub fn oam_tile(&self, off: i32) -> i32 {
-        self.byte(0x0201 + off)
-    }
-    #[inline]
-    pub fn set_oam_tile(&mut self, off: i32, value: i32) {
-        self.set_byte(0x0201 + off, value);
-    }
-    /// Sprite attribute byte (`$0202 + off`).
-    #[inline]
-    pub fn oam_attr(&self, off: i32) -> i32 {
-        self.byte(0x0202 + off)
-    }
-    #[inline]
-    pub fn set_oam_attr(&mut self, off: i32, value: i32) {
-        self.set_byte(0x0202 + off, value);
-    }
-    /// Sprite X position (`$0203 + off`).
-    #[inline]
-    pub fn oam_x(&self, off: i32) -> i32 {
-        self.byte(0x0203 + off)
-    }
-    #[inline]
-    pub fn set_oam_x(&mut self, off: i32, value: i32) {
-        self.set_byte(0x0203 + off, value);
-    }
+    array_field!(
+        oam_y,
+        set_oam_y,
+        0x0200,
+        "Sprite Y position, entry at byte offset `off` (`$0200 + off`)."
+    );
+    array_field!(
+        oam_tile,
+        set_oam_tile,
+        0x0201,
+        "Sprite tile index (`$0201 + off`)."
+    );
+    array_field!(
+        oam_attr,
+        set_oam_attr,
+        0x0202,
+        "Sprite attribute byte (`$0202 + off`)."
+    );
+    array_field!(
+        oam_x,
+        set_oam_x,
+        0x0203,
+        "Sprite X position (`$0203 + off`)."
+    );
 
     // ---- Object table ($0400-$04BF) ---------------------------------------
     //
@@ -1093,96 +797,66 @@ impl GameState {
     // ([`Self::obj_tile`] et al). Accessors take the record's byte offset
     // (`slot * 16`); the field name selects the byte within the record.
 
-    /// Object record tile/animation byte, slot at byte offset `slot` (`$0400`).
-    #[inline]
-    pub fn object_tile(&self, slot: i32) -> i32 {
-        self.byte(0x0400 + slot)
-    }
-    #[inline]
-    pub fn set_object_tile(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0400 + slot, value);
-    }
-    /// Object active/state/lifetime byte (`$0401 + slot`).
-    #[inline]
-    pub fn object_state(&self, slot: i32) -> i32 {
-        self.byte(0x0401 + slot)
-    }
-    #[inline]
-    pub fn set_object_state(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0401 + slot, value);
-    }
-    /// Object attribute/direction byte (`$0402 + slot`).
-    #[inline]
-    pub fn object_attr(&self, slot: i32) -> i32 {
-        self.byte(0x0402 + slot)
-    }
-    #[inline]
-    pub fn set_object_attr(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0402 + slot, value);
-    }
-    /// Object tile-replacement/movement scratch (`$0403 + slot`).
-    #[inline]
-    pub fn object_move_scratch(&self, slot: i32) -> i32 {
-        self.byte(0x0403 + slot)
-    }
-    #[inline]
-    pub fn set_object_move_scratch(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0403 + slot, value);
-    }
-    /// Object health/damage threshold (`$0405 + slot`).
-    #[inline]
-    pub fn object_health(&self, slot: i32) -> i32 {
-        self.byte(0x0405 + slot)
-    }
-    #[inline]
-    pub fn set_object_health(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0405 + slot, value);
-    }
-    /// Object timer/animation phase (`$0406 + slot`).
-    #[inline]
-    pub fn object_timer(&self, slot: i32) -> i32 {
-        self.byte(0x0406 + slot)
-    }
-    #[inline]
-    pub fn set_object_timer(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x0406 + slot, value);
-    }
-    /// Object X sub-tile fraction (`$040C + slot`).
-    #[inline]
-    pub fn object_x_sub(&self, slot: i32) -> i32 {
-        self.byte(0x040C + slot)
-    }
-    #[inline]
-    pub fn set_object_x_sub(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x040C + slot, value);
-    }
-    /// Object X tile coordinate (`$040D + slot`).
-    #[inline]
-    pub fn object_x_tile(&self, slot: i32) -> i32 {
-        self.byte(0x040D + slot)
-    }
-    #[inline]
-    pub fn set_object_x_tile(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x040D + slot, value);
-    }
-    /// Object Y pixel coordinate (`$040E + slot`).
-    #[inline]
-    pub fn object_y_pixel(&self, slot: i32) -> i32 {
-        self.byte(0x040E + slot)
-    }
-    #[inline]
-    pub fn set_object_y_pixel(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x040E + slot, value);
-    }
-    /// Object extra-Y/sprite scratch (`$040F + slot`).
-    #[inline]
-    pub fn object_y_extra(&self, slot: i32) -> i32 {
-        self.byte(0x040F + slot)
-    }
-    #[inline]
-    pub fn set_object_y_extra(&mut self, slot: i32, value: i32) {
-        self.set_byte(0x040F + slot, value);
-    }
+    array_field!(
+        object_tile,
+        set_object_tile,
+        0x0400,
+        "Object record tile/animation byte, slot at byte offset `slot` (`$0400`)."
+    );
+    array_field!(
+        object_state,
+        set_object_state,
+        0x0401,
+        "Object active/state/lifetime byte (`$0401 + slot`)."
+    );
+    array_field!(
+        object_attr,
+        set_object_attr,
+        0x0402,
+        "Object attribute/direction byte (`$0402 + slot`)."
+    );
+    array_field!(
+        object_move_scratch,
+        set_object_move_scratch,
+        0x0403,
+        "Object tile-replacement/movement scratch (`$0403 + slot`)."
+    );
+    array_field!(
+        object_health,
+        set_object_health,
+        0x0405,
+        "Object health/damage threshold (`$0405 + slot`)."
+    );
+    array_field!(
+        object_timer,
+        set_object_timer,
+        0x0406,
+        "Object timer/animation phase (`$0406 + slot`)."
+    );
+    array_field!(
+        object_x_sub,
+        set_object_x_sub,
+        0x040C,
+        "Object X sub-tile fraction (`$040C + slot`)."
+    );
+    array_field!(
+        object_x_tile,
+        set_object_x_tile,
+        0x040D,
+        "Object X tile coordinate (`$040D + slot`)."
+    );
+    array_field!(
+        object_y_pixel,
+        set_object_y_pixel,
+        0x040E,
+        "Object Y pixel coordinate (`$040E + slot`)."
+    );
+    array_field!(
+        object_y_extra,
+        set_object_y_extra,
+        0x040F,
+        "Object extra-Y/sprite scratch (`$040F + slot`)."
+    );
 
     // ---- Save state / password codec --------------------------------------
     //
@@ -1191,715 +865,465 @@ impl GameState {
     // copies ($0342 / $0352), and folds in checksums. These are indexed
     // working buffers, named by region.
 
-    /// Save-state payload byte `i` (`$0300 + i`).
-    #[inline]
-    pub fn save_payload(&self, i: i32) -> i32 {
-        self.byte(0x0300 + i)
-    }
-    #[inline]
-    pub fn set_save_payload(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0300 + i, value);
-    }
+    array_field!(
+        save_payload,
+        set_save_payload,
+        0x0300,
+        "Save-state payload byte `i` (`$0300 + i`)."
+    );
 
-    /// Save-state progress byte `i` (`$0308 + i`).
-    #[inline]
-    pub fn save_progress(&self, i: i32) -> i32 {
-        self.byte(0x0308 + i)
-    }
-    #[inline]
-    pub fn set_save_progress(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0308 + i, value);
-    }
+    array_field!(
+        save_progress,
+        set_save_progress,
+        0x0308,
+        "Save-state progress byte `i` (`$0308 + i`)."
+    );
 
-    /// Save-state inventory snapshot byte `i` (`$0310 + i`).
-    #[inline]
-    pub fn save_inventory(&self, i: i32) -> i32 {
-        self.byte(0x0310 + i)
-    }
-    #[inline]
-    pub fn set_save_inventory(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0310 + i, value);
-    }
+    array_field!(
+        save_inventory,
+        set_save_inventory,
+        0x0310,
+        "Save-state inventory snapshot byte `i` (`$0310 + i`)."
+    );
 
-    /// Password nibble cell, bank A, index `i` (`$0322 + i`).
-    #[inline]
-    pub fn password_nibbles_a(&self, i: i32) -> i32 {
-        self.byte(0x0322 + i)
-    }
-    #[inline]
-    pub fn set_password_nibbles_a(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0322 + i, value);
-    }
+    array_field!(
+        password_nibbles_a,
+        set_password_nibbles_a,
+        0x0322,
+        "Password nibble cell, bank A, index `i` (`$0322 + i`)."
+    );
 
-    /// Password nibble cell, bank B, index `i` (`$0332 + i`).
-    #[inline]
-    pub fn password_nibbles_b(&self, i: i32) -> i32 {
-        self.byte(0x0332 + i)
-    }
-    #[inline]
-    pub fn set_password_nibbles_b(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0332 + i, value);
-    }
+    array_field!(
+        password_nibbles_b,
+        set_password_nibbles_b,
+        0x0332,
+        "Password nibble cell, bank B, index `i` (`$0332 + i`)."
+    );
 
-    /// Scrambled password cell, bank A, index `i` (`$0342 + i`).
-    #[inline]
-    pub fn password_scramble_a(&self, i: i32) -> i32 {
-        self.byte(0x0342 + i)
-    }
-    #[inline]
-    pub fn set_password_scramble_a(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0342 + i, value);
-    }
+    array_field!(
+        password_scramble_a,
+        set_password_scramble_a,
+        0x0342,
+        "Scrambled password cell, bank A, index `i` (`$0342 + i`)."
+    );
 
-    /// Scrambled password cell, bank B, index `i` (`$0352 + i`).
-    #[inline]
-    pub fn password_scramble_b(&self, i: i32) -> i32 {
-        self.byte(0x0352 + i)
-    }
-    #[inline]
-    pub fn set_password_scramble_b(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0352 + i, value);
-    }
+    array_field!(
+        password_scramble_b,
+        set_password_scramble_b,
+        0x0352,
+        "Scrambled password cell, bank B, index `i` (`$0352 + i`)."
+    );
 
-    /// Password additive checksum (`$0389`).
-    #[inline]
-    pub fn password_checksum_add(&self) -> i32 {
-        self.byte(0x0389)
-    }
-    #[inline]
-    pub fn set_password_checksum_add(&mut self, value: i32) {
-        self.set_byte(0x0389, value);
-    }
+    byte_field!(
+        password_checksum_add,
+        set_password_checksum_add,
+        0x0389,
+        "Password additive checksum (`$0389`)."
+    );
 
-    /// Password XOR checksum (`$038A`).
-    #[inline]
-    pub fn password_checksum_xor(&self) -> i32 {
-        self.byte(0x038A)
-    }
-    #[inline]
-    pub fn set_password_checksum_xor(&mut self, value: i32) {
-        self.set_byte(0x038A, value);
-    }
+    byte_field!(
+        password_checksum_xor,
+        set_password_checksum_xor,
+        0x038A,
+        "Password XOR checksum (`$038A`)."
+    );
 
-    /// VRAM staging buffer byte `i` (`$0140 + i`): tile + attribute bytes
-    /// assembled here before being uploaded to the PPU.
-    #[inline]
-    pub fn vram_stage(&self, i: i32) -> i32 {
-        self.byte(0x0140 + i)
-    }
-    #[inline]
-    pub fn set_vram_stage(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0140 + i, value);
-    }
+    array_field!(
+        vram_stage,
+        set_vram_stage,
+        0x0140,
+        "VRAM staging buffer byte `i` (`$0140 + i`): tile + attribute bytes assembled here before being uploaded to the PPU."
+    );
 
     // ---- Palette staging buffer ($0180-$019F) -----------------------------
 
-    /// Room layout buffer byte `i` (`$0500 + i`): the staged room tile/metadata
-    /// working area ($0500-$07FF).
-    #[inline]
-    pub fn room_buffer(&self, i: i32) -> i32 {
-        self.byte(0x0500 + i)
-    }
-    #[inline]
-    pub fn set_room_buffer(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0500 + i, value);
-    }
+    array_field!(
+        room_buffer,
+        set_room_buffer,
+        0x0500,
+        "Room layout buffer byte `i` (`$0500 + i`): the staged room tile/metadata working area ($0500-$07FF)."
+    );
 
-    /// Palette staging buffer byte `i` (`$0180 + i`), the 32-byte image copied
-    /// to PPU palette RAM ($3F00) on the next upload.
-    #[inline]
-    pub fn palette_buffer(&self, i: i32) -> i32 {
-        self.byte(0x0180 + i)
-    }
-    #[inline]
-    pub fn set_palette_buffer(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0180 + i, value);
-    }
+    array_field!(
+        palette_buffer,
+        set_palette_buffer,
+        0x0180,
+        "Palette staging buffer byte `i` (`$0180 + i`), the 32-byte image copied to PPU palette RAM ($3F00) on the next upload."
+    );
 
-    /// Saved audio stream command handler pointer, low/high (`$06`/`$07`).
-    #[inline]
-    pub fn saved_audio_handler_lo(&self) -> i32 {
-        self.byte(0x06)
-    }
-    #[inline]
-    pub fn set_saved_audio_handler_lo(&mut self, value: i32) {
-        self.set_byte(0x06, value);
-    }
-    #[inline]
-    pub fn saved_audio_handler_hi(&self) -> i32 {
-        self.byte(0x07)
-    }
-    #[inline]
-    pub fn set_saved_audio_handler_hi(&mut self, value: i32) {
-        self.set_byte(0x07, value);
-    }
+    byte_field!(
+        saved_audio_handler_lo,
+        set_saved_audio_handler_lo,
+        0x06,
+        "Saved audio stream command handler pointer, low/high (`$06`/`$07`)."
+    );
+    byte_field!(saved_audio_handler_hi, set_saved_audio_handler_hi, 0x07, "");
 
-    /// Row cursor while uploading the inventory item list (`$1B`).
-    #[inline]
-    pub fn inventory_upload_row(&self) -> i32 {
-        self.byte(0x1B)
-    }
-    #[inline]
-    pub fn set_inventory_upload_row(&mut self, value: i32) {
-        self.set_byte(0x1B, value);
-    }
+    byte_field!(
+        inventory_upload_row,
+        set_inventory_upload_row,
+        0x1B,
+        "Row cursor while uploading the inventory item list (`$1B`)."
+    );
 
-    /// Collision/blocked flag set during movement resolution (`$22`).
-    #[inline]
-    pub fn collision_flag(&self) -> i32 {
-        self.byte(0x22)
-    }
-    #[inline]
-    pub fn set_collision_flag(&mut self, value: i32) {
-        self.set_byte(0x22, value);
-    }
+    byte_field!(
+        collision_flag,
+        set_collision_flag,
+        0x22,
+        "Collision/blocked flag set during movement resolution (`$22`)."
+    );
 
-    /// Current song pointer low/high used by `song_init` (`$34`/`$35`).
-    #[inline]
-    pub fn song_ptr_lo(&self) -> i32 {
-        self.byte(0x34)
-    }
-    #[inline]
-    pub fn set_song_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x34, value);
-    }
-    #[inline]
-    pub fn song_ptr_hi(&self) -> i32 {
-        self.byte(0x35)
-    }
-    #[inline]
-    pub fn set_song_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x35, value);
-    }
+    byte_field!(
+        song_ptr_lo,
+        set_song_ptr_lo,
+        0x34,
+        "Current song pointer low/high used by `song_init` (`$34`/`$35`)."
+    );
+    byte_field!(song_ptr_hi, set_song_ptr_hi, 0x35, "");
 
-    /// Main-loop dispatch phase counter (`$3D`).
-    #[inline]
-    pub fn main_loop_phase(&self) -> i32 {
-        self.byte(0x3D)
-    }
-    #[inline]
-    pub fn set_main_loop_phase(&mut self, value: i32) {
-        self.set_byte(0x3D, value);
-    }
+    byte_field!(
+        main_loop_phase,
+        set_main_loop_phase,
+        0x3D,
+        "Main-loop dispatch phase counter (`$3D`)."
+    );
 
-    /// "Nudge to tile boundary" pending flag (`$4C`).
-    #[inline]
-    pub fn nudge_pending(&self) -> i32 {
-        self.byte(0x4C)
-    }
-    #[inline]
-    pub fn set_nudge_pending(&mut self, value: i32) {
-        self.set_byte(0x4C, value);
-    }
+    byte_field!(
+        nudge_pending,
+        set_nudge_pending,
+        0x4C,
+        "\"Nudge to tile boundary\" pending flag (`$4C`)."
+    );
 
-    /// Effective projectile damage / count / lifetime parameters
-    /// (`$5D`/`$5E`/`$5F`).
-    #[inline]
-    pub fn projectile_damage(&self) -> i32 {
-        self.byte(0x5D)
-    }
-    #[inline]
-    pub fn set_projectile_damage(&mut self, value: i32) {
-        self.set_byte(0x5D, value);
-    }
-    #[inline]
-    pub fn projectile_count(&self) -> i32 {
-        self.byte(0x5E)
-    }
-    #[inline]
-    pub fn set_projectile_count(&mut self, value: i32) {
-        self.set_byte(0x5E, value);
-    }
-    #[inline]
-    pub fn projectile_lifetime(&self) -> i32 {
-        self.byte(0x5F)
-    }
-    #[inline]
-    pub fn set_projectile_lifetime(&mut self, value: i32) {
-        self.set_byte(0x5F, value);
-    }
+    byte_field!(
+        projectile_damage,
+        set_projectile_damage,
+        0x5D,
+        "Effective projectile damage / count / lifetime parameters (`$5D`/`$5E`/`$5F`)."
+    );
+    byte_field!(projectile_count, set_projectile_count, 0x5E, "");
+    byte_field!(projectile_lifetime, set_projectile_lifetime, 0x5F, "");
 
-    /// Shop room active flag (`$61`).
-    #[inline]
-    pub fn shop_active(&self) -> i32 {
-        self.byte(0x61)
-    }
-    #[inline]
-    pub fn set_shop_active(&mut self, value: i32) {
-        self.set_byte(0x61, value);
-    }
+    byte_field!(
+        shop_active,
+        set_shop_active,
+        0x61,
+        "Shop room active flag (`$61`)."
+    );
 
-    /// Remaining fragment-pickup count (`$6E`).
-    #[inline]
-    pub fn fragment_count(&self) -> i32 {
-        self.byte(0x6E)
-    }
-    #[inline]
-    pub fn set_fragment_count(&mut self, value: i32) {
-        self.set_byte(0x6E, value);
-    }
+    byte_field!(
+        fragment_count,
+        set_fragment_count,
+        0x6E,
+        "Remaining fragment-pickup count (`$6E`)."
+    );
 
-    /// Text attribute source pointer low/high (`$70`/`$71`).
-    #[inline]
-    pub fn text_attr_ptr_lo(&self) -> i32 {
-        self.byte(0x70)
-    }
-    #[inline]
-    pub fn set_text_attr_ptr_lo(&mut self, value: i32) {
-        self.set_byte(0x70, value);
-    }
-    #[inline]
-    pub fn text_attr_ptr_hi(&self) -> i32 {
-        self.byte(0x71)
-    }
-    #[inline]
-    pub fn set_text_attr_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x71, value);
-    }
+    byte_field!(
+        text_attr_ptr_lo,
+        set_text_attr_ptr_lo,
+        0x70,
+        "Text attribute source pointer low/high (`$70`/`$71`)."
+    );
+    byte_field!(text_attr_ptr_hi, set_text_attr_ptr_hi, 0x71, "");
 
-    /// Decoded room tile action value (`$74`).
-    #[inline]
-    pub fn room_tile_action(&self) -> i32 {
-        self.byte(0x74)
-    }
-    #[inline]
-    pub fn set_room_tile_action(&mut self, value: i32) {
-        self.set_byte(0x74, value);
-    }
+    byte_field!(
+        room_tile_action,
+        set_room_tile_action,
+        0x74,
+        "Decoded room tile action value (`$74`)."
+    );
 
-    /// Room metatile-definition pointer low/high (`$75`/`$76`).
-    #[inline]
-    pub fn room_metadef_lo(&self) -> i32 {
-        self.byte(0x75)
-    }
-    #[inline]
-    pub fn set_room_metadef_lo(&mut self, value: i32) {
-        self.set_byte(0x75, value);
-    }
-    #[inline]
-    pub fn room_metadef_hi(&self) -> i32 {
-        self.byte(0x76)
-    }
-    #[inline]
-    pub fn set_room_metadef_hi(&mut self, value: i32) {
-        self.set_byte(0x76, value);
-    }
+    byte_field!(
+        room_metadef_lo,
+        set_room_metadef_lo,
+        0x75,
+        "Room metatile-definition pointer low/high (`$75`/`$76`)."
+    );
+    byte_field!(room_metadef_hi, set_room_metadef_hi, 0x76, "");
 
-    /// Saved horizontal scroll tile during the main loop (`$7E`).
-    #[inline]
-    pub fn saved_scroll_tile(&self) -> i32 {
-        self.byte(0x7E)
-    }
-    #[inline]
-    pub fn set_saved_scroll_tile(&mut self, value: i32) {
-        self.set_byte(0x7E, value);
-    }
+    byte_field!(
+        saved_scroll_tile,
+        set_saved_scroll_tile,
+        0x7E,
+        "Saved horizontal scroll tile during the main loop (`$7E`)."
+    );
 
-    /// Camera scroll-pending flag (`$7F`).
-    #[inline]
-    pub fn camera_scroll_flag(&self) -> i32 {
-        self.byte(0x7F)
-    }
-    #[inline]
-    pub fn set_camera_scroll_flag(&mut self, value: i32) {
-        self.set_byte(0x7F, value);
-    }
+    byte_field!(
+        camera_scroll_flag,
+        set_camera_scroll_flag,
+        0x7F,
+        "Camera scroll-pending flag (`$7F`)."
+    );
 
-    /// Airborne/falling flag for the top-boundary exit check (`$86`).
-    #[inline]
-    pub fn airborne_flag(&self) -> i32 {
-        self.byte(0x86)
-    }
-    #[inline]
-    pub fn set_airborne_flag(&mut self, value: i32) {
-        self.set_byte(0x86, value);
-    }
+    byte_field!(
+        airborne_flag,
+        set_airborne_flag,
+        0x86,
+        "Airborne/falling flag for the top-boundary exit check (`$86`)."
+    );
 
-    /// Magic-contact-with-actor flag (`$87`).
-    #[inline]
-    pub fn magic_contact_flag(&self) -> i32 {
-        self.byte(0x87)
-    }
-    #[inline]
-    pub fn set_magic_contact_flag(&mut self, value: i32) {
-        self.set_byte(0x87, value);
-    }
+    byte_field!(
+        magic_contact_flag,
+        set_magic_contact_flag,
+        0x87,
+        "Magic-contact-with-actor flag (`$87`)."
+    );
 
-    /// Short / long speed-boost timers (`$8A`/`$8B`).
-    #[inline]
-    pub fn short_boost_timer(&self) -> i32 {
-        self.byte(0x8A)
-    }
-    #[inline]
-    pub fn set_short_boost_timer(&mut self, value: i32) {
-        self.set_byte(0x8A, value);
-    }
-    #[inline]
-    pub fn long_boost_timer(&self) -> i32 {
-        self.byte(0x8B)
-    }
-    #[inline]
-    pub fn set_long_boost_timer(&mut self, value: i32) {
-        self.set_byte(0x8B, value);
-    }
+    byte_field!(
+        short_boost_timer,
+        set_short_boost_timer,
+        0x8A,
+        "Short / long speed-boost timers (`$8A`/`$8B`)."
+    );
+    byte_field!(long_boost_timer, set_long_boost_timer, 0x8B, "");
 
-    /// Active SFX priority threshold (`$91`).
-    #[inline]
-    pub fn sfx_priority(&self) -> i32 {
-        self.byte(0x91)
-    }
-    #[inline]
-    pub fn set_sfx_priority(&mut self, value: i32) {
-        self.set_byte(0x91, value);
-    }
+    byte_field!(
+        sfx_priority,
+        set_sfx_priority,
+        0x91,
+        "Active SFX priority threshold (`$91`)."
+    );
 
-    /// Pending special-exit-room flag checked by `game_update` (`$EB`).
-    #[inline]
-    pub fn pending_special_exit(&self) -> i32 {
-        self.byte(0xEB)
-    }
-    #[inline]
-    pub fn set_pending_special_exit(&mut self, value: i32) {
-        self.set_byte(0xEB, value);
-    }
+    byte_field!(
+        pending_special_exit,
+        set_pending_special_exit,
+        0xEB,
+        "Pending special-exit-room flag checked by `game_update` (`$EB`)."
+    );
 
-    /// Sound paused/disabled flag checked at the top of `sound_tick` (`$8D`).
-    #[inline]
-    pub fn sound_paused(&self) -> i32 {
-        self.byte(0x8D)
-    }
-    #[inline]
-    pub fn set_sound_paused(&mut self, value: i32) {
-        self.set_byte(0x8D, value);
-    }
+    byte_field!(
+        sound_paused,
+        set_sound_paused,
+        0x8D,
+        "Sound paused/disabled flag checked at the top of `sound_tick` (`$8D`)."
+    );
 
-    /// SFX overlay voice active flag, bit7 (`$D4`).
-    #[inline]
-    pub fn sfx_voice_active(&self) -> i32 {
-        self.byte(0xD4)
-    }
-    #[inline]
-    pub fn set_sfx_voice_active(&mut self, value: i32) {
-        self.set_byte(0xD4, value);
-    }
+    byte_field!(
+        sfx_voice_active,
+        set_sfx_voice_active,
+        0xD4,
+        "SFX overlay voice active flag, bit7 (`$D4`)."
+    );
 
-    /// Triangle channel note-duration countdown (`$B3`).
-    #[inline]
-    pub fn triangle_timer(&self) -> i32 {
-        self.byte(0xB3)
-    }
-    #[inline]
-    pub fn set_triangle_timer(&mut self, value: i32) {
-        self.set_byte(0xB3, value);
-    }
+    byte_field!(
+        triangle_timer,
+        set_triangle_timer,
+        0xB3,
+        "Triangle channel note-duration countdown (`$B3`)."
+    );
 
-    /// Audio duty/volume work byte for the duty/instrument command (`$00`).
-    #[inline]
-    pub fn audio_duty_work(&self) -> i32 {
-        self.byte(0x00)
-    }
-    #[inline]
-    pub fn set_audio_duty_work(&mut self, value: i32) {
-        self.set_byte(0x00, value);
-    }
+    byte_field!(
+        audio_duty_work,
+        set_audio_duty_work,
+        0x00,
+        "Audio duty/volume work byte for the duty/instrument command (`$00`)."
+    );
 
-    /// HUD refresh-needed flag set by `sync_health_hud` (`$3C`).
-    #[inline]
-    pub fn hud_refresh_flag(&self) -> i32 {
-        self.byte(0x3C)
-    }
-    #[inline]
-    pub fn set_hud_refresh_flag(&mut self, value: i32) {
-        self.set_byte(0x3C, value);
-    }
+    byte_field!(
+        hud_refresh_flag,
+        set_hud_refresh_flag,
+        0x3C,
+        "HUD refresh-needed flag set by `sync_health_hud` (`$3C`)."
+    );
 
-    /// Title-screen loop timer (`$42`).
-    #[inline]
-    pub fn title_timer(&self) -> i32 {
-        self.byte(0x42)
-    }
-    #[inline]
-    pub fn set_title_timer(&mut self, value: i32) {
-        self.set_byte(0x42, value);
-    }
+    byte_field!(
+        title_timer,
+        set_title_timer,
+        0x42,
+        "Title-screen loop timer (`$42`)."
+    );
 
-    /// Column cursor while uploading the inventory item list (`$1A`).
-    #[inline]
-    pub fn inventory_upload_col(&self) -> i32 {
-        self.byte(0x1A)
-    }
-    #[inline]
-    pub fn set_inventory_upload_col(&mut self, value: i32) {
-        self.set_byte(0x1A, value);
-    }
+    byte_field!(
+        inventory_upload_col,
+        set_inventory_upload_col,
+        0x1A,
+        "Column cursor while uploading the inventory item list (`$1A`)."
+    );
 
-    /// Player/actor overlap-detected flag (`$EA`).
-    #[inline]
-    pub fn overlap_flag(&self) -> i32 {
-        self.byte(0xEA)
-    }
-    #[inline]
-    pub fn set_overlap_flag(&mut self, value: i32) {
-        self.set_byte(0xEA, value);
-    }
+    byte_field!(
+        overlap_flag,
+        set_overlap_flag,
+        0xEA,
+        "Player/actor overlap-detected flag (`$EA`)."
+    );
 
-    /// Final-exit trigger reached flag (`$EC`).
-    #[inline]
-    pub fn final_exit_flag(&self) -> i32 {
-        self.byte(0xEC)
-    }
-    #[inline]
-    pub fn set_final_exit_flag(&mut self, value: i32) {
-        self.set_byte(0xEC, value);
-    }
+    byte_field!(
+        final_exit_flag,
+        set_final_exit_flag,
+        0xEC,
+        "Final-exit trigger reached flag (`$EC`)."
+    );
 
-    /// Pose state flag from `update_player_pose_from_motion` (`$50`).
-    #[inline]
-    pub fn pose_state(&self) -> i32 {
-        self.byte(0x50)
-    }
-    #[inline]
-    pub fn set_pose_state(&mut self, value: i32) {
-        self.set_byte(0x50, value);
-    }
+    byte_field!(
+        pose_state,
+        set_pose_state,
+        0x50,
+        "Pose state flag from `update_player_pose_from_motion` (`$50`)."
+    );
 
-    /// Countdown used while resolving the room tile pointer (`$10`).
-    #[inline]
-    pub fn tile_fetch_counter(&self) -> i32 {
-        self.byte(0x10)
-    }
-    #[inline]
-    pub fn set_tile_fetch_counter(&mut self, value: i32) {
-        self.set_byte(0x10, value);
-    }
+    byte_field!(
+        tile_fetch_counter,
+        set_tile_fetch_counter,
+        0x10,
+        "Countdown used while resolving the room tile pointer (`$10`)."
+    );
 
-    /// Scratch byte used by `restore_room_from_checkpoint` (`$FE`).
-    #[inline]
-    pub fn room_restore_scratch(&self) -> i32 {
-        self.byte(0xFE)
-    }
-    #[inline]
-    pub fn set_room_restore_scratch(&mut self, value: i32) {
-        self.set_byte(0xFE, value);
-    }
+    byte_field!(
+        room_restore_scratch,
+        set_room_restore_scratch,
+        0xFE,
+        "Scratch byte used by `restore_room_from_checkpoint` (`$FE`)."
+    );
 
-    /// Current object/actor slot index for iteration loops (`$E3`); shifted
-    /// left 4 to form the slot's byte offset into the object table.
-    #[inline]
-    pub fn slot_index(&self) -> i32 {
-        self.byte(0xE3)
-    }
-    #[inline]
-    pub fn set_slot_index(&mut self, value: i32) {
-        self.set_byte(0xE3, value);
-    }
+    byte_field!(
+        slot_index,
+        set_slot_index,
+        0xE3,
+        "Current object/actor slot index for iteration loops (`$E3`); shifted left 4 to form the slot's byte offset into the object table."
+    );
 
-    /// Upper bound for the [`Self::slot_index`] iteration loop (`$E4`).
-    #[inline]
-    pub fn slot_index_limit(&self) -> i32 {
-        self.byte(0xE4)
-    }
-    #[inline]
-    pub fn set_slot_index_limit(&mut self, value: i32) {
-        self.set_byte(0xE4, value);
-    }
+    byte_field!(
+        slot_index_limit,
+        set_slot_index_limit,
+        0xE4,
+        "Upper bound for the [`Self::slot_index`] iteration loop (`$E4`)."
+    );
 
-    /// Bitmask of available/active Drasle family members (`$41`).
-    #[inline]
-    pub fn family_member_mask(&self) -> i32 {
-        self.byte(0x41)
-    }
-    #[inline]
-    pub fn set_family_member_mask(&mut self, value: i32) {
-        self.set_byte(0x41, value);
-    }
+    byte_field!(
+        family_member_mask,
+        set_family_member_mask,
+        0x41,
+        "Bitmask of available/active Drasle family members (`$41`)."
+    );
 
-    /// OAM buffer write cursor / current sprite byte offset (`$3F`).
-    #[inline]
-    pub fn oam_cursor(&self) -> i32 {
-        self.byte(0x3F)
-    }
-    #[inline]
-    pub fn set_oam_cursor(&mut self, value: i32) {
-        self.set_byte(0x3F, value);
-    }
+    byte_field!(
+        oam_cursor,
+        set_oam_cursor,
+        0x3F,
+        "OAM buffer write cursor / current sprite byte offset (`$3F`)."
+    );
 
-    /// Player facing/direction flag (`$57`); bit6 marks the horizontal flip.
-    #[inline]
-    pub fn player_facing(&self) -> i32 {
-        self.byte(0x57)
-    }
-    #[inline]
-    pub fn set_player_facing(&mut self, value: i32) {
-        self.set_byte(0x57, value);
-    }
+    byte_field!(
+        player_facing,
+        set_player_facing,
+        0x57,
+        "Player facing/direction flag (`$57`); bit6 marks the horizontal flip."
+    );
 
-    /// Auxiliary stream pointer high byte (`$11`); secondary to `data_ptr`.
-    #[inline]
-    pub fn aux_ptr_hi(&self) -> i32 {
-        self.byte(0x11)
-    }
-    #[inline]
-    pub fn set_aux_ptr_hi(&mut self, value: i32) {
-        self.set_byte(0x11, value);
-    }
+    byte_field!(
+        aux_ptr_hi,
+        set_aux_ptr_hi,
+        0x11,
+        "Auxiliary stream pointer high byte (`$11`); secondary to `data_ptr`."
+    );
 
-    /// Speed-boost / temporary-effect timer (`$89`).
-    #[inline]
-    pub fn boost_timer(&self) -> i32 {
-        self.byte(0x89)
-    }
-    #[inline]
-    pub fn set_boost_timer(&mut self, value: i32) {
-        self.set_byte(0x89, value);
-    }
+    byte_field!(
+        boost_timer,
+        set_boost_timer,
+        0x89,
+        "Speed-boost / temporary-effect timer (`$89`)."
+    );
 
-    /// Temporary save slot `i` (`$80 + i`, 4 bytes): a scratch group preserved
-    /// across nested calls (e.g. the shop/menu state handlers).
-    #[inline]
-    pub fn temp_save(&self, i: i32) -> i32 {
-        self.byte(0x80 + i)
-    }
-    #[inline]
-    pub fn set_temp_save(&mut self, i: i32, value: i32) {
-        self.set_byte(0x80 + i, value);
-    }
+    array_field!(
+        temp_save,
+        set_temp_save,
+        0x80,
+        "Temporary save slot `i` (`$80 + i`, 4 bytes): a scratch group preserved across nested calls (e.g. the shop/menu state handlers)."
+    );
 
-    /// Sound length/period parameter for the current note (`$05`).
-    #[inline]
-    pub fn sound_length(&self) -> i32 {
-        self.byte(0x05)
-    }
-    #[inline]
-    pub fn set_sound_length(&mut self, value: i32) {
-        self.set_byte(0x05, value);
-    }
+    byte_field!(
+        sound_length,
+        set_sound_length,
+        0x05,
+        "Sound length/period parameter for the current note (`$05`)."
+    );
 
-    /// Sound engine status flag bits (`$27`).
-    #[inline]
-    pub fn sound_status_flags(&self) -> i32 {
-        self.byte(0x27)
-    }
-    #[inline]
-    pub fn set_sound_status_flags(&mut self, value: i32) {
-        self.set_byte(0x27, value);
-    }
+    byte_field!(
+        sound_status_flags,
+        set_sound_status_flags,
+        0x27,
+        "Sound engine status flag bits (`$27`)."
+    );
 
-    /// Displaced-block / temporary-tile restore timer (`$88`).
-    #[inline]
-    pub fn displaced_timer(&self) -> i32 {
-        self.byte(0x88)
-    }
-    #[inline]
-    pub fn set_displaced_timer(&mut self, value: i32) {
-        self.set_byte(0x88, value);
-    }
+    byte_field!(
+        displaced_timer,
+        set_displaced_timer,
+        0x88,
+        "Displaced-block / temporary-tile restore timer (`$88`)."
+    );
 
-    /// Direction latch (`$FD`): low nibble holds the current movement
-    /// direction, high nibble the previously latched one.
-    #[inline]
-    pub fn direction_latch(&self) -> i32 {
-        self.byte(0xFD)
-    }
-    #[inline]
-    pub fn set_direction_latch(&mut self, value: i32) {
-        self.set_byte(0xFD, value);
-    }
+    byte_field!(
+        direction_latch,
+        set_direction_latch,
+        0xFD,
+        "Direction latch (`$FD`): low nibble holds the current movement direction, high nibble the previously latched one."
+    );
 
     // ---- NMI VRAM request -------------------------------------------------
 
-    /// Pending NMI VRAM upload request id (`$28`); foreground code sets it and
-    /// spins until the NMI handler drains the queued transfer back to zero.
-    #[inline]
-    pub fn nmi_vram_req(&self) -> i32 {
-        self.byte(0x28)
-    }
-    #[inline]
-    pub fn set_nmi_vram_req(&mut self, value: i32) {
-        self.set_byte(0x28, value);
-    }
+    byte_field!(
+        nmi_vram_req,
+        set_nmi_vram_req,
+        0x28,
+        "Pending NMI VRAM upload request id (`$28`); foreground code sets it and spins until the NMI handler drains the queued transfer back to zero."
+    );
 
     // ---- More player / render / sound scalars -----------------------------
 
-    /// Player horizontal velocity, packed sub-tile delta + sign (`$4A`).
-    #[inline]
-    pub fn player_x_velocity(&self) -> i32 {
-        self.byte(0x4A)
-    }
-    #[inline]
-    pub fn set_player_x_velocity(&mut self, value: i32) {
-        self.set_byte(0x4A, value);
-    }
+    byte_field!(
+        player_x_velocity,
+        set_player_x_velocity,
+        0x4A,
+        "Player horizontal velocity, packed sub-tile delta + sign (`$4A`)."
+    );
 
-    /// Player walk-animation step counter (`$4D`); low 3 bits set the frame
-    /// cadence.
-    #[inline]
-    pub fn anim_step_counter(&self) -> i32 {
-        self.byte(0x4D)
-    }
-    #[inline]
-    pub fn set_anim_step_counter(&mut self, value: i32) {
-        self.set_byte(0x4D, value);
-    }
+    byte_field!(
+        anim_step_counter,
+        set_anim_step_counter,
+        0x4D,
+        "Player walk-animation step counter (`$4D`); low 3 bits set the frame cadence."
+    );
 
-    /// Player animation pose/frame selector (`$56`).
-    #[inline]
-    pub fn player_pose(&self) -> i32 {
-        self.byte(0x56)
-    }
-    #[inline]
-    pub fn set_player_pose(&mut self, value: i32) {
-        self.set_byte(0x56, value);
-    }
+    byte_field!(
+        player_pose,
+        set_player_pose,
+        0x56,
+        "Player animation pose/frame selector (`$56`)."
+    );
 
-    /// Secondary VRAM transfer address, low byte (`$18`).
-    #[inline]
-    pub fn vram_addr2_lo(&self) -> i32 {
-        self.byte(0x18)
-    }
-    #[inline]
-    pub fn set_vram_addr2_lo(&mut self, value: i32) {
-        self.set_byte(0x18, value);
-    }
-    /// Secondary VRAM transfer address, high byte (`$19`).
-    #[inline]
-    pub fn vram_addr2_hi(&self) -> i32 {
-        self.byte(0x19)
-    }
-    #[inline]
-    pub fn set_vram_addr2_hi(&mut self, value: i32) {
-        self.set_byte(0x19, value);
-    }
+    byte_field!(
+        vram_addr2_lo,
+        set_vram_addr2_lo,
+        0x18,
+        "Secondary VRAM transfer address, low byte (`$18`)."
+    );
+    byte_field!(
+        vram_addr2_hi,
+        set_vram_addr2_hi,
+        0x19,
+        "Secondary VRAM transfer address, high byte (`$19`)."
+    );
 
-    /// Vertical scroll value written to PPUSCROLL `$2005` (`$1E`).
-    #[inline]
-    pub fn scroll_y(&self) -> i32 {
-        self.byte(0x1E)
-    }
-    #[inline]
-    pub fn set_scroll_y(&mut self, value: i32) {
-        self.set_byte(0x1E, value);
-    }
+    byte_field!(
+        scroll_y,
+        set_scroll_y,
+        0x1E,
+        "Vertical scroll value written to PPUSCROLL `$2005` (`$1E`)."
+    );
 
-    /// Sprite slot index/counter while building the OAM buffer (`$3E`).
-    #[inline]
-    pub fn sprite_index(&self) -> i32 {
-        self.byte(0x3E)
-    }
-    #[inline]
-    pub fn set_sprite_index(&mut self, value: i32) {
-        self.set_byte(0x3E, value);
-    }
+    byte_field!(
+        sprite_index,
+        set_sprite_index,
+        0x3E,
+        "Sprite slot index/counter while building the OAM buffer (`$3E`)."
+    );
 
-    /// Sound channel active/control flags (`$A4`).
-    #[inline]
-    pub fn sound_channel_flags(&self) -> i32 {
-        self.byte(0xA4)
-    }
-    #[inline]
-    pub fn set_sound_channel_flags(&mut self, value: i32) {
-        self.set_byte(0xA4, value);
-    }
+    byte_field!(
+        sound_channel_flags,
+        set_sound_channel_flags,
+        0xA4,
+        "Sound channel active/control flags (`$A4`)."
+    );
 
     // ---- Sound engine channel state ---------------------------------------
     //
@@ -1926,25 +1350,19 @@ impl GameState {
         v
     }
 
-    /// Sound channel byte offset currently being processed (`$02`).
-    #[inline]
-    pub fn sound_channel_offset(&self) -> i32 {
-        self.byte(0x02)
-    }
-    #[inline]
-    pub fn set_sound_channel_offset(&mut self, value: i32) {
-        self.set_byte(0x02, value);
-    }
+    byte_field!(
+        sound_channel_offset,
+        set_sound_channel_offset,
+        0x02,
+        "Sound channel byte offset currently being processed (`$02`)."
+    );
 
-    /// Current sound command id (`$04`).
-    #[inline]
-    pub fn sound_command(&self) -> i32 {
-        self.byte(0x04)
-    }
-    #[inline]
-    pub fn set_sound_command(&mut self, value: i32) {
-        self.set_byte(0x04, value);
-    }
+    byte_field!(
+        sound_command,
+        set_sound_command,
+        0x04,
+        "Current sound command id (`$04`)."
+    );
 
     // ---- RNG state ($38..$3B) ---------------------------------------------
     //
@@ -1952,107 +1370,70 @@ impl GameState {
     // with a saved previous low byte ($39), and rejection-samples below a
     // requested limit ($38). $3B is also the returned random byte.
 
-    /// Requested RNG range/limit for the current draw (`$38`).
-    #[inline]
-    pub fn rng_limit(&self) -> i32 {
-        self.byte(0x38)
-    }
-    #[inline]
-    pub fn set_rng_limit(&mut self, value: i32) {
-        self.set_byte(0x38, value);
-    }
+    byte_field!(
+        rng_limit,
+        set_rng_limit,
+        0x38,
+        "Requested RNG range/limit for the current draw (`$38`)."
+    );
 
-    /// Saved previous seed low byte mixed into the next draw (`$39`).
-    #[inline]
-    pub fn rng_seed_scratch(&self) -> i32 {
-        self.byte(0x39)
-    }
-    #[inline]
-    pub fn set_rng_seed_scratch(&mut self, value: i32) {
-        self.set_byte(0x39, value);
-    }
+    byte_field!(
+        rng_seed_scratch,
+        set_rng_seed_scratch,
+        0x39,
+        "Saved previous seed low byte mixed into the next draw (`$39`)."
+    );
 
-    /// RNG seed, low byte (`$3A`).
-    #[inline]
-    pub fn rng_low(&self) -> i32 {
-        self.byte(0x3A)
-    }
-    #[inline]
-    pub fn set_rng_low(&mut self, value: i32) {
-        self.set_byte(0x3A, value);
-    }
+    byte_field!(rng_low, set_rng_low, 0x3A, "RNG seed, low byte (`$3A`).");
 
-    /// RNG seed, high byte; also the value returned by a draw (`$3B`).
-    #[inline]
-    pub fn rng_high(&self) -> i32 {
-        self.byte(0x3B)
-    }
-    #[inline]
-    pub fn set_rng_high(&mut self, value: i32) {
-        self.set_byte(0x3B, value);
-    }
+    byte_field!(
+        rng_high,
+        set_rng_high,
+        0x3B,
+        "RNG seed, high byte; also the value returned by a draw (`$3B`)."
+    );
 
     // ---- Misc player / UI / frame state -----------------------------------
 
-    /// Current character index (which Drasle family member is active) (`$40`).
-    #[inline]
-    pub fn character_index(&self) -> i32 {
-        self.byte(0x40)
-    }
-    #[inline]
-    pub fn set_character_index(&mut self, value: i32) {
-        self.set_byte(0x40, value);
-    }
+    byte_field!(
+        character_index,
+        set_character_index,
+        0x40,
+        "Current character index (which Drasle family member is active) (`$40`)."
+    );
 
-    /// Equipped item slot `i` (`$51 + i`), selected by the inventory cursor
-    /// ([`Self::selected_item_slot`]).
-    #[inline]
-    pub fn item_slot(&self, i: i32) -> i32 {
-        self.byte(0x51 + i)
-    }
-    #[inline]
-    pub fn set_item_slot(&mut self, i: i32, value: i32) {
-        self.set_byte(0x51 + i, value);
-    }
+    array_field!(
+        item_slot,
+        set_item_slot,
+        0x51,
+        "Equipped item slot `i` (`$51 + i`), selected by the inventory cursor ([`Self::selected_item_slot`])."
+    );
 
-    /// Inventory item byte `i` in the 16-entry inventory table (`$0060 + i`).
-    #[inline]
-    pub fn inventory_item(&self, i: i32) -> i32 {
-        self.byte(0x0060 + i)
-    }
-    #[inline]
-    pub fn set_inventory_item(&mut self, i: i32, value: i32) {
-        self.set_byte(0x0060 + i, value);
-    }
+    array_field!(
+        inventory_item,
+        set_inventory_item,
+        0x0060,
+        "Inventory item byte `i` in the 16-entry inventory table (`$0060 + i`)."
+    );
 
-    /// Selected inventory/menu item slot (cursor index) (`$55`).
-    #[inline]
-    pub fn selected_item_slot(&self) -> i32 {
-        self.byte(0x55)
-    }
-    #[inline]
-    pub fn set_selected_item_slot(&mut self, value: i32) {
-        self.set_byte(0x55, value);
-    }
+    byte_field!(
+        selected_item_slot,
+        set_selected_item_slot,
+        0x55,
+        "Selected inventory/menu item slot (cursor index) (`$55`)."
+    );
 
-    /// Continue/respawn countdown timer (`$37`).
-    #[inline]
-    pub fn continue_timer(&self) -> i32 {
-        self.byte(0x37)
-    }
-    #[inline]
-    pub fn set_continue_timer(&mut self, value: i32) {
-        self.set_byte(0x37, value);
-    }
+    byte_field!(
+        continue_timer,
+        set_continue_timer,
+        0x37,
+        "Continue/respawn countdown timer (`$37`)."
+    );
 
-    /// 60-frame prescaler (`$84`): reloads to 0x3C and counts down each frame;
-    /// its low bits drive blink/animation cadence and the coarse timer ticks.
-    #[inline]
-    pub fn frame_prescaler(&self) -> i32 {
-        self.byte(0x84)
-    }
-    #[inline]
-    pub fn set_frame_prescaler(&mut self, value: i32) {
-        self.set_byte(0x84, value);
-    }
+    byte_field!(
+        frame_prescaler,
+        set_frame_prescaler,
+        0x84,
+        "60-frame prescaler (`$84`): reloads to 0x3C and counts down each frame; its low bits drive blink/animation cadence and the coarse timer ticks."
+    );
 }
