@@ -1305,6 +1305,27 @@ impl GameState {
         self.set_byte(0x0180 + i, value);
     }
 
+    /// Current object/actor slot index for iteration loops (`$E3`); shifted
+    /// left 4 to form the slot's byte offset into the object table.
+    #[inline]
+    pub fn slot_index(&self) -> i32 {
+        self.byte(0xE3)
+    }
+    #[inline]
+    pub fn set_slot_index(&mut self, value: i32) {
+        self.set_byte(0xE3, value);
+    }
+
+    /// Upper bound for the [`Self::slot_index`] iteration loop (`$E4`).
+    #[inline]
+    pub fn slot_index_limit(&self) -> i32 {
+        self.byte(0xE4)
+    }
+    #[inline]
+    pub fn set_slot_index_limit(&mut self, value: i32) {
+        self.set_byte(0xE4, value);
+    }
+
     /// Bitmask of available/active Drasle family members (`$41`).
     #[inline]
     pub fn family_member_mask(&self) -> i32 {

@@ -1510,7 +1510,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
     let mut y = 0x09;
     let mut x = 0x90;
     loop {
-        let mut skip = u8v(y) == engine.mem(0xe3);
+        let mut skip = u8v(y) == engine.state.slot_index();
         if !skip && (engine.state.object_state(x) & 0x80) != 0 {
             skip = true;
         }
@@ -1575,7 +1575,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x0a;
     let mut x = 0xa0;
     loop {
-        let mut skip = u8v(y) == engine.mem(0xe3);
+        let mut skip = u8v(y) == engine.state.slot_index();
         if !skip && engine.state.object_state(x) == 0 {
             skip = true;
         }
@@ -1850,7 +1850,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     crate::game::seed_object_position_from_tile_offset(engine, r);
                     crate::game::redraw_room_tile_column(engine, r);
                     crate::game::update_tile_projectile_motion(engine, r);
-                    engine.set_mem(0xe3, 0xff);
+                    engine.state.set_slot_index(0xff);
                     if engine.state.object_state(0x90) != 0 {
                         engine.state.set_prompt_state(0x06);
                     }
@@ -1881,7 +1881,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         crate::game::seed_object_position_from_tile_offset(engine, r);
                         crate::game::redraw_room_tile_column(engine, r);
                         crate::game::update_tile_projectile_motion(engine, r);
-                        engine.set_mem(0xe3, 0xff);
+                        engine.state.set_slot_index(0xff);
                         if engine.state.obj_state() != 0 {
                             engine.state.set_prompt_state(0x14);
                             crate::game::consume_magic_point(engine, r);

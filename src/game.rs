@@ -429,7 +429,7 @@ mod game_update {
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xE3, 0xFF);
+                    engine.state.set_slot_index(0xFF);
                     if cbool(engine.mem(0xEB) != 0) {
                         enter_pending_special_exit_room(engine, r);
                         return;
@@ -1019,7 +1019,7 @@ mod update_final_exit_projectiles {
     /// Updates the three final-exit projectile slots at `0x0410..0x043F`,
     /// spawning a new shot on the action-button edge when a slot is empty.
     pub fn update_final_exit_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xE3, 0x01);
+        engine.state.set_slot_index(0x01);
         engine.state.set_obj_slot_ptr_lo(0x10);
         engine.state.set_obj_slot_ptr_hi(0x04);
         loop {
@@ -1031,7 +1031,9 @@ mod update_final_exit_projectiles {
             {
                 spawn_final_exit_projectile(engine, r);
             }
-            engine.set_mem(0xE3, u8v(engine.mem(0xE3) + 1));
+            engine
+                .state
+                .set_slot_index(u8v(engine.state.slot_index() + 1));
             {
                 let next_slot_ptr = u16v(engine.state.obj_slot_ptr_lo() + 0x10);
                 engine.state.set_obj_slot_ptr_lo(u8v(next_slot_ptr));
@@ -1039,7 +1041,7 @@ mod update_final_exit_projectiles {
                     engine.state.obj_slot_ptr_hi() + (next_slot_ptr >> 8)
                 ));
             }
-            if !cbool(engine.mem(0xE3) < 0x04) {
+            if !cbool(engine.state.slot_index() < 0x04) {
                 break;
             }
         }
@@ -6963,9 +6965,9 @@ mod update_room_actors {
                         let mut scheduler_phase: i32 = engine.state.scheduler_phase();
                         let mut first_actor_slot: i32 =
                             u8v((scheduler_phase << 1) + scheduler_phase);
-                        engine.set_mem(0xE3, first_actor_slot);
-                        engine.set_mem(0xE4, u8v(first_actor_slot + 3));
-                        let mut object_slot_lo: i32 = u8v(engine.mem(0xE3) << 4);
+                        engine.state.set_slot_index(first_actor_slot);
+                        engine.state.set_slot_index_limit(u8v(first_actor_slot + 3));
+                        let mut object_slot_lo: i32 = u8v(engine.state.slot_index() << 4);
                         engine.state.set_obj_slot_ptr_lo(object_slot_lo);
                         engine
                             .state
@@ -6991,7 +6993,9 @@ mod update_room_actors {
                             tick_standard_actor(engine, r);
                         }
                         store_object_slot_scratch(engine, r);
-                        engine.inc_mem(0xE3);
+                        engine
+                            .state
+                            .set_slot_index((engine.state.slot_index() + 1) & 0xFF);
                         engine
                             .state
                             .set_obj_slot_ptr_lo(u8v(engine.state.obj_slot_ptr_lo() + 0x10));
@@ -7000,7 +7004,7 @@ mod update_room_actors {
                             .set_actor_record_ptr_lo(
                                 u8v(engine.state.actor_record_ptr_lo() + 0x10),
                             );
-                        if !cbool(engine.mem(0xE3) < engine.mem(0xE4)) {
+                        if !cbool(engine.state.slot_index() < engine.state.slot_index_limit()) {
                             break;
                         }
                     }
@@ -7028,7 +7032,7 @@ mod update_room_actors {
                     }
                     engine.state.set_obj_slot_ptr_lo(0x00);
                     engine.state.set_obj_slot_ptr_hi(0x04);
-                    engine.set_mem(0xE3, 0x00);
+                    engine.state.set_slot_index(0x00);
                     engine.state.set_actor_record_ptr_lo(0x20);
                     engine
                         .state
@@ -7055,7 +7059,7 @@ mod update_room_actors {
                     continue 'dispatch;
                 }
                 2 => {
-                    engine.set_mem(0xE3, 0x04);
+                    engine.state.set_slot_index(0x04);
                     engine.state.set_obj_slot_ptr_lo(0x40);
                     engine.state.set_obj_slot_ptr_hi(0x04);
                     engine.state.set_actor_record_ptr_lo(0x60);
@@ -7073,7 +7077,9 @@ mod update_room_actors {
                             dispatch_actor_behavior(engine, r);
                         }
                         store_object_slot_scratch(engine, r);
-                        engine.inc_mem(0xE3);
+                        engine
+                            .state
+                            .set_slot_index((engine.state.slot_index() + 1) & 0xFF);
                         engine
                             .state
                             .set_obj_slot_ptr_lo(u8v(engine.state.obj_slot_ptr_lo() + 0x10));
@@ -7082,7 +7088,7 @@ mod update_room_actors {
                             .set_actor_record_ptr_lo(
                                 u8v(engine.state.actor_record_ptr_lo() + 0x10),
                             );
-                        if !cbool(engine.mem(0xE3) < 0x09) {
+                        if !cbool(engine.state.slot_index() < 0x09) {
                             break;
                         }
                     }
@@ -8654,7 +8660,7 @@ mod apply_actor_player_contact_damage {
             return;
         }
         if cbool(engine.state.chr_bank(3) >= 0x30) {
-            if cbool(engine.mem(0xE3) != 0) {
+            if cbool(engine.state.slot_index() != 0) {
                 let mut selected_item_slot: i32 = engine.state.selected_item_slot();
                 if cbool(engine.state.item_slot(selected_item_slot) == 0x0A) {
                     engine.state.set_prompt_state(0x01);
@@ -9471,7 +9477,7 @@ mod update_player_projectiles {
     /// Walks the pooled player projectile slots at `0x04B0` and either updates
     /// an active slot or spawns a new shot on a fire-button edge.
     pub fn update_player_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xE3, 0x0B);
+        engine.state.set_slot_index(0x0B);
         engine.state.set_obj_slot_ptr_lo(0xB0);
         engine.state.set_obj_slot_ptr_hi(0x04);
         loop {
@@ -9490,7 +9496,9 @@ mod update_player_projectiles {
                     }
                 }
             }
-            engine.inc_mem(0xE3);
+            engine
+                .state
+                .set_slot_index((engine.state.slot_index() + 1) & 0xFF);
             {
                 let next_slot_lo: i32 = u16v(0x10 + engine.state.obj_slot_ptr_lo());
                 engine.state.set_obj_slot_ptr_lo(u8v(next_slot_lo));
@@ -9498,7 +9506,7 @@ mod update_player_projectiles {
                     .state
                     .set_obj_slot_ptr_hi(u8v(engine.state.obj_slot_ptr_hi() + (next_slot_lo >> 8)));
             }
-            if !cbool(u8v(engine.mem(0xE3) - 0x0B) < engine.mem(0x5E)) {
+            if !cbool(u8v(engine.state.slot_index() - 0x0B) < engine.mem(0x5E)) {
                 break;
             }
         }
@@ -9799,7 +9807,7 @@ mod update_tile_projectile_motion {
                             continue 'dispatch;
                         }
                     }
-                    engine.set_mem(0xE3, 0x09);
+                    engine.state.set_slot_index(0x09);
                     project_actor_position(engine, r);
                     check_actor_position_out_of_bounds(engine, r);
                     if cbool(r.carry) {
