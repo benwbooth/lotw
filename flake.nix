@@ -37,6 +37,8 @@
             p7zip
             xxd
             xvfb-run
+            # Emulator for lockstep byte-exact verification against the real ROM
+            fceux
           ];
         };
       });
