@@ -4,6 +4,52 @@ pub const PPU_W: usize = 256;
 pub const PPU_H: usize = 240;
 pub const APU_SR: usize = 44_100;
 
+/// Memory-mapped NES hardware register addresses, accessed via
+/// [`Engine::device_read`] / [`Engine::device_write`]. Named so call sites read
+/// as register operations rather than raw addresses.
+pub mod reg {
+    // PPU registers ($2000-$2007)
+    pub const PPU_CTRL: i32 = 0x2000;
+    pub const PPU_MASK: i32 = 0x2001;
+    pub const PPU_STATUS: i32 = 0x2002;
+    pub const OAM_ADDR: i32 = 0x2003;
+    pub const OAM_DATA: i32 = 0x2004;
+    pub const PPU_SCROLL: i32 = 0x2005;
+    pub const PPU_ADDR: i32 = 0x2006;
+    pub const PPU_DATA: i32 = 0x2007;
+    // APU pulse 1
+    pub const SQ1_VOL: i32 = 0x4000;
+    pub const SQ1_SWEEP: i32 = 0x4001;
+    pub const SQ1_LO: i32 = 0x4002;
+    pub const SQ1_HI: i32 = 0x4003;
+    // APU pulse 2
+    pub const SQ2_VOL: i32 = 0x4004;
+    pub const SQ2_SWEEP: i32 = 0x4005;
+    pub const SQ2_LO: i32 = 0x4006;
+    pub const SQ2_HI: i32 = 0x4007;
+    // APU triangle
+    pub const TRI_LINEAR: i32 = 0x4008;
+    pub const TRI_LO: i32 = 0x400A;
+    pub const TRI_HI: i32 = 0x400B;
+    // APU noise
+    pub const NOISE_VOL: i32 = 0x400C;
+    pub const NOISE_LO: i32 = 0x400E;
+    pub const NOISE_HI: i32 = 0x400F;
+    // APU DMC / status / frame counter, OAM DMA, controllers
+    pub const DMC_FREQ: i32 = 0x4010;
+    pub const OAM_DMA: i32 = 0x4014;
+    pub const APU_STATUS: i32 = 0x4015;
+    pub const JOY1: i32 = 0x4016;
+    pub const APU_FRAME: i32 = 0x4017;
+    // MMC3 mapper registers
+    pub const MMC3_BANK_SELECT: i32 = 0x8000;
+    pub const MMC3_BANK_DATA: i32 = 0x8001;
+    pub const MMC3_MIRROR: i32 = 0xA000;
+    pub const MMC3_PRG_RAM: i32 = 0xA001;
+    pub const MMC3_IRQ_DISABLE: i32 = 0xE000;
+    pub const MMC3_IRQ_ENABLE: i32 = 0xE001;
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RoutineContext {
     pub value: i32,

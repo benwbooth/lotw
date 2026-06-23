@@ -942,9 +942,9 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_chr_bank(2, 0x37);
         engine.state.set_statusbar_split_flag(0x00);
         engine.state.set_ppu_ctrl_shadow(0xa0);
-        engine.device_write(0x2000, 0xa0);
+        engine.device_write(crate::engine::reg::PPU_CTRL, 0xa0);
         engine.state.set_ppu_mask_shadow(0x00);
-        engine.device_write(0x2001, 0x00);
+        engine.device_write(crate::engine::reg::PPU_MASK, 0x00);
         engine.state.set_scroll_pixel_x(0x00);
         engine.state.set_nametable_select(0x00);
         engine.state.set_scroll_y(0xe8);
@@ -960,7 +960,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::song_init(engine, r);
         crate::game::upload_title_screen_nametables(engine, r);
         engine.state.set_ppu_mask_shadow(0x1e);
-        engine.device_write(0x2001, 0x1e);
+        engine.device_write(crate::engine::reg::PPU_MASK, 0x1e);
         engine.state.set_frame_counter(0x78);
         frame::wait_for_frame_counter(engine, r);
         fade_title_palette_in(engine, r);

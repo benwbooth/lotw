@@ -369,17 +369,17 @@ mod farcall_bank_09_r7 {
     pub fn farcall_bank_09_r7(engine: &mut Engine, r: &mut RoutineContext) {
         let mut saved_r7: i32 = engine.state.prg_bank_a000();
         engine.state.set_mmc3_bank_select(0x07);
-        engine.device_write(0x8000, 0x07);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x07);
         engine.state.set_prg_bank_a000(0x09);
-        engine.device_write(0x8001, 0x09);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x09);
         engine.state.set_data_ptr_hi(0x00);
         r.value = 0x00;
         resolve_room_tile_pointer(engine, r);
         queue_room_column_vram_upload(engine, r);
         engine.state.set_mmc3_bank_select(0x07);
-        engine.device_write(0x8000, 0x07);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x07);
         engine.state.set_prg_bank_a000(saved_r7);
-        engine.device_write(0x8001, saved_r7);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, saved_r7);
         r.value = saved_r7;
     }
 }
@@ -394,13 +394,13 @@ mod farcall_bank_0C0D_seed {
             .state
             .set_saved_prg_bank_a000(engine.state.prg_bank_a000());
         engine.state.set_mmc3_bank_select(0x06);
-        engine.device_write(0x8000, 0x06);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x06);
         engine.state.set_prg_bank_8000(0x0C);
-        engine.device_write(0x8001, 0x0C);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x0C);
         engine.state.set_mmc3_bank_select(0x07);
-        engine.device_write(0x8000, 0x07);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x07);
         engine.state.set_prg_bank_a000(0x0D);
-        engine.device_write(0x8001, 0x0D);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x0D);
         r.value = 0x0D;
         r.offset = 0x07;
     }
@@ -732,13 +732,13 @@ mod main_init {
     /// Performs the cold-start initialization path and enters the main game
     /// dispatcher after the title screen flow completes.
     pub fn main_init(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x2000, 0x00);
-        engine.device_write(0x2001, 0x00);
-        engine.device_write(0x4010, 0x00);
+        engine.device_write(crate::engine::reg::PPU_CTRL, 0x00);
+        engine.device_write(crate::engine::reg::PPU_MASK, 0x00);
+        engine.device_write(crate::engine::reg::DMC_FREQ, 0x00);
         engine.state.set_sound_status_flags(0x1F);
-        engine.device_write(0x4015, 0x1F);
-        engine.device_write(0x4017, 0xC0);
-        engine.device_write(0xA000, 0x00);
+        engine.device_write(crate::engine::reg::APU_STATUS, 0x1F);
+        engine.device_write(crate::engine::reg::APU_FRAME, 0xC0);
+        engine.device_write(crate::engine::reg::MMC3_MIRROR, 0x00);
         farcall_bank_0C0D_seed(engine, r);
         ram_state_init(engine, r);
         farcall_0C0D(engine, r, 0x64, 0xAE, run_title_screen_loop);
@@ -859,8 +859,11 @@ mod ppu_commit_banks {
     /// Writes the eight PPU bank shadows at `0x2A..0x31` to the mapper.
     pub fn ppu_commit_banks(engine: &mut Engine, r: &mut RoutineContext) {
         for bank_register in (0..=7).rev() {
-            engine.device_write(0x8000, u8v(bank_register));
-            engine.device_write(0x8001, engine.state.chr_bank(bank_register));
+            engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, u8v(bank_register));
+            engine.device_write(
+                crate::engine::reg::MMC3_BANK_DATA,
+                engine.state.chr_bank(bank_register),
+            );
         }
         r.index = 0xFF;
     }
@@ -915,12 +918,12 @@ mod read_controllers {
         if let Some(replay_buttons) = engine.next_input() {
             engine.ppu.set_buttons(replay_buttons);
         }
-        engine.device_write(0x4016, 0x01);
-        engine.device_write(0x4016, 0x00);
+        engine.device_write(crate::engine::reg::JOY1, 0x01);
+        engine.device_write(crate::engine::reg::JOY1, 0x00);
 
         for _ in 0..8 {
-            let mut controller_sample: i32 =
-                u8v(engine.device_read(0x4016) | engine.device_read(0x4017));
+            let mut controller_sample: i32 = u8v(engine.device_read(crate::engine::reg::JOY1)
+                | engine.device_read(crate::engine::reg::APU_FRAME));
             let player_one_bit: i32 = controller_sample & 1;
             controller_sample >>= 1;
             let player_two_bit: i32 = controller_sample & 1;
@@ -941,9 +944,9 @@ mod read_controllers {
 mod reset {
     use super::*;
     pub fn reset(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x8000, 0x00);
-        engine.device_write(0xA001, 0x00);
-        engine.device_write(0xE000, 0x00);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x00);
+        engine.device_write(crate::engine::reg::MMC3_PRG_RAM, 0x00);
+        engine.device_write(crate::engine::reg::MMC3_IRQ_DISABLE, 0x00);
         main_init(engine, r);
     }
 }
@@ -2424,15 +2427,18 @@ mod upload_title_screen_nametables {
     pub fn upload_title_screen_nametables(engine: &mut Engine, r: &mut RoutineContext) {
         let ctrl: i32 = engine.state.ppu_ctrl_shadow();
         let mask: i32 = engine.state.ppu_mask_shadow();
-        engine.device_write(0x2000, ctrl & 0x7B);
+        engine.device_write(crate::engine::reg::PPU_CTRL, ctrl & 0x7B);
         engine.state.set_statusbar_split_flag(0x00);
-        engine.device_write(0x2001, mask & 0xE7);
-        engine.device_write(0x2006, 0x20);
-        engine.device_write(0x2006, 0x00);
+        engine.device_write(crate::engine::reg::PPU_MASK, mask & 0xE7);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x20);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
 
         for source_page in [0x9EC9, 0x9FC9, 0xA0C9, 0xA1C9] {
             for offset in 0..0x100 {
-                engine.device_write(0x2007, engine.state.byte(u16v(source_page + offset)));
+                engine.device_write(
+                    crate::engine::reg::PPU_DATA,
+                    engine.state.byte(u16v(source_page + offset)),
+                );
             }
         }
 
@@ -2444,7 +2450,7 @@ mod upload_title_screen_nametables {
             .set_chr_bank(1, engine.state.byte(TITLE_CHR_BANK_TABLE + 1));
         engine.state.set_ppu_mask_shadow(mask);
         engine.state.set_ppu_ctrl_shadow(ctrl);
-        engine.device_write(0x2000, ctrl);
+        engine.device_write(crate::engine::reg::PPU_CTRL, ctrl);
         r.value = ctrl;
         r.index = 0;
     }
@@ -2767,23 +2773,23 @@ mod clear_name_tables_to_blank_tiles {
     pub fn clear_name_tables_to_blank_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let ctrl: i32 = engine.state.ppu_ctrl_shadow();
         let mask: i32 = engine.state.ppu_mask_shadow();
-        engine.device_write(0x2000, ctrl & 0x7B);
+        engine.device_write(crate::engine::reg::PPU_CTRL, ctrl & 0x7B);
         engine.state.set_statusbar_split_flag(0x00);
-        engine.device_write(0x2001, mask & 0xE7);
-        engine.device_write(0x2006, 0x20);
-        engine.device_write(0x2006, 0x00);
+        engine.device_write(crate::engine::reg::PPU_MASK, mask & 0xE7);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x20);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
 
         for _ in 0..2 {
             for _ in 0..(5 * 0xC0) {
-                engine.device_write(0x2007, 0xC0);
+                engine.device_write(crate::engine::reg::PPU_DATA, 0xC0);
             }
             for _ in 0..0x40 {
-                engine.device_write(0x2007, 0x00);
+                engine.device_write(crate::engine::reg::PPU_DATA, 0x00);
             }
         }
         engine.state.set_ppu_mask_shadow(mask);
         engine.state.set_ppu_ctrl_shadow(ctrl);
-        engine.device_write(0x2000, ctrl);
+        engine.device_write(crate::engine::reg::PPU_CTRL, ctrl);
         r.value = ctrl;
         r.index = 0;
         r.offset = 0;
@@ -2847,28 +2853,31 @@ mod upload_status_panel_template {
         let mut i: i32 = 0;
         clear_pending_vram_job(engine, r);
         saved_ctrl = engine.state.ppu_ctrl_shadow();
-        engine.device_write(0x2000, saved_ctrl & 0x7B);
+        engine.device_write(crate::engine::reg::PPU_CTRL, saved_ctrl & 0x7B);
         engine.state.set_statusbar_split_flag(0x00);
         saved_mask = engine.state.ppu_mask_shadow();
-        engine.device_write(0x2001, saved_mask & 0xE7);
-        engine.device_write(0x2006, 0x23);
-        engine.device_write(0x2006, 0x20);
+        engine.device_write(crate::engine::reg::PPU_MASK, saved_mask & 0xE7);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x23);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x20);
         {
             i = 0;
             while cbool(i < 0xA0) {
-                engine.device_write(0x2007, engine.state.byte(u16v(HUD_TEMPLATE_TABLE + i)));
+                engine.device_write(
+                    crate::engine::reg::PPU_DATA,
+                    engine.state.byte(u16v(HUD_TEMPLATE_TABLE + i)),
+                );
                 {
                     i += 1;
                     i
                 };
             }
         }
-        engine.device_write(0x2006, 0x23);
-        engine.device_write(0x2006, 0xF0);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x23);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0xF0);
         {
             i = 0;
             while cbool(i < 0x10) {
-                engine.device_write(0x2007, 0x00);
+                engine.device_write(crate::engine::reg::PPU_DATA, 0x00);
                 {
                     i += 1;
                     i
@@ -2880,7 +2889,7 @@ mod upload_status_panel_template {
             .set_statusbar_split_flag((engine.state.statusbar_split_flag() + 1) & 0xFF);
         engine.state.set_ppu_mask_shadow(saved_mask);
         engine.state.set_ppu_ctrl_shadow(saved_ctrl);
-        engine.device_write(0x2000, saved_ctrl);
+        engine.device_write(crate::engine::reg::PPU_CTRL, saved_ctrl);
         r.value = saved_ctrl;
         r.offset = 0x00;
     }
@@ -2930,9 +2939,9 @@ mod upload_room_view_from_tile_pointer {
         let mut p0C: i32 = 0;
         let mut p79: i32 = 0;
         let mut outer: i32 = 0;
-        engine.device_write(0x2000, (ctrl_save & 0x7F) | 0x04);
+        engine.device_write(crate::engine::reg::PPU_CTRL, (ctrl_save & 0x7F) | 0x04);
         engine.state.set_statusbar_split_flag(0x00);
-        engine.device_write(0x2001, v24_save & 0xE7);
+        engine.device_write(crate::engine::reg::PPU_MASK, v24_save & 0xE7);
         p79 = u16v(engine.state.tile_table_ptr());
         {
             let mut sx: i32 = engine.state.scroll_tile_x();
@@ -2949,14 +2958,20 @@ mod upload_room_view_from_tile_pointer {
             while cbool(outer < 0x12) {
                 let mut inner: i32 = 0;
                 engine.state.set_scratch3(0x0C);
-                engine.device_write(0x2006, engine.state.vram_addr_hi());
-                engine.device_write(0x2006, engine.state.vram_addr_lo());
+                engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
+                engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_lo());
                 engine.state.set_scratch0(0x00);
                 loop {
                     let mut idx: i32 = engine.state.byte(u16v(p0C + engine.state.scratch0()));
                     let mut y: i32 = u8v(idx << 2);
-                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + y)));
-                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + u8v(y + 1))));
+                    engine.device_write(
+                        crate::engine::reg::PPU_DATA,
+                        engine.state.byte(u16v(p79 + y)),
+                    );
+                    engine.device_write(
+                        crate::engine::reg::PPU_DATA,
+                        engine.state.byte(u16v(p79 + u8v(y + 1))),
+                    );
                     engine
                         .state
                         .set_scratch0((engine.state.scratch0() + 1) & 0xFF);
@@ -2968,15 +2983,21 @@ mod upload_room_view_from_tile_pointer {
                     }
                 }
                 engine.state.set_scratch3(0x0C);
-                engine.device_write(0x2006, engine.state.vram_addr_hi());
+                engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
                 inner = u8v(engine.state.vram_addr_lo() + 1);
-                engine.device_write(0x2006, inner);
+                engine.device_write(crate::engine::reg::PPU_ADDR, inner);
                 engine.state.set_scratch0(0x00);
                 loop {
                     let mut idx: i32 = engine.state.byte(u16v(p0C + engine.state.scratch0()));
                     let mut y: i32 = u8v((idx << 2) + 2);
-                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + y)));
-                    engine.device_write(0x2007, engine.state.byte(u16v(p79 + u8v(y + 1))));
+                    engine.device_write(
+                        crate::engine::reg::PPU_DATA,
+                        engine.state.byte(u16v(p79 + y)),
+                    );
+                    engine.device_write(
+                        crate::engine::reg::PPU_DATA,
+                        engine.state.byte(u16v(p79 + u8v(y + 1))),
+                    );
                     engine
                         .state
                         .set_scratch0((engine.state.scratch0() + 1) & 0xFF);
@@ -3092,9 +3113,9 @@ mod upload_room_view_from_tile_pointer {
                             .state
                             .set_scratch0(u8v((engine.state.scratch0() << 1) | c1));
                     }
-                    engine.device_write(0x2006, engine.state.vram_addr_hi());
-                    engine.device_write(0x2006, engine.state.vram_addr_lo());
-                    engine.device_write(0x2007, engine.state.scratch0());
+                    engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
+                    engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_lo());
+                    engine.device_write(crate::engine::reg::PPU_DATA, engine.state.scratch0());
                     {
                         let mut t: i32 = u16v(0x02 + engine.state.data_ptr_lo());
                         engine.state.set_data_ptr_lo(u8v(t));
@@ -3148,7 +3169,7 @@ mod upload_room_view_from_tile_pointer {
         engine.state.set_ppu_mask_shadow(v24_save);
         engine.state.set_statusbar_split_flag(v29_save);
         engine.state.set_ppu_ctrl_shadow(ctrl_save);
-        engine.device_write(0x2000, ctrl_save);
+        engine.device_write(crate::engine::reg::PPU_CTRL, ctrl_save);
         r.value = ctrl_save;
         r.index = 0;
     }
@@ -10037,10 +10058,18 @@ mod tick_pulse1_channel {
                                 .set_sound_status_flags(u8v(
                                     engine.state.sound_status_flags() | 0x01
                                 ));
-                            engine.device_write(0x4001, engine.state.sound_channel_byte(7, 0x00));
-                            engine.device_write(0x4002, engine.state.sound_command());
-                            engine
-                                .device_write(0x4003, (engine.state.sound_length() & 0x07) | 0x18);
+                            engine.device_write(
+                                crate::engine::reg::SQ1_SWEEP,
+                                engine.state.sound_channel_byte(7, 0x00),
+                            );
+                            engine.device_write(
+                                crate::engine::reg::SQ1_LO,
+                                engine.state.sound_command(),
+                            );
+                            engine.device_write(
+                                crate::engine::reg::SQ1_HI,
+                                (engine.state.sound_length() & 0x07) | 0x18,
+                            );
                             start_note_envelope(engine, r);
                         }
                         break;
@@ -10054,7 +10083,7 @@ mod tick_pulse1_channel {
                     }
                     if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x00)) == 0) {
                         next_envelope_volume(engine, r);
-                        engine.device_write(0x4000, r.value);
+                        engine.device_write(crate::engine::reg::SQ1_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
@@ -10136,10 +10165,20 @@ mod tick_pulse2_channel {
                         engine
                             .state
                             .set_sound_status_flags(u8v(engine.state.sound_status_flags() | 0x02));
-                        engine.device_write(0x4004, engine.state.sound_channel_byte(6, 0x10));
-                        engine.device_write(0x4005, engine.state.sound_channel_byte(7, 0x10));
-                        engine.device_write(0x4006, engine.state.sound_command());
-                        engine.device_write(0x4007, (engine.state.sound_length() & 0x07) | 0x18);
+                        engine.device_write(
+                            crate::engine::reg::SQ2_VOL,
+                            engine.state.sound_channel_byte(6, 0x10),
+                        );
+                        engine.device_write(
+                            crate::engine::reg::SQ2_SWEEP,
+                            engine.state.sound_channel_byte(7, 0x10),
+                        );
+                        engine
+                            .device_write(crate::engine::reg::SQ2_LO, engine.state.sound_command());
+                        engine.device_write(
+                            crate::engine::reg::SQ2_HI,
+                            (engine.state.sound_length() & 0x07) | 0x18,
+                        );
                         start_note_envelope(engine, r);
                         break;
                     }
@@ -10155,7 +10194,7 @@ mod tick_pulse2_channel {
                     }
                     if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x10)) == 0) {
                         next_envelope_volume(engine, r);
-                        engine.device_write(0x4004, r.value);
+                        engine.device_write(crate::engine::reg::SQ2_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
@@ -10173,7 +10212,7 @@ mod tick_triangle_channel {
     use super::*;
     fn silence_triangle(engine: &mut Engine, r: &mut RoutineContext) {
         r.value = 0x00;
-        engine.device_write((0x4008), 0x00);
+        engine.device_write(crate::engine::reg::TRI_LINEAR, 0x00);
         engine
             .state
             .set_sound_status_flags(engine.state.sound_status_flags() & 0xFB);
@@ -10219,10 +10258,13 @@ mod tick_triangle_channel {
                 engine
                     .state
                     .set_sound_status_flags(engine.state.sound_status_flags() | 0x04);
-                engine.device_write((0x4008), engine.state.sound_channel_byte(7, 0x20));
-                engine.device_write((0x400A), engine.state.sound_command());
+                engine.device_write(
+                    crate::engine::reg::TRI_LINEAR,
+                    engine.state.sound_channel_byte(7, 0x20),
+                );
+                engine.device_write(crate::engine::reg::TRI_LO, engine.state.sound_command());
                 r.value = u8v((engine.state.sound_length() & 0x07) | 0xF8);
-                engine.device_write((0x400B), r.value);
+                engine.device_write(crate::engine::reg::TRI_HI, r.value);
                 return;
             }
             dispatch_audio_stream_command(engine, r);
@@ -10233,7 +10275,7 @@ mod tick_triangle_channel {
 mod tick_noise_channel {
     use super::*;
     fn silence_noise(engine: &mut Engine, _r: &mut RoutineContext) {
-        engine.device_write(0x400C, 0x30);
+        engine.device_write(crate::engine::reg::NOISE_VOL, 0x30);
         engine
             .state
             .set_sound_status_flags(u8v(engine.state.sound_status_flags() & 0xF7));
@@ -10281,8 +10323,11 @@ mod tick_noise_channel {
                                 .set_sound_status_flags(u8v(
                                     engine.state.sound_status_flags() | 0x08
                                 ));
-                            engine.device_write(0x400E, engine.state.sound_channel_byte(7, 0x30));
-                            engine.device_write(0x400F, 0x80);
+                            engine.device_write(
+                                crate::engine::reg::NOISE_LO,
+                                engine.state.sound_channel_byte(7, 0x30),
+                            );
+                            engine.device_write(crate::engine::reg::NOISE_HI, 0x80);
                             start_note_envelope(engine, r);
                         }
                         break;
@@ -10296,7 +10341,7 @@ mod tick_noise_channel {
                     }
                     if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x30)) == 0) {
                         next_envelope_volume(engine, r);
-                        engine.device_write(0x400C, r.value);
+                        engine.device_write(crate::engine::reg::NOISE_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
@@ -10838,10 +10883,18 @@ mod sfx_overlay_voice {
                             engine.state.set_sound_status_flags(u8v(
                                 0x02 | engine.state.sound_status_flags()
                             ));
-                            engine.device_write(0x4005, engine.state.sound_channel_byte(7, 0x40));
-                            engine.device_write(0x4006, engine.state.sound_command());
-                            engine
-                                .device_write(0x4007, (engine.state.sound_length() & 0x07) | 0xC0);
+                            engine.device_write(
+                                crate::engine::reg::SQ2_SWEEP,
+                                engine.state.sound_channel_byte(7, 0x40),
+                            );
+                            engine.device_write(
+                                crate::engine::reg::SQ2_LO,
+                                engine.state.sound_command(),
+                            );
+                            engine.device_write(
+                                crate::engine::reg::SQ2_HI,
+                                (engine.state.sound_length() & 0x07) | 0xC0,
+                            );
                             start_note_envelope(engine, r);
                         }
                         break;
@@ -10855,7 +10908,7 @@ mod sfx_overlay_voice {
                     }
                     if cbool(u8v(engine.state.dec_sound_channel_byte(10, 0x40)) == 0) {
                         next_envelope_volume(engine, r);
-                        engine.device_write(0x4004, r.value);
+                        engine.device_write(crate::engine::reg::SQ2_VOL, r.value);
                     }
                     advance_envelope_phase(engine, r);
                     if cbool(r.carry) {
@@ -10958,10 +11011,16 @@ mod song_init {
 mod sound_restore_game_banks {
     use super::*;
     pub fn sound_restore_game_banks(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x8000, 0x06);
-        engine.device_write(0x8001, engine.state.prg_bank_8000());
-        engine.device_write(0x8000, 0x07);
-        engine.device_write(0x8001, engine.state.prg_bank_a000());
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x06);
+        engine.device_write(
+            crate::engine::reg::MMC3_BANK_DATA,
+            engine.state.prg_bank_8000(),
+        );
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x07);
+        engine.device_write(
+            crate::engine::reg::MMC3_BANK_DATA,
+            engine.state.prg_bank_a000(),
+        );
     }
 }
 
@@ -10970,12 +11029,12 @@ mod sound_set_default_banks {
     pub fn sound_set_default_banks(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0x06;
         let mut y: i32 = 0x0A;
-        engine.device_write(0x8000, x);
-        engine.device_write(0x8001, y);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, x);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, y);
         x = u8v(x + 1);
         y = u8v(y + 1);
-        engine.device_write(0x8000, x);
-        engine.device_write(0x8001, y);
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, x);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, y);
         r.index = x;
         r.offset = y;
     }
@@ -10984,10 +11043,16 @@ mod sound_set_default_banks {
 mod sound_set_song_banks {
     use super::*;
     pub fn sound_set_song_banks(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x8000, 0x06);
-        engine.device_write(0x8001, engine.state.song_ptr_lo());
-        engine.device_write(0x8000, 0x07);
-        engine.device_write(0x8001, engine.state.song_ptr_hi());
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x06);
+        engine.device_write(
+            crate::engine::reg::MMC3_BANK_DATA,
+            engine.state.song_ptr_lo(),
+        );
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x07);
+        engine.device_write(
+            crate::engine::reg::MMC3_BANK_DATA,
+            engine.state.song_ptr_hi(),
+        );
     }
 }
 
@@ -11009,8 +11074,8 @@ mod sound_tick {
                 (0x4000),
                 (engine.state.sound_channel_byte(6, 0x00) & 0xC0) | 0x30,
             );
-            engine.device_write((0x4008), 0x00);
-            engine.device_write((0x400C), 0x30);
+            engine.device_write(crate::engine::reg::TRI_LINEAR, 0x00);
+            engine.device_write(crate::engine::reg::NOISE_VOL, 0x30);
             r.value = 0x30;
         } else {
             sound_set_song_banks(engine, r);
@@ -11034,38 +11099,47 @@ mod sound_tick {
 mod statusbar_split {
     use super::*;
     pub fn statusbar_split(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x2001, engine.state.ppu_mask_shadow());
+        engine.device_write(crate::engine::reg::PPU_MASK, engine.state.ppu_mask_shadow());
         engine.state.set_ppu_ctrl_shadow(u8v(
             (engine.state.ppu_ctrl_shadow() & 0xFE) | engine.state.nametable_select()
         ));
-        engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
-        engine.device_write(0x2005, engine.state.scroll_pixel_x());
-        engine.device_write(0x2005, engine.state.scroll_y());
+        engine.device_write(crate::engine::reg::PPU_CTRL, engine.state.ppu_ctrl_shadow());
+        engine.device_write(
+            crate::engine::reg::PPU_SCROLL,
+            engine.state.scroll_pixel_x(),
+        );
+        engine.device_write(crate::engine::reg::PPU_SCROLL, engine.state.scroll_y());
         if cbool(engine.state.statusbar_split_flag() != 0) {
-            let _ = engine.device_read(0x2002);
-            engine.device_write(0x2000, engine.state.ppu_ctrl_shadow() & 0xFE);
-            engine.device_write(0x2005, 0x00);
-            engine.device_write(0x2005, 0xC4);
-            engine.device_write(0x8000, 0x01);
-            engine.device_write(0x8001, 0x16);
-            engine.device_write(0x8000, 0x04);
-            engine.device_write(0x8001, 0x3E);
-            engine.device_write(0x8000, 0x05);
-            engine.device_write(0x8001, 0x3F);
+            let _ = engine.device_read(crate::engine::reg::PPU_STATUS);
+            engine.device_write(
+                crate::engine::reg::PPU_CTRL,
+                engine.state.ppu_ctrl_shadow() & 0xFE,
+            );
+            engine.device_write(crate::engine::reg::PPU_SCROLL, 0x00);
+            engine.device_write(crate::engine::reg::PPU_SCROLL, 0xC4);
+            engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x01);
+            engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x16);
+            engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x04);
+            engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x3E);
+            engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x05);
+            engine.device_write(crate::engine::reg::MMC3_BANK_DATA, 0x3F);
         }
         sound_tick(engine, r);
         if cbool(engine.state.statusbar_split_flag() == 0) {
             return;
         }
-        engine.device_write(0x8000, 0x01);
-        engine.device_write(0x2000, engine.state.ppu_ctrl_shadow());
-        engine.device_write(0x2005, engine.state.scroll_pixel_x());
-        engine.device_write(0x2005, engine.state.scroll_y());
-        engine.device_write(0x8001, engine.state.chr_bank(1));
-        engine.device_write(0x8000, 0x04);
-        engine.device_write(0x8001, engine.state.chr_bank(4));
-        engine.device_write(0x8000, 0x05);
-        engine.device_write(0x8001, engine.state.chr_bank(5));
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x01);
+        engine.device_write(crate::engine::reg::PPU_CTRL, engine.state.ppu_ctrl_shadow());
+        engine.device_write(
+            crate::engine::reg::PPU_SCROLL,
+            engine.state.scroll_pixel_x(),
+        );
+        engine.device_write(crate::engine::reg::PPU_SCROLL, engine.state.scroll_y());
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, engine.state.chr_bank(1));
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x04);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, engine.state.chr_bank(4));
+        engine.device_write(crate::engine::reg::MMC3_BANK_SELECT, 0x05);
+        engine.device_write(crate::engine::reg::MMC3_BANK_DATA, engine.state.chr_bank(5));
     }
 }
 
@@ -11217,11 +11291,11 @@ mod vblank_commit {
             engine.ppu.eval_sprite_overflow();
         }
         {
-            let __v = engine.device_read(0x2002);
+            let __v = engine.device_read(crate::engine::reg::PPU_STATUS);
             engine.state.set_frame_status(__v);
         }
-        engine.device_write(0x2003, 0x00);
-        engine.device_write(0x4014, 0x02);
+        engine.device_write(crate::engine::reg::OAM_ADDR, 0x00);
+        engine.device_write(crate::engine::reg::OAM_DMA, 0x02);
         let mut req: i32 = engine.state.nmi_vram_req();
         if cbool(req == 0) {
             vblank_commit_tail(engine, r);
@@ -11244,10 +11318,13 @@ mod vblank_commit {
             engine.state.set_saved_audio_handler_lo(jt_lo[req as usize]);
             engine.state.set_saved_audio_handler_hi(jt_hi[req as usize]);
         }
-        let _ = engine.device_read(0x2002);
-        engine.device_write(0x2006, engine.state.vram_addr_hi());
-        engine.device_write(0x2006, engine.state.vram_addr_lo());
-        engine.device_write(0x2000, u8v(engine.state.ppu_ctrl_shadow() & 0x04));
+        let _ = engine.device_read(crate::engine::reg::PPU_STATUS);
+        engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
+        engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_lo());
+        engine.device_write(
+            crate::engine::reg::PPU_CTRL,
+            u8v(engine.state.ppu_ctrl_shadow() & 0x04),
+        );
         match req {
             1 => {
                 vram_fill_run(engine, r);
@@ -11284,7 +11361,10 @@ mod vblank_commit_tail {
                 .set_frame_counter((engine.state.frame_counter() - 1) & 0xFF);
         }
         frame_counters(engine, r);
-        engine.device_write(0x8000, engine.state.mmc3_bank_select());
+        engine.device_write(
+            crate::engine::reg::MMC3_BANK_SELECT,
+            engine.state.mmc3_bank_select(),
+        );
     }
 }
 
@@ -11294,7 +11374,10 @@ mod vram_blit_stack {
         {
             let mut i: i32 = 0;
             while cbool(i < 0x40) {
-                engine.device_write(0x2007, engine.state.inventory_item(0xA0 + i));
+                engine.device_write(
+                    crate::engine::reg::PPU_DATA,
+                    engine.state.inventory_item(0xA0 + i),
+                );
                 {
                     let __old = i;
                     i += 1;
@@ -11313,7 +11396,10 @@ mod vram_copy_indirect {
         let mut src: i32 = u16v(engine.state.vram_addr2_lo() | (engine.state.vram_addr2_hi() << 8));
         let mut y: i32 = 0;
         loop {
-            engine.device_write(0x2007, engine.state.byte(u16v(src + y)));
+            engine.device_write(
+                crate::engine::reg::PPU_DATA,
+                engine.state.byte(u16v(src + y)),
+            );
             {
                 let __old = y;
                 y += 1;
@@ -11338,7 +11424,7 @@ mod vram_fill_run {
         let mut x: i32 = engine.state.inventory_upload_col();
         let mut a: i32 = engine.state.vram_addr2_lo();
         loop {
-            engine.device_write(0x2007, a);
+            engine.device_write(crate::engine::reg::PPU_DATA, a);
             if !cbool(
                 {
                     x -= 1;
@@ -11355,8 +11441,8 @@ mod vram_fill_run {
 mod vram_poke2 {
     use super::*;
     pub fn vram_poke2(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.device_write(0x2007, engine.state.vram_addr2_hi());
-        engine.device_write(0x2007, engine.state.vram_addr2_lo());
+        engine.device_write(crate::engine::reg::PPU_DATA, engine.state.vram_addr2_hi());
+        engine.device_write(crate::engine::reg::PPU_DATA, engine.state.vram_addr2_lo());
         vblank_commit_tail(engine, r);
     }
 }
@@ -11365,11 +11451,14 @@ mod vram_upload_hud {
     use super::*;
     pub fn vram_upload_hud(engine: &mut Engine, r: &mut RoutineContext) {
         let mut x: i32 = 0;
-        engine.device_write(0x2000, u8v(engine.state.ppu_ctrl_shadow() | 0x04));
+        engine.device_write(
+            crate::engine::reg::PPU_CTRL,
+            u8v(engine.state.ppu_ctrl_shadow() | 0x04),
+        );
         {
             x = 0x17;
             while cbool(x >= 0) {
-                engine.device_write(0x2007, engine.state.vram_stage(x));
+                engine.device_write(crate::engine::reg::PPU_DATA, engine.state.vram_stage(x));
                 {
                     let __old = x;
                     x -= 1;
@@ -11377,12 +11466,18 @@ mod vram_upload_hud {
                 };
             }
         }
-        engine.device_write(0x2006, engine.state.vram_addr_hi());
-        engine.device_write(0x2006, u8v(engine.state.vram_addr_lo() + 1));
+        engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr_hi());
+        engine.device_write(
+            crate::engine::reg::PPU_ADDR,
+            u8v(engine.state.vram_addr_lo() + 1),
+        );
         {
             x = 0x17;
             while cbool(x >= 0) {
-                engine.device_write(0x2007, engine.state.vram_stage(0x18 + x));
+                engine.device_write(
+                    crate::engine::reg::PPU_DATA,
+                    engine.state.vram_stage(0x18 + x),
+                );
                 {
                     let __old = x;
                     x -= 1;
@@ -11393,16 +11488,22 @@ mod vram_upload_hud {
         {
             x = 0x0A;
             while cbool(x >= 0) {
-                engine.device_write(0x2006, engine.state.vram_addr2_hi());
-                engine.device_write(0x2006, engine.state.vram_stage(0x30 + x));
-                let _ = engine.device_read(0x2007);
+                engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr2_hi());
+                engine.device_write(
+                    crate::engine::reg::PPU_ADDR,
+                    engine.state.vram_stage(0x30 + x),
+                );
+                let _ = engine.device_read(crate::engine::reg::PPU_DATA);
                 {
-                    let mut v: i32 = u8v((engine.device_read(0x2007)
+                    let mut v: i32 = u8v((engine.device_read(crate::engine::reg::PPU_DATA)
                         & engine.state.vram_addr2_lo())
                         | engine.state.vram_stage(0x31 + x));
-                    engine.device_write(0x2006, engine.state.vram_addr2_hi());
-                    engine.device_write(0x2006, engine.state.vram_stage(0x30 + x));
-                    engine.device_write(0x2007, v);
+                    engine.device_write(crate::engine::reg::PPU_ADDR, engine.state.vram_addr2_hi());
+                    engine.device_write(
+                        crate::engine::reg::PPU_ADDR,
+                        engine.state.vram_stage(0x30 + x),
+                    );
+                    engine.device_write(crate::engine::reg::PPU_DATA, v);
                 }
                 x -= 2;
             }
@@ -11415,12 +11516,12 @@ mod vram_upload_palette {
     use super::*;
     pub fn vram_upload_palette(engine: &mut Engine, r: &mut RoutineContext) {
         let mut y: i32 = 0;
-        engine.device_write(0x2006, 0x3F);
-        engine.device_write(0x2006, 0x00);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x3F);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
         {
             y = 0;
             while cbool(y < 0x20) {
-                engine.device_write(0x2007, engine.state.palette_buffer(y));
+                engine.device_write(crate::engine::reg::PPU_DATA, engine.state.palette_buffer(y));
                 {
                     let __old = y;
                     y += 1;
@@ -11428,10 +11529,10 @@ mod vram_upload_palette {
                 };
             }
         }
-        engine.device_write(0x2006, 0x3F);
-        engine.device_write(0x2006, 0x00);
-        engine.device_write(0x2006, 0x00);
-        engine.device_write(0x2006, 0x00);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x3F);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
+        engine.device_write(crate::engine::reg::PPU_ADDR, 0x00);
         vblank_commit_tail(engine, r);
     }
 }
