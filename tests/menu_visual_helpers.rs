@@ -1,4 +1,3 @@
-use lotw::u16v;
 use lotw::{Engine, RoutineContext, game};
 
 fn encoded_intro_tile(source_byte: i32) -> i32 {
@@ -11,9 +10,10 @@ fn title_oam_template_copies_full_sprite_block() {
     let mut r = RoutineContext::default();
 
     for offset in 0..=0x7F {
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_D + offset), 0x80 + offset);
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_D + offset) as u16 as i32,
+            0x80 + offset,
+        );
     }
 
     game::load_title_oam_template(&mut engine, &mut r);
@@ -29,9 +29,10 @@ fn demo_oam_template_copies_small_sprite_block() {
     let mut r = RoutineContext::default();
 
     for offset in 0..=0x1F {
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_E + offset), 0x40 + offset);
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_E + offset) as u16 as i32,
+            0x40 + offset,
+        );
     }
 
     game::load_demo_oam_template(&mut engine, &mut r);

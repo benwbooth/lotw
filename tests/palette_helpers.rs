@@ -1,4 +1,3 @@
-use lotw::u16v;
 use lotw::{Engine, RoutineContext, game};
 
 #[test]
@@ -31,9 +30,10 @@ fn reset_menu_state_copies_partial_ram_defaults_and_blacks_palette() {
 
     for addr in 0x40..0x8C {
         engine.state.set_byte(addr, 0xAA);
-        engine
-            .state
-            .set_byte(u16v(lotw::game::ZP_INIT_TABLE + addr), addr ^ 0x55);
+        engine.state.set_byte(
+            (lotw::game::ZP_INIT_TABLE + addr) as u16 as i32,
+            addr ^ 0x55,
+        );
     }
     for offset in 0..=0x1F {
         engine
@@ -57,7 +57,7 @@ fn load_title_palette_buffer_copies_rom_palette() {
 
     for offset in 0..=0x1F {
         engine.state.set_byte(
-            u16v(lotw::game::TITLE_PALETTE_TABLE + offset),
+            (lotw::game::TITLE_PALETTE_TABLE + offset) as u16 as i32,
             0x40 + offset,
         );
     }
@@ -79,13 +79,13 @@ fn room_palette_buffer_copies_room_bytes_and_family_override() {
     engine.state.set_character_index(0x02);
     for offset in 0xE0..=0xFF {
         engine.state.set_byte(
-            lotw::u16v(lotw::game::PALETTE_DATA_TABLE + offset),
+            (lotw::game::PALETTE_DATA_TABLE + offset) as u16 as i32,
             0x30 + (offset & 0x1F),
         );
     }
     for offset in 0x08..=0x0B {
         engine.state.set_byte(
-            u16v(lotw::game::FAMILY_PALETTE_TABLE + offset),
+            (lotw::game::FAMILY_PALETTE_TABLE + offset) as u16 as i32,
             0x60 + offset,
         );
     }

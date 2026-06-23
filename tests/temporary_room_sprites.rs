@@ -1,4 +1,3 @@
-use lotw::u16v;
 use lotw::{Engine, RoutineContext, game};
 
 #[test]
@@ -86,9 +85,10 @@ fn status_sprite_template_restores_oam_and_bank_shadows() {
     let mut r = RoutineContext::default();
 
     for offset in 0..=0x37 {
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_G + offset), 0x80 + offset);
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_G + offset) as u16 as i32,
+            0x80 + offset,
+        );
     }
 
     game::restore_status_sprite_template(&mut engine, &mut r);

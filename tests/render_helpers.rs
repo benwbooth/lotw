@@ -1,4 +1,3 @@
-use lotw::u16v;
 use lotw::{Engine, RoutineContext, game};
 
 #[test]
@@ -159,9 +158,10 @@ fn clear_oam_preserves_sprite_zero_template_and_hides_the_rest() {
     let mut r = RoutineContext::default();
 
     for offset in 0..=3 {
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_F + offset), 0x80 + offset);
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_F + offset) as u16 as i32,
+            0x80 + offset,
+        );
     }
     engine.state.set_oam_y(0x04, 0x11);
     engine.state.set_oam_x(0xFC, 0x22);

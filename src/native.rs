@@ -130,7 +130,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             if r.index == 0 {
                 continue;
             }
-            r.index = u8v(r.index - 1);
+            r.index = ((r.index - 1) as u8 as i32);
             crate::game::main_init(engine, r);
             return;
         }
@@ -185,7 +185,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_sprite_blink_timer(0x00);
             crate::game::draw_player_sprites(engine, r);
             farcall_0c0d(engine, r, 0x07, 0xb3, run_player_death_or_continue_flow);
-            r.index = u8v(r.index - 1);
+            r.index = ((r.index - 1) as u8 as i32);
             crate::game::main_init(engine, r);
             return;
         }
@@ -261,7 +261,7 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         if x == 0xc2 {
             break;
         }
-        x = u8v(x - 1);
+        x = ((x - 1) as u8 as i32);
         engine.state.set_scroll_y(x);
         engine.state.set_nametable_select((x & 0x08) >> 3);
         r.value = 0xff;
@@ -403,14 +403,14 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_scratch0(0x01);
     loop {
         let prev = engine.state.player_y();
-        let ny = u8v(prev - engine.state.scratch0());
+        let ny = ((prev - engine.state.scratch0()) as u8 as i32);
         engine.state.set_player_y(ny);
         let c = if prev >= engine.state.scratch0() {
             1
         } else {
             0
         };
-        let t = u8v(ny + 0x2b + c);
+        let t = ((ny + 0x2b + c) as u8 as i32);
         if t >= 0xef {
             break;
         }
@@ -456,9 +456,9 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     crate::game::sync_final_exit_body_slots_from_player(engine, r);
     let mut v = 0x2d;
     engine.state.set_object_tile(0x10, v);
-    v = u8v(v + 0x20);
+    v = ((v + 0x20) as u8 as i32);
     engine.state.set_object_tile(0x20, v);
-    v = u8v(v + 0x20);
+    v = ((v + 0x20) as u8 as i32);
     engine.state.set_object_tile(0x30, v);
     engine.state.set_object_tile(0x40, 0x81);
     engine.state.set_object_attr(0x10, 0x40);
@@ -589,15 +589,18 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.state.sprite0_hit() {
         let t = (engine.state.sprite_index() + 2) & 0x06;
         if t != 0 {
-            let x = u8v(t << 3);
+            let x = ((t << 3) as u8 as i32);
             if engine.state.object_state(x) != 0 {
                 engine.state.set_object_state(x, 0x00);
-                let sum = u8v(engine.state.scroll_pixel_x() + engine.state.object_x_sub(x));
+                let sum =
+                    ((engine.state.scroll_pixel_x() + engine.state.object_x_sub(x)) as u8 as i32);
                 if sum >= 0xb0 && sum < 0xd0 {
                     let bl = engine.state.obj_health();
-                    engine
-                        .state
-                        .set_obj_health(if bl < 0x02 { 0x00 } else { u8v(bl - 0x02) });
+                    engine.state.set_obj_health(if bl < 0x02 {
+                        0x00
+                    } else {
+                        ((bl - 0x02) as u8 as i32)
+                    });
                     crate::game::build_object_health_meter_standard_tiles(engine, r);
                     engine.state.set_prompt_state(0x20);
                     engine.state.set_prompt_argument(0x01);
@@ -635,7 +638,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         let v = if engine.state.scroll_pixel_x() < 0x04 {
                             0x00
                         } else {
-                            u8v(engine.state.scroll_pixel_x() - 0x04)
+                            ((engine.state.scroll_pixel_x() - 0x04) as u8 as i32)
                         };
                         engine.state.set_scroll_pixel_x(v);
                         if v >= 0x11 {
@@ -691,7 +694,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 if engine.state.scheduler_phase() == 0 {
                     engine.state.set_obj_timer(0x00);
                 } else {
-                    let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
+                    let a = ((((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0) as u8 as i32);
                     engine.state.set_tile_table_ptr_hi(a);
                     engine
                         .state
@@ -704,7 +707,8 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             _ => {
-                let sum = u8v(engine.state.scroll_pixel_x() + engine.state.player_x_fine());
+                let sum =
+                    ((engine.state.scroll_pixel_x() + engine.state.player_x_fine()) as u8 as i32);
                 let carry = sum < engine.state.scroll_pixel_x();
                 let close = carry || sum >= 0xc0 || engine.state.scroll_pixel_x() >= 0x40;
                 let delayed_grow = sum < 0x80 || sum >= 0xa0;
@@ -720,7 +724,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                             let v = if engine.state.scroll_pixel_x() < 0x04 {
                                 0x00
                             } else {
-                                u8v(engine.state.scroll_pixel_x() - 0x04)
+                                ((engine.state.scroll_pixel_x() - 0x04) as u8 as i32)
                             };
                             engine.state.set_scroll_pixel_x(v);
                             if v >= 0x11 {
@@ -765,7 +769,8 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     if engine.state.scheduler_phase() == 0 {
                         engine.state.set_obj_timer(0x00);
                     } else {
-                        let a = u8v(((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0);
+                        let a =
+                            ((((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0) as u8 as i32);
                         engine.state.set_tile_table_ptr_hi(a);
                         engine
                             .state
@@ -798,7 +803,7 @@ pub fn fade_partial_palette_buffer_out(engine: &mut Engine, r: &mut RoutineConte
             let out = if hi < 0x10 {
                 0x0f
             } else {
-                u8v((hi - 0x10) | lo)
+                (((hi - 0x10) | lo) as u8 as i32)
             };
             engine.state.set_palette_buffer(x, out);
         }
@@ -926,7 +931,7 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_frame_counter(0x02);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        cnt = u8v(cnt - 1);
+        cnt = ((cnt - 1) as u8 as i32);
         if cnt == 0 {
             break;
         }
@@ -988,7 +993,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 if hi < 0x10 {
                     hi = 0x30;
                 } else {
-                    hi = u8v(hi - 0x10);
+                    hi = ((hi - 0x10) as u8 as i32);
                 }
                 engine.state.set_palette_buffer(0x13, hi);
                 engine
@@ -1025,11 +1030,11 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_player_x_fine(0x00);
             r.value = 0x0b;
             crate::game::rng_update(engine, r);
-            r.value = u8v(r.value << 4);
+            r.value = ((r.value << 4) as u8 as i32);
             engine.state.set_player_y(r.value);
             engine.state.set_data_ptr_hi(r.value);
             crate::game::resolve_room_tile_pointer(engine, r);
-            let p = u16v(engine.state.data_ptr());
+            let p = ((engine.state.data_ptr()) as u16 as i32);
             let mut t = engine.state.byte(p) & 0x3f;
             if t >= 0x30 {
                 continue;
@@ -1040,7 +1045,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             if t == engine.state.text_attr_ptr_lo() {
                 continue;
             }
-            t = engine.state.byte(u16v(p + 1)) & 0x3f;
+            t = engine.state.byte(((p + 1) as u16 as i32)) & 0x3f;
             if t < 0x30 {
                 continue;
             }
@@ -1054,7 +1059,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         if x < 0x08 {
             x = 0x00;
         } else {
-            x = u8v(x - 0x08);
+            x = ((x - 0x08) as u8 as i32);
         }
         if x >= 0x30 {
             x = 0x30;
@@ -1070,7 +1075,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             let mut c = 1;
             for _ in 0..=chr {
                 let nc = (a >> 7) & 1;
-                a = u8v((a << 1) | c);
+                a = (((a << 1) | c) as u8 as i32);
                 c = nc;
             }
             let mask = a;
@@ -1078,15 +1083,16 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 break chr;
             }
         };
-        engine
-            .state
-            .set_item_slot(0, engine.state.byte(u16v(START_ITEM_TABLE + chr)));
+        engine.state.set_item_slot(
+            0,
+            engine.state.byte(((START_ITEM_TABLE + chr) as u16 as i32)),
+        );
         engine.state.set_selected_item_slot(0x00);
         engine.state.set_character_index(chr);
-        let mut y = u16v(0xffa7 + ((chr << 2) + 0x03));
+        let mut y = ((0xffa7 + ((chr << 2) + 0x03)) as u16 as i32);
         for i in (0..=3).rev() {
             engine.state.set_item_slot(0x0B + i, engine.state.byte(y));
-            y = u16v(y - 1);
+            y = ((y - 1) as u16 as i32);
         }
         engine
             .state
@@ -1438,7 +1444,7 @@ pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_palette_buffer(
                 x,
                 if hi >= 0x10 {
-                    u8v((hi - 0x10) | lo)
+                    (((hi - 0x10) | lo) as u8 as i32)
                 } else {
                     0x0f
                 },
@@ -1455,7 +1461,7 @@ pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades in the first room palette row from the active room data pointer.
 pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
-    let ptr = u16v(engine.state.palette_src_ptr());
+    let ptr = ((engine.state.palette_src_ptr()) as u16 as i32);
     let mut v = 0x40;
     engine.state.set_scratch1(v);
     loop {
@@ -1463,14 +1469,14 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
         for y in 0xe0..0xe4 {
             engine
                 .state
-                .set_inventory_item(0x40 + y, engine.state.byte(u16v(ptr + y)));
+                .set_inventory_item(0x40 + y, engine.state.byte(((ptr + y) as u16 as i32)));
         }
         r.index = 0x00;
         r.offset = 0x04;
         crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        v = u8v(engine.state.scratch1() - 0x10);
+        v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
         if (v & 0x80) != 0 {
             break;
@@ -1481,7 +1487,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades in the first two room palette rows from the active room data pointer.
 pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext) {
-    let ptr = u16v(engine.state.palette_src_ptr());
+    let ptr = ((engine.state.palette_src_ptr()) as u16 as i32);
     let mut v = 0x40;
     engine.state.set_scratch1(v);
     loop {
@@ -1489,12 +1495,12 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
         for y in 0xe0..0xe4 {
             engine
                 .state
-                .set_inventory_item(0x40 + y, engine.state.byte(u16v(ptr + y)));
+                .set_inventory_item(0x40 + y, engine.state.byte(((ptr + y) as u16 as i32)));
         }
         for y in 0xf0..0xf4 {
             engine
                 .state
-                .set_inventory_item(0x40 + y, engine.state.byte(u16v(ptr + y)));
+                .set_inventory_item(0x40 + y, engine.state.byte(((ptr + y) as u16 as i32)));
         }
         r.index = 0x00;
         r.offset = 0x04;
@@ -1504,7 +1510,7 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
         crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        v = u8v(engine.state.scratch1() - 0x10);
+        v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
         if (v & 0x80) != 0 {
             break;
@@ -1549,7 +1555,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
     let mut y = 0x09;
     let mut x = 0x90;
     loop {
-        let mut skip = u8v(y) == engine.state.slot_index();
+        let mut skip = ((y) as u8 as i32) == engine.state.slot_index();
         if !skip && (engine.state.object_state(x) & 0x80) != 0 {
             skip = true;
         }
@@ -1563,12 +1569,12 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
             skip = true;
         }
         if !skip {
-            let mut d = u8v(engine.state.scratch2() - engine.state.object_y_pixel(x));
+            let mut d = ((engine.state.scratch2() - engine.state.object_y_pixel(x)) as u8 as i32);
             if !(d < 0x10) && d < 0xf1 {
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x));
+                d = ((engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x)) as u8 as i32);
                 if d == 0 {
                     engine.state.set_scratch0(y);
                     engine.state.set_scratch1(x);
@@ -1576,7 +1582,8 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
+                    d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
+                        as i32);
                     if (d & 0x80) != 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
@@ -1587,7 +1594,8 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
+                    d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
+                        as i32);
                     if d != 0 && (d & 0x80) == 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
@@ -1599,7 +1607,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
             }
         }
         let _ = skip;
-        x = u8v(x - 0x10);
+        x = ((x - 0x10) as u8 as i32);
         y -= 1;
         if y < 0 {
             break;
@@ -1614,7 +1622,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let mut y = 0x0a;
     let mut x = 0xa0;
     loop {
-        let mut skip = u8v(y) == engine.state.slot_index();
+        let mut skip = ((y) as u8 as i32) == engine.state.slot_index();
         if !skip && engine.state.object_state(x) == 0 {
             skip = true;
         }
@@ -1628,12 +1636,12 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
             skip = true;
         }
         if !skip {
-            let mut d = u8v(engine.state.scratch2() - engine.state.object_y_pixel(x));
+            let mut d = ((engine.state.scratch2() - engine.state.object_y_pixel(x)) as u8 as i32);
             if !(d < 0x10) && d < 0xf1 {
                 skip = true;
             }
             if !skip {
-                d = u8v(engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x));
+                d = ((engine.state.indirect_ptr_hi() - engine.state.object_x_tile(x)) as u8 as i32);
                 if d == 0 {
                     engine.state.set_scratch0(y);
                     engine.state.set_scratch1(x);
@@ -1641,7 +1649,8 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                     return;
                 }
                 if d < 0x02 {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
+                    d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
+                        as i32);
                     if (d & 0x80) != 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
@@ -1652,7 +1661,8 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 } else if d < 0xff {
                     skip = true;
                 } else {
-                    d = u8v(engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x));
+                    d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
+                        as i32);
                     if d != 0 && (d & 0x80) == 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
@@ -1664,7 +1674,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
             }
         }
         let _ = skip;
-        x = u8v(x - 0x10);
+        x = ((x - 0x10) as u8 as i32);
         y -= 1;
         if y < 0 {
             break;
@@ -1697,8 +1707,8 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     if engine.state.player_x_fine() == 0 {
         engine.state.set_pose_state(0x01);
         r.offset = 0x00;
-        let tile_ptr = u16v(engine.state.data_ptr());
-        if (engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
+        let tile_ptr = ((engine.state.data_ptr()) as u16 as i32);
+        if (engine.state.byte(((tile_ptr + r.offset) as u16 as i32)) & 0x3f) == 0 {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
     }
@@ -1752,11 +1762,11 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
 fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut RoutineContext) {
     let mut fall_frames = engine.state.fall_frames();
     if fall_frames >= engine.state.jump_strength() {
-        fall_frames = u8v(fall_frames - 0x07);
+        fall_frames = ((fall_frames - 0x07) as u8 as i32);
         if fall_frames >= engine.state.jump_strength() {
             fall_frames = engine.state.jump_strength();
         }
-        fall_frames = u8v(fall_frames - 0x01);
+        fall_frames = ((fall_frames - 0x01) as u8 as i32);
         engine.state.set_jump_timer(fall_frames);
         engine.state.set_landing_timer(fall_frames + 0x0a);
         engine.state.set_prompt_state(0x0a);
@@ -1777,9 +1787,9 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
 /// Special tiles can spend keys/magic, spawn transient objects, or launch the
 /// tile-removal projectile; ordinary tiles return carry for solid terrain.
 pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
-    let tile_ptr = u16v(engine.state.data_ptr());
+    let tile_ptr = ((engine.state.data_ptr()) as u16 as i32);
     let tile_offset = r.offset;
-    let tile = engine.state.byte(u16v(tile_ptr + tile_offset)) & 0x3f;
+    let tile = engine.state.byte(((tile_ptr + tile_offset) as u16 as i32)) & 0x3f;
     if tile == engine.state.text_attr_ptr_lo() {
         if engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
@@ -1796,7 +1806,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         }
         let v = engine.state.text_attr_ptr_hi() & 0x3f;
         r.value = v;
-        r.carry = u8v(v >= 0x30);
+        r.carry = ((v >= 0x30) as u8 as i32);
         return;
     }
     if tile == 0x02 {
@@ -1845,20 +1855,26 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     let mut t = engine.state.player_y() & 0x0f;
                     t |= engine.state.player_x_fine();
                     if t == 0 {
-                        let x2 = u8v((engine.state.direction_latch() & 0x0f) << 1);
-                        let lo = u8v(engine.state.player_x_tile()
-                            + engine.state.byte(u16v(SPAWN_OFFSET_X_TABLE + x2)));
+                        let x2 = (((engine.state.direction_latch() & 0x0f) << 1) as u8 as i32);
+                        let lo = ((engine.state.player_x_tile()
+                            + engine
+                                .state
+                                .byte(((SPAWN_OFFSET_X_TABLE + x2) as u16 as i32)))
+                            as u8 as i32);
                         engine.state.set_object_x_tile(0x90, lo);
                         engine.state.set_data_ptr_lo(lo);
                         engine.state.set_object_x_sub(0x90, 0x00);
-                        let hi = u8v(engine.state.player_y()
-                            + engine.state.byte(u16v(SPAWN_OFFSET_Y_TABLE + x2)));
+                        let hi = ((engine.state.player_y()
+                            + engine
+                                .state
+                                .byte(((SPAWN_OFFSET_Y_TABLE + x2) as u16 as i32)))
+                            as u8 as i32);
                         engine.state.set_object_y_pixel(0x90, hi);
                         engine.state.set_data_ptr_hi(hi);
                         crate::game::resolve_room_tile_pointer(engine, r);
                         r.offset = 0x00;
                         engine.state.set_scratch3(0x00);
-                        let p = u16v(engine.state.data_ptr());
+                        let p = ((engine.state.data_ptr()) as u16 as i32);
                         let b = engine.state.byte(p) & 0x3f;
                         if b == 0x3e {
                             engine.state.set_object_tile(0x90, 0xe1);
@@ -1880,18 +1896,20 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     r.offset = 0x01;
                     crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
-                    let p79 = u16v(engine.state.tile_table_ptr());
+                    let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
                     engine
                         .state
-                        .set_obj_tile(engine.state.byte(u16v(p79 + 0xf8)) & 0xfe);
+                        .set_obj_tile(engine.state.byte(((p79 + 0xf8) as u16 as i32)) & 0xfe);
                     engine.state.set_obj_state(0x01);
                     engine.state.set_obj_attr(0x03);
                     r.offset = engine.state.scratch3();
-                    let b = engine.state.byte(u16v(tile_ptr + r.offset));
+                    let b = engine.state.byte(((tile_ptr + r.offset) as u16 as i32));
                     engine.state.set_obj_move_scratch(b);
                     engine.state.set_obj_timer(0x10);
                     crate::game::read_room_tile_action_value(engine, r);
-                    engine.state.set_byte(u16v(tile_ptr + r.offset), r.value);
+                    engine
+                        .state
+                        .set_byte(((tile_ptr + r.offset) as u16 as i32), r.value);
                     crate::game::seed_object_position_from_tile_offset(engine, r);
                     crate::game::redraw_room_tile_column(engine, r);
                     crate::game::update_tile_projectile_motion(engine, r);
@@ -1911,18 +1929,20 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         r.offset = 0x08;
                         crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;
-                        let p79 = u16v(engine.state.tile_table_ptr());
+                        let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
                         engine
                             .state
-                            .set_obj_tile(engine.state.byte(u16v(p79 + 0xf8)) & 0xfe);
+                            .set_obj_tile(engine.state.byte(((p79 + 0xf8) as u16 as i32)) & 0xfe);
                         engine.state.set_obj_state(0x01);
                         engine.state.set_obj_attr(0x03);
                         r.offset = engine.state.scratch3();
-                        let b = engine.state.byte(u16v(tile_ptr + r.offset));
+                        let b = engine.state.byte(((tile_ptr + r.offset) as u16 as i32));
                         engine.state.set_obj_move_scratch(b);
                         engine.state.set_obj_timer(0x00);
                         crate::game::read_room_tile_action_value(engine, r);
-                        engine.state.set_byte(u16v(tile_ptr + r.offset), r.value);
+                        engine
+                            .state
+                            .set_byte(((tile_ptr + r.offset) as u16 as i32), r.value);
                         crate::game::seed_object_position_from_tile_offset(engine, r);
                         crate::game::redraw_room_tile_column(engine, r);
                         crate::game::update_tile_projectile_motion(engine, r);
@@ -1948,7 +1968,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         r.carry = 1;
         return;
     }
-    r.carry = u8v(tile >= 0x30);
+    r.carry = ((tile >= 0x30) as u8 as i32);
 }
 
 /// Fades the room palette out and resets active audio channel state.
@@ -1967,7 +1987,7 @@ pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineCon
             engine.state.set_vram_stage(
                 0x44 + x,
                 if hi >= 0x10 {
-                    u8v((hi - 0x10) | lo)
+                    (((hi - 0x10) | lo) as u8 as i32)
                 } else {
                     0x0f
                 },
@@ -2016,7 +2036,7 @@ pub fn fade_room_palette_out_keep_audio(engine: &mut Engine, r: &mut RoutineCont
             engine.state.set_vram_stage(
                 0x44 + x,
                 if hi >= 0x10 {
-                    u8v((hi - 0x10) | lo)
+                    (((hi - 0x10) | lo) as u8 as i32)
                 } else {
                     0x0f
                 },
@@ -2043,7 +2063,7 @@ pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::dim_palette_range_by_step(engine, r);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        v = u8v(engine.state.scratch1() - 0x10);
+        v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
         if (v & 0x80) != 0 {
             break;
@@ -2069,7 +2089,7 @@ pub fn flash_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_frame_counter(0x02);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        x = u8v(x - 1);
+        x = ((x - 1) as u8 as i32);
         if x == 0 {
             break;
         }
@@ -2139,8 +2159,8 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
 
-    let ptr = u16v(engine.state.palette_src_ptr());
-    let door = engine.state.byte(u16v(ptr + 0x0a));
+    let ptr = ((engine.state.palette_src_ptr()) as u16 as i32);
+    let door = engine.state.byte(((ptr + 0x0a) as u16 as i32));
     if door < 0x08 {
         engine.state.set_object_attr(0xA0, 0x00);
     }
@@ -2359,7 +2379,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 engine.state.set_frame_counter(0x0a);
                 frame::commit_frame_work(engine, r);
                 frame::wait_for_frame_counter(engine, r);
-                x = u8v(x - 1);
+                x = ((x - 1) as u8 as i32);
                 if x == 0 {
                     break;
                 }
@@ -2422,7 +2442,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         if hi == 0x50 {
             if (engine.state.indirect_ptr_hi() & 0x0f) == 0x05 && engine.state.continue_timer() != 0
             {
-                let mut x = u8v(engine.state.song() + 1);
+                let mut x = ((engine.state.song() + 1) as u8 as i32);
                 if x >= 0x10 {
                     x = 0x00;
                 }
@@ -2473,13 +2493,15 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         };
 
         engine.state.set_character_index(x);
-        r.offset = u8v((x << 2) + 0x03);
+        r.offset = (((x << 2) + 0x03) as u8 as i32);
         for xi in (0..=3).rev() {
             engine.state.set_item_slot(
                 0x0B + xi,
-                engine.state.byte(u16v(CHARACTER_STATS_TABLE + r.offset)),
+                engine
+                    .state
+                    .byte(((CHARACTER_STATS_TABLE + r.offset) as u16 as i32)),
             );
-            r.offset = u8v(r.offset - 1);
+            r.offset = ((r.offset - 1) as u8 as i32);
         }
         engine.state.set_prompt_state(0x18);
         engine.state.set_prompt_argument(0xff);
@@ -2689,7 +2711,7 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
             engine.state.set_obj_move_scratch(0x01);
             return;
         }
-        let a = u8v(((engine.state.obj_cooldown() >> 2) ^ 0xff) + 1);
+        let a = ((((engine.state.obj_cooldown() >> 2) ^ 0xff) + 1) as u8 as i32);
         engine.state.set_obj_y_vel(a);
         crate::game::project_actor_position(engine, r);
         crate::game::check_position_out_of_bounds(engine, r);
@@ -2839,7 +2861,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         } else {
             x = if py < 0x38 { 0x00 } else { 0x08 };
             engine.state.set_scratch0(x);
-            x = u8v((engine.state.player_x_tile() >> 1) | engine.state.scratch0());
+            x = (((engine.state.player_x_tile() >> 1) | engine.state.scratch0()) as u8 as i32);
             if engine.state.inventory_item(x) != 0 {
                 r.value = x;
                 crate::game::load_family_item_permission_bits(engine, r);
@@ -2928,9 +2950,11 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         engine.state.set_obj_x_vel_hi(0x00);
         engine.state.set_obj_move_scratch(0x00);
         engine.state.set_obj_y_extra(engine.state.obj_y_pixel());
-        let ptr =
-            u16v(engine.state.actor_record_ptr_lo() | (engine.state.actor_record_ptr_hi() << 8));
-        engine.state.set_obj_tile(engine.state.byte(u16v(ptr + 6)));
+        let ptr = ((engine.state.actor_record_ptr_lo() | (engine.state.actor_record_ptr_hi() << 8))
+            as u16 as i32);
+        engine
+            .state
+            .set_obj_tile(engine.state.byte(((ptr + 6) as u16 as i32)));
         engine.state.set_obj_attr(engine.state.obj_attr() & 0x03);
     }
     if engine.state.obj_move_scratch() == 0 {

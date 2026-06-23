@@ -1,4 +1,3 @@
-use lotw::u16v;
 use lotw::{Engine, RoutineContext, game};
 
 #[test]
@@ -153,15 +152,18 @@ fn final_exit_oam_templates_copy_expected_ranges() {
     let mut r = RoutineContext::default();
 
     for offset in 0..=0x3F {
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_A + offset), 0x10 + offset);
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_B + offset), 0x50 + offset);
-        engine
-            .state
-            .set_byte(u16v(lotw::game::SPRITE_Y_TABLE_C + offset), 0x90 + offset);
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_A + offset) as u16 as i32,
+            0x10 + offset,
+        );
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_B + offset) as u16 as i32,
+            0x50 + offset,
+        );
+        engine.state.set_byte(
+            (lotw::game::SPRITE_Y_TABLE_C + offset) as u16 as i32,
+            0x90 + offset,
+        );
     }
 
     game::load_final_exit_object_oam_template(&mut engine, &mut r);
