@@ -67,7 +67,7 @@ fn vram_blit(
 
 fn item_spawn_setup(engine: &mut Engine, r: &mut RoutineContext, x: i32) {
     engine.state.set_obj_state(x + 2);
-    engine.state.set_obj_tile((x << 2) | 0x81);
+    engine.state.set_obj_tile((x << 2) | crate::bits::BITS_0_7);
     engine.state.set_obj_attr(0x01);
     engine.state.set_obj_y_pixel(engine.state.obj_y_extra());
     engine.state.set_obj_timer(0xf0);
@@ -90,7 +90,7 @@ pub fn wait_for_start_button_prompt(engine: &mut Engine, r: &mut RoutineContext)
     engine.state.set_prompt_state(0x03);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() + 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() + 1) & crate::bits::BYTE_MASK);
     loop {
         let buttons = frame::read_buttons(engine, r);
         if buttons == 0 {
@@ -100,7 +100,7 @@ pub fn wait_for_start_button_prompt(engine: &mut Engine, r: &mut RoutineContext)
     }
     loop {
         let buttons = frame::read_buttons(engine, r);
-        if (buttons & 0x10) != 0 {
+        if (buttons & crate::bits::BIT4) != 0 {
             break;
         }
         frame::wait_frame(engine, r);
@@ -115,7 +115,7 @@ pub fn wait_for_start_button_prompt(engine: &mut Engine, r: &mut RoutineContext)
     engine.state.set_prompt_state(0x04);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() - 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() - 1) & crate::bits::BYTE_MASK);
 }
 
 pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
@@ -180,7 +180,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
                 .set_player_x_tile(engine.state.player_x_fine() >> 4);
             engine
                 .state
-                .set_player_x_fine(engine.state.player_x_fine() & 0x0f);
+                .set_player_x_fine(engine.state.player_x_fine() & crate::bits::LOW_NIBBLE);
             engine.state.set_oam_y(0x00, 0xef);
             engine.state.set_sprite_blink_timer(0x00);
             crate::game::draw_player_sprites(engine, r);
@@ -201,7 +201,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         if ((r.carry) == 0) && engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
             engine
                 .state
-                .set_main_loop_phase((engine.state.main_loop_phase() + 1) & 0xFF);
+                .set_main_loop_phase((engine.state.main_loop_phase() + 1) & crate::bits::BYTE_MASK);
         }
 
         frame::commit_frame_work(engine, r);
@@ -263,7 +263,9 @@ pub fn setup_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
         }
         x = ((x - 1) as u8 as i32);
         engine.state.set_scroll_y(x);
-        engine.state.set_nametable_select((x & 0x08) >> 3);
+        engine
+            .state
+            .set_nametable_select((x & crate::bits::BIT3) >> 3);
         r.value = 0xff;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -313,7 +315,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     while engine.state.player_y() < 0xa0 {
         engine
             .state
-            .set_player_y((engine.state.player_y() + 1) & 0xFF);
+            .set_player_y((engine.state.player_y() + 1) & crate::bits::BYTE_MASK);
         crate::game::draw_scripted_player_sprites(engine, r);
         engine.state.set_frame_counter(0x01);
         frame::wait_for_frame_counter(engine, r);
@@ -360,10 +362,10 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 
     engine.state.set_tile_fetch_counter(0x00);
     loop {
-        if (engine.state.frame_prescaler() & 0x07) == 0 {
+        if (engine.state.frame_prescaler() & crate::bits::LOW_3_BITS) == 0 {
             engine
                 .state
-                .set_nametable_select(engine.state.nametable_select() ^ 0x01);
+                .set_nametable_select(engine.state.nametable_select() ^ crate::bits::BIT0);
             engine.state.set_prompt_state(0x20);
             engine.state.set_prompt_argument(0x80);
         }
@@ -382,9 +384,9 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 
         crate::game::draw_scripted_player_sprites(engine, r);
         crate::game::rotate_sprite_zero_from_scripted_oam(engine, r);
-        engine
-            .state
-            .set_tile_fetch_counter((engine.state.tile_fetch_counter() - 1) & 0xFF);
+        engine.state.set_tile_fetch_counter(
+            (engine.state.tile_fetch_counter() - 1) & crate::bits::BYTE_MASK,
+        );
         if engine.state.tile_fetch_counter() == 0 {
             break;
         }
@@ -417,7 +419,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::draw_scripted_player_sprites(engine, r);
         engine
             .state
-            .set_scratch0((engine.state.scratch0() + 1) & 0xFF);
+            .set_scratch0((engine.state.scratch0() + 1) & crate::bits::BYTE_MASK);
         r.value = 0xff;
         queue_ppu_job_and_wait(engine, r);
     }
@@ -489,7 +491,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
         engine
             .state
-            .set_player_y((engine.state.player_y() - 1) & 0xFF);
+            .set_player_y((engine.state.player_y() - 1) & crate::bits::BYTE_MASK);
         draw_scene_and_wait_one_frame(engine, r);
         draw_scene_and_wait_one_frame(engine, r);
         if engine.state.player_y() == 0xa0 {
@@ -497,10 +499,10 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
         engine
             .state
-            .set_player_y((engine.state.player_y() - 1) & 0xFF);
+            .set_player_y((engine.state.player_y() - 1) & crate::bits::BYTE_MASK);
         engine
             .state
-            .set_player_facing(engine.state.player_facing() ^ 0x40);
+            .set_player_facing(engine.state.player_facing() ^ crate::bits::BIT6);
         crate::game::draw_player_sprites(engine, r);
         draw_scene_and_wait_one_frame(engine, r);
         draw_scene_and_wait_one_frame(engine, r);
@@ -535,7 +537,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         if engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
             engine
                 .state
-                .set_main_loop_phase((engine.state.main_loop_phase() + 1) & 0xFF);
+                .set_main_loop_phase((engine.state.main_loop_phase() + 1) & crate::bits::BYTE_MASK);
         }
 
         frame::commit_frame_work(engine, r);
@@ -554,19 +556,19 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     while engine.state.countdown_timer_active() {
         engine
             .state
-            .set_player_pose(engine.state.player_pose() ^ 0x04);
+            .set_player_pose(engine.state.player_pose() ^ crate::bits::BIT2);
         engine
             .state
-            .set_object_tile(0x10, engine.state.object_tile(0x10) ^ 0x04);
+            .set_object_tile(0x10, engine.state.object_tile(0x10) ^ crate::bits::BIT2);
         engine
             .state
-            .set_object_tile(0x20, engine.state.object_tile(0x20) ^ 0x04);
+            .set_object_tile(0x20, engine.state.object_tile(0x20) ^ crate::bits::BIT2);
         engine
             .state
-            .set_object_tile(0x30, engine.state.object_tile(0x30) ^ 0x04);
+            .set_object_tile(0x30, engine.state.object_tile(0x30) ^ crate::bits::BIT2);
         engine
             .state
-            .set_object_tile(0x40, engine.state.object_tile(0x40) ^ 0x04);
+            .set_object_tile(0x40, engine.state.object_tile(0x40) ^ crate::bits::BIT2);
         for _ in 0..8 {
             draw_scene_and_wait_one_frame(engine, r);
         }
@@ -587,7 +589,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     if engine.state.sprite0_hit() {
-        let t = (engine.state.sprite_index() + 2) & 0x06;
+        let t = (engine.state.sprite_index() + 2) & crate::bits::BITS_1_2;
         if t != 0 {
             let x = ((t << 3) as u8 as i32);
             if engine.state.object_state(x) != 0 {
@@ -614,9 +616,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.state.obj_x_tile() == 0 {
         match engine.state.obj_timer() {
             4 => {
-                engine
-                    .state
-                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                engine.state.set_scheduler_phase(
+                    (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                );
                 if engine.state.scheduler_phase() != 0 {
                     if engine.state.scheduler_phase() == 0x04 {
                         engine.state.set_prompt_state(0x20);
@@ -629,9 +631,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             3 => {
-                engine
-                    .state
-                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                engine.state.set_scheduler_phase(
+                    (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                );
                 if engine.state.scheduler_phase() != 0 {
                     engine.state.set_tile_table_ptr_hi(0xb2);
                     if engine.state.scroll_pixel_x() != 0 {
@@ -643,23 +645,23 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.state.set_scroll_pixel_x(v);
                         if v >= 0x11 {
                             if engine.state.scroll_y() < 0xd2 {
-                                engine
-                                    .state
-                                    .set_scroll_y((engine.state.scroll_y() + 0x04) & 0xFF);
+                                engine.state.set_scroll_y(
+                                    (engine.state.scroll_y() + 0x04) & crate::bits::BYTE_MASK,
+                                );
                             } else if engine.state.scroll_pixel_x() != 0 {
                                 engine.state.set_scroll_pixel_x(
-                                    (engine.state.scroll_pixel_x() - 0x04) & 0xFF,
+                                    (engine.state.scroll_pixel_x() - 0x04) & crate::bits::BYTE_MASK,
                                 );
                             }
                         } else if engine.state.scroll_y() >= 0xc3 {
-                            engine
-                                .state
-                                .set_scroll_y((engine.state.scroll_y() - 0x04) & 0xFF);
+                            engine.state.set_scroll_y(
+                                (engine.state.scroll_y() - 0x04) & crate::bits::BYTE_MASK,
+                            );
                         }
                     } else if engine.state.scroll_y() >= 0xc3 {
-                        engine
-                            .state
-                            .set_scroll_y((engine.state.scroll_y() - 0x04) & 0xFF);
+                        engine.state.set_scroll_y(
+                            (engine.state.scroll_y() - 0x04) & crate::bits::BYTE_MASK,
+                        );
                     }
                 } else if engine.state.scroll_pixel_x() != 0 {
                     engine.state.set_obj_timer(0x00);
@@ -667,20 +669,20 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                     engine.state.set_tile_table_ptr_hi(0xb0);
                     engine
                         .state
-                        .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+                        .set_obj_timer((engine.state.obj_timer() + 1) & crate::bits::BYTE_MASK);
                     engine.state.set_scheduler_phase(0x04);
                 }
             }
             2 => {
-                engine
-                    .state
-                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                engine.state.set_scheduler_phase(
+                    (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                );
                 if engine.state.scheduler_phase() != 0 {
                     engine.state.set_tile_table_ptr_hi(0xb4);
                     if engine.state.scroll_y() >= 0xc3 {
-                        engine
-                            .state
-                            .set_scroll_y((engine.state.scroll_y() - 0x04) & 0xFF);
+                        engine.state.set_scroll_y(
+                            (engine.state.scroll_y() - 0x04) & crate::bits::BYTE_MASK,
+                        );
                     }
                 } else {
                     engine.state.set_tile_table_ptr_hi(0xb3);
@@ -688,17 +690,18 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             1 => {
-                engine
-                    .state
-                    .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                engine.state.set_scheduler_phase(
+                    (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                );
                 if engine.state.scheduler_phase() == 0 {
                     engine.state.set_obj_timer(0x00);
                 } else {
-                    let a = ((((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0) as u8 as i32);
+                    let a = ((((engine.state.scheduler_phase() << 1) & crate::bits::BIT0) + 0xb0)
+                        as u8 as i32);
                     engine.state.set_tile_table_ptr_hi(a);
-                    engine
-                        .state
-                        .set_scroll_pixel_x((engine.state.scroll_pixel_x() + 0x04) & 0xFF);
+                    engine.state.set_scroll_pixel_x(
+                        (engine.state.scroll_pixel_x() + 0x04) & crate::bits::BYTE_MASK,
+                    );
                     if engine.state.scroll_pixel_x() >= 0x40 {
                         engine.state.set_obj_timer(0x00);
                     } else {
@@ -715,9 +718,9 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 if close || (delayed_grow && engine.state.scroll_y() >= 0xc3) {
                     engine.state.set_obj_timer(0x03);
                     engine.state.set_scheduler_phase(0x02);
-                    engine
-                        .state
-                        .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                    engine.state.set_scheduler_phase(
+                        (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                    );
                     if engine.state.scheduler_phase() != 0 {
                         engine.state.set_tile_table_ptr_hi(0xb2);
                         if engine.state.scroll_pixel_x() != 0 {
@@ -729,23 +732,24 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                             engine.state.set_scroll_pixel_x(v);
                             if v >= 0x11 {
                                 if engine.state.scroll_y() < 0xd2 {
-                                    engine
-                                        .state
-                                        .set_scroll_y((engine.state.scroll_y() + 0x04) & 0xFF);
+                                    engine.state.set_scroll_y(
+                                        (engine.state.scroll_y() + 0x04) & crate::bits::BYTE_MASK,
+                                    );
                                 } else if engine.state.scroll_pixel_x() != 0 {
                                     engine.state.set_scroll_pixel_x(
-                                        (engine.state.scroll_pixel_x() - 0x04) & 0xFF,
+                                        (engine.state.scroll_pixel_x() - 0x04)
+                                            & crate::bits::BYTE_MASK,
                                     );
                                 }
                             } else if engine.state.scroll_y() >= 0xc3 {
-                                engine
-                                    .state
-                                    .set_scroll_y((engine.state.scroll_y() - 0x04) & 0xFF);
+                                engine.state.set_scroll_y(
+                                    (engine.state.scroll_y() - 0x04) & crate::bits::BYTE_MASK,
+                                );
                             }
                         } else if engine.state.scroll_y() >= 0xc3 {
-                            engine
-                                .state
-                                .set_scroll_y((engine.state.scroll_y() - 0x04) & 0xFF);
+                            engine.state.set_scroll_y(
+                                (engine.state.scroll_y() - 0x04) & crate::bits::BYTE_MASK,
+                            );
                         }
                     } else if engine.state.scroll_pixel_x() != 0 {
                         engine.state.set_obj_timer(0x00);
@@ -753,7 +757,7 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                         engine.state.set_tile_table_ptr_hi(0xb0);
                         engine
                             .state
-                            .set_obj_timer((engine.state.obj_timer() + 1) & 0xFF);
+                            .set_obj_timer((engine.state.obj_timer() + 1) & crate::bits::BYTE_MASK);
                         engine.state.set_scheduler_phase(0x04);
                     }
                 } else if !delayed_grow {
@@ -763,18 +767,18 @@ pub fn tick_final_exit_sequence(engine: &mut Engine, r: &mut RoutineContext) {
                 } else {
                     engine.state.set_obj_timer(0x01);
                     engine.state.set_scheduler_phase(0x04);
-                    engine
-                        .state
-                        .set_scheduler_phase((engine.state.scheduler_phase() - 1) & 0xFF);
+                    engine.state.set_scheduler_phase(
+                        (engine.state.scheduler_phase() - 1) & crate::bits::BYTE_MASK,
+                    );
                     if engine.state.scheduler_phase() == 0 {
                         engine.state.set_obj_timer(0x00);
                     } else {
-                        let a =
-                            ((((engine.state.scheduler_phase() << 1) & 0x01) + 0xb0) as u8 as i32);
+                        let a = ((((engine.state.scheduler_phase() << 1) & crate::bits::BIT0)
+                            + 0xb0) as u8 as i32);
                         engine.state.set_tile_table_ptr_hi(a);
-                        engine
-                            .state
-                            .set_scroll_pixel_x((engine.state.scroll_pixel_x() + 0x04) & 0xFF);
+                        engine.state.set_scroll_pixel_x(
+                            (engine.state.scroll_pixel_x() + 0x04) & crate::bits::BYTE_MASK,
+                        );
                         if engine.state.scroll_pixel_x() >= 0x40 {
                             engine.state.set_obj_timer(0x00);
                         } else {
@@ -797,8 +801,8 @@ pub fn fade_partial_palette_buffer_out(engine: &mut Engine, r: &mut RoutineConte
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x0c).rev() {
-            let lo = engine.state.palette_buffer(x) & 0x0f;
-            let hi = engine.state.palette_buffer(x) & 0xf0;
+            let lo = engine.state.palette_buffer(x) & crate::bits::LOW_NIBBLE;
+            let hi = engine.state.palette_buffer(x) & crate::bits::HIGH_NIBBLE;
             engine.state.set_scratch0(lo);
             let out = if hi < 0x10 {
                 0x0f
@@ -855,9 +859,9 @@ pub fn clear_title_screen_for_new_game(engine: &mut Engine, r: &mut RoutineConte
 /// Runs the scrolling story-text sequence shared by the title-screen chord and
 /// the final-exit cutscene.
 pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
-    engine
-        .state
-        .set_music_volume_override((engine.state.music_volume_override() + 1) & 0xFF);
+    engine.state.set_music_volume_override(
+        (engine.state.music_volume_override() + 1) & crate::bits::BYTE_MASK,
+    );
     drain_audio_timers_with_object_frames(engine, r);
     fade_palette_buffer_out(engine, r);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
@@ -866,7 +870,7 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_chr_bank(1, 0x22);
     engine
         .state
-        .set_ppu_mask_shadow(engine.state.ppu_mask_shadow() | 0x18);
+        .set_ppu_mask_shadow(engine.state.ppu_mask_shadow() | crate::bits::BITS_3_4);
 
     r.value = 0xff;
     queue_ppu_job_and_wait(engine, r);
@@ -978,7 +982,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 engine.state.set_prompt_state(0x1a);
                 engine.state.set_continue_timer(0x1a);
             }
-            if (engine.state.buttons() & 0x10) != 0 {
+            if (engine.state.buttons() & crate::bits::BIT4) != 0 {
                 clear_title_screen_for_new_game(engine, r);
                 return;
             }
@@ -986,9 +990,9 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 run_story_text_sequence(engine, r);
                 return;
             }
-            if (engine.state.frame_prescaler() & 0x07) == 0 {
-                let lo = engine.state.palette_buffer(0x02) & 0x0f;
-                let mut hi = engine.state.palette_buffer(0x02) & 0xf0;
+            if (engine.state.frame_prescaler() & crate::bits::LOW_3_BITS) == 0 {
+                let lo = engine.state.palette_buffer(0x02) & crate::bits::LOW_NIBBLE;
+                let mut hi = engine.state.palette_buffer(0x02) & crate::bits::HIGH_NIBBLE;
                 engine.state.set_scratch0(lo);
                 if hi < 0x10 {
                     hi = 0x30;
@@ -1035,7 +1039,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.set_data_ptr_hi(r.value);
             crate::game::resolve_room_tile_pointer(engine, r);
             let p = ((engine.state.data_ptr()) as u16 as i32);
-            let mut t = engine.state.byte(p) & 0x3f;
+            let mut t = engine.state.byte(p) & crate::bits::LOW_6_BITS;
             if t >= 0x30 {
                 continue;
             }
@@ -1045,7 +1049,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             if t == engine.state.text_attr_ptr_lo() {
                 continue;
             }
-            t = engine.state.byte(((p + 1) as u16 as i32)) & 0x3f;
+            t = engine.state.byte(((p + 1) as u16 as i32)) & crate::bits::LOW_6_BITS;
             if t < 0x30 {
                 continue;
             }
@@ -1131,7 +1135,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 .set_saved_scroll_tile(engine.state.scroll_tile_x());
             crate::game::blink_demo_oam_sprites(engine, r);
             frame::read_buttons(engine, r);
-            if (engine.state.buttons() & 0x10) != 0 {
+            if (engine.state.buttons() & crate::bits::BIT4) != 0 {
                 clear_title_screen_for_new_game(engine, r);
                 return;
             }
@@ -1143,7 +1147,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             if (engine.state.horizontal_subtile_delta() | engine.state.vertical_delta()) != 0 {
                 engine
                     .state
-                    .set_title_timer((engine.state.title_timer() - 1) & 0xFF);
+                    .set_title_timer((engine.state.title_timer() - 1) & crate::bits::BYTE_MASK);
                 if engine.state.title_timer() != 0 {
                     do_b044 = false;
                 }
@@ -1176,9 +1180,9 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             crate::game::draw_player_sprites(engine, r);
             crate::game::draw_room_object_sprites(engine, r);
             if engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
-                engine
-                    .state
-                    .set_main_loop_phase((engine.state.main_loop_phase() + 1) & 0xFF);
+                engine.state.set_main_loop_phase(
+                    (engine.state.main_loop_phase() + 1) & crate::bits::BYTE_MASK,
+                );
             }
             enter_return_home(engine, 0x35, 0xc1);
             frame::commit_frame_work(engine, r);
@@ -1218,14 +1222,14 @@ pub fn drain_audio_timers_with_object_frames(engine: &mut Engine, r: &mut Routin
             frame::wait_for_frame_counter(engine, r);
             engine
                 .state
-                .set_data_ptr_lo((engine.state.data_ptr_lo() - 1) & 0xFF);
+                .set_data_ptr_lo((engine.state.data_ptr_lo() - 1) & crate::bits::BYTE_MASK);
             if engine.state.data_ptr_lo() == 0 {
                 break;
             }
         }
         engine
             .state
-            .set_data_ptr_hi((engine.state.data_ptr_hi() - 1) & 0xFF);
+            .set_data_ptr_hi((engine.state.data_ptr_hi() - 1) & crate::bits::BYTE_MASK);
         if engine.state.data_ptr_hi() == 0 {
             break;
         }
@@ -1240,7 +1244,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
 
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() + 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() + 1) & crate::bits::BYTE_MASK);
     crate::game::clear_gameplay_object_sprites(engine, r);
     r.index = 0x35;
     r.offset = 0x00;
@@ -1254,7 +1258,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     crate::game::switch_song_if_needed(engine, r);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() - 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() - 1) & crate::bits::BYTE_MASK);
 
     engine.state.set_scratch2(0x05);
     loop {
@@ -1272,7 +1276,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
         show_player_pose_for_eight_frames(engine, r);
         engine
             .state
-            .set_scratch2((engine.state.scratch2() - 1) & 0xFF);
+            .set_scratch2((engine.state.scratch2() - 1) & crate::bits::BYTE_MASK);
         if engine.state.scratch2() == 0 {
             break;
         }
@@ -1286,7 +1290,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
 
     let mut use_game_over_screen = engine.state.final_exit_flag() != 0;
     if !use_game_over_screen {
-        if (engine.state.continue_timer() & 0x80) != 0 {
+        if (engine.state.continue_timer() & crate::bits::BIT7) != 0 {
             let x = engine.state.selected_item_slot();
             if engine.state.item_slot(x) == 0x0c {
                 engine.state.set_item_slot(x, 0xff);
@@ -1297,7 +1301,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
         } else {
             engine
                 .state
-                .set_continue_timer((engine.state.continue_timer() + 1) & 0xFF);
+                .set_continue_timer((engine.state.continue_timer() + 1) & crate::bits::BYTE_MASK);
         }
 
         if !use_game_over_screen {
@@ -1340,10 +1344,12 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
 
     loop {
         crate::game::read_debounced_buttons(engine, r);
-        if (r.value & 0x10) != 0 {
+        if (r.value & crate::bits::BIT4) != 0 {
             break;
         }
-        engine.state.set_player_y(engine.state.player_y() ^ 0x10);
+        engine
+            .state
+            .set_player_y(engine.state.player_y() ^ crate::bits::BIT4);
         engine.state.set_prompt_state(0x0c);
     }
 
@@ -1415,8 +1421,8 @@ pub fn fade_title_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
 
         engine
             .state
-            .set_scratch1((engine.state.scratch1() - 0x10) & 0xFF);
-        if (engine.state.scratch1() & 0x80) != 0 {
+            .set_scratch1((engine.state.scratch1() - 0x10) & crate::bits::BYTE_MASK);
+        if (engine.state.scratch1() & crate::bits::BIT7) != 0 {
             break;
         }
     }
@@ -1438,8 +1444,8 @@ pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x20).rev() {
             let v = engine.state.palette_buffer(x);
-            let lo = v & 0x0f;
-            let hi = v & 0xf0;
+            let lo = v & crate::bits::LOW_NIBBLE;
+            let hi = v & crate::bits::HIGH_NIBBLE;
             engine.state.set_scratch0(lo);
             engine.state.set_palette_buffer(
                 x,
@@ -1478,7 +1484,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
         frame::wait_for_frame_counter(engine, r);
         v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
-        if (v & 0x80) != 0 {
+        if (v & crate::bits::BIT7) != 0 {
             break;
         }
     }
@@ -1512,7 +1518,7 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
         frame::wait_for_frame_counter(engine, r);
         v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
-        if (v & 0x80) != 0 {
+        if (v & crate::bits::BIT7) != 0 {
             break;
         }
     }
@@ -1556,16 +1562,16 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
     let mut x = 0x90;
     loop {
         let mut skip = ((y) as u8 as i32) == engine.state.slot_index();
-        if !skip && (engine.state.object_state(x) & 0x80) != 0 {
+        if !skip && (engine.state.object_state(x) & crate::bits::BIT7) != 0 {
             skip = true;
         }
         if !skip && engine.state.object_state(x) != 0x01 && engine.state.object_state(x) < 0x1a {
             skip = true;
         }
-        if !skip && (engine.state.object_tile(x) & 0xf9) == 0xe1 {
+        if !skip && (engine.state.object_tile(x) & crate::bits::CLEAR_BITS_1_2) == 0xe1 {
             skip = true;
         }
-        if !skip && (engine.state.object_attr(x) & 0x20) != 0 {
+        if !skip && (engine.state.object_attr(x) & crate::bits::BIT5) != 0 {
             skip = true;
         }
         if !skip {
@@ -1584,7 +1590,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 if d < 0x02 {
                     d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
                         as i32);
-                    if (d & 0x80) != 0 {
+                    if (d & crate::bits::BIT7) != 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
                         r.carry = 1;
@@ -1596,7 +1602,7 @@ pub fn find_damageable_actor_overlap(engine: &mut Engine, r: &mut RoutineContext
                 } else {
                     d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
                         as i32);
-                    if d != 0 && (d & 0x80) == 0 {
+                    if d != 0 && (d & crate::bits::BIT7) == 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
                         r.carry = 1;
@@ -1626,13 +1632,13 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         if !skip && engine.state.object_state(x) == 0 {
             skip = true;
         }
-        if !skip && (engine.state.object_state(x) & 0x80) != 0 {
+        if !skip && (engine.state.object_state(x) & crate::bits::BIT7) != 0 {
             skip = true;
         }
-        if !skip && (engine.state.object_tile(x) & 0xf9) == 0xe1 {
+        if !skip && (engine.state.object_tile(x) & crate::bits::CLEAR_BITS_1_2) == 0xe1 {
             skip = true;
         }
-        if !skip && (engine.state.object_attr(x) & 0x20) != 0 {
+        if !skip && (engine.state.object_attr(x) & crate::bits::BIT5) != 0 {
             skip = true;
         }
         if !skip {
@@ -1651,7 +1657,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 if d < 0x02 {
                     d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
                         as i32);
-                    if (d & 0x80) != 0 {
+                    if (d & crate::bits::BIT7) != 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
                         r.carry = 1;
@@ -1663,7 +1669,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
                 } else {
                     d = ((engine.state.indirect_ptr_lo() - engine.state.object_x_sub(x)) as u8
                         as i32);
-                    if d != 0 && (d & 0x80) == 0 {
+                    if d != 0 && (d & crate::bits::BIT7) == 0 {
                         engine.state.set_scratch0(y);
                         engine.state.set_scratch1(x);
                         r.carry = 1;
@@ -1708,7 +1714,8 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         engine.state.set_pose_state(0x01);
         r.offset = 0x00;
         let tile_ptr = ((engine.state.data_ptr()) as u16 as i32);
-        if (engine.state.byte(((tile_ptr + r.offset) as u16 as i32)) & 0x3f) == 0 {
+        if (engine.state.byte(((tile_ptr + r.offset) as u16 as i32)) & crate::bits::LOW_6_BITS) == 0
+        {
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
     }
@@ -1717,7 +1724,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     if engine.state.player_y() >= 0xb0 {
         engine
             .state
-            .set_fall_frames((engine.state.fall_frames() + 1) & 0xFF);
+            .set_fall_frames((engine.state.fall_frames() + 1) & crate::bits::BYTE_MASK);
         return;
     }
 
@@ -1743,7 +1750,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     if engine.state.player_x_fine() == 0 {
         engine
             .state
-            .set_fall_frames((engine.state.fall_frames() + 1) & 0xFF);
+            .set_fall_frames((engine.state.fall_frames() + 1) & crate::bits::BYTE_MASK);
         return;
     }
 
@@ -1754,7 +1761,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     }
     engine
         .state
-        .set_fall_frames((engine.state.fall_frames() + 1) & 0xFF);
+        .set_fall_frames((engine.state.fall_frames() + 1) & crate::bits::BYTE_MASK);
 }
 
 /// Converts a just-detected floor/object/hazard contact into damage, recoil,
@@ -1789,7 +1796,8 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
 pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     let tile_ptr = ((engine.state.data_ptr()) as u16 as i32);
     let tile_offset = r.offset;
-    let tile = engine.state.byte(((tile_ptr + tile_offset) as u16 as i32)) & 0x3f;
+    let tile =
+        engine.state.byte(((tile_ptr + tile_offset) as u16 as i32)) & crate::bits::LOW_6_BITS;
     if tile == engine.state.text_attr_ptr_lo() {
         if engine.state.object_state(0x90) == 0 {
             engine.state.set_scratch3(tile_offset);
@@ -1804,7 +1812,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             crate::game::store_object_slot_scratch(engine, r);
             engine.state.set_prompt_state(0x06);
         }
-        let v = engine.state.text_attr_ptr_hi() & 0x3f;
+        let v = engine.state.text_attr_ptr_hi() & crate::bits::LOW_6_BITS;
         r.value = v;
         r.carry = ((v >= 0x30) as u8 as i32);
         return;
@@ -1844,7 +1852,8 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
     if tile == 0x3e {
-        if (engine.state.buttons() & 0x80) != 0 && engine.state.object_state(0x90) == 0 {
+        if (engine.state.buttons() & crate::bits::BIT7) != 0 && engine.state.object_state(0x90) == 0
+        {
             engine.state.set_scratch3(tile_offset);
             engine.state.set_obj_move_state(0x01);
             r.offset = engine.state.selected_item_slot();
@@ -1852,10 +1861,11 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             let idx = r.index;
             if idx == 1 {
                 if engine.state.player_magic() != 0 {
-                    let mut t = engine.state.player_y() & 0x0f;
+                    let mut t = engine.state.player_y() & crate::bits::LOW_NIBBLE;
                     t |= engine.state.player_x_fine();
                     if t == 0 {
-                        let x2 = (((engine.state.direction_latch() & 0x0f) << 1) as u8 as i32);
+                        let x2 = (((engine.state.direction_latch() & crate::bits::LOW_NIBBLE) << 1)
+                            as u8 as i32);
                         let lo = ((engine.state.player_x_tile()
                             + engine
                                 .state
@@ -1875,7 +1885,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         r.offset = 0x00;
                         engine.state.set_scratch3(0x00);
                         let p = ((engine.state.data_ptr()) as u16 as i32);
-                        let b = engine.state.byte(p) & 0x3f;
+                        let b = engine.state.byte(p) & crate::bits::LOW_6_BITS;
                         if b == 0x3e {
                             engine.state.set_object_tile(0x90, 0xe1);
                             engine.state.set_object_state(0x90, 0x01);
@@ -1892,14 +1902,14 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                 return;
             }
             if idx == 2 {
-                if (engine.state.direction_latch() & 0x0f) != 0 {
+                if (engine.state.direction_latch() & crate::bits::LOW_NIBBLE) != 0 {
                     r.offset = 0x01;
                     crate::game::build_direction_velocity(engine, r);
                     r.offset = 0xf8;
                     let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
-                    engine
-                        .state
-                        .set_obj_tile(engine.state.byte(((p79 + 0xf8) as u16 as i32)) & 0xfe);
+                    engine.state.set_obj_tile(
+                        engine.state.byte(((p79 + 0xf8) as u16 as i32)) & crate::bits::CLEAR_BIT0,
+                    );
                     engine.state.set_obj_state(0x01);
                     engine.state.set_obj_attr(0x03);
                     r.offset = engine.state.scratch3();
@@ -1925,14 +1935,15 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             }
             if idx == 3 {
                 if engine.state.player_magic() != 0 {
-                    if (engine.state.direction_latch() & 0x0f) != 0 {
+                    if (engine.state.direction_latch() & crate::bits::LOW_NIBBLE) != 0 {
                         r.offset = 0x08;
                         crate::game::build_direction_velocity(engine, r);
                         r.offset = 0xf8;
                         let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
-                        engine
-                            .state
-                            .set_obj_tile(engine.state.byte(((p79 + 0xf8) as u16 as i32)) & 0xfe);
+                        engine.state.set_obj_tile(
+                            engine.state.byte(((p79 + 0xf8) as u16 as i32))
+                                & crate::bits::CLEAR_BIT0,
+                        );
                         engine.state.set_obj_state(0x01);
                         engine.state.set_obj_attr(0x03);
                         r.offset = engine.state.scratch3();
@@ -1973,16 +1984,16 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Fades the room palette out and resets active audio channel state.
 pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineContext) {
-    engine
-        .state
-        .set_music_volume_override((engine.state.music_volume_override() + 1) & 0xFF);
+    engine.state.set_music_volume_override(
+        (engine.state.music_volume_override() + 1) & crate::bits::BYTE_MASK,
+    );
     let mut y = 0x04;
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x1c).rev() {
             let v = engine.state.palette_buffer(0x04 + x);
-            let lo = v & 0x0f;
-            let hi = v & 0xf0;
+            let lo = v & crate::bits::LOW_NIBBLE;
+            let hi = v & crate::bits::HIGH_NIBBLE;
             engine.state.set_scratch0(lo);
             engine.state.set_vram_stage(
                 0x44 + x,
@@ -2030,8 +2041,8 @@ pub fn fade_room_palette_out_keep_audio(engine: &mut Engine, r: &mut RoutineCont
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x1c).rev() {
             let v = engine.state.palette_buffer(0x04 + x);
-            let lo = v & 0x0f;
-            let hi = v & 0xf0;
+            let lo = v & crate::bits::LOW_NIBBLE;
+            let hi = v & crate::bits::HIGH_NIBBLE;
             engine.state.set_scratch0(lo);
             engine.state.set_vram_stage(
                 0x44 + x,
@@ -2065,7 +2076,7 @@ pub fn fade_room_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
         frame::wait_for_frame_counter(engine, r);
         v = ((engine.state.scratch1() - 0x10) as u8 as i32);
         engine.state.set_scratch1(v);
-        if (v & 0x80) != 0 {
+        if (v & crate::bits::BIT7) != 0 {
             break;
         }
     }
@@ -2106,7 +2117,7 @@ pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext)
     loop {
         engine
             .state
-            .set_player_health((engine.state.player_health() + 1) & 0xFF);
+            .set_player_health((engine.state.player_health() + 1) & crate::bits::BYTE_MASK);
         crate::game::sync_health_hud(engine, r);
         engine.state.set_prompt_state(0x16);
         engine.state.set_frame_counter(0x02);
@@ -2132,7 +2143,7 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
     loop {
         engine
             .state
-            .set_player_magic((engine.state.player_magic() + 1) & 0xFF);
+            .set_player_magic((engine.state.player_magic() + 1) & crate::bits::BYTE_MASK);
         crate::game::sync_magic_hud(engine, r);
         engine.state.set_prompt_state(0x16);
         engine.state.set_frame_counter(0x02);
@@ -2167,7 +2178,7 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_object_state(0xA0, door + 0x02);
     engine
         .state
-        .set_object_tile(0xA0, ((door << 2) & 0xff) + 0x81);
+        .set_object_tile(0xA0, ((door << 2) & crate::bits::BYTE_MASK) + 0x81);
     engine.state.set_prompt_state(0x1f);
     crate::game::draw_room_object_sprites(engine, r);
 
@@ -2198,7 +2209,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
     engine.state.set_prompt_state(0x03);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() + 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() + 1) & crate::bits::BYTE_MASK);
 
     if engine.state.chr_bank(3) < 0x30 {
         push_room_checkpoint(engine, r);
@@ -2220,7 +2231,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         frame::wait_frame(engine, r);
     }
     loop {
-        if (frame::read_buttons(engine, r) & 0x10) != 0 {
+        if (frame::read_buttons(engine, r) & crate::bits::BIT4) != 0 {
             break;
         }
         frame::wait_frame(engine, r);
@@ -2250,7 +2261,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
 
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() - 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() - 1) & crate::bits::BYTE_MASK);
 }
 
 /// Shows the read-only inventory item-list page until the player presses a
@@ -2318,22 +2329,22 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
         let b = frame::read_buttons(engine, r);
         r.value = b;
 
-        if (b & 0x80) != 0 {
+        if (b & crate::bits::BIT7) != 0 {
             crate::game::select_inventory_grid_entry(engine, r);
             crate::game::upload_inventory_item_list(engine, r);
-        } else if (b & 0x40) != 0 {
-        } else if (b & 0x01) != 0 {
+        } else if (b & crate::bits::BIT6) != 0 {
+        } else if (b & crate::bits::BIT0) != 0 {
             crate::game::move_inventory_cursor_right(engine, r);
-        } else if (b & 0x02) != 0 {
+        } else if (b & crate::bits::BIT1) != 0 {
             crate::game::move_inventory_cursor_left(engine, r);
-        } else if (b & 0x04) != 0 {
+        } else if (b & crate::bits::BIT2) != 0 {
             crate::game::move_inventory_cursor_down(engine, r);
-        } else if (b & 0x08) != 0 {
+        } else if (b & crate::bits::BIT3) != 0 {
             crate::game::move_inventory_cursor_up(engine, r);
             crate::game::upload_inventory_item_list(engine, r);
-        } else if (b & 0x10) != 0 {
+        } else if (b & crate::bits::BIT4) != 0 {
             crate::game::close_inventory_item_menu(engine, r);
-        } else if (b & 0x20) != 0 {
+        } else if (b & crate::bits::BIT5) != 0 {
             engine.state.set_scroll_tile_x(0x20);
             crate::game::upload_staged_room_columns(engine, r);
             crate::game::refresh_scroll_register_shadows(engine, r);
@@ -2341,7 +2352,7 @@ pub fn run_inventory_item_grid_menu(engine: &mut Engine, r: &mut RoutineContext)
             return;
         }
 
-        if (engine.state.buttons() & 0xcf) != 0 {
+        if (engine.state.buttons() & crate::bits::CLEAR_BITS_4_5) != 0 {
             engine.state.set_prompt_state(0x0c);
             engine.state.set_frame_counter(0x0a);
         }
@@ -2373,7 +2384,9 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
 
             let mut x = 0x0a;
             loop {
-                engine.state.set_coins((engine.state.coins() - 1) & 0xFF);
+                engine
+                    .state
+                    .set_coins((engine.state.coins() - 1) & crate::bits::BYTE_MASK);
                 crate::game::sync_coin_hud(engine, r);
                 engine.state.set_prompt_state(0x0c);
                 engine.state.set_frame_counter(0x0a);
@@ -2410,10 +2423,11 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     if engine.state.character_index() < 0x06 {
         for y in (0..=2).rev() {
             let x = engine.state.item_slot(y);
-            if (x & 0x80) == 0 {
-                engine
-                    .state
-                    .set_inventory_item(x, (engine.state.inventory_item(x) + 1) & 0xFF);
+            if (x & crate::bits::BIT7) == 0 {
+                engine.state.set_inventory_item(
+                    x,
+                    (engine.state.inventory_item(x) + 1) & crate::bits::BYTE_MASK,
+                );
             }
             engine.state.set_item_slot(y, 0xff);
         }
@@ -2437,10 +2451,11 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
 
     loop {
         walk_character_select_room_until_action(engine, r);
-        let hi = engine.state.scratch2() & 0xf0;
+        let hi = engine.state.scratch2() & crate::bits::HIGH_NIBBLE;
         let mut chosen: Option<i32> = None;
         if hi == 0x50 {
-            if (engine.state.indirect_ptr_hi() & 0x0f) == 0x05 && engine.state.continue_timer() != 0
+            if (engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE) == 0x05
+                && engine.state.continue_timer() != 0
             {
                 let mut x = ((engine.state.song() + 1) as u8 as i32);
                 if x >= 0x10 {
@@ -2448,7 +2463,9 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 }
                 engine.state.set_song(x);
                 crate::game::song_init(engine, r);
-                if (engine.state.continue_timer() & 0x80) != 0 && engine.state.buttons() == 0xc3 {
+                if (engine.state.continue_timer() & crate::bits::BIT7) != 0
+                    && engine.state.buttons() == 0xc3
+                {
                     for x in (0..=0x0d).rev() {
                         engine.state.set_inventory_item(x, 0x10);
                     }
@@ -2460,14 +2477,14 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
             }
             continue;
         } else if hi == 0x70 {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             if lo == 0x06 {
                 chosen = Some(0x00);
             } else if lo == 0x08 {
                 chosen = Some(0x01);
             }
         } else if hi == 0x80 {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             if lo == 0x04 {
                 chosen = Some(0x02);
             } else if lo == 0x0a {
@@ -2480,7 +2497,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 continue;
             }
         } else if hi == 0x90 {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             if lo == 0x06 {
                 chosen = Some(0x03);
             } else if lo == 0x0a {
@@ -2519,7 +2536,9 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         engine.state.set_chr_bank(5, 0x3f);
         engine.state.set_player_pose(0x0d);
         engine.state.set_player_facing(0x00);
-        engine.state.set_player_y(engine.state.player_y() & 0xf0);
+        engine
+            .state
+            .set_player_y(engine.state.player_y() & crate::bits::HIGH_NIBBLE);
         engine.state.set_player_x_fine(0x04);
         crate::game::clear_gameplay_object_sprites(engine, r);
         crate::game::draw_player_sprites(engine, r);
@@ -2585,7 +2604,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
             return;
         }
 
-        let nib = engine.state.player_x_tile() & 0x0f;
+        let nib = engine.state.player_x_tile() & crate::bits::LOW_NIBBLE;
         let x = if nib < 0x03 {
             continue;
         } else if nib < 0x05 {
@@ -2598,7 +2617,7 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
         };
 
         let item = engine.state.temp_save(x);
-        if (item & 0x80) != 0 {
+        if (item & crate::bits::BIT7) != 0 {
             engine.state.set_prompt_state(0x06);
         } else {
             let price = engine.state.inventory_item(0x21 + x);
@@ -2607,9 +2626,10 @@ pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
             if ((r.carry) != 0) {
                 engine.state.set_temp_save(x, 0xff);
                 crate::game::draw_shop_item_sprites(engine, r);
-                engine
-                    .state
-                    .set_inventory_item(item, (engine.state.inventory_item(item) + 1) & 0xFF);
+                engine.state.set_inventory_item(
+                    item,
+                    (engine.state.inventory_item(item) + 1) & crate::bits::BYTE_MASK,
+                );
                 engine.state.set_prompt_state(0x10);
             } else {
                 if item == 0x0d && engine.state.continue_timer() != 0 {
@@ -2634,19 +2654,19 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
     loop {
         engine.state.set_frame_counter(0x01);
         let buttons = frame::read_buttons(engine, r);
-        if (buttons & 0x80) != 0 {
+        if (buttons & crate::bits::BIT7) != 0 {
             r.value = 0x80;
             return;
         }
 
-        r.value = buttons & 0x0f;
+        r.value = buttons & crate::bits::LOW_NIBBLE;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
         crate::game::project_player_position(engine, r);
 
         let ty = engine.state.scratch2();
         if ty >= 0x30 && ty < 0xa1 {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             if lo >= 0x02 {
                 let store = lo < 0x0d || engine.state.indirect_ptr_lo() == 0;
                 if store {
@@ -2671,7 +2691,7 @@ pub fn walk_character_select_room_until_action(engine: &mut Engine, r: &mut Rout
 /// collides with the playfield, the actor clears itself and raises `0xEB` so
 /// the foreground loop enters the pending special-exit room.
 pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineContext) {
-    if (engine.state.obj_state() & 0x7f) == 0 {
+    if (engine.state.obj_state() & crate::bits::LOW_7_BITS) == 0 {
         engine.state.set_prompt_state(0x18);
         engine.state.set_prompt_argument(0xff);
         r.index = 0x03;
@@ -2693,7 +2713,7 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
 
         engine
             .state
-            .set_obj_state((engine.state.obj_state() + 1) & 0xFF);
+            .set_obj_state((engine.state.obj_state() + 1) & crate::bits::BYTE_MASK);
         engine.state.set_prompt_state(0x02);
         engine.state.set_obj_cooldown(0x0f);
         engine.state.set_obj_x_vel_lo(0x00);
@@ -2705,18 +2725,22 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
     if engine.state.obj_move_scratch() == 0 {
         engine
             .state
-            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & 0xFF);
+            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & crate::bits::BYTE_MASK);
         if engine.state.obj_cooldown() == 0 {
-            engine.state.set_obj_attr(engine.state.obj_attr() | 0x80);
+            engine
+                .state
+                .set_obj_attr(engine.state.obj_attr() | crate::bits::BIT7);
             engine.state.set_obj_move_scratch(0x01);
             return;
         }
-        let a = ((((engine.state.obj_cooldown() >> 2) ^ 0xff) + 1) as u8 as i32);
+        let a = ((((engine.state.obj_cooldown() >> 2) ^ crate::bits::BYTE_MASK) + 1) as u8 as i32);
         engine.state.set_obj_y_vel(a);
         crate::game::project_actor_position(engine, r);
         crate::game::check_position_out_of_bounds(engine, r);
         if ((r.carry) != 0) {
-            engine.state.set_obj_attr(engine.state.obj_attr() | 0x80);
+            engine
+                .state
+                .set_obj_attr(engine.state.obj_attr() | crate::bits::BIT7);
             engine.state.set_obj_move_scratch(0x01);
             return;
         }
@@ -2726,7 +2750,7 @@ pub fn tick_special_exit_actor_sequence(engine: &mut Engine, r: &mut RoutineCont
 
     engine
         .state
-        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & 0xFF);
+        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & crate::bits::BYTE_MASK);
     engine
         .state
         .set_obj_y_vel((engine.state.obj_move_scratch() >> 2) + 1);
@@ -2748,13 +2772,13 @@ pub fn walk_purchase_room_until_action_or_exit(engine: &mut Engine, r: &mut Rout
     loop {
         engine.state.set_frame_counter(0x01);
         let buttons = frame::read_buttons(engine, r);
-        if (buttons & 0x80) != 0 {
+        if (buttons & crate::bits::BIT7) != 0 {
             r.value = 0x80;
             r.carry = 0;
             return;
         }
 
-        r.value = buttons & 0x0f;
+        r.value = buttons & crate::bits::LOW_NIBBLE;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
         crate::game::project_player_position(engine, r);
@@ -2766,7 +2790,7 @@ pub fn walk_purchase_room_until_action_or_exit(engine: &mut Engine, r: &mut Rout
             return;
         }
         if ty >= 0x8c {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             if lo >= 0x02 && lo < 0x0d {
                 engine
                     .state
@@ -2793,13 +2817,13 @@ pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut Routi
     loop {
         engine.state.set_frame_counter(0x01);
         let buttons = frame::read_buttons(engine, r);
-        if (buttons & 0x80) != 0 {
+        if (buttons & crate::bits::BIT7) != 0 {
             r.value = 0x80;
             r.carry = 0;
             return;
         }
 
-        r.value = buttons & 0x0f;
+        r.value = buttons & crate::bits::LOW_NIBBLE;
         r.offset = 0x01;
         crate::game::build_input_movement_delta(engine, r);
         crate::game::project_player_position(engine, r);
@@ -2811,7 +2835,7 @@ pub fn walk_loadout_room_until_action_or_exit(engine: &mut Engine, r: &mut Routi
             return;
         }
         if ty >= 0x20 {
-            let lo = engine.state.indirect_ptr_hi() & 0x0f;
+            let lo = engine.state.indirect_ptr_hi() & crate::bits::LOW_NIBBLE;
             let mut store = false;
             if lo >= 0x01 {
                 if lo < 0x0f {
@@ -2866,9 +2890,10 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
                 r.value = x;
                 crate::game::load_family_item_permission_bits(engine, r);
                 if ((r.carry) != 0) {
-                    engine
-                        .state
-                        .set_inventory_item(x, (engine.state.inventory_item(x) - 1) & 0xFF);
+                    engine.state.set_inventory_item(
+                        x,
+                        (engine.state.inventory_item(x) - 1) & crate::bits::BYTE_MASK,
+                    );
                     true
                 } else {
                     false
@@ -2883,10 +2908,11 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
         }
         engine.state.set_scratch0(x);
         let ci0 = engine.state.item_slot(0);
-        if (ci0 & 0x80) == 0 {
-            engine
-                .state
-                .set_inventory_item(ci0, (engine.state.inventory_item(ci0) + 1) & 0xFF);
+        if (ci0 & crate::bits::BIT7) == 0 {
+            engine.state.set_inventory_item(
+                ci0,
+                (engine.state.inventory_item(ci0) + 1) & crate::bits::BYTE_MASK,
+            );
         }
         engine.state.set_item_slot(0, engine.state.item_slot(1));
         engine.state.set_item_slot(1, engine.state.item_slot(2));
@@ -2940,10 +2966,10 @@ pub fn pop_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
 /// resource needs and the drop table.
 pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineContext) {
     const DROP_ITEM_TABLE: [i32; 9] = [0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x05, 0x06, 0x07];
-    if (engine.state.obj_state() & 0x7f) == 0 {
+    if (engine.state.obj_state() & crate::bits::LOW_7_BITS) == 0 {
         engine
             .state
-            .set_obj_state((engine.state.obj_state() + 1) & 0xFF);
+            .set_obj_state((engine.state.obj_state() + 1) & crate::bits::BYTE_MASK);
         engine.state.set_prompt_state(0x0e);
         engine.state.set_obj_cooldown(0x08);
         engine.state.set_obj_x_vel_lo(0x00);
@@ -2955,12 +2981,14 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         engine
             .state
             .set_obj_tile(engine.state.byte(((ptr + 6) as u16 as i32)));
-        engine.state.set_obj_attr(engine.state.obj_attr() & 0x03);
+        engine
+            .state
+            .set_obj_attr(engine.state.obj_attr() & crate::bits::LOW_2_BITS);
     }
     if engine.state.obj_move_scratch() == 0 {
         engine
             .state
-            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & 0xFF);
+            .set_obj_cooldown((engine.state.obj_cooldown() - 1) & crate::bits::BYTE_MASK);
         if engine.state.obj_cooldown() != 0 {
             engine.state.set_obj_y_vel(0 - engine.state.obj_cooldown());
             crate::game::project_actor_position(engine, r);
@@ -2970,13 +2998,15 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
                 return;
             }
         }
-        engine.state.set_obj_attr(engine.state.obj_attr() | 0x80);
+        engine
+            .state
+            .set_obj_attr(engine.state.obj_attr() | crate::bits::BIT7);
         engine.state.set_obj_move_scratch(0x01);
         return;
     }
     engine
         .state
-        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & 0xFF);
+        .set_obj_move_scratch((engine.state.obj_move_scratch() + 1) & crate::bits::BYTE_MASK);
     engine
         .state
         .set_obj_y_vel((engine.state.obj_move_scratch() >> 1) + 2);

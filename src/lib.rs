@@ -11,6 +11,7 @@
 )]
 
 pub mod apu;
+pub mod bits;
 pub mod engine;
 pub mod frame;
 pub mod game;

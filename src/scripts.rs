@@ -102,7 +102,7 @@ pub fn ae11_press_start_gate(engine: &mut crate::Engine) -> FrameTask {
     engine.state.set_prompt_state(0x03);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() + 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() + 1) & crate::bits::BYTE_MASK);
     FrameTask::new(vec![
         Wait::buttons_released(0xff),
         Wait::button_pressed(BUTTON_START),
@@ -114,5 +114,5 @@ pub fn finish_ae11_press_start_gate(engine: &mut crate::Engine) {
     engine.state.set_prompt_state(0x04);
     engine
         .state
-        .set_sound_paused((engine.state.sound_paused() - 1) & 0xFF);
+        .set_sound_paused((engine.state.sound_paused() - 1) & crate::bits::BYTE_MASK);
 }
