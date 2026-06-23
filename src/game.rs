@@ -5744,7 +5744,7 @@ pub fn restore_status_sprite_template(engine: &mut Engine, r: &mut RoutineContex
 /// Spends one health point, returning carry set when health was already
 /// empty.
 pub fn consume_health_point(engine: &mut Engine, r: &mut RoutineContext) {
-    r.value = ((engine.state.player_health as i32) as u8);
+    r.value = engine.state.player_health;
     if (r.value == 0) {
         r.carry = 1;
         return;
@@ -5774,7 +5774,7 @@ pub fn subtract_health_points(engine: &mut Engine, r: &mut RoutineContext) {
 /// set when no magic was available.
 pub fn consume_magic_point(engine: &mut Engine, r: &mut RoutineContext) {
     let saved_index: i32 = ((r.index) as u8 as i32);
-    r.value = ((engine.state.player_magic as i32) as u8);
+    r.value = engine.state.player_magic;
     r.carry = 1;
     if (engine.state.player_magic != 0) {
         engine.state.player_magic = engine.state.player_magic - 1;

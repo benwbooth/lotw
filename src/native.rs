@@ -2036,7 +2036,7 @@ pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext)
         engine.state.frame_counter = 2;
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        r.index = ((engine.state.player_health as i32) as u8);
+        r.index = engine.state.player_health;
         if engine.state.player_health >= 99 {
             break;
         }
@@ -2060,7 +2060,7 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
         engine.state.frame_counter = 2;
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        r.index = ((engine.state.player_magic as i32) as u8);
+        r.index = engine.state.player_magic;
         if engine.state.player_magic >= 99 {
             break;
         }
