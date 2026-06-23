@@ -1093,7 +1093,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         );
         engine.state.set_selected_item_slot(0x00);
         engine.state.set_character_index(chr);
-        let mut y = ((0xffa7 + ((chr << 2) + 0x03)) as u16 as i32);
+        let mut y = ((CHARACTER_STATS_TABLE + ((chr << 2) + 3)) as u16 as i32);
         for i in (0..=3).rev() {
             engine.state.set_item_slot(0x0B + i, engine.state.byte(y));
             y = ((y - 1) as u16 as i32);

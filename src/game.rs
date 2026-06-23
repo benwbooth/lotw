@@ -45,6 +45,12 @@ pub const ENVELOPE_TABLE: i32 = 0xFDCB;
 pub const START_ITEM_TABLE: i32 = 0xB0AC;
 /// Character palette source table used by palette helpers (`0xB000`).
 pub const PALETTE_DATA_TABLE: i32 = 0xB000;
+/// Base address of the 16-byte object record table ($0400-$04BF).
+pub const OBJECT_TABLE_BASE: i32 = 0x0400;
+/// Base of the staged room layout buffer ($0500-$07FF).
+pub const ROOM_BUFFER_BASE: i32 = 0x0500;
+/// PPU nametable 0 base address in VRAM ($2000).
+pub const VRAM_NAMETABLE0: i32 = 0x2000;
 /// Per-character base-stats table (health/magic/jump etc.) at boot (`0xFFA7`).
 pub const CHARACTER_STATS_TABLE: i32 = 0xFFA7;
 /// Per-direction actor spawn X/Y offset tables (`0xFEAB`/`0xFEAC`).
@@ -2057,7 +2063,7 @@ mod set_intro_text_vram_address {
 
     /// Converts intro text scroll offset `0x0A` into a nametable address.
     pub fn set_intro_text_vram_address(engine: &mut Engine, r: &mut RoutineContext) {
-        let address: i32 = 0x2000 + (engine.state.scratch2() << 2);
+        let address: i32 = VRAM_NAMETABLE0 + (engine.state.scratch2() << 2);
         engine.state.set_vram_addr_hi(address >> 8);
         engine.state.set_vram_addr_lo(address);
         r.value = ((address) as u8 as i32);
@@ -2712,7 +2718,7 @@ mod draw_object_slot_sprites {
     pub fn draw_object_slot_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         let oam_offset: i32 = ((r.index) as u8 as i32);
         let object_offset: i32 = ((r.offset) as u8 as i32);
-        let object_base: i32 = 0x0400 + object_offset;
+        let object_base: i32 = OBJECT_TABLE_BASE + object_offset;
 
         if (engine.state.byte(object_base + 0x01) == 0)
             || (engine.state.byte(object_base + 0x0E) >= 0xBF)
@@ -3392,7 +3398,7 @@ mod copy_room_tile_pages {
         let mut source_hi: i32 = engine.state.palette_src_ptr_hi();
         for page_index in 0..=2 {
             let source_ptr: i32 = ((source_lo | (source_hi << 8)) as u16 as i32);
-            let dest_base: i32 = 0x0500 + (page_index << 8);
+            let dest_base: i32 = ROOM_BUFFER_BASE + (page_index << 8);
             for page_offset in 0..0x100 {
                 engine.state.set_byte(
                     dest_base + page_offset,
@@ -9634,12 +9640,12 @@ mod compose_large_actor_body_slots {
             engine.state.set_object_attr(0x20, sprite_attrs);
             engine.state.set_object_attr(0x30, sprite_attrs);
             if ((sprite_attrs & crate::bits::BIT6) != 0) {
-                swap_slot_sprite_id(engine, 0x0400, 0x0410);
-                swap_slot_sprite_id(engine, 0x0420, 0x0430);
+                swap_slot_sprite_id(engine, OBJECT_TABLE_BASE + 0x00, OBJECT_TABLE_BASE + 0x10);
+                swap_slot_sprite_id(engine, OBJECT_TABLE_BASE + 0x20, OBJECT_TABLE_BASE + 0x30);
             }
             if ((sprite_attrs & crate::bits::BIT7) != 0) {
-                swap_slot_sprite_id(engine, 0x0400, 0x0420);
-                swap_slot_sprite_id(engine, 0x0410, 0x0430);
+                swap_slot_sprite_id(engine, OBJECT_TABLE_BASE + 0x00, OBJECT_TABLE_BASE + 0x20);
+                swap_slot_sprite_id(engine, OBJECT_TABLE_BASE + 0x10, OBJECT_TABLE_BASE + 0x30);
             }
         }
         with_large_actor_asset_banks(engine, r, |engine, r| {
@@ -10143,7 +10149,7 @@ mod tick_pulse1_channel {
     use super::*;
     fn silence_pulse1(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(
-            0x4000,
+            crate::engine::reg::SQ1_VOL,
             (engine.state.sound_channel_byte(6, 0x00) & crate::bits::HIGH_2_BITS)
                 | crate::bits::BITS_4_5,
         );
@@ -10238,7 +10244,7 @@ mod tick_pulse2_channel {
     use super::*;
     fn silence_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(
-            0x4004,
+            crate::engine::reg::SQ2_VOL,
             (engine.state.sound_channel_byte(6, 0x10) & crate::bits::HIGH_2_BITS)
                 | crate::bits::BITS_4_5,
         );
@@ -10944,7 +10950,7 @@ mod sfx_overlay_voice {
     use super::*;
     fn silence_sfx_pulse2(engine: &mut Engine, _r: &mut RoutineContext) {
         engine.device_write(
-            0x4004,
+            crate::engine::reg::SQ2_VOL,
             (engine.state.sound_channel_byte(6, 0x40) & crate::bits::HIGH_2_BITS)
                 | crate::bits::BITS_4_5,
         );
@@ -11226,13 +11232,13 @@ mod sound_tick {
         if (engine.state.sound_paused() != 0) {
             if ((engine.state.sfx_voice_active() & crate::bits::BIT7) == 0) {
                 engine.device_write(
-                    (0x4004),
+                    crate::engine::reg::SQ2_VOL,
                     (engine.state.sound_channel_byte(6, 0x10) & crate::bits::HIGH_2_BITS)
                         | crate::bits::BITS_4_5,
                 );
             }
             engine.device_write(
-                (0x4000),
+                crate::engine::reg::SQ1_VOL,
                 (engine.state.sound_channel_byte(6, 0x00) & crate::bits::HIGH_2_BITS)
                     | crate::bits::BITS_4_5,
             );
