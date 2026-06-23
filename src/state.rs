@@ -1261,6 +1261,19 @@ impl GameState {
         self.set_byte(0x0352 + i, value);
     }
 
+    // ---- Palette staging buffer ($0180-$019F) -----------------------------
+
+    /// Palette staging buffer byte `i` (`$0180 + i`), the 32-byte image copied
+    /// to PPU palette RAM ($3F00) on the next upload.
+    #[inline]
+    pub fn palette_buffer(&self, i: i32) -> i32 {
+        self.byte(0x0180 + i)
+    }
+    #[inline]
+    pub fn set_palette_buffer(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0180 + i, value);
+    }
+
     // ---- NMI VRAM request -------------------------------------------------
 
     /// Pending NMI VRAM upload request id (`$28`); foreground code sets it and

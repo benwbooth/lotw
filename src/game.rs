@@ -817,7 +817,7 @@ mod ram_state_init {
         }
 
         for palette_offset in (0..=0x1F).rev() {
-            engine.set_mem(0x0180 + palette_offset, 0x0F);
+            engine.state.set_palette_buffer(palette_offset, 0x0F);
         }
 
         for save_ram_offset in 0..=0xFF {
@@ -2003,12 +2003,12 @@ mod load_intro_text_palette {
 
     /// Loads the intro/text palette and queues it for upload.
     pub fn load_intro_text_palette(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0x0180, 0x0F);
-        engine.set_mem(0x0181, 0x0C);
-        engine.set_mem(0x0182, 0x10);
-        engine.set_mem(0x0183, 0x30);
+        engine.state.set_palette_buffer(0x00, 0x0F);
+        engine.state.set_palette_buffer(0x01, 0x0C);
+        engine.state.set_palette_buffer(0x02, 0x10);
+        engine.state.set_palette_buffer(0x03, 0x30);
         for palette_offset in (0..=0x1B).rev() {
-            engine.set_mem(0x0184 + palette_offset, 0x0F);
+            engine.state.set_palette_buffer(0x04 + palette_offset, 0x0F);
         }
         r.value = 0x0F;
         upload_palette_buffer(engine, r);
@@ -2313,7 +2313,7 @@ mod reset_menu_state_and_palette {
             engine.state.set_byte(addr, engine.mem(0x9B9F + addr));
         }
         for palette_offset in (0..=0x1F).rev() {
-            engine.set_mem(0x0180 + palette_offset, 0x0F);
+            engine.state.set_palette_buffer(palette_offset, 0x0F);
         }
         r.value = 0x0F;
         r.index = 0xFF;
@@ -2358,7 +2358,9 @@ mod load_title_palette_buffer {
     /// Copies the title-screen palette from ROM into the palette upload buffer.
     pub fn load_title_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         for palette_offset in (0..=0x1F).rev() {
-            engine.set_mem(0x0180 + palette_offset, engine.mem(0xA2C9 + palette_offset));
+            engine
+                .state
+                .set_palette_buffer(palette_offset, engine.mem(0xA2C9 + palette_offset));
         }
         r.index = 0xFF;
     }
@@ -2692,7 +2694,7 @@ mod dim_palette_range_by_step {
         let mut palette_offset: i32 = u8v(r.index);
         let mut remaining: i32 = u8v(r.offset);
         loop {
-            let color = engine.mem(u16v(0x0180 + palette_offset));
+            let color = engine.state.palette_buffer(palette_offset);
             let low_nibble: i32 = color & 0x0F;
             engine.state.set_scratch0(low_nibble);
             let high_nibble: i32 = color & 0xF0;
@@ -2702,7 +2704,9 @@ mod dim_palette_range_by_step {
             } else {
                 0x0F
             };
-            engine.set_mem(u16v(0x0180 + palette_offset), dimmed_color);
+            engine
+                .state
+                .set_palette_buffer(palette_offset, dimmed_color);
             palette_offset += 1;
             remaining -= 1;
             if !cbool(remaining != 0) {
@@ -3450,18 +3454,18 @@ mod build_status_resource_meter_tiles {
     /// `r.index` selects the meter column and `0x08` contains the resource value.
     pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineContext) {
         let base_slot: i32 = r.index;
-        engine.set_mem(0x01FB, base_slot);
+        engine.state.set_palette_buffer(0x7B, base_slot);
         for tile_offset in 0..5 {
             engine.set_mem(u16v(0x0101 + base_slot + tile_offset), 0xDC);
         }
 
-        let base_slot: i32 = engine.mem(0x01FB);
-        engine.set_mem(0x01FB, base_slot);
+        let base_slot: i32 = engine.state.palette_buffer(0x7B);
+        engine.state.set_palette_buffer(0x7B, base_slot);
         for tile_offset in 0..5 {
             engine.set_mem(u16v(0x0121 + base_slot + tile_offset), 0xDF);
         }
 
-        let base_slot: i32 = engine.mem(0x01FB);
+        let base_slot: i32 = engine.state.palette_buffer(0x7B);
         r.index = base_slot;
         split_meter_value(engine, r);
 
@@ -11136,7 +11140,7 @@ mod vram_upload_palette {
         {
             y = 0;
             while cbool(y < 0x20) {
-                engine.device_write(0x2007, engine.mem(u16v(0x0180 + y)));
+                engine.device_write(0x2007, engine.state.palette_buffer(y));
                 {
                     let __old = y;
                     y += 1;

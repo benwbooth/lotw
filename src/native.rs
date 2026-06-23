@@ -773,15 +773,15 @@ pub fn fade_partial_palette_buffer_out(engine: &mut Engine, r: &mut RoutineConte
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x0c).rev() {
-            let lo = engine.mem(u16v(0x0180 + x)) & 0x0f;
-            let hi = engine.mem(u16v(0x0180 + x)) & 0xf0;
+            let lo = engine.state.palette_buffer(x) & 0x0f;
+            let hi = engine.state.palette_buffer(x) & 0xf0;
             engine.state.set_scratch0(lo);
             let out = if hi < 0x10 {
                 0x0f
             } else {
                 u8v((hi - 0x10) | lo)
             };
-            engine.set_mem(u16v(0x0180 + x), out);
+            engine.state.set_palette_buffer(x, out);
         }
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
@@ -896,7 +896,7 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     let mut cnt = 0x0a;
     loop {
         for x in (0..=0x1f).rev() {
-            engine.set_mem(u16v(0x0180 + x), 0x30);
+            engine.state.set_palette_buffer(x, 0x30);
         }
         crate::game::upload_palette_buffer(engine, r);
         engine.state.set_frame_counter(0x01);
@@ -930,7 +930,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_nametable_select(0x00);
         engine.state.set_scroll_y(0xe8);
         for x in (0..=0x1f).rev() {
-            engine.set_mem(u16v(0x0180 + x), 0x0f);
+            engine.state.set_palette_buffer(x, 0x0f);
         }
         farcall_cce4(engine, r, 0x69, 0xc5, crate::game::upload_palette_buffer);
         crate::game::reset_room_object_slots(engine, r);
@@ -963,16 +963,18 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 return;
             }
             if (engine.state.frame_prescaler() & 0x07) == 0 {
-                let lo = engine.mem(0x0182) & 0x0f;
-                let mut hi = engine.mem(0x0182) & 0xf0;
+                let lo = engine.state.palette_buffer(0x02) & 0x0f;
+                let mut hi = engine.state.palette_buffer(0x02) & 0xf0;
                 engine.state.set_scratch0(lo);
                 if hi < 0x10 {
                     hi = 0x30;
                 } else {
                     hi = u8v(hi - 0x10);
                 }
-                engine.set_mem(0x0193, hi);
-                engine.set_mem(0x0182, hi | engine.state.scratch0());
+                engine.state.set_palette_buffer(0x13, hi);
+                engine
+                    .state
+                    .set_palette_buffer(0x02, hi | engine.state.scratch0());
             }
             enter_return_home(engine, 0x35, 0xc1);
             frame::commit_frame_work(engine, r);
@@ -1336,7 +1338,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
 
     r.value = 0x0f;
     for x in (0..=0x1f).rev() {
-        engine.set_mem(u16v(0x0180 + x), 0x0f);
+        engine.state.set_palette_buffer(x, 0x0f);
     }
     engine.state.set_oam_y(0x10, 0xef);
     engine.state.set_oam_y(0x14, 0xef);
@@ -1394,7 +1396,7 @@ pub fn fade_palette_buffer_out(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x20).rev() {
-            let v = engine.mem(u16v(0x0180 + x));
+            let v = engine.state.palette_buffer(x);
             let lo = v & 0x0f;
             let hi = v & 0xf0;
             engine.state.set_scratch0(lo);
@@ -1911,7 +1913,7 @@ pub fn fade_room_palette_out_reset_audio(engine: &mut Engine, r: &mut RoutineCon
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x1c).rev() {
-            let v = engine.mem(u16v(0x0184 + x));
+            let v = engine.state.palette_buffer(0x04 + x);
             let lo = v & 0x0f;
             let hi = v & 0xf0;
             engine.state.set_scratch0(lo);
@@ -1948,7 +1950,7 @@ pub fn fade_room_palette_out_keep_audio(engine: &mut Engine, r: &mut RoutineCont
     loop {
         engine.state.set_frame_counter(0x05);
         for x in (0..=0x1c).rev() {
-            let v = engine.mem(u16v(0x0184 + x));
+            let v = engine.state.palette_buffer(0x04 + x);
             let lo = v & 0x0f;
             let hi = v & 0xf0;
             engine.state.set_scratch0(lo);
@@ -1997,7 +1999,7 @@ pub fn flash_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
     let mut x = r.index;
     loop {
         for i in (0..=0x1f).rev() {
-            engine.set_mem(u16v(0x0180 + i), 0x30);
+            engine.state.set_palette_buffer(i, 0x30);
         }
         crate::game::upload_palette_buffer(engine, r);
         engine.state.set_frame_counter(0x01);
