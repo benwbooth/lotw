@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for frame in 1..=max_frame {
         *apu_frame.lock().unwrap() = frame;
         let buttons = input.get(frame).copied().unwrap_or(0);
-        runner.engine_mut().ppu.buttons = ((buttons as i32) as u8);
+        runner.engine_mut().ppu.buttons = (buttons as u8);
         if !common::step_frame(&mut runner) {
             eprintln!("game loop returned at frame {frame}");
             break;

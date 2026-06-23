@@ -1069,12 +1069,12 @@ pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) 
 
     if (engine.state.sprite_blink_timer == 0) {
         if engine.state.sprite0_hit() {
-            r.index = (((engine.state.sprite_index + 1) as u8 as i32) as u8);
+            r.index = ((engine.state.sprite_index + 1) as u8);
             if ((r.index & ((crate::bits::BITS_1_2) as u8)) == 0) {
                 let collision_screen_x = (((engine.state.scroll_pixel_x
                     + ((engine.state.object_x_sub(((r.index) as i32))) as u8))
-                    as u8 as i32) as u8 as i32);
-                r.value = (((if (collision_screen_x < 176) { 10 } else { 5 }) as u8 as i32) as u8);
+                    as u8) as i32);
+                r.value = ((if (collision_screen_x < 176) { 10 } else { 5 }) as u8);
                 subtract_scripted_player_health(engine, r);
                 engine.state.jump_timer = 10;
                 engine.state.prompt_state = 33;
@@ -1094,8 +1094,8 @@ pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) 
 
     build_scripted_player_input_delta(engine, r);
     if (engine.state.fall_frames != 0) {
-        r.value = ((((engine.state.fall_frames >> 2) + 1) as u8 as i32) as u8);
-        engine.state.vertical_delta = (((r.value) as i32) as u8);
+        r.value = (((engine.state.fall_frames >> 2) + 1) as u8);
+        engine.state.vertical_delta = ((r.value) as u8);
         try_move_scripted_player_in_bounds(engine, r);
         if ((r.carry) == 0) {
             commit_scripted_player_position(engine, r);
@@ -1121,7 +1121,7 @@ pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) 
         r.value = 0;
     }
 
-    engine.state.jump_timer = (((r.value) as i32) as u8);
+    engine.state.jump_timer = ((r.value) as u8);
     try_move_scripted_player_in_bounds(engine, r);
     if ((r.carry) != 0) {
         cancel_scripted_player_motion(engine, r);
@@ -1195,10 +1195,10 @@ fn apply_scripted_horizontal_pose(
         r.offset = 64;
     }
 
-    engine.state.scratch0 = (((r.index) as i32) as u8);
+    engine.state.scratch0 = ((r.index) as u8);
     engine.state.player_pose =
         (engine.state.player_pose & ((preserve_mask) as u8)) | engine.state.scratch0;
-    engine.state.player_facing = (((r.offset) as i32) as u8);
+    engine.state.player_facing = ((r.offset) as u8);
     true
 }
 
@@ -1208,7 +1208,7 @@ pub fn update_scripted_player_pose_from_motion(engine: &mut Engine, r: &mut Rout
     let jump_pose = 9;
     if (((engine.state.buttons & ((crate::bits::CLEAR_BIT6) as u8)) as u8 as i32) == 128) {
         r.index = jump_pose;
-        engine.state.player_pose = (((r.index) as i32) as u8);
+        engine.state.player_pose = ((r.index) as u8);
         return;
     }
 
@@ -1216,13 +1216,13 @@ pub fn update_scripted_player_pose_from_motion(engine: &mut Engine, r: &mut Rout
         if ((engine.state.vertical_delta & ((crate::bits::BIT7) as u8)) != 0) {
             if (engine.state.jump_timer == 0) {
                 r.index = jump_pose;
-                engine.state.player_pose = (((r.index) as i32) as u8);
+                engine.state.player_pose = ((r.index) as u8);
                 return;
             }
         } else if (engine.state.fall_frames == 0) {
             if ((engine.state.buttons & ((crate::bits::BIT2) as u8)) != 0) {
                 r.index = 13;
-                engine.state.player_pose = (((r.index) as i32) as u8);
+                engine.state.player_pose = ((r.index) as u8);
                 return;
             }
             apply_scripted_horizontal_pose(engine, r, 1, 7);
@@ -1242,9 +1242,9 @@ pub fn tick_scripted_player_walk_animation(engine: &mut Engine, r: &mut RoutineC
     if (engine.state.player_pose < 32) {
         let mut pose = engine.state.player_pose;
         if ((engine.state.buttons & ((crate::bits::BIT6) as u8)) != 0) {
-            pose = (((pose | ((crate::bits::BIT4) as u8)) as u8 as i32) as u8);
+            pose = ((pose | ((crate::bits::BIT4) as u8)) as u8);
         } else {
-            pose = (((pose & ((crate::bits::CLEAR_BIT4) as u8)) as u8 as i32) as u8);
+            pose = ((pose & ((crate::bits::CLEAR_BIT4) as u8)) as u8);
         }
         engine.state.player_pose = pose;
     }
@@ -1298,12 +1298,12 @@ pub fn draw_scripted_player_sprites(engine: &mut Engine, r: &mut RoutineContext)
     if ((engine.state.player_facing & ((crate::bits::BIT6) as u8)) != 0) {
         r.index = ((engine.state.player_pose) as u8);
         engine.state.set_oam_tile(20, ((r.index) as i32));
-        r.index = (((r.index + 2) as u8 as i32) as u8);
+        r.index = ((r.index + 2) as u8);
         engine.state.set_oam_tile(16, ((r.index) as i32));
     } else {
         r.index = ((engine.state.player_pose) as u8);
         engine.state.set_oam_tile(16, ((r.index) as i32));
-        r.index = (((r.index + 2) as u8 as i32) as u8);
+        r.index = ((r.index + 2) as u8);
         engine.state.set_oam_tile(20, ((r.index) as i32));
     }
 }
@@ -1325,10 +1325,10 @@ pub fn try_move_scripted_player_in_bounds(engine: &mut Engine, r: &mut RoutineCo
                 break;
             }
             if ((adjusted_y_delta & ((crate::bits::BIT7) as u8)) == 0) {
-                adjusted_y_delta = (((adjusted_y_delta - 1) as u8 as i32) as u8);
-                adjusted_y_delta = (((adjusted_y_delta - 1) as u8 as i32) as u8);
+                adjusted_y_delta = ((adjusted_y_delta - 1) as u8);
+                adjusted_y_delta = ((adjusted_y_delta - 1) as u8);
             }
-            adjusted_y_delta = (((adjusted_y_delta + 1) as u8 as i32) as u8);
+            adjusted_y_delta = ((adjusted_y_delta + 1) as u8);
             engine.state.vertical_delta = adjusted_y_delta;
             if (adjusted_y_delta != 0) {
                 continue;
@@ -1355,11 +1355,11 @@ pub fn update_scripted_player_fall_state(engine: &mut Engine, r: &mut RoutineCon
     {
         let mut fall_frames = engine.state.fall_frames;
         if (fall_frames >= engine.state.jump_strength) {
-            fall_frames = (((fall_frames - 7) as u8 as i32) as u8);
+            fall_frames = ((fall_frames - 7) as u8);
             if (fall_frames >= engine.state.jump_strength) {
                 fall_frames = engine.state.jump_strength;
             }
-            fall_frames = (((fall_frames - 1) as u8 as i32) as u8);
+            fall_frames = ((fall_frames - 1) as u8);
             engine.state.jump_timer = fall_frames;
             engine.state.prompt_state = 10;
         }
@@ -1370,7 +1370,7 @@ pub fn update_scripted_player_fall_state(engine: &mut Engine, r: &mut RoutineCon
 /// Subtracts scripted contact damage from health and saturates underflow at
 /// zero while preserving the 6502-style flags in `RoutineContext`.
 pub fn subtract_scripted_player_health(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.state.scratch0 = (((r.value) as i32) as u8);
+    engine.state.scratch0 = ((r.value) as u8);
     let current_health = engine.state.player_health;
     {
         let difference = ((current_health) as u16 as i32) - ((engine.state.scratch0) as u16 as i32);
@@ -1406,8 +1406,7 @@ pub fn check_scripted_player_bounds(engine: &mut Engine, r: &mut RoutineContext)
 /// Converts the lower controller nibble into scripted-player X/Y velocity
 /// scratch using the same ROM movement table as the original routine.
 pub fn build_scripted_player_input_delta(engine: &mut Engine, r: &mut RoutineContext) {
-    r.index =
-        ((((engine.state.buttons & ((crate::bits::LOW_NIBBLE) as u8)) << 1) as u8 as i32) as u8);
+    r.index = (((engine.state.buttons & ((crate::bits::LOW_NIBBLE) as u8)) << 1) as u8);
     engine.state.horizontal_subtile_delta = ((engine
         .state
         .byte(((MOVE_DELTA_X_TABLE + ((r.index) as i32)) as u16 as i32)))
@@ -1552,7 +1551,7 @@ pub fn set_intro_text_vram_address(engine: &mut Engine, r: &mut RoutineContext) 
     let address: i32 = VRAM_NAMETABLE0 + (((engine.state.scratch2 as i32) << 2) as i32);
     engine.state.vram_addr_hi = ((address >> 8) as u8);
     engine.state.vram_addr_lo = ((address) as u8);
-    r.value = (((address) as u8 as i32) as u8);
+    r.value = ((address) as u8);
 }
 
 /// Advances intro text scroll one pixel at a time, flushing partial slices
@@ -1987,7 +1986,7 @@ pub fn update_camera_scroll_from_player(engine: &mut Engine, r: &mut RoutineCont
         no_scroll_column_needed = 0;
     }
     refresh_scroll_register_shadows(engine, r);
-    r.carry = (((no_scroll_column_needed) as u8 as i32) as u8);
+    r.carry = ((no_scroll_column_needed) as u8);
 }
 
 /// Converts the tile/sub-tile camera position into PPU scroll shadows.
@@ -2717,7 +2716,7 @@ pub fn select_room_data_bank_and_pointers(engine: &mut Engine, r: &mut RoutineCo
     engine.state.palette_src_ptr_hi = ((room_ptr_lo + 3) as u8);
     engine.state.palette_src_ptr_lo = 0;
     engine.state.room_metadef_lo = 0;
-    r.carry = (((if ((room_ptr_lo + 3) > 255) { 1 } else { 0 }) as u8 as i32) as u8);
+    r.carry = ((if ((room_ptr_lo + 3) > 255) { 1 } else { 0 }) as u8);
 }
 
 /// Copies room palette/attribute bytes into the palette buffer and applies
@@ -2754,7 +2753,7 @@ pub fn build_room_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
 
     r.value = ((family_palette_end_offset) as u8);
     r.index = ((family_palette_offset) as u8);
-    r.offset = (((255) as u8 as i32) as u8);
+    r.offset = ((255) as u8);
     r.carry = 0;
 }
 
@@ -2820,9 +2819,9 @@ pub fn scale_room_tile_column(engine: &mut Engine, r: &mut RoutineContext) {
     let column_offset: i32 = ((column_times_four + column_times_eight) as u16 as i32);
     engine.state.data_ptr_lo = ((column_offset) as u8);
     engine.state.data_ptr_hi = ((column_offset >> 8) as u8);
-    r.index = (((column_times_four >> 8) as u8 as i32) as u8);
-    r.offset = (((column_times_four) as u8 as i32) as u8);
-    r.value = (((column_offset >> 8) as u8 as i32) as u8);
+    r.index = ((column_times_four >> 8) as u8);
+    r.offset = ((column_times_four) as u8);
+    r.value = ((column_offset >> 8) as u8);
 }
 
 /// Queues the resource HUD VRAM upload after resource counters changed.
@@ -3478,10 +3477,10 @@ pub fn upload_inventory_count_tiles(engine: &mut Engine, r: &mut RoutineContext)
     {
         x = 15;
         while (x >= 0) {
-            r.index = (((x) as u8 as i32) as u8);
+            r.index = ((x) as u8);
             r.offset = ((engine.state.inventory_item(x)) as u8);
             upload_inventory_item_count_tiles(engine, r);
-            r.index = (((x) as u8 as i32) as u8);
+            r.index = ((x) as u8);
             {
                 x -= 1;
                 x
@@ -3653,7 +3652,7 @@ pub fn switch_song_if_needed(engine: &mut Engine, r: &mut RoutineContext) {
     if (r.value == ((engine.state.song) as u8)) {
         return;
     }
-    engine.state.song = (((r.value) as i32) as u8);
+    engine.state.song = ((r.value) as u8);
     song_init(engine, r);
 }
 
@@ -3665,7 +3664,7 @@ pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext)
     r.index = ((selected_item_slot) as u8);
     if (selected_item == 6) && (engine.state.player_magic != 0) {
         let base_jump_duration: i32 = ((engine.state.jump_strength) as i32);
-        r.value = ((((base_jump_duration >> 2) + base_jump_duration) as u8 as i32) as u8);
+        r.value = (((base_jump_duration >> 2) + base_jump_duration) as u8);
         r.carry = 0;
     } else {
         r.value = ((engine.state.jump_strength) as u8);
@@ -3679,7 +3678,7 @@ pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineCont
     let selected_item_slot: i32 = ((engine.state.selected_item_slot) as i32);
     let selected_item: i32 = engine.state.item_slot(selected_item_slot);
     if (selected_item == 8) && (engine.state.player_magic != 0) {
-        r.value = ((((engine.state.projectile_damage as i32) << 2) as u8 as i32) as u8);
+        r.value = (((engine.state.projectile_damage as i32) << 2) as u8);
         r.carry = 0;
     } else {
         r.value = ((engine.state.projectile_damage) as u8);
@@ -3693,7 +3692,7 @@ pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineCo
     let selected_item_slot: i32 = ((engine.state.selected_item_slot) as i32);
     r.index = ((selected_item_slot) as u8);
     if (engine.state.item_slot(selected_item_slot) == 9) && (engine.state.player_magic != 0) {
-        r.value = ((((engine.state.projectile_lifetime as i32) << 1) as u8 as i32) as u8);
+        r.value = (((engine.state.projectile_lifetime as i32) << 1) as u8);
         r.carry = 0;
         return;
     }
@@ -4029,7 +4028,7 @@ pub fn enter_room_link_destination(engine: &mut Engine, r: &mut RoutineContext) 
     engine.state.scroll_fine_x = 0;
 
     r.value = ((engine.state.byte(((link_ptr + 15) as u16 as i32))) as u8);
-    engine.state.player_y = (((r.value) as i32) as u8);
+    engine.state.player_y = ((r.value) as u8);
     fade_room_palette_out_reset_audio(engine, r);
     reset_room_object_slots(engine, r);
     scene_assemble(engine, r);
@@ -4046,8 +4045,8 @@ pub fn enter_room_link_destination(engine: &mut Engine, r: &mut RoutineContext) 
 pub fn enter_fragment_pickup_room(engine: &mut Engine, r: &mut RoutineContext) {
     run_warp_transition_effect(engine, r);
     engine.state.map_screen_y = 17;
-    r.index = (((engine.state.fragment_count - 1) as u8 as i32) as u8);
-    engine.state.map_screen_x = (((r.index) as i32) as u8);
+    r.index = ((engine.state.fragment_count - 1) as u8);
+    engine.state.map_screen_x = ((r.index) as u8);
     engine.state.scroll_tile_x = 18;
     engine.state.player_y = 16;
     engine.state.player_x_tile = 26;
@@ -4721,7 +4720,7 @@ pub fn try_trigger_magic_contact_actor(engine: &mut Engine, r: &mut RoutineConte
 /// Applies a collectible reward that came from an event/shop path where no
 /// room object slot needs to be cleared.
 pub fn apply_event_collectible_reward(engine: &mut Engine, r: &mut RoutineContext) {
-    let reward_id: i32 = (((r.value - 2) as u8 as i32) as u8 as i32);
+    let reward_id: i32 = (((r.value - 2) as u8) as i32);
     engine.state.set_object_state(160, 0);
     if (reward_id >= 24) {
         engine.state.prompt_state = 6;
@@ -4734,7 +4733,7 @@ pub fn apply_event_collectible_reward(engine: &mut Engine, r: &mut RoutineContex
         engine.state.data_ptr_lo =
             ((EVENT_REWARD_TEXT[reward_id as usize] & crate::bits::BYTE_MASK) as u8);
         engine.state.data_ptr_hi = ((EVENT_REWARD_TEXT[reward_id as usize] >> 8) as u8);
-        r.value = (((reward_id << 1) as u8 as i32) as u8);
+        r.value = ((reward_id << 1) as u8);
         r.index = r.value;
         match reward_id {
             0 => {
@@ -4785,7 +4784,7 @@ pub fn apply_event_collectible_reward(engine: &mut Engine, r: &mut RoutineContex
 
 /// Clears the touched room object slot/OAM entry and applies its reward.
 pub fn collect_room_pickup_object(engine: &mut Engine, r: &mut RoutineContext) {
-    let reward_id: i32 = (((r.value - 2) as u8 as i32) as u8 as i32);
+    let reward_id: i32 = (((r.value - 2) as u8) as i32);
     if (reward_id >= 24) {
         return;
     }
@@ -4808,7 +4807,7 @@ pub fn collect_room_pickup_object(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.data_ptr_lo =
             ((PICKUP_REWARD_TEXT[reward_id as usize] & crate::bits::BYTE_MASK) as u8);
         engine.state.data_ptr_hi = ((PICKUP_REWARD_TEXT[reward_id as usize] >> 8) as u8);
-        r.value = (((reward_id << 1) as u8 as i32) as u8);
+        r.value = ((reward_id << 1) as u8);
         r.index = r.value;
         match reward_id {
             0 => {
@@ -4988,7 +4987,7 @@ pub fn check_top_boundary_exit_clear(engine: &mut Engine, r: &mut RoutineContext
     resolve_room_tile_pointer(engine, r);
     let tile_ptr = ((engine.state.data_ptr()) as u16 as i32);
     let tile = engine.state.byte(tile_ptr) & crate::bits::LOW_6_BITS;
-    r.carry = (((tile == 0) as u8 as i32) as u8);
+    r.carry = ((tile == 0) as u8);
 }
 
 /// Applies tile `0x30` hazard contact at `tile_ptr + r.offset`, including
@@ -5031,7 +5030,7 @@ pub fn probe_player_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
     } else if tile == 2 {
         r.carry = 1;
     } else {
-        r.carry = (((tile >= 48) as u8 as i32) as u8);
+        r.carry = ((tile >= 48) as u8);
     }
 }
 
@@ -5096,7 +5095,7 @@ fn dispatch_four_fragment_overhead_tile(engine: &mut Engine, r: &mut RoutineCont
     let mut fragment_count = engine.state.fragment_count;
     for slot in 0..=2 {
         if engine.state.item_slot(slot) == 14 {
-            fragment_count = (((fragment_count + 1) as u8 as i32) as u8);
+            fragment_count = ((fragment_count + 1) as u8);
         }
     }
     if fragment_count != 4 {
@@ -5136,7 +5135,7 @@ pub fn dispatch_projected_tile_actions(engine: &mut Engine, r: &mut RoutineConte
         }
     }
 
-    r.carry = (((handled) as u8 as i32) as u8);
+    r.carry = ((handled) as u8);
     engine.state.scratch2 = saved_pixel_y;
     engine.state.indirect_ptr_hi = saved_tile_x;
     engine.state.indirect_ptr_lo = saved_subtile_x;
@@ -5786,7 +5785,7 @@ pub fn consume_magic_point(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Adds `r.value` health and clamps it to the HUD/resource maximum.
 pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
-    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_health as i32) as u8 as i32);
+    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_health as i32) as i32);
     let capped_total: i32 = if (total > 255) {
         109
     } else if (((total) as u8 as i32) >= 110) {
@@ -5800,7 +5799,7 @@ pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Adds `r.value` magic and clamps it to the HUD/resource maximum.
 pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
-    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_magic as i32) as u8 as i32);
+    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_magic as i32) as i32);
     let capped_total: i32 = if (total > 255) {
         109
     } else if (((total) as u8 as i32) >= 110) {
@@ -5829,15 +5828,15 @@ pub fn add_coins(engine: &mut Engine, r: &mut RoutineContext) {
 /// Spends `r.value` coins. Carry is set on success and clear when the
 /// player cannot afford the cost.
 pub fn spend_coins(engine: &mut Engine, r: &mut RoutineContext) {
-    engine.state.scratch0 = (((r.value) as i32) as u8);
+    engine.state.scratch0 = ((r.value) as u8);
     let remaining_coins: i32 =
         ((engine.state.coins) as u16 as i32) - ((engine.state.scratch0) as u16 as i32);
-    r.value = (((remaining_coins) as u8 as i32) as u8);
+    r.value = ((remaining_coins) as u8);
     if ((remaining_coins & crate::bits::BIT8) != 0) {
         r.carry = 0;
         return;
     }
-    engine.state.coins = (((r.value) as i32) as u8);
+    engine.state.coins = ((r.value) as u8);
     sync_coin_hud(engine, r);
     r.carry = 1;
 }
@@ -5925,7 +5924,7 @@ pub fn update_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
                         (engine.state.slot_index + 1) & ((crate::bits::BYTE_MASK) as u8);
                     engine.state.obj_slot_ptr_lo = engine.state.obj_slot_ptr_lo + 16;
                     engine.state.actor_record_ptr_lo =
-                        (((engine.state.actor_record_ptr_lo + 16) as u8 as i32) as u8);
+                        ((engine.state.actor_record_ptr_lo + 16) as u8);
                     if !(engine.state.slot_index < engine.state.slot_index_limit) {
                         break;
                     }
@@ -5997,7 +5996,7 @@ pub fn update_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
                         (engine.state.slot_index + 1) & ((crate::bits::BYTE_MASK) as u8);
                     engine.state.obj_slot_ptr_lo = engine.state.obj_slot_ptr_lo + 16;
                     engine.state.actor_record_ptr_lo =
-                        (((engine.state.actor_record_ptr_lo + 16) as u8 as i32) as u8);
+                        ((engine.state.actor_record_ptr_lo + 16) as u8);
                     if !(engine.state.slot_index < 9) {
                         break;
                     }
@@ -6054,10 +6053,10 @@ pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
     {
         r.value = 12;
         rng_update(engine, r);
-        engine.state.scratch2 = ((((r.value as i32) << 4) as i32) as u8);
+        engine.state.scratch2 = (((r.value as i32) << 4) as u8);
         r.value = 64;
         rng_update(engine, r);
-        engine.state.indirect_ptr_hi = (((r.value) as i32) as u8);
+        engine.state.indirect_ptr_hi = ((r.value) as u8);
     } else {
         engine.state.scratch2 = ((engine.state.byte(((actor_data_ptr + 3) as u16 as i32))) as u8);
         engine.state.indirect_ptr_hi =
@@ -6171,7 +6170,7 @@ pub fn maybe_spawn_pursuer_actor(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.obj_tile = 129;
     r.value = 4;
     rng_update(engine, r);
-    engine.state.obj_attr = (((r.value) as i32) as u8);
+    engine.state.obj_attr = ((r.value) as u8);
     engine.state.obj_cooldown = 128;
     r.offset = ((source_slot_offset) as u8);
     r.index = ((scratch_offset) as u8);
@@ -6307,7 +6306,7 @@ pub fn tick_wandering_jump_actor(engine: &mut Engine, r: &mut RoutineContext) {
                     choose_random_cardinal_actor_direction(engine, r);
                     r.value = 6;
                     rng_update(engine, r);
-                    engine.state.obj_x_vel_hi = (((r.value + 1) as i32) as u8);
+                    engine.state.obj_x_vel_hi = ((r.value + 1) as u8);
                     r.value = 4;
                     rng_update(engine, r);
                     r.index = r.value;
@@ -7223,8 +7222,8 @@ pub fn update_actor_animation(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.indirect_ptr_lo = ((original_handler & crate::bits::BYTE_MASK) as u8);
     engine.state.indirect_ptr_hi = ((original_handler >> 8) as u8);
     r.offset = 7;
-    r.index = (((animation_id << 1) as u8 as i32) as u8);
-    r.value = (((animation_id << 1) as u8 as i32) as u8);
+    r.index = ((animation_id << 1) as u8);
+    r.value = ((animation_id << 1) as u8);
     match animation_id {
         0 => {
             animate_actor_flip_toggle(engine, r);
@@ -7528,7 +7527,7 @@ pub fn probe_object_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
         .state
         .byte(((tile_ptr + ((r.offset) as i32)) as u16 as i32))
         & crate::bits::LOW_6_BITS) as u8 as i32);
-    r.carry = ((((tile_id >= 48) as u8 as i32) as u8 as i32) as u8);
+    r.carry = (((tile_id >= 48) as u8) as u8);
 }
 
 /// Checks the projected one-tile-wide object footprint in `0x0E..0x0F/0x0A`
@@ -7632,7 +7631,7 @@ pub fn probe_projected_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
         .state
         .byte(((tile_ptr + ((r.offset) as i32)) as u16 as i32))
         & crate::bits::LOW_6_BITS) as u8 as i32);
-    r.carry = ((((tile_id >= 48) as u8 as i32) as u8 as i32) as u8);
+    r.carry = (((tile_id >= 48) as u8) as u8);
 }
 
 /// Attempts to reflect object velocity away from the nearest subtile edge
@@ -8188,11 +8187,11 @@ pub fn spawn_player_projectile(engine: &mut Engine, r: &mut RoutineContext) {
                 load_object_slot_scratch(engine, r);
                 engine.state.direction_latch = (engine.state.buttons & ((crate::bits::BIT6) as u8))
                     | engine.state.direction_latch;
-                r.offset = (((if (engine.state.displaced_timer != 0) {
+                r.offset = ((if (engine.state.displaced_timer != 0) {
                     4
                 } else {
                     2
-                }) as u8 as i32) as u8);
+                }) as u8);
                 r.value = ((engine.state.direction_latch) as u8);
                 build_direction_velocity(engine, r);
                 project_player_projectile_position(engine, r);
@@ -8214,12 +8213,12 @@ pub fn spawn_player_projectile(engine: &mut Engine, r: &mut RoutineContext) {
                 engine.state.obj_x_tile = engine.state.indirect_ptr_hi;
                 engine.state.obj_y_pixel = engine.state.scratch2;
                 load_effective_projectile_lifetime(engine, r);
-                engine.state.obj_state = (((r.value) as i32) as u8);
+                engine.state.obj_state = ((r.value) as u8);
                 if (r.carry == 0) {
                     consume_magic_point(engine, r);
                 }
                 load_effective_projectile_damage(engine, r);
-                engine.state.obj_damage = (((r.value) as i32) as u8);
+                engine.state.obj_damage = ((r.value) as u8);
                 if (r.carry == 0) {
                     consume_magic_point(engine, r);
                 }
@@ -8793,8 +8792,8 @@ pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
             let mut is_rest: i32 = ((note_byte & crate::bits::BIT7) as u8 as i32);
             r.value = ((note_byte) as u8);
             increment_selected_music_stream_pointer(engine, r);
-            r.value = (((note_byte & crate::bits::LOW_7_BITS) as u8 as i32) as u8);
-            engine.state.triangle_timer = (((r.value) as i32) as u8);
+            r.value = ((note_byte & crate::bits::LOW_7_BITS) as u8);
+            engine.state.triangle_timer = ((r.value) as u8);
             if ((is_rest) != 0) {
                 silence_triangle(engine, r);
                 return;
@@ -8810,8 +8809,8 @@ pub fn tick_triangle_channel(engine: &mut Engine, r: &mut RoutineContext) {
                 crate::engine::reg::TRI_LO,
                 ((engine.state.sound_command) as i32),
             );
-            r.value = ((((engine.state.sound_length & ((crate::bits::LOW_3_BITS) as u8))
-                | ((crate::bits::HIGH_5_BITS) as u8)) as u8 as i32) as u8);
+            r.value = (((engine.state.sound_length & ((crate::bits::LOW_3_BITS) as u8))
+                | ((crate::bits::HIGH_5_BITS) as u8)) as u8);
             engine.device_write(crate::engine::reg::TRI_HI, ((r.value) as i32));
             return;
         }
@@ -9077,7 +9076,7 @@ pub fn load_note_period(engine: &mut Engine, r: &mut RoutineContext) {
 // by 16 to return the APU's 4-bit volume value.
 pub fn scale_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
     let mut scaled_volume: i32 = 0;
-    let mut multiplier: i32 = (((r.offset + 1) as u8 as i32) as u8 as i32);
+    let mut multiplier: i32 = (((r.offset + 1) as u8) as i32);
     loop {
         scaled_volume = ((scaled_volume + ((engine.state.audio_duty_work) as i32)) as u8 as i32);
         multiplier = ((multiplier - 1) as u8 as i32);
@@ -9289,11 +9288,11 @@ pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn scene_assemble(engine: &mut Engine, r: &mut RoutineContext) {
     select_room_data_bank_and_pointers(engine, r);
     copy_room_tile_pages(engine, r);
-    r.carry = ((((if ((engine.state.room_metadef_hi as i32 + 3) > 255) {
+    r.carry = (((if ((engine.state.room_metadef_hi as i32 + 3) > 255) {
         1
     } else {
         0
-    }) as u8 as i32) as u8 as i32) as u8);
+    }) as u8) as u8);
     text_attr_build(engine, r);
     build_room_palette_buffer(engine, r);
 }
@@ -9352,9 +9351,9 @@ pub fn sfx_overlay_voice(engine: &mut Engine, r: &mut RoutineContext) {
                             .byte((((SFX_POINTER_TABLE + 1) + sfx_table_index) as u16 as i32)),
                     );
                     engine.state.sfx_voice_active = 128;
-                    engine.state.sound_channel_flags =
-                        (((engine.state.sound_channel_flags | ((crate::bits::BIT6) as u8)) as u8
-                            as i32) as u8);
+                    engine.state.sound_channel_flags = ((engine.state.sound_channel_flags
+                        | ((crate::bits::BIT6) as u8))
+                        as u8 as u8);
                     engine.state.prompt_state = 0;
                     engine.state.prompt_argument = 0;
                 }
