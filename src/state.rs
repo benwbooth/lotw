@@ -1305,6 +1305,77 @@ impl GameState {
         self.set_byte(0x0180 + i, value);
     }
 
+    /// Bitmask of available/active Drasle family members (`$41`).
+    #[inline]
+    pub fn family_member_mask(&self) -> i32 {
+        self.byte(0x41)
+    }
+    #[inline]
+    pub fn set_family_member_mask(&mut self, value: i32) {
+        self.set_byte(0x41, value);
+    }
+
+    /// OAM buffer write cursor / current sprite byte offset (`$3F`).
+    #[inline]
+    pub fn oam_cursor(&self) -> i32 {
+        self.byte(0x3F)
+    }
+    #[inline]
+    pub fn set_oam_cursor(&mut self, value: i32) {
+        self.set_byte(0x3F, value);
+    }
+
+    /// Player facing/direction flag (`$57`); bit6 marks the horizontal flip.
+    #[inline]
+    pub fn player_facing(&self) -> i32 {
+        self.byte(0x57)
+    }
+    #[inline]
+    pub fn set_player_facing(&mut self, value: i32) {
+        self.set_byte(0x57, value);
+    }
+
+    /// Auxiliary stream pointer high byte (`$11`); secondary to `data_ptr`.
+    #[inline]
+    pub fn aux_ptr_hi(&self) -> i32 {
+        self.byte(0x11)
+    }
+    #[inline]
+    pub fn set_aux_ptr_hi(&mut self, value: i32) {
+        self.set_byte(0x11, value);
+    }
+
+    /// Speed-boost / temporary-effect timer (`$89`).
+    #[inline]
+    pub fn boost_timer(&self) -> i32 {
+        self.byte(0x89)
+    }
+    #[inline]
+    pub fn set_boost_timer(&mut self, value: i32) {
+        self.set_byte(0x89, value);
+    }
+
+    /// Temporary save slot `i` (`$80 + i`, 4 bytes): a scratch group preserved
+    /// across nested calls (e.g. the shop/menu state handlers).
+    #[inline]
+    pub fn temp_save(&self, i: i32) -> i32 {
+        self.byte(0x80 + i)
+    }
+    #[inline]
+    pub fn set_temp_save(&mut self, i: i32, value: i32) {
+        self.set_byte(0x80 + i, value);
+    }
+
+    /// Sound length/period parameter for the current note (`$05`).
+    #[inline]
+    pub fn sound_length(&self) -> i32 {
+        self.byte(0x05)
+    }
+    #[inline]
+    pub fn set_sound_length(&mut self, value: i32) {
+        self.set_byte(0x05, value);
+    }
+
     /// Sound engine status flag bits (`$27`).
     #[inline]
     pub fn sound_status_flags(&self) -> i32 {

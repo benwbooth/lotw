@@ -1613,7 +1613,7 @@ mod update_scripted_player_pose_from_motion {
             0x56,
             u8v((engine.state.player_pose() & preserve_mask) | engine.state.scratch0()),
         );
-        engine.set_mem(0x57, r.offset);
+        engine.state.set_player_facing(r.offset);
         true
     }
 
@@ -1680,7 +1680,9 @@ mod tick_scripted_player_walk_animation {
             return;
         }
         if cbool(engine.state.player_pose() & 0x08) {
-            engine.xor_mem(0x57, 0x40);
+            engine
+                .state
+                .set_player_facing(engine.state.player_facing() ^ 0x40);
         } else {
             engine
                 .state
@@ -1714,11 +1716,11 @@ mod draw_scripted_player_sprites {
             .set_oam_x(0x14, u8v(engine.state.player_x_fine() + 0x08));
         engine
             .state
-            .set_oam_attr(0x10, u8v(engine.mem(0x57) | 0x20));
+            .set_oam_attr(0x10, u8v(engine.state.player_facing() | 0x20));
         engine
             .state
-            .set_oam_attr(0x14, u8v(engine.mem(0x57) | 0x20));
-        if cbool(engine.mem(0x57) & 0x40) {
+            .set_oam_attr(0x14, u8v(engine.state.player_facing() | 0x20));
+        if cbool(engine.state.player_facing() & 0x40) {
             r.index = engine.state.player_pose();
             engine.state.set_oam_tile(0x14, r.index);
             r.index = u8v(r.index + 2);
@@ -2546,11 +2548,15 @@ mod draw_player_sprites {
         engine.state.set_scratch0(camera_world_x);
         engine.state.set_oam_x(0x10, screen_x);
         engine.state.set_oam_x(0x14, u8v(screen_x + 0x08));
-        engine.state.set_oam_attr(0x10, engine.mem(0x57));
-        engine.state.set_oam_attr(0x14, engine.mem(0x57));
+        engine
+            .state
+            .set_oam_attr(0x10, engine.state.player_facing());
+        engine
+            .state
+            .set_oam_attr(0x14, engine.state.player_facing());
 
         let left_tile: i32 = engine.state.player_pose();
-        if cbool(engine.mem(0x57) & 0x40) {
+        if cbool(engine.state.player_facing() & 0x40) {
             engine.state.set_oam_tile(0x14, left_tile);
             engine.state.set_oam_tile(0x10, u8v(left_tile + 2));
         } else {
@@ -2617,7 +2623,7 @@ mod draw_room_object_sprites {
     /// original scheduler's rolling object sprite pass.
     pub fn draw_room_object_sprites(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_scratch2(0x10);
-        let mut oam_offset: i32 = engine.mem(0x3F);
+        let mut oam_offset: i32 = engine.state.oam_cursor();
         let mut object_offset: i32 = engine.state.sprite_index();
         loop {
             r.index = oam_offset;
@@ -2630,7 +2636,9 @@ mod draw_room_object_sprites {
                 break;
             }
         }
-        engine.set_mem(0x3F, u8v((u8v(oam_offset + 0x38)) | 0x80));
+        engine
+            .state
+            .set_oam_cursor(u8v((u8v(oam_offset + 0x38)) | 0x80));
         engine.state.set_sprite_index(u8v(object_offset + 0x10));
     }
 }
@@ -3400,7 +3408,7 @@ mod resolve_room_tile_pointer {
     pub fn resolve_room_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_y: i32 = engine.state.data_ptr_hi();
         scale_room_tile_column(engine, r);
-        engine.set_mem(0x11, engine.state.data_ptr_hi());
+        engine.state.set_aux_ptr_hi(engine.state.data_ptr_hi());
         {
             let tile_row: i32 = u8v(tile_y >> 4);
             let room_offset: i32 = u16v(tile_row + engine.state.data_ptr_lo());
@@ -3410,7 +3418,9 @@ mod resolve_room_tile_pointer {
                 engine
                     .state
                     .set_data_ptr_hi(u8v(engine.state.data_ptr_hi() + 1));
-                engine.set_mem(0x11, u8v(engine.mem(0x11) + 1));
+                engine
+                    .state
+                    .set_aux_ptr_hi(u8v(engine.state.aux_ptr_hi() + 1));
             }
         }
         engine
@@ -3420,7 +3430,9 @@ mod resolve_room_tile_pointer {
             let room_ptr_lo: i32 = u16v(engine.mem(0x10) + engine.mem(0x75));
             let carry: i32 = u8v(room_ptr_lo >> 8);
             engine.set_mem(0x10, u8v(room_ptr_lo));
-            engine.set_mem(0x11, u8v(engine.mem(0x11) + engine.mem(0x76) + carry));
+            engine
+                .state
+                .set_aux_ptr_hi(u8v(engine.state.aux_ptr_hi() + engine.mem(0x76) + carry));
         }
     }
 }
@@ -4264,7 +4276,7 @@ mod upload_shop_price_tiles {
                 .state
                 .set_vram_addr_hi(u8v(0x04 + engine.state.vram_addr_hi() + (s >> 8)));
         }
-        r.value = engine.mem(0x81);
+        r.value = engine.state.temp_save(1);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
@@ -4273,7 +4285,7 @@ mod upload_shop_price_tiles {
         engine.state.set_vram_addr_lo(u8v(0x0E + lo));
         hi = engine.state.vram_addr_hi();
         engine.state.set_vram_addr_hi(u8v(0x00 + hi + c));
-        r.value = engine.mem(0x83);
+        r.value = engine.state.temp_save(3);
         build_decimal_digit_tiles(engine, r);
         r.value = 0x06;
         queue_ppu_job_and_wait(engine, r);
@@ -5019,7 +5031,7 @@ mod handle_player_room_transition {
             engine
                 .state
                 .set_map_screen_x(u8v(engine.state.map_screen_x() - 1));
-            engine.set_mem(0x57, 0x00);
+            engine.state.set_player_facing(0x00);
             draw_player_sprites(engine, r);
             engine.state.set_scroll_tile_x(0x30);
             engine.state.set_player_x_tile(0x3F);
@@ -5034,7 +5046,7 @@ mod handle_player_room_transition {
             engine
                 .state
                 .set_map_screen_x(u8v(engine.state.map_screen_x() + 1));
-            engine.set_mem(0x57, 0x40);
+            engine.state.set_player_facing(0x40);
             draw_player_sprites(engine, r);
             engine.state.set_scroll_tile_x(0x00);
             engine.state.set_player_x_fine(0x00);
@@ -5274,7 +5286,7 @@ mod update_player_pose_from_motion {
                     engine.state.set_player_pose(
                         (engine.state.player_pose() & 0x07) | engine.state.scratch0(),
                     );
-                    engine.set_mem(0x57, y);
+                    engine.state.set_player_facing(y);
                     return;
                     state = 4;
                     continue 'dispatch;
@@ -5309,7 +5321,7 @@ mod update_player_pose_from_motion {
                     engine.state.set_player_pose(
                         (engine.state.player_pose() & 0x03) | engine.state.scratch0(),
                     );
-                    engine.set_mem(0x57, y);
+                    engine.state.set_player_facing(y);
                     break 'dispatch;
                 }
                 _ => break 'dispatch,
@@ -5350,7 +5362,9 @@ mod tick_player_walk_animation {
             return;
         }
         if cbool(engine.state.player_pose() & 0x08) {
-            engine.set_mem(0x57, u8v(engine.mem(0x57) ^ 0x40));
+            engine
+                .state
+                .set_player_facing(u8v(engine.state.player_facing() ^ 0x40));
         } else {
             engine
                 .state
@@ -5824,11 +5838,11 @@ mod grant_short_speed_boost {
         engine.state.set_prompt_state(0x13);
         displaced_timer = engine.state.displaced_timer();
         if cbool(displaced_timer != 0) {
-            displaced_timer = engine.mem(0x89);
+            displaced_timer = engine.state.boost_timer();
             if cbool(displaced_timer != 0) {
                 engine.set_mem(0x8A, boost_duration);
             }
-            engine.set_mem(0x89, boost_duration);
+            engine.state.set_boost_timer(boost_duration);
         }
         engine.state.set_displaced_timer(boost_duration);
         r.value = displaced_timer;
@@ -5846,7 +5860,7 @@ mod grant_long_speed_boost {
         engine.state.set_prompt_state(0x13);
         displaced_timer = engine.state.displaced_timer();
         if cbool(displaced_timer != 0) {
-            displaced_timer = engine.mem(0x89);
+            displaced_timer = engine.state.boost_timer();
             if cbool(displaced_timer != 0) {
                 displaced_timer = engine.mem(0x8A);
                 if cbool(displaced_timer != 0) {
@@ -5854,7 +5868,7 @@ mod grant_long_speed_boost {
                 }
                 engine.set_mem(0x8A, boost_duration);
             }
-            engine.set_mem(0x89, boost_duration);
+            engine.state.set_boost_timer(boost_duration);
         }
         engine.state.set_displaced_timer(boost_duration);
         r.value = displaced_timer;
@@ -6124,7 +6138,7 @@ mod read_room_tile_action_value {
     /// resolves to the current room replacement value in `0x74`.
     pub fn read_room_tile_action_value(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_offset: i32 = engine.state.scratch3();
-        let room_ptr: i32 = u16v(engine.mem(0x10) | (engine.mem(0x11) << 8));
+        let room_ptr: i32 = u16v(engine.mem(0x10) | (engine.state.aux_ptr_hi() << 8));
         let room_tile: i32 = engine.state.byte(u16v(room_ptr + tile_offset));
         let tile_id: i32 = room_tile & 0x3F;
         r.index = tile_id;
@@ -6617,7 +6631,7 @@ mod draw_shop_item_sprites {
             match state {
                 0 => {
                     a = 0xEF;
-                    x = engine.mem(0x80);
+                    x = engine.state.temp_save(0);
                     if cbool(x & 0x80) {
                         {
                             state = 1;
@@ -6625,7 +6639,7 @@ mod draw_shop_item_sprites {
                         }
                     }
                     if cbool(engine.state.inventory_item(x) >= 0x0B) {
-                        engine.set_mem(0x80, 0xEF);
+                        engine.state.set_temp_save(0, 0xEF);
                         a = 0xEF;
                         {
                             state = 1;
@@ -6649,7 +6663,7 @@ mod draw_shop_item_sprites {
                     engine.state.set_oam_attr(0x40, 0x01);
                     engine.state.set_oam_attr(0x44, 0x01);
                     a = 0xEF;
-                    x = engine.mem(0x82);
+                    x = engine.state.temp_save(2);
                     if cbool(x & 0x80) {
                         {
                             state = 2;
@@ -6657,7 +6671,7 @@ mod draw_shop_item_sprites {
                         }
                     }
                     if cbool(engine.state.inventory_item(x) >= 0x0B) {
-                        engine.set_mem(0x82, 0xEF);
+                        engine.state.set_temp_save(2, 0xEF);
                         a = 0xEF;
                         {
                             state = 2;
@@ -7182,7 +7196,7 @@ mod tick_inactive_actor_slot {
                     break;
                 }
             }
-            current_member_bit = u8v(current_member_bit & engine.mem(0x41));
+            current_member_bit = u8v(current_member_bit & engine.state.family_member_mask());
             if cbool(current_member_bit == 0) {
                 let mut contact_damage: i32 = engine.state.obj_damage();
                 let mut damage_overflow: i32 = u8v((contact_damage >> 7) & 1);
@@ -9980,7 +9994,8 @@ mod tick_pulse1_channel {
                                 ));
                             engine.device_write(0x4001, engine.mem(0x9A));
                             engine.device_write(0x4002, engine.state.sound_command());
-                            engine.device_write(0x4003, (engine.mem(0x05) & 0x07) | 0x18);
+                            engine
+                                .device_write(0x4003, (engine.state.sound_length() & 0x07) | 0x18);
                             start_note_envelope(engine, r);
                         }
                         break;
@@ -10071,7 +10086,7 @@ mod tick_pulse2_channel {
                         engine.device_write(0x4004, engine.mem(0xA9));
                         engine.device_write(0x4005, engine.mem(0xAA));
                         engine.device_write(0x4006, engine.state.sound_command());
-                        engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0x18);
+                        engine.device_write(0x4007, (engine.state.sound_length() & 0x07) | 0x18);
                         start_note_envelope(engine, r);
                         break;
                     }
@@ -10146,7 +10161,7 @@ mod tick_triangle_channel {
                     .set_sound_status_flags(engine.state.sound_status_flags() | 0x04);
                 engine.device_write((0x4008), engine.mem(0xBA));
                 engine.device_write((0x400A), engine.state.sound_command());
-                r.value = u8v((engine.mem(0x05) & 0x07) | 0xF8);
+                r.value = u8v((engine.state.sound_length() & 0x07) | 0xF8);
                 engine.device_write((0x400B), r.value);
                 return;
             }
@@ -10252,7 +10267,7 @@ mod dispatch_audio_stream_command {
         increment_selected_music_stream_pointer(engine, r);
         {
             let __v = deref_stream(engine, r);
-            engine.set_mem(0x05, __v);
+            engine.state.set_sound_length(__v);
         }
         increment_selected_music_stream_pointer(engine, r);
         let mut command_id: i32 = engine.state.sound_command();
@@ -10263,7 +10278,7 @@ mod dispatch_audio_stream_command {
         let mut original_handler: i32 = ORIGINAL_COMMAND_HANDLERS[command_id as usize];
         engine.set_mem(0x06, u8v(original_handler & 0xFF));
         engine.set_mem(0x07, u8v(original_handler >> 8));
-        r.value = engine.mem(0x05);
+        r.value = engine.state.sound_length();
         r.index = engine.state.sound_channel_offset();
         match command_id {
             0 => {
@@ -10328,7 +10343,7 @@ mod audio_cmd_set_volume_scale {
             }
         }
         {
-            let mut adjusted_command: i32 = u8v(0x0F + engine.mem(0x05));
+            let mut adjusted_command: i32 = u8v(0x0F + engine.state.sound_length());
             let mut scale: i32 = if cbool(adjusted_command >= 0x08) {
                 u8v(adjusted_command - 0x08)
             } else {
@@ -10407,7 +10422,7 @@ mod load_note_period {
                 }
             }
             engine.state.set_sound_command(lo);
-            engine.set_mem(0x05, hi);
+            engine.state.set_sound_length(hi);
         }
     }
 }
@@ -10712,7 +10727,8 @@ mod sfx_overlay_voice {
                             ));
                             engine.device_write(0x4005, engine.mem(0xDA));
                             engine.device_write(0x4006, engine.state.sound_command());
-                            engine.device_write(0x4007, (engine.mem(0x05) & 0x07) | 0xC0);
+                            engine
+                                .device_write(0x4007, (engine.state.sound_length() & 0x07) | 0xC0);
                             start_note_envelope(engine, r);
                         }
                         break;
@@ -11042,11 +11058,21 @@ mod text_attr_build {
                 switch_song_if_needed(engine, r);
             }
         }
-        engine.set_mem(0x80, engine.state.byte(u16v(p + 0x10)));
-        engine.set_mem(0x81, engine.state.byte(u16v(p + 0x11)));
-        engine.set_mem(0x82, engine.state.byte(u16v(p + 0x12)));
-        engine.set_mem(0x83, engine.state.byte(u16v(p + 0x13)));
-        engine.set_mem(0x41, engine.state.byte(u16v(p + 0x14)));
+        engine
+            .state
+            .set_temp_save(0, engine.state.byte(u16v(p + 0x10)));
+        engine
+            .state
+            .set_temp_save(1, engine.state.byte(u16v(p + 0x11)));
+        engine
+            .state
+            .set_temp_save(2, engine.state.byte(u16v(p + 0x12)));
+        engine
+            .state
+            .set_temp_save(3, engine.state.byte(u16v(p + 0x13)));
+        engine
+            .state
+            .set_family_member_mask(engine.state.byte(u16v(p + 0x14)));
     }
 }
 

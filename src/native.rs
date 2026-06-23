@@ -412,7 +412,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_oam_y(0x10, 0xef);
     engine.state.set_oam_y(0x14, 0xef);
     engine.state.set_sprite_index(0x00);
-    engine.set_mem(0x3f, 0x80);
+    engine.state.set_oam_cursor(0x80);
     crate::game::reset_room_object_slots(engine, r);
     drain_audio_timers_with_object_frames(engine, r);
     fade_palette_buffer_out(engine, r);
@@ -485,7 +485,9 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         engine
             .state
             .set_player_y((engine.state.player_y() - 1) & 0xFF);
-        engine.xor_mem(0x57, 0x40);
+        engine
+            .state
+            .set_player_facing(engine.state.player_facing() ^ 0x40);
         crate::game::draw_player_sprites(engine, r);
         draw_scene_and_wait_one_frame(engine, r);
         draw_scene_and_wait_one_frame(engine, r);
@@ -1055,7 +1057,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 c = nc;
             }
             let mask = a;
-            if (mask & engine.mem(0x41)) != 0 {
+            if (mask & engine.state.family_member_mask()) != 0 {
                 break chr;
             }
         };
@@ -1073,7 +1075,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_chr_bank(4, 0x3e);
         engine.state.set_chr_bank(5, 0x20);
         engine.state.set_player_pose(0x0d);
-        engine.set_mem(0x57, 0x00);
+        engine.state.set_player_facing(0x00);
         engine.set_mem(0x42, 0x01);
         engine.state.set_player_health(0x64);
         engine.state.set_player_magic(0x64);
@@ -1273,7 +1275,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     fade_palette_buffer_out(engine, r);
     engine.set_mem(0xec, 0x00);
     engine.state.set_sprite_index(0x00);
-    engine.set_mem(0x3f, 0x80);
+    engine.state.set_oam_cursor(0x80);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
     crate::game::reset_room_object_slots(engine, r);
     crate::game::draw_room_object_sprites(engine, r);
@@ -1350,7 +1352,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
 /// frames.
 pub fn show_player_pose_for_eight_frames(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_player_pose(r.index);
-    engine.set_mem(0x57, r.offset);
+    engine.state.set_player_facing(r.offset);
     engine.state.set_frame_counter(0x08);
     crate::game::draw_player_sprites(engine, r);
     frame::commit_frame_work(engine, r);
@@ -2346,7 +2348,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
     engine.state.set_selected_item_slot(0x03);
     crate::game::draw_status_item_sprites(engine, r);
     engine.state.set_player_pose(0xf1);
-    engine.set_mem(0x57, 0x00);
+    engine.state.set_player_facing(0x00);
     crate::game::draw_player_sprites(engine, r);
     crate::game::restore_status_sprite_template(engine, r);
     crate::game::reset_room_object_slots(engine, r);
@@ -2430,7 +2432,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         engine.state.set_chr_bank(4, 0x3e);
         engine.state.set_chr_bank(5, 0x3f);
         engine.state.set_player_pose(0x0d);
-        engine.set_mem(0x57, 0x00);
+        engine.state.set_player_facing(0x00);
         engine.state.set_player_y(engine.state.player_y() & 0xf0);
         engine.state.set_player_x_fine(0x04);
         crate::game::clear_gameplay_object_sprites(engine, r);
@@ -2446,7 +2448,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
 
         fade_room_palette_out_reset_audio(engine, r);
         engine.state.set_player_pose(0x08);
-        engine.set_mem(0x57, 0x00);
+        engine.state.set_player_facing(0x00);
         engine.state.set_player_health(0x63);
         engine.state.set_player_magic(0x63);
         crate::game::sync_health_hud(engine, r);
@@ -2474,16 +2476,16 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
 pub fn run_shop_room_flow(engine: &mut Engine, r: &mut RoutineContext) {
     push_room_checkpoint(engine, r);
 
-    let s80 = engine.mem(0x80);
-    let s81 = engine.mem(0x81);
-    let s82 = engine.mem(0x82);
-    let s83 = engine.mem(0x83);
+    let s80 = engine.state.temp_save(0);
+    let s81 = engine.state.temp_save(1);
+    let s82 = engine.state.temp_save(2);
+    let s83 = engine.state.temp_save(3);
     r.value = engine.state.map_screen_x();
     crate::game::enter_temporary_room_page(engine, r);
-    engine.set_mem(0x83, s83);
-    engine.set_mem(0x82, s82);
-    engine.set_mem(0x81, s81);
-    engine.set_mem(0x80, s80);
+    engine.state.set_temp_save(3, s83);
+    engine.state.set_temp_save(2, s82);
+    engine.state.set_temp_save(1, s81);
+    engine.state.set_temp_save(0, s80);
 
     crate::game::draw_shop_item_sprites(engine, r);
     crate::game::upload_shop_price_tiles(engine, r);
