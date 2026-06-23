@@ -3415,7 +3415,7 @@ mod resolve_room_tile_pointer {
             let tile_row: i32 = u8v(tile_y >> 4);
             let room_offset: i32 = u16v(tile_row + engine.state.data_ptr_lo());
             engine.state.set_data_ptr_lo(u8v(room_offset));
-            engine.set_mem(0x10, u8v(room_offset));
+            engine.state.set_tile_fetch_counter(u8v(room_offset));
             if cbool(room_offset & 0x100) {
                 engine
                     .state
@@ -3429,9 +3429,9 @@ mod resolve_room_tile_pointer {
             .state
             .set_data_ptr_hi(u8v(engine.state.data_ptr_hi() + 0x05));
         {
-            let room_ptr_lo: i32 = u16v(engine.mem(0x10) + engine.mem(0x75));
+            let room_ptr_lo: i32 = u16v(engine.state.tile_fetch_counter() + engine.mem(0x75));
             let carry: i32 = u8v(room_ptr_lo >> 8);
-            engine.set_mem(0x10, u8v(room_ptr_lo));
+            engine.state.set_tile_fetch_counter(u8v(room_ptr_lo));
             engine
                 .state
                 .set_aux_ptr_hi(u8v(engine.state.aux_ptr_hi() + engine.mem(0x76) + carry));
@@ -3483,7 +3483,7 @@ mod sync_health_hud {
         r.index = 0x00;
         build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
-        engine.set_mem(0x3C, 0x01);
+        engine.state.set_hud_refresh_flag(0x01);
     }
 }
 
@@ -3502,7 +3502,7 @@ mod sync_magic_hud {
         r.index = 0x06;
         build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
-        engine.set_mem(0x3C, 0x01);
+        engine.state.set_hud_refresh_flag(0x01);
     }
 }
 
@@ -3521,7 +3521,7 @@ mod sync_key_hud {
         r.index = 0x0C;
         build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
-        engine.set_mem(0x3C, 0x01);
+        engine.state.set_hud_refresh_flag(0x01);
     }
 }
 
@@ -3540,7 +3540,7 @@ mod sync_coin_hud {
         r.index = 0x12;
         build_status_resource_meter_tiles(engine, r);
         r.value = 0x01;
-        engine.set_mem(0x3C, 0x01);
+        engine.state.set_hud_refresh_flag(0x01);
     }
 }
 
@@ -3971,7 +3971,7 @@ mod check_player_overlap {
     /// Checks the projected object position against the player hitbox. Carry
     /// and `0xEA` are set on overlap.
     pub fn check_player_overlap(engine: &mut Engine, r: &mut RoutineContext) {
-        engine.set_mem(0xEA, 0x00);
+        engine.state.set_overlap_flag(0x00);
         check_player_y_overlap(engine, r);
         if cbool(r.carry == 0) {
             return;
@@ -3980,7 +3980,7 @@ mod check_player_overlap {
         if cbool(r.carry == 0) {
             return;
         }
-        engine.set_mem(0xEA, 0x01);
+        engine.state.set_overlap_flag(0x01);
         r.carry = 1;
     }
 }
@@ -4046,7 +4046,7 @@ mod check_player_overlap_wide {
         'dispatch: loop {
             match state {
                 0 => {
-                    engine.set_mem(0xEA, 0x00);
+                    engine.state.set_overlap_flag(0x00);
                     dy = u8v(engine.state.scratch2() - engine.state.player_y());
                     if (cbool(dy >= 0x10) && cbool(dy < 0xE1)) {
                         r.carry = 0;
@@ -4098,7 +4098,7 @@ mod check_player_overlap_wide {
                     continue 'dispatch;
                 }
                 1 => {
-                    engine.set_mem(0xEA, 0x01);
+                    engine.state.set_overlap_flag(0x01);
                     r.carry = 1;
                     break 'dispatch;
                 }
@@ -4546,7 +4546,7 @@ mod upload_inventory_item_list {
                 break;
             }
         }
-        engine.set_mem(0x1A, 0x13);
+        engine.state.set_inventory_upload_col(0x13);
         engine.set_mem(0x1B, 0x00);
         engine.state.set_vram_addr_lo(0xE6);
         engine.state.set_vram_addr_hi(0x24);
@@ -4881,7 +4881,7 @@ mod check_final_exit_trigger {
             && cbool(engine.state.scroll_fine_x() == 0x00)
             && cbool(engine.state.player_y() == 0xA0))
         {
-            engine.set_mem(0xEC, 0x01);
+            engine.state.set_final_exit_flag(0x01);
         }
     }
 }
@@ -5219,7 +5219,7 @@ mod update_player_pose_from_motion {
                         return;
                     }
                     x = 0x09;
-                    if cbool(engine.mem(0x50) != 0) {
+                    if cbool(engine.state.pose_state() != 0) {
                         return;
                     }
                     if cbool((engine.state.buttons() & 0xBF) == 0x80) {
@@ -6140,7 +6140,8 @@ mod read_room_tile_action_value {
     /// resolves to the current room replacement value in `0x74`.
     pub fn read_room_tile_action_value(engine: &mut Engine, r: &mut RoutineContext) {
         let tile_offset: i32 = engine.state.scratch3();
-        let room_ptr: i32 = u16v(engine.mem(0x10) | (engine.state.aux_ptr_hi() << 8));
+        let room_ptr: i32 =
+            u16v(engine.state.tile_fetch_counter() | (engine.state.aux_ptr_hi() << 8));
         let room_tile: i32 = engine.state.byte(u16v(room_ptr + tile_offset));
         let tile_id: i32 = room_tile & 0x3F;
         r.index = tile_id;
@@ -6498,7 +6499,7 @@ mod restore_room_from_checkpoint {
         pop_room_checkpoint(engine, r);
         fade_room_palette_out_reset_audio(engine, r);
         clear_temporary_room_sprites(engine, r);
-        r.value = engine.mem(0xFE);
+        r.value = engine.state.room_restore_scratch();
         switch_song_if_needed(engine, r);
         prepare_room_metadata_and_palette(engine, r);
         upload_current_room_view(engine, r);
@@ -8067,7 +8068,7 @@ mod tick_contact_recoil_actor {
         }
         try_move_actor_without_terrain(engine, r);
         if cbool(r.carry) {
-            if cbool(engine.mem(0xEA) != 0) {
+            if cbool(engine.state.overlap_flag() != 0) {
                 r.value = 0x80;
                 engine.state.set_obj_state(0x80);
                 return;
@@ -10140,11 +10141,15 @@ mod tick_triangle_channel {
             silence_triangle(engine, r);
             return;
         }
-        if cbool(u8v(engine.mem(0xB3) - 1) != 0) {
-            engine.set_mem(0xB3, u8v(engine.mem(0xB3) - 1));
+        if cbool(u8v(engine.state.triangle_timer() - 1) != 0) {
+            engine
+                .state
+                .set_triangle_timer(u8v(engine.state.triangle_timer() - 1));
             return;
         }
-        engine.set_mem(0xB3, u8v(engine.mem(0xB3) - 1));
+        engine
+            .state
+            .set_triangle_timer(u8v(engine.state.triangle_timer() - 1));
         loop {
             let mut stream_ptr: i32 = u16v(engine.mem(0xB5) | (engine.mem(0xB6) << 8));
             let mut note_byte: i32 = engine.state.byte(stream_ptr);
@@ -10158,7 +10163,7 @@ mod tick_triangle_channel {
                 r.value = note_byte;
                 increment_selected_music_stream_pointer(engine, r);
                 r.value = u8v(note_byte & 0x7F);
-                engine.set_mem(0xB3, r.value);
+                engine.state.set_triangle_timer(r.value);
                 if cbool(is_rest) {
                     silence_triangle(engine, r);
                     return;
@@ -10317,7 +10322,7 @@ mod audio_cmd_set_duty_instrument {
         let mut command_value: i32 = u8v(r.value);
         let mut channel_offset: i32 = u8v(r.index);
         let mut duty_bits: i32 = u8v(u8v(command_value & 0xF0) << 2);
-        engine.set_mem(0x00, duty_bits);
+        engine.state.set_audio_duty_work(duty_bits);
         engine.set_mem(
             (0x99 + channel_offset) & 0xFF,
             u8v((engine.state.sound_channel_byte(6, channel_offset) & 0x3F) | duty_bits),
@@ -10443,14 +10448,14 @@ mod scale_envelope_volume {
         let mut scaled_volume: i32 = 0x00;
         let mut multiplier: i32 = u8v(u8v(r.offset + 1));
         loop {
-            scaled_volume = u8v(scaled_volume + engine.mem(0x00));
+            scaled_volume = u8v(scaled_volume + engine.state.audio_duty_work());
             multiplier = u8v(multiplier - 1);
             if !cbool(multiplier != 0) {
                 break;
             }
         }
         scaled_volume >>= 4;
-        engine.set_mem(0x00, scaled_volume);
+        engine.state.set_audio_duty_work(scaled_volume);
         r.value = scaled_volume;
         r.offset = 0;
     }
@@ -10583,13 +10588,14 @@ mod next_envelope_volume {
                 }
             }
             engine.set_mem(u8v(0x9F + channel_offset), accumulator);
-            engine.set_mem(0x00, accumulator);
+            engine.state.set_audio_duty_work(accumulator);
         }
         r.offset = engine.mem(u8v(0xA0 + channel_offset));
         scale_envelope_volume(engine, r);
         {
-            let mut volume_register: i32 =
-                u8v((engine.mem(u8v(0x99 + channel_offset)) & 0xC0) | engine.mem(0x00) | 0x30);
+            let mut volume_register: i32 = u8v((engine.mem(u8v(0x99 + channel_offset)) & 0xC0)
+                | engine.state.audio_duty_work()
+                | 0x30);
             r.value = volume_register;
         }
     }
@@ -10672,7 +10678,7 @@ mod sfx_overlay_voice {
             match state {
                 0 => {
                     if cbool(engine.state.prompt_state() != 0) {
-                        if cbool((engine.mem(0xD4) & 0x80) == 0) {
+                        if cbool((engine.state.sfx_voice_active() & 0x80) == 0) {
                             start = 1;
                         } else if cbool(engine.state.prompt_argument() >= engine.mem(0x91)) {
                             start = 1;
@@ -10682,7 +10688,7 @@ mod sfx_overlay_voice {
                         }
                     }
                     if !cbool(start) {
-                        if cbool((engine.mem(0xD4) & 0x80) == 0) {
+                        if cbool((engine.state.sfx_voice_active() & 0x80) == 0) {
                             return;
                         }
                         if cbool(u8v(engine.dec_mem(0xD3)) != 0) {
@@ -10697,7 +10703,7 @@ mod sfx_overlay_voice {
                         sfx_table_index = u8v(engine.state.prompt_state() << 1);
                         engine.set_mem(0xD5, engine.mem(u16v(0x8014 + sfx_table_index)));
                         engine.set_mem(0xD6, engine.mem(u16v(0x8015 + sfx_table_index)));
-                        engine.set_mem(0xD4, 0x80);
+                        engine.state.set_sfx_voice_active(0x80);
                         engine
                             .state
                             .set_sound_channel_flags(
@@ -10710,7 +10716,7 @@ mod sfx_overlay_voice {
                         let mut stream_ptr: i32 = u16v(engine.mem(0xD5) | (engine.mem(0xD6) << 8));
                         let mut note_byte: i32 = engine.state.byte(stream_ptr);
                         if cbool(note_byte == 0) {
-                            engine.set_mem(0xD4, 0x00);
+                            engine.state.set_sfx_voice_active(0x00);
                             engine.set_mem(0x91, 0x00);
                             engine
                                 .state
@@ -10893,8 +10899,8 @@ mod sound_tick {
         engine.state.set_sound_channel_offset(0x40);
         r.value = 0x40;
         sfx_overlay_voice(engine, r);
-        if cbool(engine.mem(0x8D) != 0) {
-            if !cbool(engine.mem(0xD4) & 0x80) {
+        if cbool(engine.state.sound_paused() != 0) {
+            if !cbool(engine.state.sfx_voice_active() & 0x80) {
                 engine.device_write((0x4004), (engine.mem(0xA9) & 0xC0) | 0x30);
             }
             engine.device_write((0x4000), (engine.mem(0x99) & 0xC0) | 0x30);
@@ -11192,7 +11198,7 @@ mod vram_blit_stack {
 mod vram_copy_indirect {
     use super::*;
     pub fn vram_copy_indirect(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x1A);
+        let mut x: i32 = engine.state.inventory_upload_col();
         let mut src: i32 = u16v(engine.state.vram_addr2_lo() | (engine.state.vram_addr2_hi() << 8));
         let mut y: i32 = 0;
         loop {
@@ -11218,7 +11224,7 @@ mod vram_copy_indirect {
 mod vram_fill_run {
     use super::*;
     pub fn vram_fill_run(engine: &mut Engine, r: &mut RoutineContext) {
-        let mut x: i32 = engine.mem(0x1A);
+        let mut x: i32 = engine.state.inventory_upload_col();
         let mut a: i32 = engine.state.vram_addr2_lo();
         loop {
             engine.device_write(0x2007, a);

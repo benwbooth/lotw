@@ -57,7 +57,7 @@ fn vram_blit(
     engine.state.set_vram_addr_hi(dhi);
     engine.state.set_vram_addr2_lo(slo);
     engine.state.set_vram_addr2_hi(shi);
-    engine.set_mem(0x1a, len);
+    engine.state.set_inventory_upload_col(len);
     r.value = 0x05;
     queue_ppu_job_and_wait(engine, r);
 }
@@ -133,7 +133,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         frame::read_buttons(engine, r);
         crate::game::game_update(engine, r);
 
-        if engine.mem(0xec) != 0 {
+        if engine.state.final_exit_flag() != 0 {
             // The final-exit item diverts the normal room loop into a scripted
             // sequence that still reuses the player/object update helpers.
             farcall_0c0d(engine, r, 0xeb, 0xa2, setup_final_exit_sequence);
@@ -347,7 +347,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
         }
     }
 
-    engine.set_mem(0x10, 0x00);
+    engine.state.set_tile_fetch_counter(0x00);
     loop {
         if (engine.state.frame_prescaler() & 0x07) == 0 {
             engine
@@ -371,8 +371,10 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
 
         crate::game::draw_scripted_player_sprites(engine, r);
         crate::game::rotate_sprite_zero_from_scripted_oam(engine, r);
-        engine.dec_mem(0x10);
-        if engine.mem(0x10) == 0 {
+        engine
+            .state
+            .set_tile_fetch_counter((engine.state.tile_fetch_counter() - 1) & 0xFF);
+        if engine.state.tile_fetch_counter() == 0 {
             break;
         }
     }
@@ -861,7 +863,7 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
 
     engine.state.set_vram_addr2_lo(0x40);
     engine.state.set_vram_addr2_hi(0x01);
-    engine.set_mem(0x1a, 0x20);
+    engine.state.set_inventory_upload_col(0x20);
     engine.state.set_data_ptr_lo(0x9c);
     engine.state.set_data_ptr_hi(0xb7);
 
@@ -879,10 +881,10 @@ pub fn run_story_text_sequence(engine: &mut Engine, r: &mut RoutineContext) {
     }
 
     engine.state.set_prompt_state(0x20);
-    while engine.mem(0xd4) == 0 {
+    while engine.state.sfx_voice_active() == 0 {
         frame::wait_frame(engine, r);
     }
-    while engine.mem(0xd4) != 0 {
+    while engine.state.sfx_voice_active() != 0 {
         frame::wait_frame(engine, r);
     }
 
@@ -1076,7 +1078,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_chr_bank(5, 0x20);
         engine.state.set_player_pose(0x0d);
         engine.state.set_player_facing(0x00);
-        engine.set_mem(0x42, 0x01);
+        engine.state.set_title_timer(0x01);
         engine.state.set_player_health(0x64);
         engine.state.set_player_magic(0x64);
         farcall_cce4(
@@ -1109,18 +1111,24 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
                 return;
             }
 
-            engine.state.set_buttons(engine.mem(0xfe));
+            engine
+                .state
+                .set_buttons(engine.state.room_restore_scratch());
             let mut do_b044 = true;
             if (engine.state.horizontal_subtile_delta() | engine.state.vertical_delta()) != 0 {
-                engine.dec_mem(0x42);
-                if engine.mem(0x42) != 0 {
+                engine
+                    .state
+                    .set_title_timer((engine.state.title_timer() - 1) & 0xFF);
+                if engine.state.title_timer() != 0 {
                     do_b044 = false;
                 }
             }
             if do_b044 {
-                engine.set_mem(0x42, 0x80);
+                engine.state.set_title_timer(0x80);
                 crate::game::choose_random_demo_input(engine, r);
-                engine.set_mem(0xfe, engine.state.buttons());
+                engine
+                    .state
+                    .set_room_restore_scratch(engine.state.buttons());
             }
 
             farcall_cce4(engine, r, 0x2b, 0xd4, crate::game::game_update);
@@ -1245,7 +1253,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     frame::commit_frame_work(engine, r);
     frame::wait_for_frame_counter(engine, r);
 
-    let mut use_game_over_screen = engine.mem(0xec) != 0;
+    let mut use_game_over_screen = engine.state.final_exit_flag() != 0;
     if !use_game_over_screen {
         if (engine.state.continue_timer() & 0x80) != 0 {
             let x = engine.state.selected_item_slot();
@@ -1273,7 +1281,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     }
 
     fade_palette_buffer_out(engine, r);
-    engine.set_mem(0xec, 0x00);
+    engine.state.set_final_exit_flag(0x00);
     engine.state.set_sprite_index(0x00);
     engine.state.set_oam_cursor(0x80);
     crate::game::clear_name_tables_to_blank_tiles(engine, r);
@@ -1639,7 +1647,7 @@ pub fn find_player_object_overlap(engine: &mut Engine, r: &mut RoutineContext) {
 /// timer (`0x4F`) or scripted lock (`0x86`) suppresses this probe.
 pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext) {
     if engine.mem(0x86) != 0 || engine.state.jump_timer() != 0 {
-        engine.set_mem(0x50, 0x00);
+        engine.state.set_pose_state(0x00);
         engine.state.set_fall_frames(0x00);
         return;
     }
@@ -1656,7 +1664,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
     crate::game::resolve_room_tile_pointer(engine, r);
 
     if engine.state.player_x_fine() == 0 {
-        engine.set_mem(0x50, 0x01);
+        engine.state.set_pose_state(0x01);
         r.offset = 0x00;
         let tile_ptr = u16v(engine.state.data_ptr());
         if (engine.state.byte(u16v(tile_ptr + r.offset)) & 0x3f) == 0 {
@@ -1664,7 +1672,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         }
     }
 
-    engine.set_mem(0x50, 0x00);
+    engine.state.set_pose_state(0x00);
     if engine.state.player_y() >= 0xb0 {
         engine
             .state
@@ -2159,7 +2167,7 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         pop_room_checkpoint(engine, r);
         fade_room_palette_out_reset_audio(engine, r);
         crate::game::clear_temporary_room_sprites(engine, r);
-        r.value = engine.mem(0xfe);
+        r.value = engine.state.room_restore_scratch();
         crate::game::switch_song_if_needed(engine, r);
         crate::game::prepare_room_metadata_and_palette(engine, r);
         crate::game::upload_current_room_view(engine, r);
@@ -2817,7 +2825,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
 /// as a shop or character-select room. The current song is mirrored in `0xFE`
 /// so the restore path can restart it after rebuilding the room.
 pub fn push_room_checkpoint(engine: &mut Engine, _r: &mut RoutineContext) {
-    engine.set_mem(0xfe, engine.state.song());
+    engine.state.set_room_restore_scratch(engine.state.song());
     if engine.room_ckpt_sp < engine.room_ckpt_stack.len() {
         let c = [
             engine.state.player_x_fine() as u8,

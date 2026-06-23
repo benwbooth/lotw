@@ -1305,6 +1305,126 @@ impl GameState {
         self.set_byte(0x0180 + i, value);
     }
 
+    /// Sound paused/disabled flag checked at the top of `sound_tick` (`$8D`).
+    #[inline]
+    pub fn sound_paused(&self) -> i32 {
+        self.byte(0x8D)
+    }
+    #[inline]
+    pub fn set_sound_paused(&mut self, value: i32) {
+        self.set_byte(0x8D, value);
+    }
+
+    /// SFX overlay voice active flag, bit7 (`$D4`).
+    #[inline]
+    pub fn sfx_voice_active(&self) -> i32 {
+        self.byte(0xD4)
+    }
+    #[inline]
+    pub fn set_sfx_voice_active(&mut self, value: i32) {
+        self.set_byte(0xD4, value);
+    }
+
+    /// Triangle channel note-duration countdown (`$B3`).
+    #[inline]
+    pub fn triangle_timer(&self) -> i32 {
+        self.byte(0xB3)
+    }
+    #[inline]
+    pub fn set_triangle_timer(&mut self, value: i32) {
+        self.set_byte(0xB3, value);
+    }
+
+    /// Audio duty/volume work byte for the duty/instrument command (`$00`).
+    #[inline]
+    pub fn audio_duty_work(&self) -> i32 {
+        self.byte(0x00)
+    }
+    #[inline]
+    pub fn set_audio_duty_work(&mut self, value: i32) {
+        self.set_byte(0x00, value);
+    }
+
+    /// HUD refresh-needed flag set by `sync_health_hud` (`$3C`).
+    #[inline]
+    pub fn hud_refresh_flag(&self) -> i32 {
+        self.byte(0x3C)
+    }
+    #[inline]
+    pub fn set_hud_refresh_flag(&mut self, value: i32) {
+        self.set_byte(0x3C, value);
+    }
+
+    /// Title-screen loop timer (`$42`).
+    #[inline]
+    pub fn title_timer(&self) -> i32 {
+        self.byte(0x42)
+    }
+    #[inline]
+    pub fn set_title_timer(&mut self, value: i32) {
+        self.set_byte(0x42, value);
+    }
+
+    /// Column cursor while uploading the inventory item list (`$1A`).
+    #[inline]
+    pub fn inventory_upload_col(&self) -> i32 {
+        self.byte(0x1A)
+    }
+    #[inline]
+    pub fn set_inventory_upload_col(&mut self, value: i32) {
+        self.set_byte(0x1A, value);
+    }
+
+    /// Player/actor overlap-detected flag (`$EA`).
+    #[inline]
+    pub fn overlap_flag(&self) -> i32 {
+        self.byte(0xEA)
+    }
+    #[inline]
+    pub fn set_overlap_flag(&mut self, value: i32) {
+        self.set_byte(0xEA, value);
+    }
+
+    /// Final-exit trigger reached flag (`$EC`).
+    #[inline]
+    pub fn final_exit_flag(&self) -> i32 {
+        self.byte(0xEC)
+    }
+    #[inline]
+    pub fn set_final_exit_flag(&mut self, value: i32) {
+        self.set_byte(0xEC, value);
+    }
+
+    /// Pose state flag from `update_player_pose_from_motion` (`$50`).
+    #[inline]
+    pub fn pose_state(&self) -> i32 {
+        self.byte(0x50)
+    }
+    #[inline]
+    pub fn set_pose_state(&mut self, value: i32) {
+        self.set_byte(0x50, value);
+    }
+
+    /// Countdown used while resolving the room tile pointer (`$10`).
+    #[inline]
+    pub fn tile_fetch_counter(&self) -> i32 {
+        self.byte(0x10)
+    }
+    #[inline]
+    pub fn set_tile_fetch_counter(&mut self, value: i32) {
+        self.set_byte(0x10, value);
+    }
+
+    /// Scratch byte used by `restore_room_from_checkpoint` (`$FE`).
+    #[inline]
+    pub fn room_restore_scratch(&self) -> i32 {
+        self.byte(0xFE)
+    }
+    #[inline]
+    pub fn set_room_restore_scratch(&mut self, value: i32) {
+        self.set_byte(0xFE, value);
+    }
+
     /// Current object/actor slot index for iteration loops (`$E3`); shifted
     /// left 4 to form the slot's byte offset into the object table.
     #[inline]
