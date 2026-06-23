@@ -7,7 +7,7 @@
 use crate::engine::RoutineFn;
 use crate::frame;
 use crate::native::*;
-use crate::{Engine, RoutineContext, u8v, u16v};
+use crate::{Engine, RoutineContext};
 
 // ROM data tables (mapped PRG). Each is the base address of a lookup table the
 // game indexes; reads go through `engine.state.byte(TABLE + index)`.

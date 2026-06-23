@@ -1,7 +1,7 @@
 use crate::game::{
     CHARACTER_STATS_TABLE, SPAWN_OFFSET_X_TABLE, SPAWN_OFFSET_Y_TABLE, START_ITEM_TABLE,
 };
-use crate::{Engine, RoutineContext, engine::RoutineFn, frame, u8v, u16v};
+use crate::{Engine, RoutineContext, engine::RoutineFn, frame};
 
 fn enter_return_home(engine: &mut Engine, lo: i32, hi: i32) {
     engine.state.set_indirect_ptr_lo(lo);
