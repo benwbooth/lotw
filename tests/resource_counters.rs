@@ -8,11 +8,11 @@ fn add_health_points_clamps_and_marks_hud_dirty() {
         ..RoutineContext::default()
     };
 
-    engine.state.set_player_health(0x6C);
+    engine.state.player_health = 0x6C;
 
     game::add_health_points(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x6D);
+    assert_eq!(engine.state.player_health, 0x6D);
     assert_eq!(engine.state.hud_refresh_flag(), 0x01);
 }
 
@@ -24,11 +24,11 @@ fn subtract_health_points_saturates_underflow() {
         ..RoutineContext::default()
     };
 
-    engine.state.set_player_health(0x03);
+    engine.state.player_health = 0x03;
 
     game::subtract_health_points(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x00);
+    assert_eq!(engine.state.player_health, 0x00);
     assert_eq!(r.carry, 0);
 }
 
@@ -40,18 +40,18 @@ fn consume_magic_point_preserves_index_and_reports_empty() {
         ..RoutineContext::default()
     };
 
-    engine.state.set_player_magic(0x02);
+    engine.state.player_magic = 0x02;
     game::consume_magic_point(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_magic(), 0x01);
+    assert_eq!(engine.state.player_magic, 0x01);
     assert_eq!(r.index, 0x42);
     assert_eq!(r.carry, 0);
 
-    engine.state.set_player_magic(0x00);
+    engine.state.player_magic = 0x00;
     r.index = 0x77;
     game::consume_magic_point(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_magic(), 0x00);
+    assert_eq!(engine.state.player_magic, 0x00);
     assert_eq!(r.index, 0x77);
     assert_eq!(r.carry, 1);
 }

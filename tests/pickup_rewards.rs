@@ -31,11 +31,11 @@ fn resource_reward_helpers_apply_expected_amounts_and_sounds() {
     let mut r = RoutineContext::default();
 
     game::collect_small_health_reward(&mut engine, &mut r);
-    assert_eq!(engine.state.player_health(), 0x05);
+    assert_eq!(engine.state.player_health, 0x05);
     assert_eq!(engine.state.prompt_state(), 0x1E);
 
     game::collect_small_magic_reward(&mut engine, &mut r);
-    assert_eq!(engine.state.player_magic(), 0x05);
+    assert_eq!(engine.state.player_magic, 0x05);
     assert_eq!(engine.state.prompt_state(), 0x11);
 
     game::collect_small_coin_reward(&mut engine, &mut r);
@@ -57,11 +57,11 @@ fn trigger_damage_pickup_subtracts_health_and_sets_damage_sound() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_player_health(0x0A);
+    engine.state.player_health = 0x0A;
 
     game::trigger_damage_pickup(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x05);
+    assert_eq!(engine.state.player_health, 0x05);
     assert_eq!(engine.state.prompt_state(), 0x1D);
 }
 

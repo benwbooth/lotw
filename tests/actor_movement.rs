@@ -88,14 +88,14 @@ fn apply_actor_player_contact_damage_updates_health_and_hit_state() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_player_health(0x0A);
+    engine.state.player_health = 0x0A;
     engine.state.set_obj_state(0x01);
     engine.state.set_obj_attr(0xFF);
     engine.state.set_obj_damage(0x02);
 
     game::apply_actor_player_contact_damage(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x08);
+    assert_eq!(engine.state.player_health, 0x08);
     assert_eq!(engine.state.sprite_blink_timer(), 0x01);
     assert_eq!(engine.state.prompt_state(), 0x21);
     assert_eq!(engine.state.prompt_argument(), 0x01);

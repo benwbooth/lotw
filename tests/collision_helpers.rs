@@ -186,12 +186,12 @@ fn hazard_tile_contact_consumes_health_once_and_sets_recoil() {
     engine.state.set_data_ptr_lo(0x00);
     engine.state.set_data_ptr_hi(0x02);
     engine.state.set_oam_tile(0x00, 0x30);
-    engine.state.set_player_health(0x02);
+    engine.state.player_health = 0x02;
 
     game::apply_hazard_tile_contact(&mut engine, &mut r);
 
     assert_eq!(r.carry, 1);
-    assert_eq!(engine.state.player_health(), 0x01);
+    assert_eq!(engine.state.player_health, 0x01);
     assert_eq!(engine.state.jump_timer(), 0x0A);
     assert_eq!(engine.state.sprite_blink_timer(), 0x01);
     assert_eq!(engine.state.prompt_state(), 0x0A);
@@ -202,7 +202,7 @@ fn hazard_tile_contact_consumes_health_once_and_sets_recoil() {
     game::apply_hazard_tile_contact(&mut engine, &mut r);
 
     assert_eq!(r.carry, 1);
-    assert_eq!(engine.state.player_health(), 0x01);
+    assert_eq!(engine.state.player_health, 0x01);
 }
 
 #[test]
@@ -282,14 +282,14 @@ fn magic_contact_actor_marks_hit_slot_when_timer_and_magic_are_active() {
 
     engine.state.set_chr_bank(3, 0x20);
     engine.state.set_magic_contact_flag(0x01);
-    engine.state.set_player_magic(0x01);
+    engine.state.player_magic = 0x01;
     engine.state.set_scratch1(0x30);
 
     game::try_trigger_magic_contact_actor(&mut engine, &mut r);
     assert_eq!(engine.state.object_state(0x30), 0x80);
 
     engine.state.set_object_state(0x30, 0x00);
-    engine.state.set_player_magic(0x00);
+    engine.state.player_magic = 0x00;
     game::try_trigger_magic_contact_actor(&mut engine, &mut r);
     assert_eq!(engine.state.object_state(0x30), 0x00);
 }

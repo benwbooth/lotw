@@ -79,18 +79,18 @@ fn scripted_player_health_subtract_saturates_underflow() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.state.set_player_health(0x10);
+    engine.state.player_health = 0x10;
     r.value = 0x04;
 
     game::subtract_scripted_player_health(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x0C);
+    assert_eq!(engine.state.player_health, 0x0C);
     assert_eq!(r.carry, 1);
 
     r.value = 0x20;
     game::subtract_scripted_player_health(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_health(), 0x00);
+    assert_eq!(engine.state.player_health, 0x00);
     assert_eq!(r.carry, 0);
 }
 

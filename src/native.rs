@@ -123,7 +123,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         if frame::frame_runner_stop_requested() {
             return;
         }
-        if engine.state.player_health() == 0 {
+        if engine.state.player_health == 0 {
             engine.state.set_sprite_blink_timer(0);
             crate::game::draw_player_sprites(engine, r);
             farcall_0c0d(engine, r, 7, 179, run_player_death_or_continue_flow);
@@ -170,7 +170,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
                     crate::game::rotate_sprite_zero_from_scripted_oam,
                 );
                 farcall_0c0d(engine, r, 227, 163, tick_final_exit_sequence);
-                if engine.state.player_health() != 0 {
+                if engine.state.player_health != 0 {
                     break;
                 }
             }
@@ -395,7 +395,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_nametable_select(1);
     r.value = 255;
     queue_ppu_job_and_wait(engine, r);
-    if engine.state.player_health() == 0 {
+    if engine.state.player_health == 0 {
         return;
     }
 
@@ -1104,8 +1104,8 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.set_player_pose(13);
         engine.state.set_player_facing(0);
         engine.state.set_title_timer(1);
-        engine.state.set_player_health(100);
-        engine.state.set_player_magic(100);
+        engine.state.player_health = 100;
+        engine.state.player_magic = 100;
         farcall_cce4(
             engine,
             r,
@@ -1852,7 +1852,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             r.index = engine.state.item_slot(r.offset);
             let idx = r.index;
             if idx == 1 {
-                if engine.state.player_magic() != 0 {
+                if engine.state.player_magic != 0 {
                     let mut t = engine.state.player_y() & crate::bits::LOW_NIBBLE;
                     t |= engine.state.player_x_fine();
                     if t == 0 {
@@ -1926,7 +1926,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                 return;
             }
             if idx == 3 {
-                if engine.state.player_magic() != 0 {
+                if engine.state.player_magic != 0 {
                     if (engine.state.direction_latch() & crate::bits::LOW_NIBBLE) != 0 {
                         r.offset = 8;
                         crate::game::build_direction_velocity(engine, r);
@@ -2101,16 +2101,14 @@ pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext)
     engine.state.set_sprite_blink_timer(0);
     crate::game::draw_player_sprites(engine, r);
     loop {
-        engine
-            .state
-            .set_player_health((engine.state.player_health() + 1) & crate::bits::BYTE_MASK);
+        engine.state.player_health = engine.state.player_health.wrapping_add(1);
         crate::game::sync_health_hud(engine, r);
         engine.state.set_prompt_state(22);
         engine.state.set_frame_counter(2);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        r.index = engine.state.player_health();
-        if engine.state.player_health() >= 99 {
+        r.index = engine.state.player_health as i32;
+        if engine.state.player_health >= 99 {
             break;
         }
     }
@@ -2127,16 +2125,14 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
     engine.state.set_sprite_blink_timer(0);
     crate::game::draw_player_sprites(engine, r);
     loop {
-        engine
-            .state
-            .set_player_magic((engine.state.player_magic() + 1) & crate::bits::BYTE_MASK);
+        engine.state.player_magic = engine.state.player_magic.wrapping_add(1);
         crate::game::sync_magic_hud(engine, r);
         engine.state.set_prompt_state(22);
         engine.state.set_frame_counter(2);
         frame::commit_frame_work(engine, r);
         frame::wait_for_frame_counter(engine, r);
-        r.index = engine.state.player_magic();
-        if engine.state.player_magic() >= 99 {
+        r.index = engine.state.player_magic as i32;
+        if engine.state.player_magic >= 99 {
             break;
         }
     }
@@ -2404,8 +2400,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         }
     }
 
-    engine.state.set_player_health(0);
-    engine.state.set_player_magic(0);
+    engine.state.player_health = 0;
+    engine.state.player_magic = 0;
     if engine.state.character_index() < 6 {
         for y in (0..=2).rev() {
             let x = engine.state.item_slot(y);
@@ -2540,8 +2536,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         fade_room_palette_out_reset_audio(engine, r);
         engine.state.set_player_pose(8);
         engine.state.set_player_facing(0);
-        engine.state.set_player_health(99);
-        engine.state.set_player_magic(99);
+        engine.state.player_health = 99;
+        engine.state.player_magic = 99;
         crate::game::sync_health_hud(engine, r);
         crate::game::sync_magic_hud(engine, r);
         engine.state.set_selected_item_slot(2);
@@ -3003,12 +2999,12 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         return;
     }
     let mut x = 0;
-    if engine.state.player_health() < 20 {
+    if engine.state.player_health < 20 {
         item_spawn_setup(engine, r, x);
         return;
     }
     x = 1;
-    if engine.state.player_magic() < 30 {
+    if engine.state.player_magic < 30 {
         item_spawn_setup(engine, r, x);
         return;
     }
@@ -3021,8 +3017,8 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
     crate::game::rng_update(engine, r);
     if r.value >= 9 {
         x = 0;
-        if engine.state.player_health() < engine.state.player_magic() {
-            if engine.state.player_health() < engine.state.coins() {
+        if engine.state.player_health < engine.state.player_magic {
+            if (engine.state.player_health as i32) < engine.state.coins() {
                 item_spawn_setup(engine, r, x);
                 return;
             }
@@ -3031,7 +3027,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
             return;
         }
         x = 1;
-        if engine.state.player_magic() < engine.state.coins() {
+        if (engine.state.player_magic as i32) < engine.state.coins() {
             item_spawn_setup(engine, r, x);
             return;
         }

@@ -618,20 +618,6 @@ impl GameState {
 
     // ---- Player vitals ----------------------------------------------------
 
-    byte_field!(
-        player_health,
-        set_player_health,
-        0x58,
-        "Player health/life points (`$58`)."
-    );
-
-    byte_field!(
-        player_magic,
-        set_player_magic,
-        0x59,
-        "Player magic points (`$59`)."
-    );
-
     // ---- Audio ------------------------------------------------------------
 
     byte_field!(

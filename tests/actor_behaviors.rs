@@ -11,7 +11,7 @@ fn check_actor_direction_contact_reports_player_contact() {
     engine.state.set_player_x_fine(0x00);
     engine.state.set_player_x_tile(0x10);
     engine.state.set_player_y(0x50);
-    engine.state.set_player_health(0x0A);
+    engine.state.player_health = 0x0A;
     engine.state.set_obj_state(0x01);
     engine.state.set_obj_damage(0x01);
     engine.state.set_obj_x_sub(0x00);
@@ -22,7 +22,7 @@ fn check_actor_direction_contact_reports_player_contact() {
 
     assert_eq!(r.carry, 1);
     assert_eq!(engine.state.overlap_flag(), 0x01);
-    assert_eq!(engine.state.player_health(), 0x09);
+    assert_eq!(engine.state.player_health, 0x09);
 }
 
 #[test]

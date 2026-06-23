@@ -7,11 +7,11 @@ fn selected_item_effect_starts_magic_timer_when_magic_is_available() {
 
     engine.state.set_selected_item_slot(0x00);
     engine.state.set_item_slot(0, 0x00);
-    engine.state.set_player_magic(0x01);
+    engine.state.player_magic = 0x01;
 
     game::tick_selected_item_effect(&mut engine, &mut r);
 
-    assert_eq!(engine.state.player_magic(), 0x00);
+    assert_eq!(engine.state.player_magic, 0x00);
     assert_eq!(engine.state.airborne_flag(), 0x02);
     assert_eq!(r.index, 0x00);
     assert_eq!(r.carry, 0);
@@ -24,7 +24,7 @@ fn selected_item_effect_reports_missing_magic_once_continue_timer_is_active() {
 
     engine.state.set_selected_item_slot(0x00);
     engine.state.set_item_slot(0, 0x01);
-    engine.state.set_player_magic(0x00);
+    engine.state.player_magic = 0x00;
     engine.state.set_continue_timer(0x01);
 
     game::tick_selected_item_effect(&mut engine, &mut r);

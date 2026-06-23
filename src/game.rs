@@ -1406,7 +1406,7 @@ pub fn update_scripted_player_fall_state(engine: &mut Engine, r: &mut RoutineCon
 /// zero while preserving the 6502-style flags in `RoutineContext`.
 pub fn subtract_scripted_player_health(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_scratch0(r.value);
-    let current_health = engine.state.player_health();
+    let current_health = engine.state.player_health;
     {
         let difference =
             ((current_health) as u16 as i32) - ((engine.state.scratch0()) as u16 as i32);
@@ -1418,10 +1418,10 @@ pub fn subtract_scripted_player_health(engine: &mut Engine, r: &mut RoutineConte
         };
         r.zero = if (result == 0) { 1 } else { 0 };
         r.negative = (result >> 7) & 1;
-        engine.state.set_player_health(result);
+        engine.state.player_health = result as u8;
     }
     if ((r.carry) == 0) {
-        engine.state.set_player_health(0);
+        engine.state.player_health = 0;
     }
 }
 
@@ -2943,11 +2943,11 @@ pub fn upload_resource_hud(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Clamps the health counter and queues the health HUD digits for redraw.
 pub fn sync_health_hud(engine: &mut Engine, r: &mut RoutineContext) {
-    let mut health: i32 = engine.state.player_health();
+    let mut health: i32 = engine.state.player_health as i32;
     if (health >= 109) {
         health = 109;
     }
-    engine.state.set_player_health(health);
+    engine.state.player_health = health as u8;
     engine.state.set_scratch0(health);
     r.value = health;
     r.index = 0;
@@ -2958,11 +2958,11 @@ pub fn sync_health_hud(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Clamps the magic counter and queues the magic HUD digits for redraw.
 pub fn sync_magic_hud(engine: &mut Engine, r: &mut RoutineContext) {
-    let mut magic: i32 = engine.state.player_magic();
+    let mut magic: i32 = engine.state.player_magic as i32;
     if (magic >= 109) {
         magic = 109;
     }
-    engine.state.set_player_magic(magic);
+    engine.state.player_magic = magic as u8;
     engine.state.set_scratch0(magic);
     r.value = magic;
     r.index = 6;
@@ -3192,7 +3192,7 @@ pub fn build_object_health_meter_standard_tiles(engine: &mut Engine, r: &mut Rou
 /// Builds the player health meter sprite strip at the second OAM meter
 /// slot.
 pub fn build_player_health_meter_sprites(engine: &mut Engine, r: &mut RoutineContext) {
-    let mut health: i32 = engine.state.player_health();
+    let mut health: i32 = engine.state.player_health as i32;
     if (health >= 109) {
         health = 109;
     }
@@ -3784,7 +3784,7 @@ pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext)
     let selected_item_slot: i32 = engine.state.selected_item_slot();
     let selected_item: i32 = engine.state.item_slot(selected_item_slot);
     r.index = selected_item_slot;
-    if (selected_item == 6) && (engine.state.player_magic() != 0) {
+    if (selected_item == 6) && (engine.state.player_magic != 0) {
         let base_jump_duration: i32 = engine.state.jump_strength();
         r.value = (((base_jump_duration >> 2) + base_jump_duration) as u8 as i32);
         r.carry = 0;
@@ -3799,7 +3799,7 @@ pub fn load_effective_jump_duration(engine: &mut Engine, r: &mut RoutineContext)
 pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineContext) {
     let selected_item_slot: i32 = engine.state.selected_item_slot();
     let selected_item: i32 = engine.state.item_slot(selected_item_slot);
-    if (selected_item == 8) && (engine.state.player_magic() != 0) {
+    if (selected_item == 8) && (engine.state.player_magic != 0) {
         r.value = ((engine.state.projectile_damage() << 2) as u8 as i32);
         r.carry = 0;
     } else {
@@ -3813,7 +3813,7 @@ pub fn load_effective_projectile_damage(engine: &mut Engine, r: &mut RoutineCont
 pub fn load_effective_projectile_lifetime(engine: &mut Engine, r: &mut RoutineContext) {
     let selected_item_slot: i32 = engine.state.selected_item_slot();
     r.index = selected_item_slot;
-    if (engine.state.item_slot(selected_item_slot) == 9) && (engine.state.player_magic() != 0) {
+    if (engine.state.item_slot(selected_item_slot) == 9) && (engine.state.player_magic != 0) {
         r.value = ((engine.state.projectile_lifetime() << 1) as u8 as i32);
         r.carry = 0;
         return;
@@ -4074,7 +4074,7 @@ pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
     let selected_item: i32 = engine.state.item_slot(selected_slot);
     if (selected_item >= 2) {
         if (selected_item == 11) {
-            if (engine.state.player_magic() != 0) {
+            if (engine.state.player_magic != 0) {
                 return;
             }
             engine.state.set_item_slot(selected_slot, 255);
@@ -4875,7 +4875,7 @@ pub fn try_move_player_with_collision(engine: &mut Engine, r: &mut RoutineContex
 pub fn try_trigger_magic_contact_actor(engine: &mut Engine, r: &mut RoutineContext) {
     if ((engine.state.chr_bank(3) < 48)
         && (engine.state.magic_contact_flag() != 0)
-        && (engine.state.player_magic() != 0))
+        && (engine.state.player_magic != 0))
     {
         let hit_slot: i32 = engine.state.scratch1();
         engine.state.set_object_state(hit_slot, 128);
@@ -5924,14 +5924,12 @@ pub fn restore_status_sprite_template(engine: &mut Engine, r: &mut RoutineContex
 /// Spends one health point, returning carry set when health was already
 /// empty.
 pub fn consume_health_point(engine: &mut Engine, r: &mut RoutineContext) {
-    r.value = engine.state.player_health();
+    r.value = engine.state.player_health as i32;
     if (r.value == 0) {
         r.carry = 1;
         return;
     }
-    engine
-        .state
-        .set_player_health(engine.state.player_health() - 1);
+    engine.state.player_health = engine.state.player_health - 1;
     sync_health_hud(engine, r);
     r.carry = 0;
 }
@@ -5941,12 +5939,12 @@ pub fn consume_health_point(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn subtract_health_points(engine: &mut Engine, r: &mut RoutineContext) {
     let damage: i32 = ((r.value) as u8 as i32);
     engine.state.set_scratch0(damage);
-    let health: i32 = engine.state.player_health();
+    let health: i32 = engine.state.player_health as i32;
     let enough_health: i32 = ((health >= damage) as u8 as i32);
     if ((enough_health) != 0) {
-        engine.state.set_player_health(health - damage);
+        engine.state.player_health = (health - damage) as u8;
     } else {
-        engine.state.set_player_health(0);
+        engine.state.player_health = 0;
     }
     sync_health_hud(engine, r);
     r.carry = enough_health;
@@ -5956,12 +5954,10 @@ pub fn subtract_health_points(engine: &mut Engine, r: &mut RoutineContext) {
 /// set when no magic was available.
 pub fn consume_magic_point(engine: &mut Engine, r: &mut RoutineContext) {
     let saved_index: i32 = ((r.index) as u8 as i32);
-    r.value = engine.state.player_magic();
+    r.value = engine.state.player_magic as i32;
     r.carry = 1;
-    if (engine.state.player_magic() != 0) {
-        engine
-            .state
-            .set_player_magic(engine.state.player_magic() - 1);
+    if (engine.state.player_magic != 0) {
+        engine.state.player_magic = engine.state.player_magic - 1;
         sync_magic_hud(engine, r);
         r.carry = 0;
     }
@@ -5970,7 +5966,7 @@ pub fn consume_magic_point(engine: &mut Engine, r: &mut RoutineContext) {
 
 /// Adds `r.value` health and clamps it to the HUD/resource maximum.
 pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
-    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_health()) as u8 as i32);
+    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_health as i32) as u8 as i32);
     let capped_total: i32 = if (total > 255) {
         109
     } else if (((total) as u8 as i32) >= 110) {
@@ -5978,13 +5974,13 @@ pub fn add_health_points(engine: &mut Engine, r: &mut RoutineContext) {
     } else {
         ((total) as u8 as i32)
     };
-    engine.state.set_player_health(capped_total);
+    engine.state.player_health = capped_total as u8;
     sync_health_hud(engine, r);
 }
 
 /// Adds `r.value` magic and clamps it to the HUD/resource maximum.
 pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
-    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_magic()) as u8 as i32);
+    let total: i32 = ((((r.value) as u16 as i32) + engine.state.player_magic as i32) as u8 as i32);
     let capped_total: i32 = if (total > 255) {
         109
     } else if (((total) as u8 as i32) >= 110) {
@@ -5992,7 +5988,7 @@ pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
     } else {
         ((total) as u8 as i32)
     };
-    engine.state.set_player_magic(capped_total);
+    engine.state.player_magic = capped_total as u8;
     sync_magic_hud(engine, r);
 }
 

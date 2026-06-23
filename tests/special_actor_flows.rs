@@ -9,7 +9,7 @@ fn defeated_actor_reward_drop_spawns_needed_health_pickup() {
     engine.state.set_obj_move_scratch(0x01);
     engine.state.set_obj_y_pixel(0xBD);
     engine.state.set_obj_y_extra(0x44);
-    engine.state.set_player_health(0x13);
+    engine.state.player_health = 0x13;
 
     native::tick_defeated_actor_reward_drop(&mut engine, &mut r);
 

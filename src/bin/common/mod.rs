@@ -198,8 +198,8 @@ pub fn init_game_scene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_player_pose(13);
     engine.state.set_player_facing(0);
     engine.state.set_title_timer(1);
-    engine.state.set_player_health(100);
-    engine.state.set_player_magic(100);
+    engine.state.player_health = 100;
+    engine.state.player_magic = 100;
     engine.state.set_pending_special_exit(0);
     engine.state.set_player_x_tile(32);
     engine.state.set_player_y(128);

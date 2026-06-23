@@ -7,7 +7,7 @@ fn load_effective_jump_duration_boosts_selected_jump_item_when_magic_available()
 
     engine.state.set_selected_item_slot(0x01);
     engine.state.set_item_slot(1, 0x06);
-    engine.state.set_player_magic(0x01);
+    engine.state.player_magic = 0x01;
     engine.state.set_jump_strength(0x10);
 
     game::load_effective_jump_duration(&mut engine, &mut r);
@@ -16,7 +16,7 @@ fn load_effective_jump_duration_boosts_selected_jump_item_when_magic_available()
     assert_eq!(r.value, 0x14);
     assert_eq!(r.carry, 0);
 
-    engine.state.set_player_magic(0x00);
+    engine.state.player_magic = 0x00;
     game::load_effective_jump_duration(&mut engine, &mut r);
 
     assert_eq!(r.value, 0x10);
@@ -30,7 +30,7 @@ fn load_effective_projectile_stats_apply_magic_boost_items() {
 
     engine.state.set_selected_item_slot(0x00);
     engine.state.set_item_slot(0, 0x08);
-    engine.state.set_player_magic(0x02);
+    engine.state.player_magic = 0x02;
     engine.state.set_projectile_damage(0x03);
 
     game::load_effective_projectile_damage(&mut engine, &mut r);
@@ -46,7 +46,7 @@ fn load_effective_projectile_stats_apply_magic_boost_items() {
     assert_eq!(r.value, 0x24);
     assert_eq!(r.carry, 0);
 
-    engine.state.set_player_magic(0x00);
+    engine.state.player_magic = 0x00;
     game::load_effective_projectile_lifetime(&mut engine, &mut r);
 
     assert_eq!(r.value, 0x12);
