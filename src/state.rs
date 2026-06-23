@@ -1261,6 +1261,37 @@ impl GameState {
         self.set_byte(0x0352 + i, value);
     }
 
+    /// Password additive checksum (`$0389`).
+    #[inline]
+    pub fn password_checksum_add(&self) -> i32 {
+        self.byte(0x0389)
+    }
+    #[inline]
+    pub fn set_password_checksum_add(&mut self, value: i32) {
+        self.set_byte(0x0389, value);
+    }
+
+    /// Password XOR checksum (`$038A`).
+    #[inline]
+    pub fn password_checksum_xor(&self) -> i32 {
+        self.byte(0x038A)
+    }
+    #[inline]
+    pub fn set_password_checksum_xor(&mut self, value: i32) {
+        self.set_byte(0x038A, value);
+    }
+
+    /// VRAM staging buffer byte `i` (`$0140 + i`): tile + attribute bytes
+    /// assembled here before being uploaded to the PPU.
+    #[inline]
+    pub fn vram_stage(&self, i: i32) -> i32 {
+        self.byte(0x0140 + i)
+    }
+    #[inline]
+    pub fn set_vram_stage(&mut self, i: i32, value: i32) {
+        self.set_byte(0x0140 + i, value);
+    }
+
     // ---- Palette staging buffer ($0180-$019F) -----------------------------
 
     /// Palette staging buffer byte `i` (`$0180 + i`), the 32-byte image copied

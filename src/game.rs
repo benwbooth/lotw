@@ -796,7 +796,9 @@ mod queue_room_column_vram_upload {
 
         let mut source_attribute_offset: i32 = 0x00;
         for attribute_offset in (0..=0x0A).rev().step_by(2) {
-            engine.set_mem(0x0170 + attribute_offset, engine.state.scratch3());
+            engine
+                .state
+                .set_vram_stage(0x30 + attribute_offset, engine.state.scratch3());
             engine
                 .state
                 .set_scratch3(u8v(engine.state.scratch3() + 0x08));
@@ -816,7 +818,9 @@ mod queue_room_column_vram_upload {
             if cbool(attribute_side_mask == 0) {
                 attribute_bits = u8v(attribute_bits >> 2);
             }
-            engine.set_mem(0x0171 + attribute_offset, attribute_bits);
+            engine
+                .state
+                .set_vram_stage(0x31 + attribute_offset, attribute_bits);
         }
 
         r.value = 0x03;
@@ -1985,7 +1989,7 @@ mod stage_scrolling_intro_text_line {
 
             let high_bits: i32 = u8v((source_byte & 0xF0) << 1);
             let tile_id: i32 = u8v((high_bits | engine.state.scratch0()) + 0x10);
-            engine.set_mem(u16v(0x0140 + text_offset), tile_id);
+            engine.state.set_vram_stage(text_offset, tile_id);
 
             text_offset += 1;
             scan_guard += 1;
@@ -2087,7 +2091,7 @@ mod clear_text_staging_buffer {
     /// Clears the 32-byte text staging buffer to blank tile `0xC0`.
     pub fn clear_text_staging_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         for offset in (0..=0x1F).rev() {
-            engine.set_mem(0x0140 + offset, 0xC0);
+            engine.state.set_vram_stage(offset, 0xC0);
         }
         r.value = 0xC0;
         r.offset = 0xFF;
@@ -2127,7 +2131,7 @@ mod encode_inventory_snapshot_item_list {
         }
         // Fold the saved key and coin counters into every other high-bit slot.
         {
-            let mut key_bits: i32 = engine.mem(0x0320);
+            let mut key_bits: i32 = engine.state.save_inventory(0x10);
             for entry_offset in (0..=0x0F).rev().step_by(2) {
                 let carry_bit: i32 = u8v(key_bits & 1);
                 key_bits >>= 1;
@@ -2138,7 +2142,7 @@ mod encode_inventory_snapshot_item_list {
             }
         }
         {
-            let mut coin_bits: i32 = engine.mem(0x0321);
+            let mut coin_bits: i32 = engine.state.save_inventory(0x11);
             for entry_offset in (0..=0x0F).rev().step_by(2) {
                 let carry_bit: i32 = u8v(coin_bits & 1);
                 coin_bits >>= 1;
@@ -2155,18 +2159,18 @@ mod encode_inventory_snapshot_item_list {
                 additive_checksum =
                     u8v(additive_checksum + engine.state.password_nibbles_a(entry_offset));
             }
-            engine.set_mem(0x0389, additive_checksum);
+            engine.state.set_password_checksum_add(additive_checksum);
         }
         {
             let mut xor_checksum: i32 = 0x0A;
             for entry_offset in (0..=0x1F).rev() {
                 xor_checksum = u8v(xor_checksum ^ engine.state.password_nibbles_a(entry_offset));
             }
-            engine.set_mem(0x038A, xor_checksum);
+            engine.state.set_password_checksum_xor(xor_checksum);
         }
         // Store the checksum bits in the remaining high-bit slots.
         {
-            let mut additive_checksum_bits: i32 = engine.mem(0x0389);
+            let mut additive_checksum_bits: i32 = engine.state.password_checksum_add();
             for entry_offset in (0..=0x0E).rev().step_by(2) {
                 let carry_bit: i32 = u8v(additive_checksum_bits & 1);
                 additive_checksum_bits >>= 1;
@@ -2177,7 +2181,7 @@ mod encode_inventory_snapshot_item_list {
             }
         }
         {
-            let mut xor_checksum_bits: i32 = engine.mem(0x038A);
+            let mut xor_checksum_bits: i32 = engine.state.password_checksum_xor();
             for entry_offset in (0..=0x0E).rev().step_by(2) {
                 let carry_bit: i32 = u8v(xor_checksum_bits & 1);
                 xor_checksum_bits >>= 1;
@@ -2189,8 +2193,12 @@ mod encode_inventory_snapshot_item_list {
         }
         // Entries at offsets 0x0F and 0x1F seed the RNG and are intentionally
         // not scrambled.
-        engine.state.set_rng_low(engine.mem(0x0331));
-        engine.state.set_rng_high(engine.mem(0x0341));
+        engine
+            .state
+            .set_rng_low(engine.state.password_nibbles_a(0x0F));
+        engine
+            .state
+            .set_rng_high(engine.state.password_nibbles_b(0x0F));
         let mut scramble_offset: i32 = 0x0E;
         while cbool(scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));
@@ -2232,8 +2240,12 @@ mod decode_inventory_item_list_snapshot {
 
         // Unscramble every non-seed entry with the same RNG stream used by the
         // encoder.
-        engine.state.set_rng_low(engine.mem(0x0351));
-        engine.state.set_rng_high(engine.mem(0x0361));
+        engine
+            .state
+            .set_rng_low(engine.state.password_scramble_a(0x0F));
+        engine
+            .state
+            .set_rng_high(engine.state.password_scramble_b(0x0F));
         let mut scramble_offset: i32 = 0x0E;
         while cbool(scramble_offset >= 0) {
             engine.state.set_scratch0(u8v(scramble_offset));
@@ -2267,7 +2279,7 @@ mod decode_inventory_item_list_snapshot {
                     .state
                     .set_password_scramble_b(entry_offset, u8v(entry >> 1));
             }
-            engine.set_mem(0x038A, stored_xor_checksum);
+            engine.state.set_password_checksum_xor(stored_xor_checksum);
         }
         {
             let mut stored_additive_checksum: i32 = 0;
@@ -2279,7 +2291,9 @@ mod decode_inventory_item_list_snapshot {
                     .state
                     .set_password_scramble_a(entry_offset, u8v(entry >> 1));
             }
-            engine.set_mem(0x0389, stored_additive_checksum);
+            engine
+                .state
+                .set_password_checksum_add(stored_additive_checksum);
         }
 
         // Verify additive and xor checksums before updating the snapshot
@@ -2289,7 +2303,7 @@ mod decode_inventory_item_list_snapshot {
             additive_checksum =
                 u8v(additive_checksum + engine.state.password_scramble_a(entry_offset));
         }
-        if cbool(additive_checksum != engine.mem(0x0389)) {
+        if cbool(additive_checksum != engine.state.password_checksum_add()) {
             engine.state.set_prompt_state(0x1C);
             engine.state.set_prompt_argument(0x1C);
             r.carry = 1;
@@ -2300,7 +2314,7 @@ mod decode_inventory_item_list_snapshot {
         for entry_offset in (0..=0x1F).rev() {
             xor_checksum = u8v(xor_checksum ^ engine.state.password_scramble_a(entry_offset));
         }
-        if cbool(xor_checksum != engine.mem(0x038A)) {
+        if cbool(xor_checksum != engine.state.password_checksum_xor()) {
             engine.state.set_prompt_state(0x1C);
             engine.state.set_prompt_argument(0x1C);
             r.carry = 1;
@@ -2317,7 +2331,7 @@ mod decode_inventory_item_list_snapshot {
                     .state
                     .set_password_scramble_a(entry_offset, u8v(entry >> 1));
             }
-            engine.set_mem(0x0320, key_bits);
+            engine.state.set_save_inventory(0x10, key_bits);
         }
         {
             let mut coin_bits: i32 = 0;
@@ -2328,7 +2342,7 @@ mod decode_inventory_item_list_snapshot {
                     .state
                     .set_password_scramble_b(entry_offset, u8v(entry >> 1));
             }
-            engine.set_mem(0x0321, coin_bits);
+            engine.state.set_save_inventory(0x11, coin_bits);
         }
 
         // Recombine progress nibbles and copy inventory counts back to the
@@ -4450,8 +4464,8 @@ mod snapshot_inventory_state {
                 engine.state.inventory_item(inventory_offset),
             );
         }
-        engine.set_mem(0x0321, engine.state.coins());
-        engine.set_mem(0x0320, engine.state.keys());
+        engine.state.set_save_inventory(0x11, engine.state.coins());
+        engine.state.set_save_inventory(0x10, engine.state.keys());
         r.index = 0xFF;
     }
 }
@@ -4474,8 +4488,8 @@ mod restore_inventory_state_snapshot {
                 engine.state.save_inventory(inventory_offset),
             );
         }
-        engine.state.set_coins(engine.mem(0x0321));
-        engine.state.set_keys(engine.mem(0x0320));
+        engine.state.set_coins(engine.state.save_inventory(0x11));
+        engine.state.set_keys(engine.state.save_inventory(0x10));
         r.index = 0xFF;
     }
 }
@@ -11172,7 +11186,7 @@ mod vram_upload_hud {
         {
             x = 0x17;
             while cbool(x >= 0) {
-                engine.device_write(0x2007, engine.mem(u16v(0x0140 + x)));
+                engine.device_write(0x2007, engine.state.vram_stage(x));
                 {
                     let __old = x;
                     x -= 1;
@@ -11185,7 +11199,7 @@ mod vram_upload_hud {
         {
             x = 0x17;
             while cbool(x >= 0) {
-                engine.device_write(0x2007, engine.mem(u16v(0x0158 + x)));
+                engine.device_write(0x2007, engine.state.vram_stage(0x18 + x));
                 {
                     let __old = x;
                     x -= 1;
@@ -11197,14 +11211,14 @@ mod vram_upload_hud {
             x = 0x0A;
             while cbool(x >= 0) {
                 engine.device_write(0x2006, engine.state.vram_addr2_hi());
-                engine.device_write(0x2006, engine.mem(u16v(0x0170 + x)));
+                engine.device_write(0x2006, engine.state.vram_stage(0x30 + x));
                 let _ = engine.device_read(0x2007);
                 {
                     let mut v: i32 = u8v((engine.device_read(0x2007)
                         & engine.state.vram_addr2_lo())
-                        | engine.mem(u16v(0x0171 + x)));
+                        | engine.state.vram_stage(0x31 + x));
                     engine.device_write(0x2006, engine.state.vram_addr2_hi());
-                    engine.device_write(0x2006, engine.mem(u16v(0x0170 + x)));
+                    engine.device_write(0x2006, engine.state.vram_stage(0x30 + x));
                     engine.device_write(0x2007, v);
                 }
                 x -= 2;
