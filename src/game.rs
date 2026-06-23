@@ -9,6 +9,39 @@ use crate::frame;
 use crate::native::*;
 use crate::{Engine, RoutineContext, cbool, not, u8v, u16v};
 
+// ROM data tables (mapped PRG). Each is the base address of a lookup table the
+// game indexes; reads go through `engine.state.byte(TABLE + index)`.
+/// Zero-page initialization image copied into `$00..` at boot (`$9B9F`).
+pub const ZP_INIT_TABLE: i32 = 0x9B9F;
+/// Stack-page initialization image copied into `$0100..` at boot (`$9C9E`).
+pub const STACK_INIT_TABLE: i32 = 0x9C9E;
+/// Save-state initialization template (`$9D3E`).
+pub const SAVE_INIT_TABLE: i32 = 0x9D3E;
+/// Object-table initialization template (`$9DC9`).
+pub const OBJECT_INIT_TABLE: i32 = 0x9DC9;
+/// Title-screen palette data (`$A2C9`).
+pub const TITLE_PALETTE_TABLE: i32 = 0xA2C9;
+/// Title-screen CHR bank list (`$A2E9`).
+pub const TITLE_CHR_BANK_TABLE: i32 = 0xA2E9;
+/// Sprite Y-position templates for menu/cursor sprite groups.
+pub const SPRITE_Y_TABLE_A: i32 = 0xAAFC;
+pub const SPRITE_Y_TABLE_B: i32 = 0xAB3C;
+pub const SPRITE_Y_TABLE_C: i32 = 0xAB7C;
+/// Attract-demo scripted controller input sequence (`$B0FE`).
+pub const DEMO_INPUT_TABLE: i32 = 0xB0FE;
+/// Sprite Y-position templates for the title/credits sprite groups.
+pub const SPRITE_Y_TABLE_D: i32 = 0xB71C;
+pub const SPRITE_Y_TABLE_E: i32 = 0xB6FC;
+/// Per-direction horizontal / vertical movement delta tables (`$FE8B`/`$FE8C`).
+pub const MOVE_DELTA_X_TABLE: i32 = 0xFE8B;
+pub const MOVE_DELTA_Y_TABLE: i32 = 0xFE8C;
+/// Drasle-family palette table (`$FFC5`).
+pub const FAMILY_PALETTE_TABLE: i32 = 0xFFC5;
+/// Per-character starting-item table used by the warp-in test scaffolding (`0xB0AC`).
+pub const START_ITEM_TABLE: i32 = 0xB0AC;
+/// Per-character base-stats table (health/magic/jump etc.) at boot (`0xFFA7`).
+pub const CHARACTER_STATS_TABLE: i32 = 0xFFA7;
+
 pub use add_coins::add_coins;
 pub use add_health_points::add_health_points;
 pub use add_key::add_key;
@@ -807,13 +840,17 @@ mod ram_state_init {
     /// pages from the ROM default tables.
     pub fn ram_state_init(engine: &mut Engine, r: &mut RoutineContext) {
         for zero_page_addr in 0..=0xFF {
-            engine
-                .state
-                .set_byte(zero_page_addr, engine.mem(0x9B9F + zero_page_addr));
+            engine.state.set_byte(
+                zero_page_addr,
+                engine.state.byte(ZP_INIT_TABLE + zero_page_addr),
+            );
         }
 
         for stack_offset in (0..=0x3F).rev() {
-            engine.set_mem(0x0100 + stack_offset, engine.mem(0x9C9E + stack_offset));
+            engine.set_mem(
+                0x0100 + stack_offset,
+                engine.state.byte(STACK_INIT_TABLE + stack_offset),
+            );
         }
 
         for palette_offset in (0..=0x1F).rev() {
@@ -823,14 +860,14 @@ mod ram_state_init {
         for save_ram_offset in 0..=0xFF {
             engine.set_mem(
                 0x0300 + save_ram_offset,
-                engine.mem(0x9D3E + save_ram_offset),
+                engine.state.byte(SAVE_INIT_TABLE + save_ram_offset),
             );
         }
 
         for object_ram_offset in 0..=0xFF {
             engine.set_mem(
                 0x0400 + object_ram_offset,
-                engine.mem(0x9DC9 + object_ram_offset),
+                engine.state.byte(OBJECT_INIT_TABLE + object_ram_offset),
             );
         }
     }
@@ -1272,9 +1309,10 @@ mod load_final_exit_object_oam_template {
     /// health meter.
     pub fn load_final_exit_object_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         for oam_offset in (0..=0x3F).rev() {
-            engine
-                .state
-                .set_oam_y(0x40 + oam_offset, engine.mem(0xAAFC + oam_offset));
+            engine.state.set_oam_y(
+                0x40 + oam_offset,
+                engine.state.byte(SPRITE_Y_TABLE_A + oam_offset),
+            );
         }
         build_object_health_meter_standard_tiles(engine, r);
     }
@@ -1287,9 +1325,10 @@ mod load_large_actor_oam_template {
     /// health meter.
     pub fn load_large_actor_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         for oam_offset in (0..=0x3F).rev() {
-            engine
-                .state
-                .set_oam_y(0x40 + oam_offset, engine.mem(0xAB3C + oam_offset));
+            engine.state.set_oam_y(
+                0x40 + oam_offset,
+                engine.state.byte(SPRITE_Y_TABLE_B + oam_offset),
+            );
         }
         build_object_health_meter_alt_tiles(engine, r);
     }
@@ -1302,9 +1341,10 @@ mod load_final_exit_player_oam_template {
     /// health meter.
     pub fn load_final_exit_player_oam_template(engine: &mut Engine, r: &mut RoutineContext) {
         for oam_offset in (0..=0x3F).rev() {
-            engine
-                .state
-                .set_oam_y(0xC0 + oam_offset, engine.mem(0xAB7C + oam_offset));
+            engine.state.set_oam_y(
+                0xC0 + oam_offset,
+                engine.state.byte(SPRITE_Y_TABLE_C + oam_offset),
+            );
         }
         build_player_health_meter_sprites(engine, r);
     }
@@ -1821,7 +1861,7 @@ mod load_title_oam_template {
         for offset in (0..=0x7F).rev() {
             engine
                 .state
-                .set_oam_y(0x40 + offset, engine.mem(0xB71C + offset));
+                .set_oam_y(0x40 + offset, engine.state.byte(SPRITE_Y_TABLE_D + offset));
         }
         r.index = 0xFF;
     }
@@ -1835,7 +1875,7 @@ mod load_demo_oam_template {
         for offset in (0..=0x1F).rev() {
             engine
                 .state
-                .set_oam_y(0x40 + offset, engine.mem(0xB6FC + offset));
+                .set_oam_y(0x40 + offset, engine.state.byte(SPRITE_Y_TABLE_E + offset));
         }
         r.index = 0xFF;
     }
@@ -2310,7 +2350,9 @@ mod reset_menu_state_and_palette {
     /// rewrites `0x40..0x8B`, leaving broader runtime buffers intact.
     pub fn reset_menu_state_and_palette(engine: &mut Engine, r: &mut RoutineContext) {
         for addr in 0x40..0x8C {
-            engine.state.set_byte(addr, engine.mem(0x9B9F + addr));
+            engine
+                .state
+                .set_byte(addr, engine.state.byte(ZP_INIT_TABLE + addr));
         }
         for palette_offset in (0..=0x1F).rev() {
             engine.state.set_palette_buffer(palette_offset, 0x0F);
@@ -2342,8 +2384,12 @@ mod upload_title_screen_nametables {
             }
         }
 
-        engine.state.set_chr_bank(0, engine.mem(0xA2E9));
-        engine.state.set_chr_bank(1, engine.mem(0xA2EA));
+        engine
+            .state
+            .set_chr_bank(0, engine.state.byte(TITLE_CHR_BANK_TABLE));
+        engine
+            .state
+            .set_chr_bank(1, engine.state.byte(TITLE_CHR_BANK_TABLE + 1));
         engine.state.set_ppu_mask_shadow(mask);
         engine.state.set_ppu_ctrl_shadow(ctrl);
         engine.device_write(0x2000, ctrl);
@@ -2358,9 +2404,10 @@ mod load_title_palette_buffer {
     /// Copies the title-screen palette from ROM into the palette upload buffer.
     pub fn load_title_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
         for palette_offset in (0..=0x1F).rev() {
-            engine
-                .state
-                .set_palette_buffer(palette_offset, engine.mem(0xA2C9 + palette_offset));
+            engine.state.set_palette_buffer(
+                palette_offset,
+                engine.state.byte(TITLE_PALETTE_TABLE + palette_offset),
+            );
         }
         r.index = 0xFF;
     }
@@ -3262,7 +3309,9 @@ mod build_room_palette_buffer {
         for dest_offset in (0..=0x03).rev() {
             engine.set_mem(
                 0x0190 + dest_offset,
-                engine.mem(0xFFC5 + family_palette_offset),
+                engine
+                    .state
+                    .byte(FAMILY_PALETTE_TABLE + family_palette_offset),
             );
             family_palette_offset -= 1;
         }
@@ -3775,7 +3824,8 @@ mod build_input_movement_delta {
         {
             let mut steps = speed;
             while cbool(steps != 0) {
-                horizontal_delta = u8v(horizontal_delta + engine.mem(0xFE8B + direction_index));
+                horizontal_delta =
+                    u8v(horizontal_delta + engine.state.byte(MOVE_DELTA_X_TABLE + direction_index));
                 {
                     let __old = steps;
                     steps -= 1;
@@ -3799,7 +3849,8 @@ mod build_input_movement_delta {
         {
             let mut steps = speed;
             while cbool(steps != 0) {
-                vertical_delta = u8v(vertical_delta + engine.mem(0xFE8C + direction_index));
+                vertical_delta =
+                    u8v(vertical_delta + engine.state.byte(MOVE_DELTA_Y_TABLE + direction_index));
                 {
                     let __old = steps;
                     steps -= 1;
@@ -3830,7 +3881,8 @@ mod build_direction_velocity {
         {
             let mut steps = speed;
             while cbool(steps != 0) {
-                horizontal_delta = u8v(horizontal_delta + engine.mem(0xFE8B + direction_index));
+                horizontal_delta =
+                    u8v(horizontal_delta + engine.state.byte(MOVE_DELTA_X_TABLE + direction_index));
                 {
                     let __old = steps;
                     steps -= 1;
@@ -3852,7 +3904,8 @@ mod build_direction_velocity {
         {
             let mut steps = speed;
             while cbool(steps != 0) {
-                vertical_delta = u8v(vertical_delta + engine.mem(0xFE8C + direction_index));
+                vertical_delta =
+                    u8v(vertical_delta + engine.state.byte(MOVE_DELTA_Y_TABLE + direction_index));
                 {
                     let __old = steps;
                     steps -= 1;
