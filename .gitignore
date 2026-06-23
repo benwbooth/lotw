@@ -17,3 +17,6 @@ __pycache__/
 
 # exploratory recon image scratch (canonical assets produced in P4)
 assets/chr/
+
+# local ROM dir (binary + stray links)
+/rom/
