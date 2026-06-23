@@ -15,7 +15,7 @@ fn split_meter_value_returns_full_blocks_and_partial_block() {
         game::split_meter_value(&mut engine, &mut r);
 
         assert_eq!(engine.state.scratch0, expected_partial, "value {value}");
-        assert_eq!(r.value as i32, ((expected_partial) as i32), "value {value}");
+        assert_eq!(r.value as i32, (expected_partial as i32), "value {value}");
         assert_eq!(r.offset as i32, expected_blocks, "value {value}");
     }
 }

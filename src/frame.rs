@@ -183,8 +183,8 @@ pub fn commit_frame_work(engine: &mut Engine, r: &mut RoutineContext) {
 
 pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     crate::game::read_controllers(engine, r);
-    r.value = ((engine.state.buttons) as u8);
-    ((r.value) as i32)
+    r.value = (engine.state.buttons as u8);
+    (r.value as i32)
 }
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
@@ -198,6 +198,6 @@ pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext
 }
 
 pub fn set_frame_counter_and_wait(engine: &mut Engine, r: &mut RoutineContext, frames: i32) {
-    engine.state.frame_counter = ((frames) as u8);
+    engine.state.frame_counter = (frames as u8);
     wait_for_frame_counter(engine, r);
 }

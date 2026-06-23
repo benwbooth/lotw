@@ -27,10 +27,10 @@ fn item_pickup_updates_inventory_and_clears_object() {
     engine.state.set_object_x_sub(0x80, 0x00);
     engine
         .state
-        .set_object_x_tile(0x80, ((engine.state.player_x_tile) as i32));
+        .set_object_x_tile(0x80, (engine.state.player_x_tile as i32));
     engine
         .state
-        .set_object_y_pixel(0x80, ((engine.state.player_y) as i32));
+        .set_object_y_pixel(0x80, (engine.state.player_y as i32));
 
     r.value = 0x00;
     game::try_move_player_with_collision(&mut engine, &mut r);

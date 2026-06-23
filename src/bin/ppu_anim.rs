@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     game::song_init(&mut engine, &mut r);
 
     for fr in 0..frames {
-        engine.ppu.buttons = ((btn) as u8);
+        engine.ppu.buttons = (btn as u8);
         engine.state.frame_counter = 1;
         game::read_controllers(&mut engine, &mut r);
         game::game_update(&mut engine, &mut r);
