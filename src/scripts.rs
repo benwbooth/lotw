@@ -72,25 +72,22 @@ impl FrameTask {
 pub const BUTTON_START: i32 = 0x08;
 
 pub fn wait_buttons_released() -> FrameTask {
-    FrameTask::new(vec![Wait::buttons_released(0xff)])
+    FrameTask::new(vec![Wait::buttons_released(255)])
 }
 
 pub fn wait_any_button_pressed() -> FrameTask {
-    FrameTask::new(vec![Wait::button_pressed(0xff)])
+    FrameTask::new(vec![Wait::button_pressed(255)])
 }
 
 pub fn wait_release_then_any_press() -> FrameTask {
-    FrameTask::new(vec![
-        Wait::buttons_released(0xff),
-        Wait::button_pressed(0xff),
-    ])
+    FrameTask::new(vec![Wait::buttons_released(255), Wait::button_pressed(255)])
 }
 
 pub fn wait_release_then_button_then_release(mask: i32) -> FrameTask {
     FrameTask::new(vec![
-        Wait::buttons_released(0xff),
+        Wait::buttons_released(255),
         Wait::button_pressed(mask),
-        Wait::buttons_released(0xff),
+        Wait::buttons_released(255),
     ])
 }
 
@@ -99,19 +96,19 @@ pub fn wait_frames(count: usize) -> FrameTask {
 }
 
 pub fn ae11_press_start_gate(engine: &mut crate::Engine) -> FrameTask {
-    engine.state.set_prompt_state(0x03);
+    engine.state.set_prompt_state(3);
     engine
         .state
         .set_sound_paused((engine.state.sound_paused() + 1) & crate::bits::BYTE_MASK);
     FrameTask::new(vec![
-        Wait::buttons_released(0xff),
+        Wait::buttons_released(255),
         Wait::button_pressed(BUTTON_START),
-        Wait::buttons_released(0xff),
+        Wait::buttons_released(255),
     ])
 }
 
 pub fn finish_ae11_press_start_gate(engine: &mut crate::Engine) {
-    engine.state.set_prompt_state(0x04);
+    engine.state.set_prompt_state(4);
     engine
         .state
         .set_sound_paused((engine.state.sound_paused() - 1) & crate::bits::BYTE_MASK);

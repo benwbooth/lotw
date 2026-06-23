@@ -282,7 +282,7 @@ pub fn read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
 }
 
 pub fn redraw_scene_and_read_buttons(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
-    engine.state.set_frame_counter(0x01);
+    engine.state.set_frame_counter(1);
     crate::game::draw_player_sprites(engine, r);
     crate::game::draw_room_object_sprites(engine, r);
     crate::game::draw_status_item_sprites(engine, r);
