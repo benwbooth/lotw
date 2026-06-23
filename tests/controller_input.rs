@@ -8,7 +8,7 @@ fn read_controllers_uses_live_ppu_buttons_without_replay_override() {
     engine.ppu.set_buttons(0x08);
     game::read_controllers(&mut engine, &mut r);
 
-    assert_eq!(engine.mem(0x20), 0x10);
+    assert_eq!(engine.state.buttons(), 0x10);
 }
 
 #[test]
@@ -20,5 +20,5 @@ fn read_controllers_uses_replay_override_when_configured() {
     engine.set_next_input(|| 0x08);
     game::read_controllers(&mut engine, &mut r);
 
-    assert_eq!(engine.mem(0x20), 0x10);
+    assert_eq!(engine.state.buttons(), 0x10);
 }

@@ -11,10 +11,10 @@ fn split_meter_value_returns_full_blocks_and_partial_block() {
         (0x0A, 0x01, 0x02),
         (0x17, 0x04, 0x03),
     ] {
-        engine.set_mem(0x08, value);
+        engine.state.set_scratch0(value);
         game::split_meter_value(&mut engine, &mut r);
 
-        assert_eq!(engine.mem(0x08), expected_partial, "value {value}");
+        assert_eq!(engine.state.scratch0(), expected_partial, "value {value}");
         assert_eq!(r.value, expected_partial, "value {value}");
         assert_eq!(r.offset, expected_blocks, "value {value}");
     }
@@ -30,14 +30,14 @@ fn decimal_digit_tiles_encode_ones_and_tens() {
 
     game::build_decimal_digit_tiles(&mut engine, &mut r);
 
-    assert_eq!(engine.mem(0x18), 0xD4);
-    assert_eq!(engine.mem(0x19), 0xD1);
+    assert_eq!(engine.state.vram_addr2_lo(), 0xD4);
+    assert_eq!(engine.state.vram_addr2_hi(), 0xD1);
 
     r.value = 0x09;
     game::build_decimal_digit_tiles(&mut engine, &mut r);
 
-    assert_eq!(engine.mem(0x18), 0xD9);
-    assert_eq!(engine.mem(0x19), 0xC0);
+    assert_eq!(engine.state.vram_addr2_lo(), 0xD9);
+    assert_eq!(engine.state.vram_addr2_hi(), 0xC0);
 }
 
 #[test]
@@ -49,15 +49,15 @@ fn build_health_meter_sprites_initializes_full_and_empty_tiles() {
         ..RoutineContext::default()
     };
 
-    engine.set_mem(0x08, 0x00);
-    engine.set_mem(0x09, 0x00);
+    engine.state.set_scratch0(0x00);
+    engine.state.set_scratch1(0x00);
 
     game::build_health_meter_sprites(&mut engine, &mut r);
 
     for addr in [0x0259, 0x025D, 0x0261, 0x0265, 0x0269] {
-        assert_eq!(engine.mem(addr), 0x65);
+        assert_eq!(engine.state.byte(addr), 0x65);
     }
     for addr in [0x026D, 0x0271, 0x0275, 0x0279, 0x027D] {
-        assert_eq!(engine.mem(addr), 0x6B);
+        assert_eq!(engine.state.byte(addr), 0x6B);
     }
 }

@@ -6,16 +6,16 @@ fn start_gate_requires_release_press_release() {
     let mut gate = scripts::ae11_press_start_gate(&mut engine);
 
     assert!(!gate.step(scripts::BUTTON_START, false));
-    assert_eq!(engine.mem(0x8f), 0x03);
-    assert_eq!(engine.mem(0x8d), 0x01);
+    assert_eq!(engine.state.prompt_state(), 0x03);
+    assert_eq!(engine.state.sound_paused(), 0x01);
 
     assert!(!gate.step(0x00, false));
     assert!(!gate.step(scripts::BUTTON_START, false));
     assert!(!gate.step(scripts::BUTTON_START, false));
     assert!(gate.step(0x00, false));
     scripts::finish_ae11_press_start_gate(&mut engine);
-    assert_eq!(engine.mem(0x8f), 0x04);
-    assert_eq!(engine.mem(0x8d), 0x00);
+    assert_eq!(engine.state.prompt_state(), 0x04);
+    assert_eq!(engine.state.sound_paused(), 0x00);
 }
 
 #[test]

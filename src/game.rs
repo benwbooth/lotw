@@ -43,6 +43,8 @@ pub const NOTE_PERIOD_TABLE: i32 = 0xFDB1;
 pub const ENVELOPE_TABLE: i32 = 0xFDCB;
 /// Per-character starting-item table used by the warp-in test scaffolding (`0xB0AC`).
 pub const START_ITEM_TABLE: i32 = 0xB0AC;
+/// Character palette source table used by palette helpers (`0xB000`).
+pub const PALETTE_DATA_TABLE: i32 = 0xB000;
 /// Per-character base-stats table (health/magic/jump etc.) at boot (`0xFFA7`).
 pub const CHARACTER_STATS_TABLE: i32 = 0xFFA7;
 /// Per-direction actor spawn X/Y offset tables (`0xFEAB`/`0xFEAC`).

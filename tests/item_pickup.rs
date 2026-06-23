@@ -2,10 +2,10 @@ use lotw::{Engine, RoutineContext, game};
 
 fn expect_u8(engine: &Engine, name: &str, addr: i32, want: i32) {
     assert_eq!(
-        engine.mem(addr),
+        engine.state.byte(addr),
         want,
         "{name} ${addr:04X}: got {:02X}, expected {want:02X}",
-        engine.mem(addr)
+        engine.state.byte(addr)
     );
 }
 
@@ -14,19 +14,23 @@ fn item_pickup_updates_inventory_and_clears_object() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
-    engine.set_mem(0x43, 0x00);
-    engine.set_mem(0x44, 0x10);
-    engine.set_mem(0x45, 0x50);
-    engine.set_mem(0x49, 0x00);
-    engine.set_mem(0x4b, 0x00);
-    engine.set_mem(0xe3, 0xff);
+    engine.state.set_player_x_fine(0x00);
+    engine.state.set_player_x_tile(0x10);
+    engine.state.set_player_y(0x50);
+    engine.state.set_horizontal_subtile_delta(0x00);
+    engine.state.set_vertical_delta(0x00);
+    engine.state.set_slot_index(0xff);
 
-    engine.set_mem(0x0400 + 0x80, 0x02);
-    engine.set_mem(0x0401 + 0x80, 0x0a);
-    engine.set_mem(0x0402 + 0x80, 0x00);
-    engine.set_mem(0x040c + 0x80, 0x00);
-    engine.set_mem(0x040d + 0x80, engine.mem(0x44));
-    engine.set_mem(0x040e + 0x80, engine.mem(0x45));
+    engine.state.set_object_tile(0x80, 0x02);
+    engine.state.set_object_state(0x80, 0x0a);
+    engine.state.set_object_attr(0x80, 0x00);
+    engine.state.set_object_x_sub(0x80, 0x00);
+    engine
+        .state
+        .set_object_x_tile(0x80, engine.state.player_x_tile());
+    engine
+        .state
+        .set_object_y_pixel(0x80, engine.state.player_y());
 
     r.value = 0x00;
     game::try_move_player_with_collision(&mut engine, &mut r);
