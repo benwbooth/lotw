@@ -535,7 +535,7 @@ mod game_update {
                             .state
                             .set_vertical_delta(u8v((engine.state.fall_frames() >> 2) + 1));
                         try_move_player_with_collision(engine, r);
-                        if !((r.carry) != 0) {
+                        if ((r.carry) == 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
@@ -544,7 +544,7 @@ mod game_update {
                         engine.state.set_horizontal_subtile_delta(0x00);
                         engine.state.set_player_x_velocity(0x00);
                         try_move_player_with_collision(engine, r);
-                        if !((r.carry) != 0) {
+                        if ((r.carry) == 0) {
                             {
                                 state = 3;
                                 continue 'dispatch;
@@ -572,14 +572,14 @@ mod game_update {
                         engine.state.set_jump_timer(0x00);
                     }
                     try_move_player_with_collision(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
                         }
                     }
                     try_nudge_player_to_tile_boundary(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -1049,7 +1049,7 @@ mod update_final_exit_projectiles {
             if (engine.state.byte(u16v(slot_ptr + 1)) != 0) {
                 update_final_exit_projectile_slot(engine, r);
             } else if (((engine.state.buttons() & 0x40) != 0)
-                && !((engine.state.direction_latch() & 0x40) != 0))
+                && ((engine.state.direction_latch() & 0x40) == 0))
             {
                 spawn_final_exit_projectile(engine, r);
             }
@@ -1086,7 +1086,7 @@ mod spawn_final_exit_projectile {
         build_final_exit_projectile_velocity(engine, r);
         project_final_exit_projectile_spawn(engine, r);
         check_final_exit_projectile_bounds(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             engine.state.set_obj_x_sub(engine.state.indirect_ptr_lo());
             engine.state.set_obj_y_pixel(engine.state.scratch2());
             engine.state.set_obj_state(0x18);
@@ -1323,7 +1323,7 @@ mod build_final_exit_projectile_velocity {
                     .state
                     .byte(u16v(MOVE_DELTA_X_TABLE + direction_table_offset)));
             remaining_steps -= 1;
-            if !(remaining_steps != 0) {
+            if (remaining_steps == 0) {
                 break;
             }
         }
@@ -1337,7 +1337,7 @@ mod build_final_exit_projectile_velocity {
                     .state
                     .byte(u16v(MOVE_DELTA_Y_TABLE + direction_table_offset)));
             remaining_steps -= 1;
-            if !(remaining_steps != 0) {
+            if (remaining_steps == 0) {
                 break;
             }
         }
@@ -1461,7 +1461,7 @@ mod tick_scripted_player_motion {
             return;
         }
 
-        if !((engine.state.buttons() & 0x40) != 0) {
+        if ((engine.state.buttons() & 0x40) == 0) {
             engine
                 .state
                 .set_direction_latch(u8v(engine.state.direction_latch() & 0x0F));
@@ -1478,7 +1478,7 @@ mod tick_scripted_player_motion {
         if (engine.state.sprite_blink_timer() == 0) {
             if engine.state.sprite0_hit() {
                 r.index = u8v(engine.state.sprite_index() + 1);
-                if !((r.index & 0x06) != 0) {
+                if ((r.index & 0x06) == 0) {
                     let collision_screen_x = u8v(u8v(
                         engine.state.scroll_pixel_x() + engine.state.object_x_sub(r.index)
                     ));
@@ -1510,14 +1510,14 @@ mod tick_scripted_player_motion {
             r.value = u8v((engine.state.fall_frames() >> 2) + 1);
             engine.state.set_vertical_delta(r.value);
             try_move_scripted_player_in_bounds(engine, r);
-            if !((r.carry) != 0) {
+            if ((r.carry) == 0) {
                 commit_scripted_player_position(engine, r);
                 return;
             }
 
             engine.state.set_horizontal_subtile_delta(0x00);
             try_move_scripted_player_in_bounds(engine, r);
-            if !((r.carry) != 0) {
+            if ((r.carry) == 0) {
                 return;
             }
 
@@ -1570,7 +1570,7 @@ mod tick_scripted_player_jump_action {
             engine.state.set_horizontal_subtile_delta(0x00);
             try_move_scripted_player_in_bounds(engine, r);
         }
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             engine
                 .state
                 .set_player_x_fine(engine.state.indirect_ptr_lo());
@@ -1764,7 +1764,7 @@ mod try_move_scripted_player_in_bounds {
         loop {
             project_scripted_player_position(engine, r);
             check_scripted_player_bounds(engine, r);
-            if !((r.carry) != 0) {
+            if ((r.carry) == 0) {
                 break;
             }
             {
@@ -1773,7 +1773,7 @@ mod try_move_scripted_player_in_bounds {
                     r.carry = 1;
                     break;
                 }
-                if !((adjusted_y_delta & 0x80) != 0) {
+                if ((adjusted_y_delta & 0x80) == 0) {
                     adjusted_y_delta = u8v(adjusted_y_delta - 1);
                     adjusted_y_delta = u8v(adjusted_y_delta - 1);
                 }
@@ -1839,7 +1839,7 @@ mod subtract_scripted_player_health {
             r.negative = (result >> 7) & 1;
             engine.state.set_player_health(result);
         }
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             engine.state.set_player_health(0x00);
         }
     }
@@ -2654,7 +2654,7 @@ mod draw_room_object_sprites {
             oam_offset = u8v((u8v(oam_offset + 0x08)) | 0x80);
             object_offset = u8v(object_offset + 0x30);
             engine.state.set_scratch2(u8v(engine.state.scratch2() - 1));
-            if !(engine.state.scratch2() != 0) {
+            if (engine.state.scratch2() == 0) {
                 break;
             }
         }
@@ -2820,7 +2820,7 @@ mod dim_palette_range_by_step {
                 .set_palette_buffer(palette_offset, dimmed_color);
             palette_offset += 1;
             remaining -= 1;
-            if !(remaining != 0) {
+            if (remaining == 0) {
                 break;
             }
         }
@@ -2978,7 +2978,7 @@ mod upload_room_view_from_tile_pointer {
                     engine
                         .state
                         .set_scratch3((engine.state.scratch3() - 1) & 0xFF);
-                    if !(engine.state.scratch3() != 0) {
+                    if (engine.state.scratch3() == 0) {
                         break;
                     }
                 }
@@ -3004,7 +3004,7 @@ mod upload_room_view_from_tile_pointer {
                     engine
                         .state
                         .set_scratch3((engine.state.scratch3() - 1) & 0xFF);
-                    if !(engine.state.scratch3() != 0) {
+                    if (engine.state.scratch3() == 0) {
                         break;
                     }
                 }
@@ -3207,7 +3207,7 @@ mod upload_room_columns_from_bank9 {
             }
             engine.state.set_scratch0(u8v(engine.state.scratch0() + 1));
             engine.state.set_scratch1(u8v(engine.state.scratch1() - 1));
-            if !(engine.state.scratch1() != 0) {
+            if (engine.state.scratch1() == 0) {
                 break;
             }
         }
@@ -3246,7 +3246,7 @@ mod upload_staged_room_columns {
             }
             engine.state.set_scratch0(u8v(engine.state.scratch0() + 1));
             engine.state.set_scratch1(u8v(engine.state.scratch1() - 1));
-            if !(engine.state.scratch1() != 0) {
+            if (engine.state.scratch1() == 0) {
                 break;
             }
         }
@@ -3868,7 +3868,7 @@ mod split_meter_value {
             let trial: i32 = (remainder) - 0x0A - (1 - carry);
             remainder = u8v(trial);
             carry = u8v((if (trial >= 0) { 1 } else { 0 }));
-            if !((carry) != 0) {
+            if ((carry) == 0) {
                 break;
             }
         }
@@ -4260,10 +4260,10 @@ mod upload_inventory_item_count_tiles {
             loop {
                 carry = u8v(v >> 7);
                 v = u8v(v << 1);
-                if !({
+                if ({
                     yy -= 1;
                     yy
-                } != 0)
+                } == 0)
                 {
                     break;
                 }
@@ -4272,7 +4272,7 @@ mod upload_inventory_item_count_tiles {
         }
         r.value = x;
         load_family_item_permission_bits(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             engine
                 .state
                 .set_vram_addr2_lo(u8v(engine.state.vram_addr2_lo() - 0x40));
@@ -4389,10 +4389,10 @@ mod load_family_item_permission_bits {
         loop {
             carry = u8v(a >> 7);
             a = u8v(a << 1);
-            if !({
+            if ({
                 y -= 1;
                 y
-            } != 0)
+            } == 0)
             {
                 break;
             }
@@ -4482,7 +4482,7 @@ mod clear_gameplay_object_sprites {
         loop {
             engine.state.set_oam_y(oam_offset, 0xEF);
             oam_offset = u8v(oam_offset + 4);
-            if !(oam_offset != 0) {
+            if (oam_offset == 0) {
                 break;
             }
         }
@@ -4502,10 +4502,10 @@ mod reset_room_object_slots {
             engine.state.set_object_state(slot_offset, 0x00);
             engine.state.set_object_timer(slot_offset, 0x02);
             slot_offset = u8v(slot_offset + 0x10);
-            if !({
+            if ({
                 slots_remaining -= 1;
                 slots_remaining
-            } != 0)
+            } == 0)
             {
                 break;
             }
@@ -4651,7 +4651,7 @@ mod tick_player_jump_action {
                         let selected_slot: i32 = engine.state.selected_item_slot();
                         if (engine.state.item_slot(selected_slot) == 0x06) {
                             consume_magic_point(engine, r);
-                            if !((r.carry) != 0) {
+                            if ((r.carry) == 0) {
                                 let jump_timer: i32 = engine.state.jump_timer();
                                 engine
                                     .state
@@ -4674,7 +4674,7 @@ mod tick_player_jump_action {
                             .set_vertical_delta(u8v((upward_speed ^ 0xFF) + 1));
                     }
                     try_move_player_with_collision(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4683,7 +4683,7 @@ mod tick_player_jump_action {
                     engine.state.set_horizontal_subtile_delta(0x00);
                     engine.state.set_player_x_velocity(0x00);
                     try_move_player_with_collision(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4693,7 +4693,7 @@ mod tick_player_jump_action {
                         .state
                         .set_jump_timer((engine.state.jump_timer() + 1) & 0xFF);
                     try_nudge_player_to_tile_boundary(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -4961,10 +4961,10 @@ mod run_warp_transition_effect {
                 }
                 r.value = 0xFF;
                 queue_ppu_job_and_wait(engine, r);
-                if !({
+                if ({
                     x -= 1;
                     x
-                } != 0)
+                } == 0)
                 {
                     break;
                 }
@@ -5456,7 +5456,7 @@ mod try_move_player_with_collision {
                         }
                     }
                     find_player_object_overlap(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 8;
                             continue 'dispatch;
@@ -5549,7 +5549,7 @@ mod try_move_player_with_collision {
                         }
                     }
                     x = a;
-                    if !((a & 0x08) != 0) {
+                    if ((a & 0x08) == 0) {
                         x = u8v(x - 2);
                     }
                     x = u8v(x + 1);
@@ -5575,7 +5575,7 @@ mod try_move_player_with_collision {
                             continue 'dispatch;
                         }
                     }
-                    if !((x & 0x80) != 0) {
+                    if ((x & 0x80) == 0) {
                         x = u8v(x - 2);
                     }
                     x = u8v(x + 1);
@@ -7484,7 +7484,7 @@ mod tick_wandering_jump_actor {
                     } else if ((engine.state.obj_x_vel_lo() | engine.state.obj_y_vel()) != 0) {
                         keep_existing_motion = 1;
                     }
-                    if !((keep_existing_motion) != 0) {
+                    if ((keep_existing_motion) == 0) {
                         engine.state.set_obj_timer(0x00);
                         choose_random_cardinal_actor_direction(engine, r);
                         r.value = 0x06;
@@ -7522,7 +7522,7 @@ mod tick_wandering_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if !((engine.state.obj_move_state() & 0x80) != 0) {
+                    if ((engine.state.obj_move_state() & 0x80) == 0) {
                         {
                             state = 2;
                             continue 'dispatch;
@@ -7533,7 +7533,7 @@ mod tick_wandering_jump_actor {
                 }
                 1 => {
                     try_actor_jump_arc_motion(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -7545,7 +7545,7 @@ mod tick_wandering_jump_actor {
                 2 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 3;
                             continue 'dispatch;
@@ -7645,7 +7645,7 @@ mod tick_ledge_walking_actor {
                 }
             }
         }
-        if !((skip_resolution) != 0) {
+        if ((skip_resolution) == 0) {
             if ((should_stop_motion) != 0) {
                 stop_actor_motion(engine, r);
             } else if ((should_commit_position) != 0) {
@@ -7765,7 +7765,7 @@ mod tick_chasing_jump_actor {
                             continue 'dispatch;
                         }
                     }
-                    if !((engine.state.obj_move_state() & 0x80) != 0) {
+                    if ((engine.state.obj_move_state() & 0x80) == 0) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -7776,7 +7776,7 @@ mod tick_chasing_jump_actor {
                 }
                 3 => {
                     try_actor_jump_arc_motion(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -7788,7 +7788,7 @@ mod tick_chasing_jump_actor {
                 4 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_actor_with_terrain(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -7827,7 +7827,7 @@ mod tick_reflecting_chase_actor {
             | engine.state.obj_y_vel())
             != 0)
             && (engine.state.obj_timer() < 0x20)));
-        if !((keep_current_direction) != 0) {
+        if ((keep_current_direction) == 0) {
             aim_actor_from_player_overlap(engine, r);
         }
         {
@@ -7919,7 +7919,7 @@ mod tick_overhead_probe_actor {
                         }
                     }
                     probe_actor_overhead_step(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 6;
                             continue 'dispatch;
@@ -7951,7 +7951,7 @@ mod tick_overhead_probe_actor {
                     {
                         let mut saved_fall_counter: i32 = engine.state.obj_move_scratch();
                         update_object_terrain_probe(engine, r);
-                        if !((r.carry) != 0) {
+                        if ((r.carry) == 0) {
                             {
                                 state = 4;
                                 continue 'dispatch;
@@ -8160,10 +8160,10 @@ mod tick_timed_chase_actor {
                                         __old
                                     };
                                 }
-                                if !({
+                                if ({
                                     bit_count -= 1;
                                     bit_count
-                                } != 0)
+                                } == 0)
                                 {
                                     break;
                                 }
@@ -8249,7 +8249,7 @@ mod aim_actor_toward_player {
                 direction_bits += 1;
                 direction_bits
             };
-            if !((dx & 0x100) != 0) {
+            if ((dx & 0x100) == 0) {
                 {
                     direction_bits += 1;
                     direction_bits
@@ -8259,7 +8259,7 @@ mod aim_actor_toward_player {
         engine.state.set_obj_move_state(direction_bits);
         {
             let mut dy: i32 = u16v(u16v(engine.state.obj_y_pixel()) - engine.state.player_y());
-            if !((dy & 0x100) != 0) {
+            if ((dy & 0x100) == 0) {
                 let mut actor_data_ptr: i32 = u16v(engine.state.actor_record_ptr());
                 let mut vertical_bias_enabled: i32 = engine.state.byte(u16v(actor_data_ptr + 0x09));
                 if (vertical_bias_enabled != 0) {
@@ -8382,13 +8382,13 @@ mod try_actor_gravity_motion {
             .state
             .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 0x02));
         try_move_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_y_vel(0x00);
@@ -8410,13 +8410,13 @@ mod try_actor_jump_arc_motion {
             .state
             .set_obj_y_vel(u8v(((jump_counter >> 1) ^ 0xFF) + 1));
         try_move_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         try_move_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine
@@ -8651,7 +8651,7 @@ mod try_move_actor_with_terrain {
                     blocked = 1;
                     break;
                 }
-                if !((adjusted_vertical_velocity & 0x80) != 0) {
+                if ((adjusted_vertical_velocity & 0x80) == 0) {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
@@ -9220,7 +9220,7 @@ mod tick_large_chasing_actor {
                             continue 'dispatch;
                         }
                     }
-                    if !((engine.state.obj_move_state() & 0x80) != 0) {
+                    if ((engine.state.obj_move_state() & 0x80) == 0) {
                         {
                             state = 4;
                             continue 'dispatch;
@@ -9231,7 +9231,7 @@ mod tick_large_chasing_actor {
                 }
                 3 => {
                     try_large_actor_jump_arc_motion(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -9243,7 +9243,7 @@ mod tick_large_chasing_actor {
                 4 => {
                     engine.state.set_obj_cooldown(0x00);
                     try_move_large_actor_with_terrain(engine, r);
-                    if !((r.carry) != 0) {
+                    if ((r.carry) == 0) {
                         {
                             state = 5;
                             continue 'dispatch;
@@ -9284,14 +9284,14 @@ mod try_large_actor_gravity_motion {
         engine.state.set_obj_y_vel(fall_velocity);
         r.value = fall_velocity;
         try_move_large_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
         engine.state.set_obj_x_vel_hi(0x00);
         r.value = 0x00;
         try_move_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_y_vel(0x00);
@@ -9316,7 +9316,7 @@ mod try_large_actor_jump_arc_motion {
             .state
             .set_obj_y_vel(u8v(((jump_counter >> 2) ^ 0xFF) + 1));
         try_move_large_actor_with_terrain(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             return;
         }
         engine.state.set_obj_x_vel_lo(0x00);
@@ -9357,7 +9357,7 @@ mod try_move_large_actor_with_terrain {
                     blocked = 1;
                     break;
                 }
-                if !((adjusted_vertical_velocity & 0x80) != 0) {
+                if ((adjusted_vertical_velocity & 0x80) == 0) {
                     adjusted_vertical_velocity = u8v(adjusted_vertical_velocity - 2);
                 }
                 adjusted_vertical_velocity = u8v(adjusted_vertical_velocity + 1);
@@ -9452,7 +9452,7 @@ mod compose_large_actor_body_slots {
         }
         {
             let mut actor_state: i32 = engine.state.obj_state();
-            if !((actor_state & 0x80) != 0) {
+            if ((actor_state & 0x80) == 0) {
                 if (((engine.state.object_state(0x10)
                     | engine.state.object_state(0x20)
                     | engine.state.object_state(0x30))
@@ -9529,7 +9529,7 @@ mod update_player_projectiles {
                 update_player_projectile_slot(engine, r);
             } else {
                 if ((engine.state.buttons() & 0x40) != 0) {
-                    if !((engine.state.direction_latch() & 0x40) != 0) {
+                    if ((engine.state.direction_latch() & 0x40) == 0) {
                         r.value = 0x00;
                         r.offset = 0x01;
                         spawn_player_projectile(engine, r);
@@ -9658,7 +9658,7 @@ mod update_player_projectile_slot {
             return;
         }
         find_damageable_actor_overlap(engine, r);
-        if !((r.carry) != 0) {
+        if ((r.carry) == 0) {
             store_projectile_position(engine, r);
             finish_projectile_slot_update(engine, r);
             return;
@@ -10541,7 +10541,7 @@ mod scale_envelope_volume {
         loop {
             scaled_volume = u8v(scaled_volume + engine.state.audio_duty_work());
             multiplier = u8v(multiplier - 1);
-            if !(multiplier != 0) {
+            if (multiplier == 0) {
                 break;
             }
         }
@@ -10796,7 +10796,7 @@ mod sfx_overlay_voice {
                             engine.state.set_prompt_state(0x00);
                         }
                     }
-                    if !((start) != 0) {
+                    if ((start) == 0) {
                         if ((engine.state.sfx_voice_active() & 0x80) == 0) {
                             return;
                         }
@@ -11046,7 +11046,7 @@ mod sound_tick {
         r.value = 0x40;
         sfx_overlay_voice(engine, r);
         if (engine.state.sound_paused() != 0) {
-            if !((engine.state.sfx_voice_active() & 0x80) != 0) {
+            if ((engine.state.sfx_voice_active() & 0x80) == 0) {
                 engine.device_write(
                     (0x4004),
                     (engine.state.sound_channel_byte(6, 0x10) & 0xC0) | 0x30,
@@ -11156,10 +11156,10 @@ mod text_attr_build {
             loop {
                 c = u8v((a >> 7) & 1);
                 a = u8v(a << 1);
-                if !({
+                if ({
                     cnt -= 1;
                     cnt
-                } != 0)
+                } == 0)
                 {
                     break;
                 }
@@ -11386,10 +11386,10 @@ mod vram_copy_indirect {
                 y += 1;
                 __old
             };
-            if !({
+            if ({
                 x -= 1;
                 x
-            } != 0)
+            } == 0)
             {
                 break;
             }
@@ -11405,10 +11405,10 @@ mod vram_fill_run {
         let mut a: i32 = engine.state.vram_addr2_lo();
         loop {
             engine.device_write(crate::engine::reg::PPU_DATA, a);
-            if !({
+            if ({
                 x -= 1;
                 x
-            } != 0)
+            } == 0)
             {
                 break;
             }

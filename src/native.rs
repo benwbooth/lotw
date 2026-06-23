@@ -198,7 +198,7 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
         crate::game::draw_player_sprites(engine, r);
         crate::game::draw_room_object_sprites(engine, r);
         r.carry = saved_c;
-        if !((r.carry) != 0) && engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
+        if ((r.carry) == 0) && engine.state.saved_scroll_tile() != engine.state.scroll_tile_x() {
             engine
                 .state
                 .set_main_loop_phase((engine.state.main_loop_phase() + 1) & 0xFF);
@@ -1765,7 +1765,7 @@ fn resolve_player_landing_or_hazard_contact(engine: &mut Engine, r: &mut Routine
     if engine.state.fall_frames() == 0 {
         r.offset = 0x01;
         crate::game::apply_hazard_tile_contact(engine, r);
-        if !((r.carry) != 0) && engine.state.player_x_fine() != 0 {
+        if ((r.carry) == 0) && engine.state.player_x_fine() != 0 {
             r.offset = 0x0d;
             crate::game::apply_hazard_tile_contact(engine, r);
         }
@@ -2943,7 +2943,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
                 .set_obj_y_vel(u8v(0 - engine.state.obj_cooldown()));
             crate::game::project_actor_position(engine, r);
             crate::game::check_position_out_of_bounds(engine, r);
-            if !((r.carry) != 0) {
+            if ((r.carry) == 0) {
                 engine.state.set_obj_y_pixel(engine.state.scratch2());
                 return;
             }
@@ -2960,7 +2960,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         .set_obj_y_vel(u8v((engine.state.obj_move_scratch() >> 1) + 2));
     crate::game::project_actor_position(engine, r);
     crate::game::check_position_out_of_bounds(engine, r);
-    if !((r.carry) != 0) {
+    if ((r.carry) == 0) {
         engine.state.set_obj_y_pixel(engine.state.scratch2());
         return;
     }
