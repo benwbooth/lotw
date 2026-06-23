@@ -4738,13 +4738,13 @@ mod tick_selected_item_effect {
     /// empty, and `0x0D` returns the player to the fixed safe room.
     pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
         let selected_slot: i32 = engine.state.selected_item_slot();
-        let selected_item: i32 = engine.state.byte(u16v((0x0051) + selected_slot));
+        let selected_item: i32 = engine.state.item_slot(selected_slot);
         if cbool(selected_item >= 0x02) {
             if cbool(selected_item == 0x0B) {
                 if cbool(engine.state.player_magic() != 0) {
                     return;
                 }
-                engine.state.set_byte(u16v((0x0051) + selected_slot), 0xFF);
+                engine.state.set_item_slot(selected_slot, 0xFF);
                 draw_status_item_sprites(engine, r);
                 animate_magic_refill_to_cap(engine, r);
                 return;
@@ -4756,7 +4756,7 @@ mod tick_selected_item_effect {
                 engine.state.set_selected_item_slot(0x03);
                 return;
             }
-            engine.state.set_byte(u16v((0x0051) + selected_slot), 0xFF);
+            engine.state.set_item_slot(selected_slot, 0xFF);
             draw_status_item_sprites(engine, r);
             engine.state.set_prompt_state(0x12);
             engine.state.set_map_screen_y(0x10);
@@ -10460,8 +10460,8 @@ mod load_note_period {
     pub fn load_note_period(engine: &mut Engine, r: &mut RoutineContext) {
         let mut channel_offset: i32 = engine.state.sound_channel_offset();
         let mut stream_ptr: i32 = u16v(
-            engine.state.byte(u8v(0x95 + channel_offset))
-                | (engine.state.byte(u8v(0x96 + channel_offset)) << 8),
+            engine.state.sound_channel_byte(2, channel_offset)
+                | (engine.state.sound_channel_byte(3, channel_offset) << 8),
         );
         let mut note_byte: i32 = engine.state.byte(stream_ptr);
         increment_selected_music_stream_pointer(engine, r);
@@ -10473,7 +10473,8 @@ mod load_note_period {
                 .byte(u16v((NOTE_PERIOD_TABLE + 1) + pitch_index));
             channel_offset = engine.state.sound_channel_offset();
             {
-                let mut sub: i32 = u16v(u16v(lo) - engine.state.byte(u8v(0xA1 + channel_offset)));
+                let mut sub: i32 =
+                    u16v(u16v(lo) - engine.state.sound_channel_byte(14, channel_offset));
                 lo = u8v(sub);
                 if cbool(sub & 0x100) {
                     hi = u8v(hi - 1);
@@ -10633,7 +10634,7 @@ mod next_envelope_volume {
     // register value from channel flags, constant-volume bit, and scaled volume.
     pub fn next_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
         let mut channel_offset: i32 = engine.state.sound_channel_offset();
-        let mut envelope_phase: i32 = engine.state.byte(u8v(0x9B + channel_offset));
+        let mut envelope_phase: i32 = engine.state.sound_channel_byte(8, channel_offset);
         engine.state.set_byte(
             u8v(0x9D + channel_offset),
             engine
@@ -10641,9 +10642,9 @@ mod next_envelope_volume {
                 .byte(u16v((ENVELOPE_TABLE + 1) + envelope_phase)),
         );
         {
-            let mut envelope_delta: i32 = engine.state.byte(u8v(0x9C + channel_offset));
+            let mut envelope_delta: i32 = engine.state.sound_channel_byte(9, channel_offset);
             let mut accumulator: i32 =
-                u8v(envelope_delta + engine.state.byte(u8v(0x9F + channel_offset)));
+                u8v(envelope_delta + engine.state.sound_channel_byte(12, channel_offset));
             if cbool(envelope_delta & 0x80) {
                 if cbool(accumulator >= 0x10) {
                     accumulator = 0x00;
@@ -10655,16 +10656,16 @@ mod next_envelope_volume {
             }
             engine
                 .state
-                .set_byte(u8v(0x9F + channel_offset), accumulator);
+                .set_sound_channel_byte(12, channel_offset, accumulator);
             engine.state.set_audio_duty_work(accumulator);
         }
-        r.offset = engine.state.byte(u8v(0xA0 + channel_offset));
+        r.offset = engine.state.sound_channel_byte(13, channel_offset);
         scale_envelope_volume(engine, r);
         {
-            let mut volume_register: i32 = u8v((engine.state.byte(u8v(0x99 + channel_offset))
-                & 0xC0)
-                | engine.state.audio_duty_work()
-                | 0x30);
+            let mut volume_register: i32 =
+                u8v((engine.state.sound_channel_byte(6, channel_offset) & 0xC0)
+                    | engine.state.audio_duty_work()
+                    | 0x30);
             r.value = volume_register;
         }
     }
