@@ -4868,9 +4868,10 @@ pub fn tick_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
                         continue 'dispatch;
                     }
                 }
-                // Horizontal blocked: retry vertical-only by zeroing X motion.
+                // Horizontal blocked: retry vertical-only by zeroing the X
+                // sub-tile delta ($8C95 LDA #$00; STA $49). The 6502 leaves the
+                // X velocity ($4A) untouched here.
                 engine.state.horizontal_subtile_delta = 0;
-                engine.state.player_x_velocity = 0;
                 try_move_player_with_collision(engine, r);
                 if ((r.carry) == 0) {
                     {
@@ -4878,17 +4879,10 @@ pub fn tick_player_jump_action(engine: &mut Engine, r: &mut RoutineContext) {
                         continue 'dispatch;
                     }
                 }
-                // Still blocked: restore the timer and nudge to the tile grid.
-                engine.state.jump_timer =
-                    (engine.state.jump_timer + 1) & ((crate::bits::BYTE_MASK) as u8);
-                try_nudge_player_to_tile_boundary(engine, r);
-                if ((r.carry) == 0) {
-                    {
-                        state = 2;
-                        continue 'dispatch;
-                    }
-                }
-                // Fully stopped: end the jump.
+                // Both moves blocked: end the jump ($8C9E JMP $ACAF -> stop). The
+                // 6502 does NOT restore the timer or nudge to the tile grid here
+                // (that is the grounded-walk path); restoring jump_timer kept the
+                // jump from ever ending, hanging the player against a wall.
                 {
                     state = 3;
                     continue 'dispatch;

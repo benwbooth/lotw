@@ -10,8 +10,13 @@ use std::{env, error::Error, fs, io::Write};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    let replay = args.get(1).ok_or("usage: replay_oracle <replay> [out.bin] [rom]")?;
-    let out_path = args.get(2).map(String::as_str).unwrap_or("/tmp/oracle_port.bin");
+    let replay = args
+        .get(1)
+        .ok_or("usage: replay_oracle <replay> [out.bin] [rom]")?;
+    let out_path = args
+        .get(2)
+        .map(String::as_str)
+        .unwrap_or("/tmp/oracle_port.bin");
     let rom = args.get(3).map(String::as_str).unwrap_or("rom/lotw.nes");
 
     // parse_replay returns a 1-based vector (index 0 is a synthetic leading
