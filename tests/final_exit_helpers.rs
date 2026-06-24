@@ -47,19 +47,30 @@ fn final_exit_projectile_projection_uses_spawn_and_motion_scales() {
 }
 
 #[test]
-fn final_exit_projectile_bounds_only_raise_carry_on_right_edge() {
+fn final_exit_projectile_bounds_carry_matches_rom() {
     let mut engine = Engine::new();
     let mut r = RoutineContext::default();
 
+    // Past the right edge (X >= 0xF1, not wrapped) while above the floor -> out
+    // of bounds, carry set (trailing SEC $86C1).
     engine.state.scratch2 = 0x80;
     engine.state.indirect_ptr_lo = 0xF1;
-
+    r.carry = 0;
     game::check_final_exit_projectile_bounds(&mut engine, &mut r);
     assert_eq!(r.carry, 1);
 
+    // Y at/below the scripted floor (>= 0xA1) -> out of bounds, carry set
+    // ($86B5 BCS $86C1 SEC). (Was incorrectly left clear by the port.)
     r.carry = 0;
     engine.state.scratch2 = 0xA1;
+    game::check_final_exit_projectile_bounds(&mut engine, &mut r);
+    assert_eq!(r.carry, 1);
 
+    // In range: above the floor and left of the right edge -> carry clear
+    // ($86BB BCC $86C3 CLC).
+    r.carry = 1;
+    engine.state.scratch2 = 0x80;
+    engine.state.indirect_ptr_lo = 0x40;
     game::check_final_exit_projectile_bounds(&mut engine, &mut r);
     assert_eq!(r.carry, 0);
 }
