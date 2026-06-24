@@ -907,7 +907,7 @@ pub fn update_final_exit_projectiles(engine: &mut Engine, r: &mut RoutineContext
         {
             // Advance the slot pointer by 16 bytes (one object record),
             // carrying into the high byte.
-            let next_slot_ptr = ((engine.state.obj_slot_ptr_lo + 16) as u16 as i32);
+            let next_slot_ptr = ((engine.state.obj_slot_ptr_lo as i32 + 16) as u16 as i32);
             engine.state.obj_slot_ptr_lo = (next_slot_ptr as u8);
             engine.state.obj_slot_ptr_hi =
                 engine.state.obj_slot_ptr_hi + ((next_slot_ptr >> 8) as u8);
@@ -3061,7 +3061,7 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
             }
             {
                 // Advance room tile pointer by 12 (one column = 12 room tiles).
-                let mut t: i32 = ((12 + engine.state.data_ptr_lo) as u16 as i32);
+                let mut t: i32 = ((12 + engine.state.data_ptr_lo as i32) as u16 as i32);
                 engine.state.data_ptr_lo = (t as u8);
                 engine.state.data_ptr_hi = engine.state.data_ptr_hi + ((t >> 8) as u8);
                 p0C = ((engine.state.data_ptr()) as u16 as i32);
@@ -3166,13 +3166,13 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
                 engine.device_write(crate::engine::reg::PPU_DATA, (engine.state.scratch0 as i32));
                 {
                     // Advance room pointer by 2 tiles (one attribute quadrant wide).
-                    let mut t: i32 = ((2 + engine.state.data_ptr_lo) as u16 as i32);
+                    let mut t: i32 = ((2 + engine.state.data_ptr_lo as i32) as u16 as i32);
                     engine.state.data_ptr_lo = (t as u8);
                     engine.state.data_ptr_hi = engine.state.data_ptr_hi + ((t >> 8) as u8);
                 }
                 {
                     // Advance attribute VRAM address by 8 bytes (next quadrant).
-                    let mut t: i32 = ((8 + engine.state.vram_addr_lo) as u16 as i32);
+                    let mut t: i32 = ((8 + engine.state.vram_addr_lo as i32) as u16 as i32);
                     engine.state.vram_addr_lo = (t as u8);
                     engine.state.vram_addr_hi = engine.state.vram_addr_hi + ((t >> 8) as u8);
                 }
@@ -3186,13 +3186,13 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
         }
         {
             // Move room pointer to next attribute row: +12 (one room column).
-            let mut t: i32 = ((12 + engine.state.data_ptr_lo) as u16 as i32);
+            let mut t: i32 = ((12 + engine.state.data_ptr_lo as i32) as u16 as i32);
             engine.state.data_ptr_lo = (t as u8);
             engine.state.data_ptr_hi = engine.state.data_ptr_hi + ((t >> 8) as u8);
         }
         {
             // Move attribute VRAM address back/down: +209 lo, -1 (+255) hi page wrap.
-            let mut t: i32 = ((209 + engine.state.vram_addr_lo) as u16 as i32);
+            let mut t: i32 = ((209 + engine.state.vram_addr_lo as i32) as u16 as i32);
             engine.state.vram_addr_lo = (t as u8);
             engine.state.vram_addr_hi = engine.state.vram_addr_hi + 255 + ((t >> 8) as u8);
         }
@@ -3521,8 +3521,8 @@ pub fn resolve_room_tile_pointer(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.data_ptr_hi = engine.state.data_ptr_hi + 5; // +5 page bias for room buffer
     {
         // Build aux_ptr = offset + room base pointer (room_metadef_lo/hi).
-        let room_ptr_lo: i32 =
-            ((engine.state.tile_fetch_counter + engine.state.room_metadef_lo) as u16 as i32);
+        let room_ptr_lo: i32 = ((engine.state.tile_fetch_counter as i32
+            + engine.state.room_metadef_lo as i32) as u16 as i32);
         let carry: i32 = ((room_ptr_lo >> 8) as u8 as i32);
         engine.state.tile_fetch_counter = (room_ptr_lo as u8);
         engine.state.aux_ptr_hi =
@@ -4480,7 +4480,7 @@ pub fn upload_shop_price_tiles(engine: &mut Engine, r: &mut RoutineContext) {
     // If scrolled past the page boundary (bit 4 of scroll tile X), move the
     // write into the second nametable page (+0x400).
     if ((engine.state.scroll_tile_x & ((crate::bits::BIT4) as u8)) != 0) {
-        let mut s: i32 = ((0 + engine.state.vram_addr_lo) as u16 as i32);
+        let mut s: i32 = ((0 + engine.state.vram_addr_lo as i32) as u16 as i32);
         engine.state.vram_addr_lo = (s as u8);
         engine.state.vram_addr_hi = 4 + engine.state.vram_addr_hi + ((s >> 8) as u8);
     }
@@ -5134,7 +5134,7 @@ pub fn run_warp_transition_effect(engine: &mut Engine, r: &mut RoutineContext) {
             // Advance the pixel scroll by the current speed; wrap past 256
             // (bit 8) flips which nametable is shown.
             let mut sum: i32 =
-                ((engine.state.scroll_pixel_x + engine.state.scratch0) as u16 as i32);
+                ((engine.state.scroll_pixel_x as i32 + engine.state.scratch0 as i32) as u16 as i32);
             engine.state.scroll_pixel_x = (sum as u8);
             if ((sum & crate::bits::BIT8) != 0) {
                 engine.state.nametable_select =
@@ -10122,7 +10122,7 @@ pub fn update_player_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.slot_index = (engine.state.slot_index + 1) & ((crate::bits::BYTE_MASK) as u8);
         {
             // Step the object pointer forward one 16-byte record, carrying into hi.
-            let next_slot_lo: i32 = ((16 + engine.state.obj_slot_ptr_lo) as u16 as i32);
+            let next_slot_lo: i32 = ((16 + engine.state.obj_slot_ptr_lo as i32) as u16 as i32);
             engine.state.obj_slot_ptr_lo = (next_slot_lo as u8);
             engine.state.obj_slot_ptr_hi =
                 engine.state.obj_slot_ptr_hi + ((next_slot_lo >> 8) as u8);
@@ -11810,7 +11810,7 @@ pub fn song_init(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             // Advance destination by 8 to the runtime block (16-bit add).
-            d = ((engine.state.data_ptr_lo + 8) as u16 as i32);
+            d = ((engine.state.data_ptr_lo as i32 + 8) as u16 as i32);
             engine.state.data_ptr_lo = (d as u8);
             engine.state.data_ptr_hi = engine.state.data_ptr_hi + ((d >> 8) as u8);
             d = ((engine.state.data_ptr()) as u16 as i32);
@@ -11827,11 +11827,11 @@ pub fn song_init(engine: &mut Engine, r: &mut RoutineContext) {
                 }
             }
             // Advance destination past the runtime block (next lane).
-            d = ((engine.state.data_ptr_lo + 8) as u16 as i32);
+            d = ((engine.state.data_ptr_lo as i32 + 8) as u16 as i32);
             engine.state.data_ptr_lo = (d as u8);
             engine.state.data_ptr_hi = engine.state.data_ptr_hi + ((d >> 8) as u8);
             // Advance source by 8 to the next channel header.
-            s = ((engine.state.indirect_ptr_lo + 8) as u16 as i32);
+            s = ((engine.state.indirect_ptr_lo as i32 + 8) as u16 as i32);
             engine.state.indirect_ptr_lo = (s as u8);
             engine.state.indirect_ptr_hi = engine.state.indirect_ptr_hi + ((s >> 8) as u8);
             {
