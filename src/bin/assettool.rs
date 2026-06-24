@@ -87,6 +87,8 @@ fn extract(rom_path: &str, dir: &str) -> Result<(), Box<dyn Error>> {
     assets::chr::extract(&ines.chr, &dir.join("chr"))?;
     // Palette tables -> palettes.json (indices + NES RGB).
     assets::palettes::extract(&ines.prg, &dir)?;
+    // Text/nametable templates -> font.json + text.json.
+    assets::text::extract(&ines.prg, &dir)?;
 
     println!(
         "extracted -> {} (prg {} B, chr {} tiles)",
@@ -104,6 +106,7 @@ fn build(dir: &str, out_path: &str, reference: &str) -> Result<(), Box<dyn Error
     // assets/ (palettes today; text/rooms/objects/audio as they land).
     let mut prg = fs::read(dir.join("prg.bin"))?;
     assets::palettes::apply(&mut prg, &dir)?;
+    assets::text::apply(&mut prg, &dir)?;
     let chr = assets::chr::build(&dir.join("chr"))?;
 
     let mut rom = Vec::with_capacity(header.len() + prg.len() + chr.len());
