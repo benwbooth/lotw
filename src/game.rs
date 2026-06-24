@@ -7468,6 +7468,12 @@ pub fn store_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
     // Count down the per-slot spawn timer.
     engine.state.obj_timer = engine.state.obj_timer - 1;
+    // Only attempt a spawn during the final 60 frames of the countdown
+    // ($E9A9 CPX #$3C; BCS $E9E6). Without this guard the spawn probe runs and
+    // consumes RNG every frame, desyncing the RNG stream and spawn placement.
+    if engine.state.obj_timer >= 60 {
+        return;
+    }
     let actor_timer: i32 = (engine.state.obj_timer as i32);
     let actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
     if ((engine.state.byte(((actor_data_ptr + 2) as u16 as i32))
