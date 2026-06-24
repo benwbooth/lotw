@@ -51,165 +51,325 @@ macro_rules! array_field {
 
 #[repr(C)]
 pub struct GameState {
+    /// Audio duty/volume work byte for the duty/instrument command (`$00`).
     pub audio_duty_work: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad0: [u8; 1],
+    /// Sound channel byte offset currently being processed (`$02`).
     pub sound_channel_offset: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad1: [u8; 1],
+    /// Current sound command id (`$04`).
     pub sound_command: u8,
+    /// Sound length/period parameter for the current note (`$05`).
     pub sound_length: u8,
+    /// Saved audio stream command handler pointer, low/high (`$06`/`$07`).
     pub saved_audio_handler_lo: u8,
+    /// High byte of the saved audio handler pointer (`$7`).
     pub saved_audio_handler_hi: u8,
+    /// General-purpose scratch byte 0 (`$08`).
     pub scratch0: u8,
+    /// General-purpose scratch byte 1 (`$09`).
     pub scratch1: u8,
+    /// General-purpose scratch byte 2 (`$0A`).
     pub scratch2: u8,
+    /// General-purpose scratch byte 3 (`$0B`).
     pub scratch3: u8,
+    /// Low byte of the data ptr pointer (`$C`).
     pub data_ptr_lo: u8,
+    /// High byte of the data ptr pointer (`$D`).
     pub data_ptr_hi: u8,
+    /// Low byte of the indirect ptr pointer (`$E`).
     pub indirect_ptr_lo: u8,
+    /// High byte of the indirect ptr pointer (`$F`).
     pub indirect_ptr_hi: u8,
+    /// Countdown used while resolving the room tile pointer (`$10`).
     pub tile_fetch_counter: u8,
+    /// Auxiliary stream pointer high byte (`$11`); secondary to `data_ptr`.
     pub aux_ptr_hi: u8,
+    /// Unnamed RAM gap (4 byte(s)) between named fields.
     _pad2: [u8; 4],
+    /// VRAM upload address, low byte (`$16`).
     pub vram_addr_lo: u8,
+    /// VRAM upload address, high byte (`$17`).
     pub vram_addr_hi: u8,
+    /// Secondary VRAM transfer address, low byte (`$18`).
     pub vram_addr2_lo: u8,
+    /// Secondary VRAM transfer address, high byte (`$19`).
     pub vram_addr2_hi: u8,
+    /// Column cursor while uploading the inventory item list (`$1A`).
     pub inventory_upload_col: u8,
+    /// Row cursor while uploading the inventory item list (`$1B`).
     pub inventory_upload_row: u8,
+    /// Horizontal scroll position in pixels (`$1C`); added to object positions to convert room coordinates to on-screen coordinates.
     pub scroll_pixel_x: u8,
+    /// Active nametable selection bit (`$1D`), toggled as the camera crosses nametable boundaries.
     pub nametable_select: u8,
+    /// Vertical scroll value written to PPUSCROLL `$2005` (`$1E`).
     pub scroll_y: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad3: [u8; 1],
+    /// Buttons held this frame (`$20`). Bit layout, LSB first: `0`=Right `1`=Left `2`=Down `3`=Up `4`=Start `5`=Select `6`=B `7`=A.
     pub buttons: u8,
+    /// Buttons newly pressed this frame (`$21`): the rising edge of [`Self::buttons`], used for one-shot actions like menu confirms.
     pub button_chord: u8,
+    /// Collision/blocked flag set during movement resolution (`$22`).
     pub collision_flag: u8,
+    /// PPUCTRL ($2000) shadow (`$23`): nametable/increment/sprite-size and pattern-table selection bits replayed to the PPU each frame.
     pub ppu_ctrl_shadow: u8,
+    /// PPUMASK ($2001) shadow (`$24`): rendering-enable and emphasis bits.
     pub ppu_mask_shadow: u8,
+    /// MMC3 bank-select shadow (`$25`): which register R0-R7 the next bank write targets, plus the PRG/CHR mode bits.
     pub mmc3_bank_select: u8,
+    /// PPUSTATUS shadow captured by the NMI (`$26`): bit7 = vblank, bit6 = sprite-0 hit (the status-bar split marker).
     pub frame_status: u8,
+    /// Sound engine status flag bits (`$27`).
     pub sound_status_flags: u8,
+    /// Pending NMI VRAM upload request id (`$28`); foreground code sets it and spins until the NMI handler drains the queued transfer back to zero.
     pub nmi_vram_req: u8,
+    /// Statusbar split flag (`$29`).
     pub statusbar_split_flag: u8,
+    /// Unnamed RAM gap (6 byte(s)) between named fields.
     _pad4: [u8; 6],
+    /// PRG bank mapped at `$8000` — MMC3 R6 shadow (`$30`).
     pub prg_bank_8000: u8,
+    /// PRG bank mapped at `$A000` — MMC3 R7 shadow (`$31`).
     pub prg_bank_a000: u8,
+    /// Saved R6/`$8000` PRG bank stashed across a far call (`$32`).
     pub saved_prg_bank_8000: u8,
+    /// Saved R7/`$A000` PRG bank stashed across a far call (`$33`).
     pub saved_prg_bank_a000: u8,
+    /// Current song pointer low/high used by `song_init` (`$34`/`$35`).
     pub song_ptr_lo: u8,
+    /// High byte of the song ptr pointer (`$35`).
     pub song_ptr_hi: u8,
+    /// Foreground frame-wait countdown (`$36`): foreground code sets it to N and spins on [`Self::frame_counter_active`]; the NMI tail decrements it once per frame, so the spin releases after N frames.
     pub frame_counter: u8,
+    /// Continue/respawn countdown timer (`$37`).
     pub continue_timer: u8,
+    /// Requested RNG range/limit for the current draw (`$38`).
     pub rng_limit: u8,
+    /// Saved previous seed low byte mixed into the next draw (`$39`).
     pub rng_seed_scratch: u8,
+    /// RNG seed, low byte (`$3A`).
     pub rng_low: u8,
+    /// RNG seed, high byte; also the value returned by a draw (`$3B`).
     pub rng_high: u8,
+    /// HUD refresh-needed flag set by `sync_health_hud` (`$3C`).
     pub hud_refresh_flag: u8,
+    /// Main-loop dispatch phase counter (`$3D`).
     pub main_loop_phase: u8,
+    /// Sprite slot index/counter while building the OAM buffer (`$3E`).
     pub sprite_index: u8,
+    /// OAM buffer write cursor / current sprite byte offset (`$3F`).
     pub oam_cursor: u8,
+    /// Current character index (which Drasle family member is active) (`$40`).
     pub character_index: u8,
+    /// Bitmask of available/active Drasle family members (`$41`).
     pub family_member_mask: u8,
+    /// Title-screen loop timer (`$42`).
     pub title_timer: u8,
+    /// Player X fine (sub-tile) position (`$43`).
     pub player_x_fine: u8,
+    /// Player X tile position (`$44`).
     pub player_x_tile: u8,
+    /// Player Y position (`$45`).
     pub player_y: u8,
+    /// Post-landing recovery/stun countdown (`$46`); seeded from the fall distance and decremented each frame while nonzero.
     pub landing_timer: u8,
+    /// Map screen X (which room column the player occupies) (`$47`).
     pub map_screen_x: u8,
+    /// Map screen Y (which room row the player occupies) (`$48`).
     pub map_screen_y: u8,
+    /// Horizontal sub-tile movement delta for this frame (`$49`).
     pub horizontal_subtile_delta: u8,
+    /// Player horizontal velocity, packed sub-tile delta + sign (`$4A`).
     pub player_x_velocity: u8,
+    /// Vertical movement delta for this frame (`$4B`).
     pub vertical_delta: u8,
+    /// \"Nudge to tile boundary\" pending flag (`$4C`).
     pub nudge_pending: u8,
+    /// Player walk-animation step counter (`$4D`); low 3 bits set the frame cadence.
     pub anim_step_counter: u8,
+    /// Frames the player has been falling (`$4E`).
     pub fall_frames: u8,
+    /// Remaining jump/ascent timer (`$4F`).
     pub jump_timer: u8,
+    /// Pose state flag from `update_player_pose_from_motion` (`$50`).
     pub pose_state: u8,
+    /// Unnamed RAM gap (4 byte(s)) between named fields.
     _pad5: [u8; 4],
+    /// Selected inventory/menu item slot (cursor index) (`$55`).
     pub selected_item_slot: u8,
+    /// Player animation pose/frame selector (`$56`).
     pub player_pose: u8,
+    /// Player facing/direction flag (`$57`); bit6 marks the horizontal flip.
     pub player_facing: u8,
+    /// Player health/life points (`$58`).
     pub player_health: u8,
+    /// Player magic points (`$59`).
     pub player_magic: u8,
+    /// Gold/coin count (`$5A`).
     pub coins: u8,
+    /// Key count (`$5B`).
     pub keys: u8,
+    /// Current character's jump strength / fall-duration parameter (`$5C`): seeds the jump timer and caps accumulated fall frames.
     pub jump_strength: u8,
+    /// Effective projectile damage / count / lifetime parameters (`$5D`/`$5E`/`$5F`).
     pub projectile_damage: u8,
+    /// Projectile count (`$5E`).
     pub projectile_count: u8,
+    /// Projectile lifetime (`$5F`).
     pub projectile_lifetime: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad6: [u8; 1],
+    /// Shop room active flag (`$61`).
     pub shop_active: u8,
+    /// Unnamed RAM gap (12 byte(s)) between named fields.
     _pad7: [u8; 12],
+    /// Remaining fragment-pickup count (`$6E`).
     pub fragment_count: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad8: [u8; 1],
+    /// Text attribute source pointer low/high (`$70`/`$71`).
     pub text_attr_ptr_lo: u8,
+    /// High byte of the text attr ptr pointer (`$71`).
     pub text_attr_ptr_hi: u8,
+    /// Unnamed RAM gap (2 byte(s)) between named fields.
     _pad9: [u8; 2],
+    /// Decoded room tile action value (`$74`).
     pub room_tile_action: u8,
+    /// Room metatile-definition pointer low/high (`$75`/`$76`).
     pub room_metadef_lo: u8,
+    /// High byte of the room metadef pointer (`$76`).
     pub room_metadef_hi: u8,
+    /// Low byte of the palette src ptr pointer (`$77`).
     pub palette_src_ptr_lo: u8,
+    /// High byte of the palette src ptr pointer (`$78`).
     pub palette_src_ptr_hi: u8,
+    /// Low byte of the tile table ptr pointer (`$79`).
     pub tile_table_ptr_lo: u8,
+    /// High byte of the tile table ptr pointer (`$7A`).
     pub tile_table_ptr_hi: u8,
+    /// Room horizontal scroll, fine (sub-tile) component (`$7B`).
     pub scroll_fine_x: u8,
+    /// Room horizontal scroll, tile component (`$7C`).
     pub scroll_tile_x: u8,
+    /// Unnamed RAM gap (1 byte(s)) between named fields.
     _pad10: [u8; 1],
+    /// Saved horizontal scroll tile during the main loop (`$7E`).
     pub saved_scroll_tile: u8,
+    /// Camera scroll-pending flag (`$7F`).
     pub camera_scroll_flag: u8,
+    /// Unnamed RAM gap (4 byte(s)) between named fields.
     _pad11: [u8; 4],
+    /// 60-frame prescaler (`$84`): reloads to 0x3C and counts down each frame; its low bits drive blink/animation cadence and the coarse timer ticks.
     pub frame_prescaler: u8,
+    /// Sprite blink/invulnerability timer (`$85`), one of the coarse timer slots ticked once per 60 frames by the frame counters.
     pub sprite_blink_timer: u8,
+    /// Airborne/falling flag for the top-boundary exit check (`$86`).
     pub airborne_flag: u8,
+    /// Magic-contact-with-actor flag (`$87`).
     pub magic_contact_flag: u8,
+    /// Displaced-block / temporary-tile restore timer (`$88`).
     pub displaced_timer: u8,
+    /// Speed-boost / temporary-effect timer (`$89`).
     pub boost_timer: u8,
+    /// Short / long speed-boost timers (`$8A`/`$8B`).
     pub short_boost_timer: u8,
+    /// Long boost timer (`$8B`).
     pub long_boost_timer: u8,
+    /// Coarse countdown timer (`$8C`), e.g. the title-screen attract timeout.
     pub countdown_timer: u8,
+    /// Sound paused/disabled flag checked at the top of `sound_tick` (`$8D`).
     pub sound_paused: u8,
+    /// Current/requested song id for the sound engine (`$8E`).
     pub song: u8,
+    /// Prompt/message state machine selector (`$8F`).
     pub prompt_state: u8,
+    /// Argument byte for the active prompt/message (`$90`).
     pub prompt_argument: u8,
+    /// Active SFX priority threshold (`$91`).
     pub sfx_priority: u8,
+    /// Music volume override flag (`$92`).
     pub music_volume_override: u8,
+    /// Unnamed RAM gap (17 byte(s)) between named fields.
     _pad12: [u8; 17],
+    /// Sound channel active/control flags (`$A4`).
     pub sound_channel_flags: u8,
+    /// Unnamed RAM gap (14 byte(s)) between named fields.
     _pad13: [u8; 14],
+    /// Triangle channel note-duration countdown (`$B3`).
     pub triangle_timer: u8,
+    /// Unnamed RAM gap (32 byte(s)) between named fields.
     _pad14: [u8; 32],
+    /// SFX overlay voice active flag, bit7 (`$D4`).
     pub sfx_voice_active: u8,
+    /// Unnamed RAM gap (14 byte(s)) between named fields.
     _pad15: [u8; 14],
+    /// Current object/actor slot index for iteration loops (`$E3`); shifted left 4 to form the slot's byte offset into the object table.
     pub slot_index: u8,
+    /// Upper bound for the [`Self::slot_index`] iteration loop (`$E4`).
     pub slot_index_limit: u8,
+    /// Low byte of the obj slot ptr pointer (`$E5`).
     pub obj_slot_ptr_lo: u8,
+    /// High byte of the obj slot ptr pointer (`$E6`).
     pub obj_slot_ptr_hi: u8,
+    /// Low byte of the actor record ptr pointer (`$E7`).
     pub actor_record_ptr_lo: u8,
+    /// High byte of the actor record ptr pointer (`$E8`).
     pub actor_record_ptr_hi: u8,
+    /// Actor scheduler phase counter (`$E9`).
     pub scheduler_phase: u8,
+    /// Player/actor overlap-detected flag (`$EA`).
     pub overlap_flag: u8,
+    /// Pending special-exit-room flag checked by `game_update` (`$EB`).
     pub pending_special_exit: u8,
+    /// Final-exit trigger reached flag (`$EC`).
     pub final_exit_flag: u8,
+    /// Sprite/tile id and animation bits — slot `+0x00` (`$ED`).
     pub obj_tile: u8,
+    /// Active/state/lifetime byte — slot `+0x01` (`$EE`).
     pub obj_state: u8,
+    /// Attribute/direction bits — slot `+0x02` (`$EF`).
     pub obj_attr: u8,
+    /// Tile-replacement / movement scratch — slot `+0x03` (`$F0`).
     pub obj_move_scratch: u8,
+    /// Cooldown / path scratch — slot `+0x04` (`$F1`).
     pub obj_cooldown: u8,
+    /// Health / damage threshold — slot `+0x05` (`$F2`).
     pub obj_health: u8,
+    /// Timer / animation phase — slot `+0x06` (`$F3`).
     pub obj_timer: u8,
+    /// Movement/direction state bits — slot `+0x07` (`$F4`); high bit and the low two bits encode turn/animation direction state.
     pub obj_move_state: u8,
+    /// X velocity, low nibble — slot `+0x08` (`$F5`).
     pub obj_x_vel_lo: u8,
+    /// X velocity carry/sign — slot `+0x09` (`$F6`).
     pub obj_x_vel_hi: u8,
+    /// Y velocity — slot `+0x0A` (`$F7`).
     pub obj_y_vel: u8,
+    /// Damage / effect strength — slot `+0x0B` (`$F8`).
     pub obj_damage: u8,
+    /// X sub-tile fraction — slot `+0x0C` (`$F9`).
     pub obj_x_sub: u8,
+    /// X tile coordinate — slot `+0x0D` (`$FA`).
     pub obj_x_tile: u8,
+    /// Y pixel coordinate — slot `+0x0E` (`$FB`).
     pub obj_y_pixel: u8,
+    /// Extra y / sprite scratch — slot `+0x0F` (`$FC`).
     pub obj_y_extra: u8,
+    /// Direction latch (`$FD`): low nibble holds the current movement direction, high nibble the previously latched one.
     pub direction_latch: u8,
+    /// Scratch byte used by `restore_room_from_checkpoint` (`$FE`).
     pub room_restore_scratch: u8,
+    /// Unnamed RAM gap (650 byte(s)) between named fields.
     _pad16: [u8; 650],
+    /// Password additive checksum (`$0389`).
     pub password_checksum_add: u8,
+    /// Password XOR checksum (`$038A`).
     pub password_checksum_xor: u8,
+    /// Unnamed RAM gap (64629 byte(s)) between named fields.
     _pad17: [u8; 64629],
 }
 
