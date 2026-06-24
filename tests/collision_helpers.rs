@@ -1,4 +1,4 @@
-use lotw::{Engine, RoutineContext, game, native};
+use lotw::{Engine, RoutineContext, game};
 
 #[test]
 fn resolve_room_tile_pointer_populates_tile_and_room_offsets() {
@@ -77,10 +77,10 @@ fn damageable_actor_overlap_skips_low_non_actor_states() {
     engine.state.set_object_x_tile(0x90, 0x10);
     engine.state.set_object_y_pixel(0x90, 0x50);
 
-    native::find_damageable_actor_overlap(&mut engine, &mut r);
+    game::find_damageable_actor_overlap(&mut engine, &mut r);
     assert_eq!(r.carry, 0);
 
-    native::find_player_object_overlap(&mut engine, &mut r);
+    game::find_player_object_overlap(&mut engine, &mut r);
     assert_eq!(r.carry, 1);
     assert_eq!(engine.state.scratch0, 0x09);
     assert_eq!(engine.state.scratch1, 0x90);
@@ -99,7 +99,7 @@ fn damageable_actor_overlap_reports_slot_and_offset() {
     engine.state.set_object_x_tile(0x90, 0x10);
     engine.state.set_object_y_pixel(0x90, 0x50);
 
-    native::find_damageable_actor_overlap(&mut engine, &mut r);
+    game::find_damageable_actor_overlap(&mut engine, &mut r);
 
     assert_eq!(r.carry, 1);
     assert_eq!(engine.state.scratch0, 0x09);
@@ -233,7 +233,7 @@ fn player_terrain_contact_resets_contact_state_while_locked() {
     engine.state.pose_state = 0x02;
     engine.state.fall_frames = 0x20;
 
-    native::update_player_terrain_contact(&mut engine, &mut r);
+    game::update_player_terrain_contact(&mut engine, &mut r);
 
     assert_eq!(engine.state.pose_state, 0x00);
     assert_eq!(engine.state.fall_frames, 0x00);
@@ -348,11 +348,11 @@ fn room_tile_action_default_path_reports_solid_range() {
     engine.state.data_ptr_lo = 0x00;
     engine.state.data_ptr_hi = 0x02;
     engine.state.set_oam_tile(0x00, 0x2F);
-    native::dispatch_room_tile_action(&mut engine, &mut r);
+    game::dispatch_room_tile_action(&mut engine, &mut r);
     assert_eq!(r.carry, 0);
 
     engine.state.set_oam_tile(0x00, 0x30);
-    native::dispatch_room_tile_action(&mut engine, &mut r);
+    game::dispatch_room_tile_action(&mut engine, &mut r);
     assert_eq!(r.carry, 1);
 }
 

@@ -1,4 +1,4 @@
-use lotw::{Engine, RoutineContext, game, native};
+use lotw::{Engine, RoutineContext, game};
 
 const ROOM_STATE_ADDRS: [i32; 7] = [0x43, 0x44, 0x45, 0x7B, 0x7C, 0x47, 0x48];
 
@@ -56,23 +56,23 @@ fn room_checkpoint_stack_round_trips_room_state_lifo() {
 
     set_room_state(&mut engine, first);
     engine.state.song = 0x11;
-    native::push_room_checkpoint(&mut engine, &mut r);
+    game::push_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 1);
     assert_eq!(engine.state.room_restore_scratch, 0x11);
 
     set_room_state(&mut engine, second);
     engine.state.song = 0x22;
-    native::push_room_checkpoint(&mut engine, &mut r);
+    game::push_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 2);
     assert_eq!(engine.state.room_restore_scratch, 0x22);
 
     set_room_state(&mut engine, [0; 7]);
 
-    native::pop_room_checkpoint(&mut engine, &mut r);
+    game::pop_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 1);
     assert_room_state(&engine, second);
 
-    native::pop_room_checkpoint(&mut engine, &mut r);
+    game::pop_room_checkpoint(&mut engine, &mut r);
     assert_eq!(engine.room_ckpt_sp, 0);
     assert_room_state(&engine, first);
 }

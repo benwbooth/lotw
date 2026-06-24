@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         game::update_camera_scroll_from_player(&mut engine, &mut r);
         game::draw_player_sprites(&mut engine, &mut r);
         game::draw_room_object_sprites(&mut engine, &mut r);
-        lotw::native::commit_foreground_frame_and_wait(&mut engine, &mut r);
+        lotw::game::commit_foreground_frame_and_wait(&mut engine, &mut r);
     }
     if (engine.ppu.mask & 24) == 0 {
         engine.ppu.mask = 30;
