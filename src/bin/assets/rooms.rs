@@ -45,10 +45,20 @@ struct RoomMeta {
     rows: usize,
     /// $00-$1F room header (CHR banks, tile-table pointer, metadata), verbatim.
     header_hex: String,
-    /// $20-$DF: 12 actor-spawn records, 16 bytes each (hex).
-    actors: Vec<String>,
+    /// $20-$DF: 12 actor-spawn records. kind/x/y are the editable position+type
+    /// fields (byte 0 / +2 / +3); raw carries the full 16-byte record so unedited
+    /// records round-trip exactly. (x|y == 0 means "random spawn".)
+    actors: Vec<Actor>,
     /// $E0-$FF room palette: 8 sub-palettes of 4 NES indices.
     palette: Pal,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Actor {
+    kind: u8,
+    x: u8,
+    y: u8,
+    raw: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -82,7 +92,10 @@ pub fn extract(prg: &[u8], dir: &Path) -> Result<(), Box<dyn Error>> {
             }
             fs::write(rdir.join(format!("room-{mapy:02}-{mapx}.csv")), csv)?;
             let actors = (0..ACTOR_COUNT)
-                .map(|i| hex(&meta[HDR_LEN + i * ACTOR_LEN..HDR_LEN + (i + 1) * ACTOR_LEN]))
+                .map(|i| {
+                    let rec = &meta[HDR_LEN + i * ACTOR_LEN..HDR_LEN + (i + 1) * ACTOR_LEN];
+                    Actor { kind: rec[0], x: rec[2], y: rec[3], raw: hex(rec) }
+                })
                 .collect();
             let pal_bytes = &meta[META - PAL_LEN..META];
             rooms.push(RoomMeta {
@@ -136,8 +149,14 @@ pub fn apply(prg: &mut [u8], dir: &Path) -> Result<(), Box<dyn Error>> {
         }
         // Reassemble the meta page: header + 12 actor records + palette.
         let mut meta = unhex(&room.header_hex)?;
-        for rec in &room.actors {
-            meta.extend_from_slice(&unhex(rec)?);
+        for a in &room.actors {
+            // raw is the source of truth; patch the editable type/position bytes
+            // onto it so position edits take effect while the rest round-trips.
+            let mut rec = unhex(&a.raw)?;
+            rec[0] = a.kind;
+            rec[2] = a.x;
+            rec[3] = a.y;
+            meta.extend_from_slice(&rec);
         }
         meta.extend_from_slice(&room.palette.indices);
         if meta.len() != META {

@@ -126,19 +126,24 @@ const EDITOR_HTML: &str = r#"<!doctype html><html><head><meta charset=utf-8><tit
  <canvas id=atlas></canvas>
 </div>
 <script>
-let cols=64,rows=12,grid=null,atlas=new Image(),sel=0,cur=null;
+let cols=64,rows=12,grid=null,atlas=new Image(),sel=0,cur=null,manifest=null,actors=[];
 const $=id=>document.getElementById(id);
-async function init(){let m=await(await fetch('/api/manifest')).json();
- m.rooms.forEach(r=>{let d=document.createElement('div');d.textContent=`room ${String(r.mapy).padStart(2,'0')}-${r.mapx}`;
+async function init(){manifest=await(await fetch('/api/manifest')).json();
+ manifest.rooms.forEach(r=>{let d=document.createElement('div');d.textContent=`room ${String(r.mapy).padStart(2,'0')}-${r.mapx}`;
   d.onclick=()=>load(r.mapy,r.mapx);$('side').appendChild(d);});}
 async function load(my,mx){cur={my,mx};$('title').textContent=`${String(my).padStart(2,'0')}-${mx}`;
  atlas=new Image();atlas.src=`/api/atlas/${my}/${mx}?`+Date.now();await atlas.decode();
  let csv=await(await fetch(`/api/grid/${my}/${mx}`)).text();
  grid=csv.trim().split('\n').map(l=>l.split(',').map(Number));
+ actors=manifest.rooms.find(r=>r.mapy==my&&r.mapx==mx).actors;
  drawAtlas();drawRoom();}
 function drawRoom(){let c=$('room'),x=c.getContext('2d');c.width=cols*16;c.height=rows*16;
  for(let r=0;r<rows;r++)for(let q=0;q<cols;q++){let mt=grid[r][q];
-  x.drawImage(atlas,(mt%16)*16,(mt>>4)*16,16,16,q*16,r*16,16,16);}}
+  x.drawImage(atlas,(mt%16)*16,(mt>>4)*16,16,16,q*16,r*16,16,16);}
+ x.font='8px monospace';x.lineWidth=1;
+ actors.forEach(a=>{if((a.x|a.y)==0)return;let px=a.x*16,py=a.y;
+  x.strokeStyle='#ff0';x.beginPath();x.arc(px+8,py,6,0,7);x.stroke();
+  x.fillStyle='#ff0';x.fillText(a.kind,px+1,py-7);});}
 function drawAtlas(){let c=$('atlas'),x=c.getContext('2d');c.width=256;c.height=256;x.drawImage(atlas,0,0);
  x.strokeStyle='#0f0';x.strokeRect((sel%16)*16,(sel>>4)*16,16,16);}
 $('atlas').onclick=e=>{let r=e.target.getBoundingClientRect();
