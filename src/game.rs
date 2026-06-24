@@ -228,6 +228,12 @@ pub fn game_update(engine: &mut Engine, r: &mut RoutineContext) {
             }
             1 => {
                 check_final_exit_trigger(engine, r);
+                if engine.state.final_exit_flag != 0 {
+                    // $D67A PLA; PLA: when the ending trigger fires it does a
+                    // non-local return two levels up, aborting the rest of this
+                    // per-frame input/movement handler for the frame.
+                    return;
+                }
                 // Start button (bit4) opens the character-select overlay.
                 if ((engine.state.buttons & ((crate::bits::BIT4) as u8)) != 0) {
                     run_character_select_overlay(engine, r);
@@ -1390,6 +1396,8 @@ pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) 
         engine.state.horizontal_subtile_delta = 0;
         try_move_scripted_player_in_bounds(engine, r);
         if ((r.carry) == 0) {
+            // Vertical-only drop succeeded -> commit ($8C68 BCC $8CA1).
+            commit_scripted_player_position(engine, r);
             return;
         }
 
@@ -9191,6 +9199,19 @@ fn mark_probe_clear(engine: &mut Engine, r: &mut RoutineContext) {
     r.carry = 0;
 }
 
+/// Shared "object rests / lands" tail for the terrain probes ($F1D3 / $F223):
+/// if the fall counter reached 0x0C, latch the jump cooldown to counter-4, then
+/// reset the fall counter and report carry set (supported). Branches that the
+/// 6502 routed to this tail were mistranslated as bare `return;`, dropping both
+/// stores and the carry result.
+fn object_probe_rest(engine: &mut Engine, r: &mut RoutineContext) {
+    if engine.state.obj_move_scratch >= 0x0C {
+        engine.state.obj_cooldown = engine.state.obj_move_scratch - 4;
+    }
+    engine.state.obj_move_scratch = 0;
+    r.carry = 1;
+}
+
 /// Updates the normal one-tile-wide terrain probe for the current object.
 ///
 /// While the object is mid-jump (`obj_cooldown != 0`) the probe is skipped.
@@ -9201,8 +9222,9 @@ fn mark_probe_clear(engine: &mut Engine, r: &mut RoutineContext) {
 /// `mark_probe_clear`, advancing the fall counter `0xF0` and clearing carry.
 /// A solid tile or any early bail leaves the counter unchanged (object rests).
 pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-    // Mid-jump objects do not run the floor probe.
+    // Mid-jump objects do not run the floor probe ($F17B BNE $F1D3 rest tail).
     if (engine.state.obj_cooldown != 0) {
+        object_probe_rest(engine, r);
         return;
     }
     // Seed the tile pointer with the object's tile-column / subtile position.
@@ -9212,16 +9234,18 @@ pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) 
     let mut tile_y: i32 = (engine.state.obj_y_pixel as i32);
     let active_state: i32 = ((engine.state.obj_state - 1) as u8 as i32);
     if (active_state == 0) {
-        // Active actor: don't probe past the playfield floor row (176 px).
+        // Active actor: past the playfield floor row (176 px) keep falling.
         if (tile_y >= 176) {
+            mark_probe_clear(engine, r); // $F19B BCS $F1CF
             return;
         }
         engine.state.data_ptr_hi = (tile_y as u8);
-        // Probe the row one pixel below; abort the fall if it overlaps the player.
+        // Probe the row one pixel below; rest if it overlaps the player.
         tile_y = ((tile_y + 1) as u8 as i32);
         engine.state.scratch2 = (tile_y as u8);
         check_player_overlap(engine, r);
         if ((r.carry) != 0) {
+            object_probe_rest(engine, r); // $F1A5 BCS $F1D3
             return;
         }
     } else {
@@ -9232,14 +9256,16 @@ pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) 
         engine.state.data_ptr_hi = (tile_y as u8);
     }
     resolve_room_tile_pointer(engine, r);
-    // When tile-aligned (no subtile offset), both tiles under the footprint
-    // must be non-empty (low 6 bits set) for the floor to count as present.
+    // When tile-aligned (no subtile offset), an empty tile (low 6 bits clear)
+    // under either half of the footprint rests the object.
     if (engine.state.obj_x_sub == 0) {
         let tile_ptr: i32 = ((engine.state.data_ptr()) as u16 as i32);
         if ((engine.state.byte(tile_ptr) & crate::bits::LOW_6_BITS) == 0) {
+            object_probe_rest(engine, r); // $F1B4 BEQ $F1D3
             return;
         }
         if ((engine.state.byte(((tile_ptr + 1) as u16 as i32)) & crate::bits::LOW_6_BITS) == 0) {
+            object_probe_rest(engine, r); // $F1BB BEQ $F1D3
             return;
         }
     }
@@ -9247,19 +9273,22 @@ pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) 
     r.offset = 1;
     probe_object_solid_tile(engine, r);
     if ((r.carry) != 0) {
+        object_probe_rest(engine, r); // $F1C2 BCS $F1D3
         return;
     }
-    // Tile-aligned objects only need that single column; clear here.
+    // Tile-aligned objects only need that single column ($F1C6 BEQ $F1CF).
     if (engine.state.obj_x_sub == 0) {
+        mark_probe_clear(engine, r);
         return;
     }
     // Straddling a tile boundary: also probe the adjacent column (offset 13).
     r.offset = 13;
     probe_object_solid_tile(engine, r);
     if ((r.carry) != 0) {
+        object_probe_rest(engine, r); // $F1CD BCS $F1D3
         return;
     }
-    // Nothing solid below: the object keeps falling.
+    // Nothing solid below: the object keeps falling ($F1CF fall-through).
     mark_probe_clear(engine, r);
 }
 
@@ -9273,8 +9302,9 @@ pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) 
 /// straddles a tile boundary. With nothing solid below, the fall counter
 /// `obj_move_scratch` (0xF0) advances so the object keeps falling.
 pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) {
-    // Mid-jump objects do not run the floor probe.
+    // Mid-jump objects do not run the floor probe ($F1E6 BNE $F223 rest tail).
     if (engine.state.obj_cooldown != 0) {
+        object_probe_rest(engine, r);
         return;
     }
     // Seed the tile pointer with the object's position; probe one row below.
@@ -9284,26 +9314,30 @@ pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineCont
     engine.state.data_ptr_hi = engine.state.obj_y_pixel;
     engine.state.scratch2 = engine.state.obj_y_pixel + 1;
     resolve_room_tile_pointer(engine, r);
-    // Below the bottom of the playfield (160 px): keep falling unconditionally.
+    // Below the bottom of the playfield (160 px): keep falling ($F200 BCS $F220
+    // INC $F0; RTS — note this path does not touch carry).
     if (engine.state.obj_y_pixel >= 160) {
         engine.state.obj_move_scratch = engine.state.obj_move_scratch + 1;
         return;
     }
-    // Wide player overlap aborts the fall.
+    // Wide player overlap rests the object.
     check_player_overlap_wide(engine, r);
     if ((r.carry) != 0) {
+        object_probe_rest(engine, r); // $F205 BCS $F223
         return;
     }
     // Probe the row below the left column (offset 2).
     r.offset = 2;
     probe_object_solid_tile(engine, r);
     if ((r.carry) != 0) {
+        object_probe_rest(engine, r); // $F20C BCS $F223
         return;
     }
     // Probe the row below the right column (offset 14).
     r.offset = 14;
     probe_object_solid_tile(engine, r);
     if ((r.carry) != 0) {
+        object_probe_rest(engine, r); // $F213 BCS $F223
         return;
     }
     // Straddling a boundary: probe the third overlapping column (offset 26).
@@ -9311,10 +9345,11 @@ pub fn update_wide_object_terrain_probe(engine: &mut Engine, r: &mut RoutineCont
         r.offset = 26;
         probe_object_solid_tile(engine, r);
         if ((r.carry) != 0) {
+            object_probe_rest(engine, r); // $F21E BCS $F223
             return;
         }
     }
-    // Nothing solid below the wide footprint: keep falling.
+    // Nothing solid below the wide footprint: keep falling ($F220 INC $F0).
     engine.state.obj_move_scratch = engine.state.obj_move_scratch + 1;
 }
 
