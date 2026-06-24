@@ -72,7 +72,7 @@ pub fn apply(prg: &mut [u8], dir: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn nes_rgb_hex(i: u8) -> String {
+pub fn nes_rgb_hex(i: u8) -> String {
     let (r, g, b) = NES_PALETTE[(i & 0x3F) as usize];
     format!("#{r:02x}{g:02x}{b:02x}")
 }

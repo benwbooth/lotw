@@ -30,6 +30,12 @@ struct Manifest {
     rooms: Vec<RoomMeta>,
 }
 
+// Meta-page ($E0-page) layout: header, actor records, room palette.
+const HDR_LEN: usize = 0x20; // $00-$1F: CHR banks / tile_table / room metadata
+const ACTOR_COUNT: usize = 12; // $20-$DF: 12 spawn records
+const ACTOR_LEN: usize = 16;
+const PAL_LEN: usize = 0x20; // $E0-$FF: 8 sub-palettes of 4
+
 #[derive(Serialize, Deserialize)]
 struct RoomMeta {
     mapx: usize,
@@ -37,8 +43,19 @@ struct RoomMeta {
     prg_offset: usize,
     cols: usize,
     rows: usize,
-    /// The 256-byte palette/attribute/object page, verbatim hex.
-    meta_hex: String,
+    /// $00-$1F room header (CHR banks, tile-table pointer, metadata), verbatim.
+    header_hex: String,
+    /// $20-$DF: 12 actor-spawn records, 16 bytes each (hex).
+    actors: Vec<String>,
+    /// $E0-$FF room palette: 8 sub-palettes of 4 NES indices.
+    palette: Pal,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Pal {
+    indices: Vec<u8>,
+    #[serde(default)]
+    rgb: Vec<String>,
 }
 
 fn room_offset(mapx: usize, mapy: usize) -> usize {
@@ -64,13 +81,22 @@ pub fn extract(prg: &[u8], dir: &Path) -> Result<(), Box<dyn Error>> {
                 csv.push('\n');
             }
             fs::write(rdir.join(format!("room-{mapy:02}-{mapx}.csv")), csv)?;
+            let actors = (0..ACTOR_COUNT)
+                .map(|i| hex(&meta[HDR_LEN + i * ACTOR_LEN..HDR_LEN + (i + 1) * ACTOR_LEN]))
+                .collect();
+            let pal_bytes = &meta[META - PAL_LEN..META];
             rooms.push(RoomMeta {
                 mapx,
                 mapy,
                 prg_offset: off,
                 cols: COLS,
                 rows: ROWS,
-                meta_hex: hex(meta),
+                header_hex: hex(&meta[0..HDR_LEN]),
+                actors,
+                palette: Pal {
+                    indices: pal_bytes.to_vec(),
+                    rgb: pal_bytes.iter().map(|&b| super::palettes::nes_rgb_hex(b)).collect(),
+                },
             });
         }
     }
@@ -108,9 +134,20 @@ pub fn apply(prg: &mut [u8], dir: &Path) -> Result<(), Box<dyn Error>> {
                 bytes[c * ROWS + r] = grid[r][c];
             }
         }
-        let meta = unhex(&room.meta_hex)?;
+        // Reassemble the meta page: header + 12 actor records + palette.
+        let mut meta = unhex(&room.header_hex)?;
+        for rec in &room.actors {
+            meta.extend_from_slice(&unhex(rec)?);
+        }
+        meta.extend_from_slice(&room.palette.indices);
         if meta.len() != META {
-            return Err(format!("room {:02}-{}: meta must be {META} bytes", room.mapy, room.mapx).into());
+            return Err(format!(
+                "room {:02}-{}: meta reassembled to {} bytes (expected {META})",
+                room.mapy,
+                room.mapx,
+                meta.len()
+            )
+            .into());
         }
         bytes[TILES..ROOM].copy_from_slice(&meta);
         prg[room.prg_offset..room.prg_offset + ROOM].copy_from_slice(&bytes);
