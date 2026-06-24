@@ -335,6 +335,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // is usually a frame or two before the keypress, hence the history).
     let mut frame_ring: std::collections::VecDeque<Vec<u8>> = std::collections::VecDeque::new();
     let mut capture_request = false;
+    // Per-frame log of the NES button byte, dumped on F12 so the exact session
+    // can be replayed deterministically in another build to diff state.
+    let mut input_log: Vec<u8> = Vec::new();
 
     // Main frame loop: input -> step game -> audio -> render/present -> pace.
     while running {
@@ -424,8 +427,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        // Latch the assembled input into the engine for this frame.
+        // Latch the assembled input into the engine for this frame, and record
+        // it for deterministic replay.
         runner.engine_mut().ppu.buttons = buttons as u8;
+        input_log.push(buttons as u8);
 
         // Advance the game by one frame; stop if the game loop returned.
         if !common::step_frame(&mut runner) {
@@ -467,9 +472,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             for (i, frame) in frame_ring.iter().enumerate() {
                 common::write_ppm(&format!("build/jank_{i:02}.ppm"), frame)?;
             }
+            // Also dump the current RAM image ($0000-$07FF) so the exact engine
+            // state behind the glitch (OAM at $0200, CHR-bank shadows $2A-$2F)
+            // can be inspected offline.
+            std::fs::write(
+                "build/jank_ram.bin",
+                &runner.engine().state.ram_bytes()[..0x800],
+            )?;
+            // Dump the full input history so this exact session can be replayed
+            // deterministically in another build to diff state.
+            std::fs::write("build/input.bin", &input_log)?;
             eprintln!(
-                "capture: wrote {} frames to build/jank_*.ppm",
-                frame_ring.len()
+                "capture: wrote {} frames + RAM + {}-frame input log",
+                frame_ring.len(),
+                input_log.len()
             );
         }
 
