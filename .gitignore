@@ -26,3 +26,7 @@ assets/chr/
 
 # Generated rebuilt ROM from the asset pipeline
 /build/rebuilt.nes
+
+# Extracted ROM content (regenerable via `assettool extract`; ROM is gitignored)
+/assets/*
+!/assets/README.md
