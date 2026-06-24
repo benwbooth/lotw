@@ -330,6 +330,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut frames = 0usize;
     let mut next_frame = Instant::now();
     let mut last_buttons = -1; // sentinel so the first input always logs
+    // Rolling buffer of recent framebuffers. Press F12 to dump the last frames
+    // to build/jank_NN.ppm for diagnosing transient visual glitches (the glitch
+    // is usually a frame or two before the keypress, hence the history).
+    let mut frame_ring: std::collections::VecDeque<Vec<u8>> = std::collections::VecDeque::new();
+    let mut capture_request = false;
 
     // Main frame loop: input -> step game -> audio -> render/present -> pace.
     while running {
@@ -350,6 +355,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .intersects(sdl3::keyboard::Mod::LCTRLMOD | sdl3::keyboard::Mod::RCTRLMOD) =>
                 {
                     running = false;
+                }
+                // F12: request a dump of the recent-frame ring buffer.
+                Event::KeyDown {
+                    keycode: Some(Keycode::F12),
+                    ..
+                } => {
+                    capture_request = true;
                 }
                 _ => {}
             }
@@ -442,6 +454,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         canvas.clear();
         canvas.copy(&texture, None, None)?;
         canvas.present();
+
+        // Keep the last 16 rendered frames; on an F12 request, dump them so a
+        // transient glitch (which is usually a frame or two before the keypress)
+        // is captured in build/jank_NN.ppm for offline analysis.
+        frame_ring.push_back(fb.clone());
+        if frame_ring.len() > 16 {
+            frame_ring.pop_front();
+        }
+        if capture_request {
+            capture_request = false;
+            for (i, frame) in frame_ring.iter().enumerate() {
+                common::write_ppm(&format!("build/jank_{i:02}.ppm"), frame)?;
+            }
+            eprintln!(
+                "capture: wrote {} frames to build/jank_*.ppm",
+                frame_ring.len()
+            );
+        }
 
         // Advance the frame counter; honour the optional frame cap, dumping a
         // final image before quitting.
