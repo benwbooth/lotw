@@ -1011,19 +1011,22 @@ pub fn update_final_exit_projectile_animation_bits(engine: &mut Engine, r: &mut 
 /// while still in the scripted vertical range. Other paths intentionally
 /// leave carry untouched to preserve the original branch contract.
 pub fn check_final_exit_projectile_bounds(engine: &mut Engine, r: &mut RoutineContext) {
-    // Y at/below the scripted floor (>= 0xA1) -> leave carry as-is, in range.
+    // Y at/below the scripted floor (>= 0xA1): out of bounds ($86B5 BCS $86C1 SEC).
     if (engine.state.scratch2 >= 161) {
+        r.carry = 1;
         return;
     }
-    // X still left of the right edge (< 0xF1) -> in range, carry untouched.
+    // X still left of the right edge (< 0xF1): in range ($86BB BCC $86C3 CLC).
     if (engine.state.indirect_ptr_lo < 241) {
+        r.carry = 0;
         return;
     }
-    // X exactly 0 (wrapped) -> treat as in range (carry untouched).
+    // X exactly 0 (wrapped): in range ($86C3 CLC).
     if (engine.state.indirect_ptr_lo == 0) {
+        r.carry = 0;
         return;
     }
-    // Past the right edge while in the vertical band -> out of bounds.
+    // Past the right edge while in the vertical band -> out of bounds ($86C1 SEC).
     r.carry = 1;
 }
 
@@ -4173,7 +4176,8 @@ pub fn check_player_x_overlap(engine: &mut Engine, r: &mut RoutineContext) {
     let tile_delta: i32 =
         ((engine.state.indirect_ptr_hi - engine.state.player_x_tile) as u8 as i32);
     if (tile_delta == 0) {
-        return; // same tile column: caller's carry decides (overlap handled by Y)
+        r.carry = 1; // same tile column: overlap ($CE95 BEQ $CEB4 SEC)
+        return;
     }
     if (tile_delta < 2) {
         // One tile to the right: overlap iff object's fine X is left of player.
@@ -4187,17 +4191,20 @@ pub fn check_player_x_overlap(engine: &mut Engine, r: &mut RoutineContext) {
         return;
     }
     if (tile_delta < 255) {
-        return; // more than one tile away (and not -1): no overlap
+        r.carry = 0; // more than one tile away: no overlap ($CE9D BCC $CEB2 CLC)
+        return;
     }
     {
         // tile_delta == 255 (-1): one tile to the left.
         let subtile_delta: i32 =
             ((engine.state.indirect_ptr_lo - engine.state.player_x_fine) as u8 as i32);
         if (subtile_delta == 0) {
+            r.carry = 0; // aligned: no overlap ($CEA4 BEQ $CEB2 CLC)
             return;
         }
         if ((subtile_delta & crate::bits::BIT7) != 0) {
-            return; // object's fine X still left of player: no overlap
+            r.carry = 0; // object's fine X still left of player: no overlap ($CEA6 BMI $CEB2 CLC)
+            return;
         }
         r.carry = 1; // overlapping from the left
     }
@@ -4272,16 +4279,19 @@ pub fn check_player_overlap_wide(engine: &mut Engine, r: &mut RoutineContext) {
                     return;
                 }
                 if (dx < 254) {
-                    return; // 2..253 tiles away: no overlap (carry unchanged)
+                    r.carry = 0; // 2..253 tiles away: no overlap ($CEE9 BCC $CF00 CLC)
+                    return;
                 }
                 {
                     // dx == 254 (-2): two tiles left; fine X decides.
                     let subtile_delta: i32 =
                         ((engine.state.indirect_ptr_lo - engine.state.player_x_fine) as u8 as i32);
                     if (subtile_delta == 0) {
+                        r.carry = 0; // aligned: no overlap ($CEF1 BEQ $CF00 CLC)
                         return;
                     }
                     if ((subtile_delta & crate::bits::BIT7) != 0) {
+                        r.carry = 0; // fine X left of player: no overlap ($CEF3 BMI $CF00 CLC)
                         return;
                     }
                     {
@@ -6153,16 +6163,19 @@ pub fn defeat_active_room_actors(engine: &mut Engine, r: &mut RoutineContext) {
     flash_palette_buffer(engine, r);
 }
 
-/// Returns carry set when the tile above the top screen edge is empty and
-/// the player can wrap to the room above. Returns carry clear (early) while
-/// airborne/jumping or when the player is not at the top sub-tile row.
+/// Returns carry set when the tile above the top screen edge is empty (exit
+/// clear) and also carry set while airborne/jumping ($DCA6 SEC); returns carry
+/// clear when the player is not at the top sub-tile row ($DCA4 CLC).
 pub fn check_top_boundary_exit_clear(engine: &mut Engine, r: &mut RoutineContext) {
-    // Can't exit upward while in the air or mid-jump.
+    // Airborne/mid-jump: $DC8B BNE $DCA6 (SEC).
     if engine.state.airborne_flag != 0 || engine.state.jump_timer != 0 {
+        r.carry = 1;
         return;
     }
-    // Only at the topmost sub-tile (fine-X low byte == 0) is an up-exit possible.
+    // Only at the topmost sub-tile (fine-X low byte == 0) is an up-exit possible
+    // ($DC8F BNE $DCA4 CLC).
     if engine.state.indirect_ptr_lo != 0 {
+        r.carry = 0;
         return;
     }
     // Build a tile pointer to the very top row (row 0) at the player's column.
@@ -8577,7 +8590,8 @@ pub fn tick_timed_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
 /// (`indirect_ptr_lo != 0`), also the right edge (offset 12).
 pub fn probe_actor_overhead_step(engine: &mut Engine, r: &mut RoutineContext) {
     if ((engine.state.scratch2 & ((crate::bits::LOW_NIBBLE) as u8)) != 0) {
-        // Not tile-aligned vertically: nothing to probe.
+        // Not tile-aligned vertically: nothing to probe ($EDF0 BNE $EE17 CLC).
+        r.carry = 0;
         return;
     }
     engine.state.data_ptr_lo = engine.state.indirect_ptr_hi;
