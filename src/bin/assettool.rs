@@ -85,6 +85,8 @@ fn extract(rom_path: &str, dir: &str) -> Result<(), Box<dyn Error>> {
     // CHR graphics -> indexed PNG sheets (lossless: each pixel is its 2-bit
     // pattern value 0..3).
     assets::chr::extract(&ines.chr, &dir.join("chr"))?;
+    // Palette tables -> palettes.json (indices + NES RGB).
+    assets::palettes::extract(&ines.prg, &dir)?;
 
     println!(
         "extracted -> {} (prg {} B, chr {} tiles)",
@@ -98,7 +100,10 @@ fn extract(rom_path: &str, dir: &str) -> Result<(), Box<dyn Error>> {
 fn build(dir: &str, out_path: &str, reference: &str) -> Result<(), Box<dyn Error>> {
     let dir = PathBuf::from(dir);
     let header = fs::read(dir.join("header.bin"))?;
-    let prg = fs::read(dir.join("prg.bin"))?;
+    // Start from the raw PRG, then overlay each structured data region edited in
+    // assets/ (palettes today; text/rooms/objects/audio as they land).
+    let mut prg = fs::read(dir.join("prg.bin"))?;
+    assets::palettes::apply(&mut prg, &dir)?;
     let chr = assets::chr::build(&dir.join("chr"))?;
 
     let mut rom = Vec::with_capacity(header.len() + prg.len() + chr.len());
