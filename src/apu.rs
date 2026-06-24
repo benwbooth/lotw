@@ -99,6 +99,7 @@ struct Noise {
 }
 
 impl Default for Noise {
+    /// Power-on state: a silent, disabled noise channel.
     fn default() -> Self {
         Self {
             enabled: false,

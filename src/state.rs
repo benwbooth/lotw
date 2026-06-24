@@ -441,6 +441,7 @@ impl GameState {
             std::slice::from_raw_parts(self as *const GameState as *const u8, ADDRESS_SPACE_SIZE)
         }
     }
+    /// Mutable view of the whole CPU address space as bytes (mutable counterpart of [`Self::ram_bytes`]).
     #[inline]
     pub fn ram_bytes_mut(&mut self) -> &mut [u8] {
         // Mutable counterpart of `ram_bytes`; same size/packing guarantees.
@@ -625,6 +626,7 @@ impl GameState {
         // Fold the little-endian pair: low byte in $E5, high byte in $E6 << 8.
         self.byte(0xE5) | (self.byte(0xE6) << 8)
     }
+    /// Store the 16-bit object-slot pointer back into `$E5`/`$E6` (little-endian).
     #[inline]
     pub fn set_obj_slot_ptr(&mut self, value: i32) {
         // Split a 16-bit value back into the low/high zero-page bytes.
@@ -638,6 +640,7 @@ impl GameState {
         // Low byte $E7, high byte $E8.
         self.byte(0xE7) | (self.byte(0xE8) << 8)
     }
+    /// Store the 16-bit actor-record pointer into `$E7`/`$E8` (little-endian).
     #[inline]
     pub fn set_actor_record_ptr(&mut self, value: i32) {
         self.set_byte(0xE7, value & BYTE_MASK);
@@ -650,6 +653,7 @@ impl GameState {
         // Low byte $77, high byte $78.
         self.byte(0x77) | (self.byte(0x78) << 8)
     }
+    /// Store the 16-bit palette-source pointer into `$77`/`$78` (little-endian).
     #[inline]
     pub fn set_palette_src_ptr(&mut self, value: i32) {
         self.set_byte(0x77, value & BYTE_MASK);
@@ -662,6 +666,7 @@ impl GameState {
         // Low byte $79, high byte $7A.
         self.byte(0x79) | (self.byte(0x7A) << 8)
     }
+    /// Store the 16-bit tile-table pointer into `$79`/`$7A` (little-endian).
     #[inline]
     pub fn set_tile_table_ptr(&mut self, value: i32) {
         self.set_byte(0x79, value & BYTE_MASK);
@@ -683,6 +688,7 @@ impl GameState {
         // a folded 16-bit value with low byte $16, high byte $17.
         self.byte(0x16) | (self.byte(0x17) << 8)
     }
+    /// Store the 16-bit VRAM address shadow into `$16`/`$17` (little-endian).
     #[inline]
     pub fn set_vram_addr(&mut self, value: i32) {
         self.set_byte(0x16, value & BYTE_MASK);
@@ -707,6 +713,7 @@ impl GameState {
         // Low byte $0C, high byte $0D.
         self.byte(0x0C) | (self.byte(0x0D) << 8)
     }
+    /// Store the 16-bit data pointer into `$0C`/`$0D` (little-endian).
     #[inline]
     pub fn set_data_ptr(&mut self, value: i32) {
         self.set_byte(0x0C, value & BYTE_MASK);
@@ -719,6 +726,7 @@ impl GameState {
         // Low byte $0E, high byte $0F.
         self.byte(0x0E) | (self.byte(0x0F) << 8)
     }
+    /// Store the 16-bit indirect pointer into `$0E`/`$0F` (little-endian).
     #[inline]
     pub fn set_indirect_ptr(&mut self, value: i32) {
         self.set_byte(0x0E, value & BYTE_MASK);
@@ -948,6 +956,7 @@ impl GameState {
         // SOUND_CHANNEL_BASE ($93) + within-record field + per-channel offset.
         self.byte(Self::SOUND_CHANNEL_BASE + field + ch)
     }
+    /// Write `value` to sound-channel field `field` of channel `ch` (setter counterpart of [`Self::sound_channel_byte`]).
     #[inline]
     pub fn set_sound_channel_byte(&mut self, field: i32, ch: i32, value: i32) {
         self.set_byte(Self::SOUND_CHANNEL_BASE + field + ch, value);
