@@ -4,3 +4,4 @@ pub mod chr;
 pub mod palettes;
 pub mod text;
 pub mod rooms;
+pub mod audio;

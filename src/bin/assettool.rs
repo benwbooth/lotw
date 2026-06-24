@@ -91,6 +91,8 @@ fn extract(rom_path: &str, dir: &str) -> Result<(), Box<dyn Error>> {
     assets::text::extract(&ines.prg, &dir)?;
     // Room layouts -> per-room CSV metatile grids.
     assets::rooms::extract(&ines.prg, &dir)?;
+    // Music streams -> audio DSL (note/cmd tokens).
+    assets::audio::extract(&ines.prg, &dir)?;
 
     println!(
         "extracted -> {} (prg {} B, chr {} tiles)",
@@ -110,6 +112,7 @@ fn build(dir: &str, out_path: &str, reference: &str) -> Result<(), Box<dyn Error
     assets::palettes::apply(&mut prg, &dir)?;
     assets::text::apply(&mut prg, &dir)?;
     assets::rooms::apply(&mut prg, &dir)?;
+    assets::audio::apply(&mut prg, &dir)?;
     let chr = assets::chr::build(&dir.join("chr"))?;
 
     let mut rom = Vec::with_capacity(header.len() + prg.len() + chr.len());
