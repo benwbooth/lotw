@@ -14950,6 +14950,11 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         upload_equipped_item_stat_tiles(engine, r);
         engine.state.scroll_fine_x = 8; // page-aligned scroll
         refresh_scroll_register_shadows(engine, r);
+        // Same as the loadout page: the character CHR is in the $1000 pattern
+        // table here, so the 8x16 player sprite needs the odd standing-pose tile
+        // 9 to select it (an even tile would sample the page background and
+        // render garbled).
+        engine.state.player_pose = 9;
         draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
     }
@@ -15352,6 +15357,12 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         upload_equipped_item_stat_tiles(engine, r);
         engine.state.scroll_fine_x = 8;
         refresh_scroll_register_shadows(engine, r);
+        // On the loadout page the character CHR is in the $1000 pattern table
+        // (bank 56+index at MMC3 R2), so the 8x16 player sprite needs an odd
+        // tile to select it. Use the standing pose 9; the gameplay idle pose 8
+        // (even tile) would sample the $0000 page-background banks and render the
+        // character garbled. (Matches FCEUX.)
+        engine.state.player_pose = 9;
         draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         run_carried_item_loadout_flow(engine, r);
