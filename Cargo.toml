@@ -7,10 +7,19 @@ rust-version = "1.94"
 [dependencies]
 corosensei = "0.3.4"
 sdl3 = { version = "0.18.4", optional = true }
+png = { version = "0.17", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [features]
 default = []
 sdl = ["dep:sdl3"]
+assets = ["dep:png", "dep:serde", "dep:serde_json"]
+
+[[bin]]
+name = "assettool"
+path = "src/bin/assettool.rs"
+required-features = ["assets"]
 
 [[bin]]
 name = "play"

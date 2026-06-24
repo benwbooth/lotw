@@ -23,3 +23,6 @@ assets/chr/
 
 # Auto-saved play-session input logs (local corpus; promote curated ones by renaming)
 /inputs/play-*.replay
+
+# Generated rebuilt ROM from the asset pipeline
+/build/rebuilt.nes
