@@ -10471,22 +10471,9 @@ pub fn update_tile_projectile_motion(engine: &mut Engine, r: &mut RoutineContext
     'dispatch: loop {
         match state {
             0 => {
-                // Clear all of work RAM 0x0800..0xA000 (mirrors of the original
-                // routine's loop; preserves the exact original side effect).
-                {
-                    let mut i: i32 = 0;
-                    {
-                        i = 2048; // 0x0800
-                        while (i < 40960) {
-                            // 0xA000
-                            engine.state.set_byte(i, 0);
-                            {
-                                i += 1;
-                                i
-                            };
-                        }
-                    }
-                }
+                // (No work-RAM clear here: the original routine at $F7F7 begins
+                // directly with the obj_tile bit0 test below. The previously
+                // injected 0x0800..0xA000 clear loop had no 6502 counterpart.)
                 // Bit0 of obj_tile means the projectile is in its "resting on a
                 // wall" phase: every 4 frames toggle the bit2 animation flag,
                 // then skip straight to write-back.
@@ -12704,8 +12691,8 @@ pub fn main_loop_dispatch(engine: &mut Engine, r: &mut RoutineContext) {
                 farcall_0c0d(engine, r, 230, 165, update_final_exit_projectiles);
                 farcall_0c0d(engine, r, 93, 167, rotate_sprite_zero_from_scripted_oam);
                 farcall_0c0d(engine, r, 227, 163, tick_final_exit_sequence);
-                if engine.state.player_health != 0 {
-                    break;
+                if engine.state.player_health == 0 {
+                    break; // $C105 BNE $C0D4: loop while alive, exit on death
                 }
             }
 
@@ -13840,7 +13827,8 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
     // goes to game over.
     let mut use_game_over_screen = engine.state.final_exit_flag != 0;
     if !use_game_over_screen {
-        if (engine.state.continue_timer & ((crate::bits::BIT7) as u8)) != 0 {
+        if (engine.state.continue_timer & ((crate::bits::BIT7) as u8)) == 0 {
+            // $935C BPL $9363: bit7 CLEAR routes to the extra-life-token check.
             // An extra-life token (item id 12) in the selected slot lets the player
             // resume; consume it. Otherwise go to game over.
             let x = engine.state.selected_item_slot;
@@ -14504,19 +14492,22 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             r.index = (engine.state.selected_item_slot as u8);
             let item = engine.state.item_slot((r.index as i32));
             r.value = (item as u8);
+            // Item 7 (lockpick) tries magic first and unlocks without a key on
+            // success. On magic failure the ROM falls through ($DDF2 BCC not
+            // taken -> $DDF4) to spend a key — as does any other item; with no
+            // key the tile stays solid ($DDF7 BCS $DE18).
+            let mut need_key = true;
             if item == 7 {
-                // Item 7 unlocks with magic instead of a key.
                 r.index = (engine.state.selected_item_slot as u8);
                 consume_magic_point(engine, r);
-                if ((r.carry) != 0) {
-                    r.carry = 1; // no magic: stay solid
-                    return;
+                if ((r.carry) == 0) {
+                    need_key = false; // magic spent: skip the key ($DDF2 BCC $DDF9)
                 }
-            } else {
-                // Otherwise spend a key.
+            }
+            if need_key {
                 consume_key(engine, r);
                 if ((r.carry) != 0) {
-                    r.carry = 1; // no key: stay solid
+                    r.carry = 1; // no key: stay solid ($DDF7 BCS $DE18)
                     return;
                 }
             }
@@ -14544,8 +14535,9 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             r.offset = (engine.state.selected_item_slot as u8);
             r.index = ((engine.state.item_slot((r.offset as i32))) as u8);
             let idx = r.index; // selected carried-item id
-            // Item 1: the light spell / lamp that converts a tile in place.
-            if idx == 1 {
+            // Item 2: the light spell / lamp that converts a tile in place
+            // ($DE2D DEX;DEX; $DE2F BEQ $DE3F).
+            if idx == 2 {
                 if engine.state.player_magic != 0 {
                     // Only act when the player is tile-aligned (low Y nibble and
                     // X sub-pixel both zero).
@@ -14596,9 +14588,9 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                 r.carry = 1; // tile remains solid
                 return;
             }
-            // Item 2: thrown weapon — launches a moving projectile in the faced
-            // direction.
-            if idx == 2 {
+            // Item 3: thrown weapon — launches a moving projectile in the faced
+            // direction ($DE31 DEX; $DE32 BEQ $DE39 -> $DE9F).
+            if idx == 3 {
                 if (engine.state.direction_latch & ((crate::bits::LOW_NIBBLE) as u8)) != 0 {
                     r.offset = 1; // speed/profile selector
                     build_direction_velocity(engine, r);
@@ -14637,9 +14629,9 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                 r.carry = 1;
                 return;
             }
-            // Item 3: magic blast — like the throw but spends magic and uses a
-            // higher launch speed.
-            if idx == 3 {
+            // Item 4: magic blast — like the throw but spends magic and uses a
+            // higher launch speed ($DE34 DEX; $DE35 BEQ $DE3C -> $DEE8).
+            if idx == 4 {
                 if engine.state.player_magic != 0 {
                     if (engine.state.direction_latch & ((crate::bits::LOW_NIBBLE) as u8)) != 0 {
                         r.offset = 8; // faster velocity profile
