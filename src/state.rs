@@ -16,18 +16,32 @@
 //! (computed indices, pointer dereferences, table/buffer scans) that cannot be
 //! expressed as a fixed field.
 
-/// The CPU-visible memory image and the named state living inside it.
+/// Generate a getter/setter pair for an array-like region of RAM.
 ///
-/// Indexing is uniform across the whole 64 KiB address space because the
-/// translated 6502 code performs cross-field indexing, aliasing, and pointer
-/// dereferences that a struct of typed fields could not reproduce byte-for-byte.
+/// Many NES variables are not single bytes but fixed-stride tables (OAM
+/// entries, object records, password nibble cells, …). Rather than name every
+/// element, this macro defines a `$get(i)` / `$set(i, value)` accessor pair that
+/// indexes the region relative to a fixed `$base` address, so the translated
+/// 6502 code can keep doing `base + index` reads/writes against named regions.
+///
+/// Parameters:
+/// - `$get` / `$set`: identifiers for the generated read/write methods.
+/// - `$base`: the region's first NES RAM address (the element-0 address).
+/// - `$doc`: the rustdoc string attached to the getter (the `///` text).
+///
+/// Both methods route through the volatile [`GameState::byte`] /
+/// [`GameState::set_byte`] primitives, so they inherit the same volatile-access
+/// semantics described there. `i` is added to `$base` with plain `i32`
+/// arithmetic, matching how the original code computes table offsets.
 macro_rules! array_field {
     ($get:ident, $set:ident, $base:expr, $doc:expr) => {
+        // Getter: read the byte `i` elements past the region base.
         #[doc = $doc]
         #[inline]
         pub fn $get(&self, i: i32) -> i32 {
             self.byte($base + i)
         }
+        // Setter: write the low byte of `value` `i` elements past the base.
         #[inline]
         pub fn $set(&mut self, i: i32, value: i32) {
             self.set_byte($base + i, value);
@@ -199,7 +213,20 @@ pub struct GameState {
     _pad17: [u8; 64629],
 }
 
-const _: () = assert!(core::mem::size_of::<GameState>() == 0x10000);
+/// Size of the CPU-visible address space: a full 64 KiB (`$0000..=$FFFF`).
+pub const ADDRESS_SPACE_SIZE: usize = 0x10000;
+/// Mask that wraps any address into the 64 KiB space (`addr & 0xFFFF`),
+/// reproducing 6502 16-bit address wraparound.
+const ADDRESS_MASK: usize = 0xffff;
+/// Mask that truncates a value to a single byte (`value & 0xFF`), reproducing
+/// the 8-bit width of 6502 registers and memory cells.
+const BYTE_MASK: i32 = 0xff;
+
+// The struct must be exactly the 64 KiB address space, byte-packed (align 1),
+// so that `offset_of!` field offsets equal real NES RAM addresses and the
+// whole struct can be reinterpreted as a flat `[u8; 0x10000]` (see
+// `ram_bytes`). These asserts fail the build if either invariant is violated.
+const _: () = assert!(core::mem::size_of::<GameState>() == ADDRESS_SPACE_SIZE);
 const _: () = assert!(core::mem::align_of::<GameState>() == 1);
 // Compile-time proof that every named field lands at its exact NES RAM address.
 const _: () = assert!(core::mem::offset_of!(GameState, audio_duty_work) == 0x0);
@@ -346,20 +373,27 @@ const _: () = assert!(core::mem::offset_of!(GameState, password_checksum_add) ==
 const _: () = assert!(core::mem::offset_of!(GameState, password_checksum_xor) == 0x38a);
 
 impl Default for GameState {
+    /// The default image is the same all-zero memory as [`GameState::new`].
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl GameState {
+    /// Construct a fresh, all-zero memory image (equivalent to a powered-off
+    /// machine before the loader maps any banks).
     pub fn new() -> Self {
-        // All fields are u8 / byte arrays, so an all-zero image is valid.
+        // All fields are u8 / byte arrays, so an all-zero image is valid:
+        // `zeroed()` is sound because every byte 0 is a valid `u8` and the
+        // struct has no padding bytes with niche requirements.
         unsafe { std::mem::zeroed() }
     }
 
     /// Clear all RAM back to zero. Mapped PRG/CHR is re-established by the
     /// loader, so a full zero-fill here is correct for a fresh boot.
     pub fn reset(&mut self) {
+        // Zero the entire 64 KiB image; the bank loader repopulates the mapped
+        // PRG/CHR windows afterward.
         self.ram_bytes_mut().fill(0);
     }
 
@@ -376,14 +410,22 @@ impl GameState {
     /// resumed game code from reusing a stale value across that wait boundary.
     #[inline]
     pub fn byte(&self, addr: i32) -> i32 {
-        let idx = (addr as usize) & 0xffff;
+        // Wrap the address into the 64 KiB space (6502 addresses are 16-bit and
+        // wrap), giving an in-bounds byte index into the struct.
+        let idx = (addr as usize) & ADDRESS_MASK;
+        // Volatile load through a raw `*const u8` reinterpretation of the
+        // struct; the zero-extended byte is returned as `i32` so call sites can
+        // do 6502-style 8-bit math without repeated casts.
         unsafe { std::ptr::read_volatile((self as *const GameState as *const u8).add(idx)) as i32 }
     }
 
     /// Write the low byte of `value` at `addr` (volatile; see [`Self::byte`]).
     #[inline]
     pub fn set_byte(&mut self, addr: i32, value: i32) {
-        let idx = (addr as usize) & 0xffff;
+        // Same 16-bit address wrap as `byte`.
+        let idx = (addr as usize) & ADDRESS_MASK;
+        // Volatile store of the truncated low byte (the `as u8` cast keeps only
+        // bits 0-7, matching a 6502 store of an 8-bit register).
         unsafe {
             std::ptr::write_volatile((self as *mut GameState as *mut u8).add(idx), value as u8)
         };
@@ -393,18 +435,29 @@ impl GameState {
     /// Used for bulk operations: OAM DMA, PRG bank mapping, ROM load, reset.
     #[inline]
     pub fn ram_bytes(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self as *const GameState as *const u8, 0x10000) }
+        // Safe: the struct is exactly `ADDRESS_SPACE_SIZE` bytes (asserted at
+        // compile time) and byte-packed, so it aliases a `[u8; 0x10000]`.
+        unsafe {
+            std::slice::from_raw_parts(self as *const GameState as *const u8, ADDRESS_SPACE_SIZE)
+        }
     }
     #[inline]
     pub fn ram_bytes_mut(&mut self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self as *mut GameState as *mut u8, 0x10000) }
+        // Mutable counterpart of `ram_bytes`; same size/packing guarantees.
+        unsafe {
+            std::slice::from_raw_parts_mut(self as *mut GameState as *mut u8, ADDRESS_SPACE_SIZE)
+        }
     }
 
     /// Add `value` to the byte at `addr` (wrapping, masked to 8 bits); returns
     /// the new value.
+    ///
+    /// Models a 6502 read-modify-write add: the result is truncated to 8 bits
+    /// (`& BYTE_MASK`) and stored back, then returned for the caller's use.
     #[inline]
     pub fn add_byte(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.byte(addr).wrapping_add(value) & 0xff;
+        // Read, wrapping-add, then keep only the low 8 bits (8-bit storage).
+        let next = self.byte(addr).wrapping_add(value) & BYTE_MASK;
         self.set_byte(addr, next);
         next
     }
@@ -412,7 +465,8 @@ impl GameState {
     /// Subtract `value` from the byte at `addr` (wrapping, masked); returns it.
     #[inline]
     pub fn sub_byte(&mut self, addr: i32, value: i32) -> i32 {
-        let next = self.byte(addr).wrapping_sub(value) & 0xff;
+        // Read, wrapping-subtract, then truncate to 8 bits.
+        let next = self.byte(addr).wrapping_sub(value) & BYTE_MASK;
         self.set_byte(addr, next);
         next
     }
@@ -420,6 +474,8 @@ impl GameState {
     /// `byte &= value`; returns the new value.
     #[inline]
     pub fn and_byte(&mut self, addr: i32, value: i32) -> i32 {
+        // Bitwise AND stays within 8 bits as long as the byte is, so no extra
+        // mask is needed.
         let next = self.byte(addr) & value;
         self.set_byte(addr, next);
         next
@@ -428,6 +484,7 @@ impl GameState {
     /// `byte |= value`; returns the new value.
     #[inline]
     pub fn or_byte(&mut self, addr: i32, value: i32) -> i32 {
+        // Bitwise OR of the stored byte with `value`.
         let next = self.byte(addr) | value;
         self.set_byte(addr, next);
         next
@@ -436,6 +493,7 @@ impl GameState {
     /// `byte ^= value`; returns the new value.
     #[inline]
     pub fn xor_byte(&mut self, addr: i32, value: i32) -> i32 {
+        // Bitwise XOR of the stored byte with `value`.
         let next = self.byte(addr) ^ value;
         self.set_byte(addr, next);
         next
@@ -444,7 +502,8 @@ impl GameState {
     /// `byte <<= value` (masked to 8 bits); returns the new value.
     #[inline]
     pub fn shl_byte(&mut self, addr: i32, value: i32) -> i32 {
-        let next = (self.byte(addr) << value) & 0xff;
+        // Left-shift then drop any bits shifted above bit 7 (8-bit register).
+        let next = (self.byte(addr) << value) & BYTE_MASK;
         self.set_byte(addr, next);
         next
     }
@@ -452,18 +511,24 @@ impl GameState {
     /// `byte >>= value` (logical); returns the new value.
     #[inline]
     pub fn shr_byte(&mut self, addr: i32, value: i32) -> i32 {
-        let next = (self.byte(addr) & 0xff) >> value;
+        // Mask to 8 bits first so the logical right shift fills with zeros from
+        // bit 7 (an unsigned 6502 LSR), never sign-extending the `i32`.
+        let next = (self.byte(addr) & BYTE_MASK) >> value;
         self.set_byte(addr, next);
         next
     }
 
     /// Increment the byte at `addr` (wrapping); returns the new value.
+    ///
+    /// Equivalent to the 6502 `INC` instruction: `0xFF` wraps to `0x00`.
     #[inline]
     pub fn inc_byte(&mut self, addr: i32) -> i32 {
         self.add_byte(addr, 1)
     }
 
     /// Decrement the byte at `addr` (wrapping); returns the new value.
+    ///
+    /// Equivalent to the 6502 `DEC` instruction: `0x00` wraps to `0xFF`.
     #[inline]
     pub fn dec_byte(&mut self, addr: i32) -> i32 {
         self.sub_byte(addr, 1)
@@ -494,9 +559,15 @@ impl GameState {
     /// bit6) — i.e. rendering reached the status-bar split this frame.
     #[inline]
     pub fn sprite0_hit(&self) -> bool {
-        (self.frame_status & 0x40) != 0
+        // PPUSTATUS ($2002) bit 6 is the sprite-0 hit flag; the engine latches
+        // PPUSTATUS into `frame_status` ($26) and tests that bit here.
+        const PPUSTATUS_SPRITE0_HIT: u8 = 0x40; // bit 6
+        (self.frame_status & PPUSTATUS_SPRITE0_HIT) != 0
     }
 
+    /// True while the global frame counter ([`Self::frame_counter`], `$36`) is
+    /// running (nonzero) — used to gate logic that should pause when the count
+    /// has been zeroed.
     #[inline]
     pub fn frame_counter_active(&self) -> bool {
         self.frame_counter != 0
@@ -509,6 +580,8 @@ impl GameState {
         "Coarse timer slot `i` (0-7) in the `$85..$8C` array, each decremented once per 60 frames by `frame_counters`. Slot 0 is the sprite-blink timer ([`Self::sprite_blink_timer`]); slot 7 is the countdown timer ([`Self::countdown_timer`])."
     );
 
+    /// True while the countdown timer ([`Self::countdown_timer`], `$8C`, the
+    /// last coarse-timer slot) has not yet expired (nonzero).
     #[inline]
     pub fn countdown_timer_active(&self) -> bool {
         self.countdown_timer != 0
@@ -549,45 +622,50 @@ impl GameState {
     /// Pointer to the object slot currently being processed (`$E5`/`$E6`).
     #[inline]
     pub fn obj_slot_ptr(&self) -> i32 {
+        // Fold the little-endian pair: low byte in $E5, high byte in $E6 << 8.
         self.byte(0xE5) | (self.byte(0xE6) << 8)
     }
     #[inline]
     pub fn set_obj_slot_ptr(&mut self, value: i32) {
-        self.set_byte(0xE5, value & 0xFF);
-        self.set_byte(0xE6, (value >> 8) & 0xFF);
+        // Split a 16-bit value back into the low/high zero-page bytes.
+        self.set_byte(0xE5, value & BYTE_MASK);
+        self.set_byte(0xE6, (value >> 8) & BYTE_MASK);
     }
 
     /// Pointer to the room actor record feeding the current slot (`$E7`/`$E8`).
     #[inline]
     pub fn actor_record_ptr(&self) -> i32 {
+        // Low byte $E7, high byte $E8.
         self.byte(0xE7) | (self.byte(0xE8) << 8)
     }
     #[inline]
     pub fn set_actor_record_ptr(&mut self, value: i32) {
-        self.set_byte(0xE7, value & 0xFF);
-        self.set_byte(0xE8, (value >> 8) & 0xFF);
+        self.set_byte(0xE7, value & BYTE_MASK);
+        self.set_byte(0xE8, (value >> 8) & BYTE_MASK);
     }
 
     /// Pointer to the active palette source data (`$77`/`$78`).
     #[inline]
     pub fn palette_src_ptr(&self) -> i32 {
+        // Low byte $77, high byte $78.
         self.byte(0x77) | (self.byte(0x78) << 8)
     }
     #[inline]
     pub fn set_palette_src_ptr(&mut self, value: i32) {
-        self.set_byte(0x77, value & 0xFF);
-        self.set_byte(0x78, (value >> 8) & 0xFF);
+        self.set_byte(0x77, value & BYTE_MASK);
+        self.set_byte(0x78, (value >> 8) & BYTE_MASK);
     }
 
     /// Pointer to the current room's metatile table (`$79`/`$7A`).
     #[inline]
     pub fn tile_table_ptr(&self) -> i32 {
+        // Low byte $79, high byte $7A.
         self.byte(0x79) | (self.byte(0x7A) << 8)
     }
     #[inline]
     pub fn set_tile_table_ptr(&mut self, value: i32) {
-        self.set_byte(0x79, value & 0xFF);
-        self.set_byte(0x7A, (value >> 8) & 0xFF);
+        self.set_byte(0x79, value & BYTE_MASK);
+        self.set_byte(0x7A, (value >> 8) & BYTE_MASK);
     }
 
     // ---- Player position / motion -----------------------------------------
@@ -601,12 +679,14 @@ impl GameState {
     /// VRAM upload address as a 16-bit value (`$16` low, `$17` high).
     #[inline]
     pub fn vram_addr(&self) -> i32 {
+        // PPUADDR is a 14-bit address written high-then-low; here it is kept as
+        // a folded 16-bit value with low byte $16, high byte $17.
         self.byte(0x16) | (self.byte(0x17) << 8)
     }
     #[inline]
     pub fn set_vram_addr(&mut self, value: i32) {
-        self.set_byte(0x16, value & 0xFF);
-        self.set_byte(0x17, (value >> 8) & 0xFF);
+        self.set_byte(0x16, value & BYTE_MASK);
+        self.set_byte(0x17, (value >> 8) & BYTE_MASK);
     }
 
     // ---- Resource counters / character params -----------------------------
@@ -624,23 +704,25 @@ impl GameState {
     /// Data/source indirect pointer (`$0C`/`$0D`).
     #[inline]
     pub fn data_ptr(&self) -> i32 {
+        // Low byte $0C, high byte $0D.
         self.byte(0x0C) | (self.byte(0x0D) << 8)
     }
     #[inline]
     pub fn set_data_ptr(&mut self, value: i32) {
-        self.set_byte(0x0C, value & 0xFF);
-        self.set_byte(0x0D, (value >> 8) & 0xFF);
+        self.set_byte(0x0C, value & BYTE_MASK);
+        self.set_byte(0x0D, (value >> 8) & BYTE_MASK);
     }
 
     /// General indirect / far-call target pointer (`$0E`/`$0F`).
     #[inline]
     pub fn indirect_ptr(&self) -> i32 {
+        // Low byte $0E, high byte $0F.
         self.byte(0x0E) | (self.byte(0x0F) << 8)
     }
     #[inline]
     pub fn set_indirect_ptr(&mut self, value: i32) {
-        self.set_byte(0x0E, value & 0xFF);
-        self.set_byte(0x0F, (value >> 8) & 0xFF);
+        self.set_byte(0x0E, value & BYTE_MASK);
+        self.set_byte(0x0F, (value >> 8) & BYTE_MASK);
     }
 
     // ---- General-purpose scratch bytes ($08..$0B) -------------------------
@@ -852,20 +934,29 @@ impl GameState {
     // within a record: +2/+3 current pattern pointer lo/hi, +4/+5 loop pointer
     // lo/hi, +6 duty/volume, +8 envelope offset.
 
+    /// Base address of the per-channel sound state records (`$93`); each record
+    /// is 16 bytes, indexed by `ch` (a multiple of 16) and `field` (0-15).
+    pub const SOUND_CHANNEL_BASE: i32 = 0x93;
+
     /// Byte `field` (0-15) of the sound channel record at byte offset `ch`
     /// (`$93 + field + ch`).
+    ///
+    /// `field` selects the byte within a 16-byte channel record; `ch` is the
+    /// record's byte offset from the channel-array base (a multiple of 16).
     #[inline]
     pub fn sound_channel_byte(&self, field: i32, ch: i32) -> i32 {
-        self.byte(0x93 + field + ch)
+        // SOUND_CHANNEL_BASE ($93) + within-record field + per-channel offset.
+        self.byte(Self::SOUND_CHANNEL_BASE + field + ch)
     }
     #[inline]
     pub fn set_sound_channel_byte(&mut self, field: i32, ch: i32, value: i32) {
-        self.set_byte(0x93 + field + ch, value);
+        self.set_byte(Self::SOUND_CHANNEL_BASE + field + ch, value);
     }
     /// Decrement a sound channel field (wrapping) and return the new value.
     #[inline]
     pub fn dec_sound_channel_byte(&mut self, field: i32, ch: i32) -> i32 {
-        let v = (self.sound_channel_byte(field, ch) - 1) & 0xFF;
+        // Subtract one and truncate to 8 bits so 0x00 wraps to 0xFF.
+        let v = (self.sound_channel_byte(field, ch) - 1) & BYTE_MASK;
         self.set_sound_channel_byte(field, ch, v);
         v
     }
