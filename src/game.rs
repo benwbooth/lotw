@@ -814,9 +814,10 @@ pub fn reset(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn rng_update(engine: &mut Engine, r: &mut RoutineContext) {
     let limit: i32 = (r.value as u8 as i32);
     engine.state.rng_limit = (limit as u8);
-    // Limit 0: return the current seed high byte without advancing.
+    // Limit 0: return 0 without advancing ($CC66 BEQ $CC8E returns A = the
+    // just-stored zero limit, not the seed).
     if (limit == 0) {
-        r.value = (engine.state.rng_high as u8);
+        r.value = 0;
         return;
     }
     let mut rng_high: i32 = (engine.state.rng_high as i32);
@@ -5365,7 +5366,7 @@ pub fn handle_player_room_transition(engine: &mut Engine, r: &mut RoutineContext
         engine.state.vram_addr_hi = 32; // nametable 0x201E.
         engine.state.data_ptr_lo = 47;
         farcall_bank_09_r7(engine, r);
-        engine.state.frame_counter = 0;
+        // ($D7E6 tail: JSR $C833 -> SEC; RTS, leaving frame_counter unchanged.)
         r.carry = 1;
         return;
     }
@@ -5412,7 +5413,7 @@ pub fn handle_player_room_transition(engine: &mut Engine, r: &mut RoutineContext
     engine.state.vram_addr_hi = 36; // nametable 0x2400 (second page).
     engine.state.data_ptr_lo = 16;
     farcall_bank_09_r7(engine, r);
-    engine.state.frame_counter = 0;
+    // ($D855 tail: JSR $C833 -> SEC; RTS, leaving frame_counter unchanged.)
     r.carry = 1;
 }
 
@@ -7197,13 +7198,17 @@ pub fn add_magic_points(engine: &mut Engine, r: &mut RoutineContext) {
 /// Note the sum is reduced to a byte first, so `total > 255` can never be
 /// true here; the cap-at-110 check is what actually limits the value.
 pub fn add_coins(engine: &mut Engine, r: &mut RoutineContext) {
-    let total: i32 = (((r.value as u16 as i32) + (engine.state.coins as i32)) as u8 as i32);
+    // Keep the full (un-truncated) sum so the ADC overflow stays visible: the
+    // original clamps to 109 when the add overflows (carry set) or the result
+    // reaches the cap (110). Truncating to u8 first made the overflow branch
+    // dead and let large adds wrap below the cap.
+    let total: i32 = (r.value as i32) + (engine.state.coins as i32);
     let capped_total: i32 = if (total > 255) {
-        109 // unreachable after the `as u8` above; kept to match original
-    } else if ((total as u8 as i32) >= 110) {
+        109 // ADC overflow (carry set) -> clamp
+    } else if (total >= 110) {
         109 // at/over cap (110) -> max value 109
     } else {
-        (total as u8 as i32)
+        total
     };
     engine.state.coins = (capped_total as u8);
     sync_coin_hud(engine, r);
@@ -11188,10 +11193,11 @@ pub fn audio_cmd_set_duty_instrument(engine: &mut Engine, r: &mut RoutineContext
     let mut duty_bits: i32 =
         ((((command_value & crate::bits::HIGH_NIBBLE) as u8 as i32) << 2) as u8 as i32);
     engine.state.audio_duty_work = (duty_bits as u8);
-    // Merge duty into the top 2 bits of shadow byte 6 (keep low 6).
+    // Merge duty into the top 2 bits of shadow byte 6 of the active channel lane
+    // ($FBD2 STA $99,X — X = channel_offset, not lane 0).
     engine.state.set_sound_channel_byte(
         6,
-        0,
+        channel_offset,
         (((engine.state.sound_channel_byte(6, channel_offset) & crate::bits::LOW_6_BITS)
             | duty_bits) as u8 as i32),
     );
@@ -11200,10 +11206,11 @@ pub fn audio_cmd_set_duty_instrument(engine: &mut Engine, r: &mut RoutineContext
     engine
         .state
         .set_sound_channel_byte(15, channel_offset, envelope_offset);
-    // Cache the instrument's sustain/sweep byte into shadow byte 7.
+    // Cache the instrument's sustain/sweep byte into shadow byte 7 of the active
+    // channel lane ($FBDF STA $9A,X — X = channel_offset, not lane 0).
     engine.state.set_sound_channel_byte(
         7,
-        0,
+        channel_offset,
         engine
             .state
             .byte(((SUSTAIN_TABLE + envelope_offset) as u16 as i32)),
@@ -12338,6 +12345,9 @@ pub fn vblank_commit(engine: &mut Engine, r: &mut RoutineContext) {
 /// restores the MMC3 bank-select latch.
 pub fn vblank_commit_tail(engine: &mut Engine, r: &mut RoutineContext) {
     ppu_commit_banks(engine, r);
+    // $D354 LDA $2002: read PPU_STATUS to reset the PPUSCROLL/PPUADDR write
+    // toggle before statusbar_split rewrites the scroll/address registers.
+    let _ = engine.device_read(crate::engine::reg::PPU_STATUS);
     statusbar_split(engine, r);
     // Tick down the foreground frame counter (the value wait_for_frame_counter
     // spins on), saturating at 0.
@@ -12871,7 +12881,7 @@ fn run_final_exit_cutscene(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.set_object_state(16, 0);
     engine.state.set_object_state(32, 0);
     engine.state.set_object_state(48, 0);
-    engine.state.obj_health = 0;
+    engine.state.obj_x_tile = 0; // $A80D STA $FA (obj_x_tile, reused as a loop counter), not obj_health
     engine.state.sprite_blink_timer = 0;
     engine.state.displaced_timer = 0;
     draw_scripted_player_sprites(engine, r);
@@ -14001,8 +14011,8 @@ pub fn fade_title_palette_in(engine: &mut Engine, r: &mut RoutineContext) {
         // Reload the full title palette, then dim all 32 entries by the current
         // step amount (scratch1) read inside dim_palette_range_by_step.
         load_title_palette_buffer(engine, r);
-        r.index = 0; // start palette index
-        r.offset = 32; // 32 entries
+        r.index = 4; // start palette index (preserve the 4 fixed entries 0-3)
+        r.offset = 28; // 28 entries (4..31)
         dim_palette_range_by_step(engine, r);
 
         enter_return_home(engine, 53, 193);
@@ -14889,8 +14899,9 @@ pub fn animate_health_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext)
     }
     // Final "done" prompt and restore the saved blink state.
     engine.state.prompt_state = 23;
-    engine.state.frame_counter = 0;
+    engine.state.frame_counter = 16; // $D18E LDA #$10: hold the done prompt 16 frames
     frame::commit_frame_work(engine, r);
+    frame::wait_for_frame_counter(engine, r); // $D192 JSR $C135 waits for the counter
     engine.state.sprite_blink_timer = saved_blink;
 }
 
@@ -14918,8 +14929,9 @@ pub fn animate_magic_refill_to_cap(engine: &mut Engine, r: &mut RoutineContext) 
     }
     // Final "done" prompt and restore the saved blink state.
     engine.state.prompt_state = 23;
-    engine.state.frame_counter = 0;
+    engine.state.frame_counter = 16; // $D18E LDA #$10: hold the done prompt 16 frames
     frame::commit_frame_work(engine, r);
+    frame::wait_for_frame_counter(engine, r); // $D192 JSR $C135 waits for the counter
     engine.state.sprite_blink_timer = saved_blink;
 }
 
