@@ -184,6 +184,53 @@ pub fn parse_replay(path: impl AsRef<Path>) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(out)
 }
 
+/// NES controller bit -> replay button name (low bit A through high bit Right).
+const BUTTON_NAMES: [(u8, &str); 8] = [
+    (1, "A"),
+    (2, "B"),
+    (4, "select"),
+    (8, "start"),
+    (16, "up"),
+    (32, "down"),
+    (64, "left"),
+    (128, "right"),
+];
+
+/// Run-length-encode a per-frame button log into the text replay format and
+/// write it to `path` (creating parent dirs as needed).
+///
+/// Consecutive identical frames collapse into a single `frame <count> <names>`
+/// line, so a held button costs one line — the file stays compact (a held
+/// input is one record, not hundreds) and human-readable, and round-trips
+/// exactly through [`parse_replay`]. A frame with no buttons is written as a
+/// bare `frame <count>`.
+pub fn write_replay(path: impl AsRef<Path>, input_log: &[u8]) -> Result<(), Box<dyn Error>> {
+    ensure_parent(&path)?;
+    let mut out = String::new();
+    let mut i = 0;
+    while i < input_log.len() {
+        let b = input_log[i];
+        // Extend the run while the button mask stays the same.
+        let mut count = 1;
+        while i + count < input_log.len() && input_log[i + count] == b {
+            count += 1;
+        }
+        let names: Vec<&str> = BUTTON_NAMES
+            .iter()
+            .filter(|(bit, _)| (b & bit) != 0)
+            .map(|(_, n)| *n)
+            .collect();
+        if names.is_empty() {
+            out.push_str(&format!("frame {count}\n"));
+        } else {
+            out.push_str(&format!("frame {count} {}\n", names.join(" ")));
+        }
+        i += count;
+    }
+    fs::write(path, out)?;
+    Ok(())
+}
+
 /// Map a replay button `name` to its NES controller bitmask.
 ///
 /// The bit order matches the NES standard controller latch order (A in the low

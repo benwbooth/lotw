@@ -20,3 +20,6 @@ assets/chr/
 
 # local ROM dir (binary + stray links)
 /rom/
+
+# Auto-saved play-session input logs (local corpus; promote curated ones by renaming)
+/inputs/play-*.replay

@@ -509,5 +509,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     eprintln!("ran {frames} frames");
+
+    // Auto-save this session's input log as a replay fixture for the differential
+    // oracle. Every play session becomes a reusable, deterministic test case with
+    // no manual export — stored run-length-encoded (held buttons collapse to one
+    // line) under inputs/ with a UNIX-timestamped, frame-count-tagged name.
+    if !input_log.is_empty() {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let path = format!("inputs/play-{secs}-{frames}f.replay");
+        match common::write_replay(&path, &input_log) {
+            Ok(()) => eprintln!("saved input log -> {path} ({} frames)", input_log.len()),
+            Err(e) => eprintln!("warning: could not save input log: {e}"),
+        }
+    }
     Ok(())
 }
