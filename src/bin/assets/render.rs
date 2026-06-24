@@ -59,6 +59,47 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
     img
 }
 
+/// Render a metatile atlas (256 metatiles laid out 16x16 = 256x256 px) for a
+/// room's tile_table/CHR/palette, for use as a paint palette in the editor.
+pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) -> Vec<u8> {
+    let tt = TT_BASE + header[0] as usize * 256;
+    let (cb0, cb1) = (header[5] & 0xFE, header[6] & 0xFE);
+    let win = [cb0, cb0 | 1, cb1, cb1 | 1];
+    let (w, h) = (256usize, 256usize);
+    let mut img = vec![0u8; w * h * 3];
+    for mt in 0..256usize {
+        let (ax, ay) = ((mt % 16) * 16, (mt / 16) * 16);
+        let quad = &prg[tt + mt * 4..tt + mt * 4 + 4];
+        for (qi, &t) in quad.iter().enumerate() {
+            let (sx, sy) = ((qi & 1) * 8, (qi / 2) * 8);
+            let base = win[t as usize / 64] as usize * 1024 + (t as usize % 64) * 16;
+            for y in 0..8 {
+                let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
+                for x in 0..8 {
+                    let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
+                    let (r, g, b) = nes_rgb(pal[v as usize]);
+                    let o = ((ay + sy + y) * w + (ax + sx + x)) * 3;
+                    img[o] = r;
+                    img[o + 1] = g;
+                    img[o + 2] = b;
+                }
+            }
+        }
+    }
+    img
+}
+
+pub fn rgb_to_png_bytes(w: usize, h: usize, rgb: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut out = Vec::new();
+    {
+        let mut enc = png::Encoder::new(&mut out, w as u32, h as u32);
+        enc.set_color(png::ColorType::Rgb);
+        enc.set_depth(png::BitDepth::Eight);
+        enc.write_header()?.write_image_data(rgb)?;
+    }
+    Ok(out)
+}
+
 pub fn write_rgb_png(path: &Path, w: usize, h: usize, rgb: &[u8]) -> Result<(), Box<dyn Error>> {
     if let Some(p) = path.parent() {
         fs::create_dir_all(p)?;

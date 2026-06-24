@@ -37,6 +37,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             let reference = args.get(4).map(String::as_str).unwrap_or("rom/lotw.nes");
             build(dir, out, reference)
         }
+        "serve" => {
+            let rom = args.get(2).map(String::as_str).unwrap_or("rom/lotw.nes");
+            let dir = args.get(3).map(String::as_str).unwrap_or("assets");
+            let port: u16 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(8088);
+            assets::serve::serve(rom, dir, port)
+        }
         "render" => {
             let rom = args.get(2).map(String::as_str).unwrap_or("rom/lotw.nes");
             let dir = args.get(3).map(String::as_str).unwrap_or("assets");
