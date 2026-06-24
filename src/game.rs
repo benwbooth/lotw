@@ -14954,9 +14954,8 @@ pub fn run_character_select_overlay(engine: &mut Engine, r: &mut RoutineContext)
         upload_equipped_item_stat_tiles(engine, r);
         engine.state.scroll_fine_x = 8; // page-aligned scroll
         refresh_scroll_register_shadows(engine, r);
-        // Recompute the player pose for the page (as the loadout does,
-        // original $D8E3) so the sprite selects the $1000 character CHR table.
-        update_player_pose_from_motion(engine, r);
+        // Pose was already computed by enter_temporary_room_page (mirrors $E6AD
+        // JSR $D8E3); the original overlay ($E030) only refreshes and draws here.
         draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
     }
@@ -15359,12 +15358,8 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
         upload_equipped_item_stat_tiles(engine, r);
         engine.state.scroll_fine_x = 8;
         refresh_scroll_register_shadows(engine, r);
-        // Recompute the player pose for the page (original $E6AD: JSR $D8E3).
-        // On the loadout page the character CHR is in the $1000 pattern table,
-        // so the pose must be an odd tile to select it; this routine yields the
-        // standing pose 9 for the menu state. Drawing with the stale gameplay
-        // pose 8 (even tile) would sample the page-background banks -> garbled.
-        update_player_pose_from_motion(engine, r);
+        // Pose was already computed by enter_temporary_room_page ($E6AD JSR
+        // $D8E3); the loadout page just redraws the player here.
         draw_player_sprites(engine, r);
         fade_room_palette_in(engine, r);
         run_carried_item_loadout_flow(engine, r);
