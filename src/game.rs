@@ -210,6 +210,14 @@ pub fn frame_counters(engine: &mut Engine, r: &mut RoutineContext) {
 /// `engine.lotw_nonlocal_handoff` short-circuits the frame when a sub-routine
 /// transfers control elsewhere (e.g. room transition).
 pub fn game_update(engine: &mut Engine, r: &mut RoutineContext) {
+    // Start each frame with a clean non-local handoff. On the 6502 the "abort
+    // the rest of the handler" effect is a per-call stack manipulation (PLA;PLA),
+    // so it never persists across frames. The port emulates it with a flag that
+    // is only reset on hard reset; without clearing it here, a handoff set during
+    // one frame (e.g. tick_player_jump_action mid-jump) lingered and made the next
+    // frame's Up/overhead-tile check ($8BBC dispatch) early-return, freezing the
+    // player in mid-jump while a direction was held.
+    engine.lotw_nonlocal_handoff = 0;
     let mut a: i32 = 0;
     let mut y: i32 = 0;
     let mut state: i32 = 0;
