@@ -1,0 +1,97 @@
+//! Visual renderer: turns the byte-level data (CHR + metatile tile_table +
+//! palette) into actual pixels, so rooms/sprites can be seen and edited. This is
+//! a *view* on top of the lossless byte layer (not part of the roundtrip).
+//!
+//! Room pipeline: each room's descriptor gives a tile_table page (PRG bank 9 at
+//! $A000, base 0x12000 + page*256) and CHR banks 0/1 (descriptor +5/+6). A room
+//! grid byte is a metatile; the tile_table maps it to a 2x2 CHR quad
+//! [TL,TR,BL,BR]; each CHR index goes through the MMC3 1KB windows formed from
+//! CHR banks 0/1 to fetch 8x8 2bpp pixels, coloured by the room palette.
+
+use std::error::Error;
+use std::fs;
+use std::io::BufWriter;
+use std::path::Path;
+
+use super::palettes::nes_rgb;
+
+const TT_BASE: usize = 0x12000; // PRG bank 9 ($A000) holds the metatile tile_table
+const ROWS: usize = 12;
+const COLS: usize = 64;
+
+/// Render one room to an RGB image (COLS*16 x ROWS*12*... = 1024x192).
+/// `header` = the 32-byte room descriptor, `grid` = ROWS x COLS metatiles,
+/// `pal` = the 32-byte room palette.
+pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal: &[u8]) -> Vec<u8> {
+    let tt = TT_BASE + header[0] as usize * 256;
+    // BG pattern table $0000 = MMC3 R0/R1 expanded to four 1 KB windows.
+    let (cb0, cb1) = (header[5] & 0xFE, header[6] & 0xFE);
+    let win = [cb0, cb0 | 1, cb1, cb1 | 1];
+    let chr_tile = |t: usize| win[t / 64] as usize * 1024 + (t % 64) * 16;
+
+    let (w, h) = (COLS * 16, ROWS * 16);
+    let mut img = vec![0u8; w * h * 3];
+    let mut put = |img: &mut [u8], px: usize, py: usize, pixel: u8, subpal: usize| {
+        let (r, g, b) = nes_rgb(pal[subpal * 4 + pixel as usize]);
+        let o = (py * w + px) * 3;
+        img[o] = r;
+        img[o + 1] = g;
+        img[o + 2] = b;
+    };
+    for (ry, row) in grid.iter().enumerate() {
+        for (cx, &mt) in row.iter().enumerate() {
+            let quad = &prg[tt + mt as usize * 4..tt + mt as usize * 4 + 4];
+            // quad sub-tiles: 0=TL 1=TR 2=BL 3=BR
+            for (qi, &t) in quad.iter().enumerate() {
+                let (sx, sy) = ((qi & 1) * 8, (qi / 2) * 8);
+                let base = chr_tile(t as usize);
+                for y in 0..8 {
+                    let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
+                    for x in 0..8 {
+                        let bit = 7 - x;
+                        let v = ((p0 >> bit) & 1) | (((p1 >> bit) & 1) << 1);
+                        put(&mut img, cx * 16 + sx + x, ry * 16 + sy + y, v, 0);
+                    }
+                }
+            }
+        }
+    }
+    img
+}
+
+pub fn write_rgb_png(path: &Path, w: usize, h: usize, rgb: &[u8]) -> Result<(), Box<dyn Error>> {
+    if let Some(p) = path.parent() {
+        fs::create_dir_all(p)?;
+    }
+    let file = BufWriter::new(fs::File::create(path)?);
+    let mut enc = png::Encoder::new(file, w as u32, h as u32);
+    enc.set_color(png::ColorType::Rgb);
+    enc.set_depth(png::BitDepth::Eight);
+    enc.write_header()?.write_image_data(rgb)?;
+    Ok(())
+}
+
+/// Render all rooms to `outdir/room-YY-X.png` using the extracted rooms manifest.
+pub fn render_all_rooms(prg: &[u8], chr: &[u8], assets_dir: &Path, outdir: &Path) -> Result<(), Box<dyn Error>> {
+    let rdir = assets_dir.join("rooms");
+    let manifest: serde_json::Value = serde_json::from_str(&fs::read_to_string(rdir.join("manifest.json"))?)?;
+    fs::create_dir_all(outdir)?;
+    let mut count = 0;
+    for room in manifest["rooms"].as_array().ok_or("bad manifest")? {
+        let (mapx, mapy) = (room["mapx"].as_u64().unwrap(), room["mapy"].as_u64().unwrap());
+        let header = unhex(room["header_hex"].as_str().unwrap())?;
+        let pal: Vec<u8> = room["palette"]["indices"].as_array().unwrap().iter().map(|v| v.as_u64().unwrap() as u8).collect();
+        let csv = fs::read_to_string(rdir.join(format!("room-{mapy:02}-{mapx}.csv")))?;
+        let grid: Vec<Vec<u8>> = csv.lines().filter(|l| !l.trim().is_empty())
+            .map(|l| l.split(',').map(|t| t.trim().parse().unwrap()).collect()).collect();
+        let img = render_room(prg, chr, &header, &grid, &pal);
+        write_rgb_png(&outdir.join(format!("room-{mapy:02}-{mapx}.png")), COLS * 16, ROWS * 16, &img)?;
+        count += 1;
+    }
+    println!("rendered {count} rooms -> {}", outdir.display());
+    Ok(())
+}
+
+fn unhex(s: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    (0..s.len() / 2).map(|i| Ok(u8::from_str_radix(&s[2 * i..2 * i + 2], 16)?)).collect()
+}

@@ -77,6 +77,10 @@ pub fn nes_rgb_hex(i: u8) -> String {
     format!("#{r:02x}{g:02x}{b:02x}")
 }
 
+pub fn nes_rgb(i: u8) -> (u8, u8, u8) {
+    NES_PALETTE[(i & 0x3F) as usize]
+}
+
 /// Standard NES (2C02) master palette, 64 entries.
 const NES_PALETTE: [(u8, u8, u8); 64] = [
     (84, 84, 84), (0, 30, 116), (8, 16, 144), (48, 0, 136), (68, 0, 100), (92, 0, 48),

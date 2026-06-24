@@ -30,3 +30,6 @@ assets/chr/
 # Extracted ROM content (regenerable via `assettool extract`; ROM is gitignored)
 /assets/*
 !/assets/README.md
+
+# Rendered asset previews (regenerable via `assettool render`)
+/render/

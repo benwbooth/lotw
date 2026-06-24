@@ -37,9 +37,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             let reference = args.get(4).map(String::as_str).unwrap_or("rom/lotw.nes");
             build(dir, out, reference)
         }
+        "render" => {
+            let rom = args.get(2).map(String::as_str).unwrap_or("rom/lotw.nes");
+            let dir = args.get(3).map(String::as_str).unwrap_or("assets");
+            let out = args.get(4).map(String::as_str).unwrap_or("render");
+            let ines = parse_ines(&fs::read(rom)?)?;
+            assets::render::render_all_rooms(&ines.prg, &ines.chr, std::path::Path::new(dir), std::path::Path::new(out))
+        }
         _ => {
             eprintln!(
-                "usage:\n  assettool extract [rom] [assets_dir]\n  assettool build [assets_dir] [out_rom] [reference_rom]"
+                "usage:\n  assettool extract [rom] [assets_dir]\n  assettool build [assets_dir] [out_rom] [reference_rom]\n  assettool render [rom] [assets_dir] [out_dir]"
             );
             std::process::exit(2);
         }
