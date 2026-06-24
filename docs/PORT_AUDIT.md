@@ -1,5 +1,21 @@
 # LotW Rust port — 6502 faithfulness audit
 
+**Status (fixed in commits 87d51f6, bbf2af5, 0b6b517, 02938de, e7dada7; pose bug
+in caee768):** all confirmed findings below have been fixed and verified against
+the disassembly, EXCEPT one deferred item:
+
+- DEFERRED — `update_room_actors` / `$F430` boss death-animation: the defeated
+  large-actor path drops the `$F430` call (explosion spawn + multi-frame death
+  progression). $F430 is a multi-frame routine (JSR $C540/$C135 frame-yields,
+  plus a per-frame progression branch) not yet ported; it needs a dedicated,
+  carefully-tested port rather than a mechanical edit. Tracked here.
+
+Each fix matches the ROM; gameplay paths are validated by disasm-faithfulness +
+unit tests (the no-input attract does not exercise most of them).
+
+---
+
+
 Automated audit: every routine in `src/game.rs` matched to its original 6502 code
 in `rom/lotw.nes` and compared. Each finding independently re-verified against the
 disassembly. Bug classes: dropped stores, dropped processor-flag (carry) results,
