@@ -1,0 +1,5979 @@
+; LotW PRG bank 12 (8KB), disassembled at $8000
+8000: .byte $0C
+8001: .byte $80
+8002: BIT $4C80
+8005: .byte $80
+8006: JMP ($8C80)
+8009: .byte $80
+800A: LDY $0480
+800D: .byte $80
+800E: CPY $CC80
+8011: .byte $80
+8012: TSX
+8013: BRK
+8014: .byte $04
+8015: .byte $80
+8016: LDY $AC82
+8019: .byte $82
+801A: TSX
+801B: BRK
+801C: .byte $04
+801D: .byte $80
+801E: CMP $84,X
+8020: CMP $84,X
+8022: .byte $FF
+8023: .byte $FF
+8024: .byte $04
+8025: .byte $80
+8026: .byte $5A
+8027: .byte $87
+8028: .byte $5A
+8029: .byte $87
+802A: .byte $80
+802B: .byte $03
+802C: .byte $04
+802D: .byte $80
+802E: AND $8B,X
+8030: AND $8B,X
+8032: TSX
+8033: BRK
+8034: .byte $04
+8035: .byte $80
+8036: SBC $8B
+8038: SBC $8B
+803A: TSX
+803B: BRK
+803C: .byte $04
+803D: .byte $80
+803E: CMP $CD8C
+8041: STY $FFFF
+8044: .byte $04
+8045: .byte $80
+8046: INX
+8047: STA $8DE8
+804A: .byte $80
+804B: .byte $03
+804C: .byte $04
+804D: .byte $80
+804E: .byte $5B
+804F: .byte $8F
+8050: CMP $8F
+8052: TSX
+8053: BRK
+8054: .byte $04
+8055: .byte $80
+8056: AND $90,X
+8058: .byte $A3
+8059: BCC $8015
+805B: BRK
+805C: .byte $04
+805D: .byte $80
+805E: .byte $12
+805F: STA ($34),Y
+8061: STA ($FF),Y
+8063: .byte $FF
+8064: .byte $04
+8065: .byte $80
+8066: ROL $5592
+8069: .byte $92
+806A: .byte $80
+806B: .byte $03
+806C: .byte $04
+806D: .byte $80
+806E: SBC $92,X
+8070: SBC $92,X
+8072: TSX
+8073: BRK
+8074: .byte $04
+8075: .byte $80
+8076: .byte $92
+8077: .byte $93
+8078: .byte $92
+8079: .byte $93
+807A: TSX
+807B: BRK
+807C: .byte $04
+807D: .byte $80
+807E: .byte $37
+807F: STY $37,X
+8081: STY $FF,X
+8083: .byte $FF
+8084: .byte $04
+8085: .byte $80
+8086: .byte $72
+8087: STY $72,X
+8089: STY $80,X
+808B: .byte $03
+808C: .byte $04
+808D: .byte $80
+808E: .byte $47
+808F: STA $00,X
+8091: BRK
+8092: TSX
+8093: BRK
+8094: .byte $04
+8095: .byte $80
+8096: .byte $87
+8097: STA $00,X
+8099: BRK
+809A: TSX
+809B: BRK
+809C: .byte $04
+809D: .byte $80
+809E: DEC $95
+80A0: BRK
+80A1: BRK
+80A2: .byte $FF
+80A3: .byte $FF
+80A4: .byte $04
+80A5: BRK
+80A6: BRK
+80A7: BRK
+80A8: BRK
+80A9: BRK
+80AA: .byte $80
+80AB: .byte $03
+80AC: .byte $04
+80AD: .byte $80
+80AE: DEX
+80AF: STA $CA,X
+80B1: STA $BA,X
+80B3: BRK
+80B4: .byte $04
+80B5: .byte $80
+80B6: STA $96
+80B8: STA $96
+80BA: TSX
+80BB: BRK
+80BC: .byte $04
+80BD: .byte $80
+80BE: .byte $5B
+80BF: .byte $97
+80C0: .byte $5B
+80C1: .byte $97
+80C2: .byte $FF
+80C3: .byte $FF
+80C4: .byte $04
+80C5: .byte $80
+80C6: ASL $1E99,X
+80C9: STA $0380,Y
+80CC: .byte $FF
+80CD: BRK
+80CE: JSR $01FF
+80D1: BRK
+80D2: ASL $3B
+80D4: ASL $38
+80D6: STX $06
+80D8: .byte $3B
+80D9: ASL $38
+80DB: STX $06
+80DD: .byte $3B
+80DE: ASL $38
+80E0: STX $06
+80E2: .byte $3B
+80E3: ASL $38
+80E5: STX $06
+80E7: SEC
+80E8: ASL $3A
+80EA: ASL $3B
+80EC: ASL $40
+80EE: ASL $3B
+80F0: ASL $38
+80F2: STX $06
+80F4: .byte $3B
+80F5: ASL $38
+80F7: STX $06
+80F9: .byte $3B
+80FA: ASL $38
+80FC: STX $06
+80FE: .byte $3B
+80FF: ASL $38
+8101: STX $06
+8103: SEC
+8104: ASL $3A
+8106: ASL $3B
+8108: ASL $40
+810A: ASL $3B
+810C: ASL $38
+810E: STX $06
+8110: .byte $3B
+8111: ASL $38
+8113: STX $06
+8115: .byte $3B
+8116: ASL $38
+8118: STX $06
+811A: .byte $3B
+811B: ASL $38
+811D: STX $06
+811F: SEC
+8120: ASL $3A
+8122: ASL $3B
+8124: ASL $40
+8126: .byte $0C
+8127: .byte $3B
+8128: ASL $3A
+812A: ASL $38
+812C: .byte $0C
+812D: .byte $3A
+812E: ASL $38
+8130: ASL $37
+8132: .byte $12
+8133: .byte $3A
+8134: .byte $12
+8135: .byte $32
+8136: .byte $0C
+8137: RTI
+8138: ASL $3B
+813A: ASL $38
+813C: STX $06
+813E: .byte $3B
+813F: ASL $38
+8141: STX $06
+8143: .byte $3B
+8144: ASL $38
+8146: STX $06
+8148: .byte $3B
+8149: ASL $38
+814B: STX $06
+814D: SEC
+814E: ASL $3A
+8150: ASL $3B
+8152: ASL $40
+8154: ASL $3B
+8156: ASL $38
+8158: STX $06
+815A: .byte $3B
+815B: ASL $38
+815D: STX $06
+815F: .byte $3B
+8160: ASL $38
+8162: STX $06
+8164: .byte $3B
+8165: ASL $38
+8167: STX $06
+8169: SEC
+816A: ASL $3A
+816C: ASL $3B
+816E: ASL $40
+8170: ASL $3B
+8172: ASL $38
+8174: STX $06
+8176: .byte $3B
+8177: ASL $38
+8179: STX $06
+817B: .byte $3B
+817C: ASL $38
+817E: STX $06
+8180: .byte $3B
+8181: ASL $38
+8183: STX $06
+8185: SEC
+8186: ASL $3A
+8188: ASL $3B
+818A: ASL $40
+818C: .byte $0C
+818D: .byte $3B
+818E: ASL $3A
+8190: ASL $38
+8192: .byte $0C
+8193: RTI
+8194: ASL $3B
+8196: ASL $3A
+8198: .byte $12
+8199: .byte $42
+819A: .byte $12
+819B: LSR $0C
+819D: .byte $47
+819E: .byte $FF
+819F: BRK
+81A0: AND #$30
+81A2: PHA
+81A3: .byte $0C
+81A4: SEC
+81A5: .byte $0C
+81A6: .byte $3A
+81A7: .byte $0C
+81A8: .byte $3C
+81A9: .byte $0C
+81AA: RTI
+81AB: .byte $0C
+81AC: .byte $3C
+81AD: .byte $0C
+81AE: SEC
+81AF: .byte $0C
+81B0: .byte $32
+81B1: .byte $0C
+81B2: .byte $42
+81B3: .byte $0C
+81B4: .byte $3C
+81B5: .byte $0C
+81B6: SEC
+81B7: .byte $0C
+81B8: LSR $0C
+81BA: .byte $42
+81BB: BIT $43
+81BD: BIT $40
+81BF: BMI $81F9
+81C1: CLC
+81C2: PHA
+81C3: CLC
+81C4: LSR $18
+81C6: .byte $43
+81C7: .byte $54
+81C8: .byte $42
+81C9: ASL $3A
+81CB: ASL $3B
+81CD: BMI $820F
+81CF: CLC
+81D0: .byte $3B
+81D1: CLC
+81D2: .byte $3A
+81D3: ASL $3B
+81D5: ASL $3A
+81D7: .byte $54
+81D8: SEC
+81D9: STY $00FF
+81DC: JSR $2206
+81DF: ASL $22
+81E1: ASL $22
+81E3: ASL $22
+81E5: STY $2212
+81E8: .byte $12
+81E9: ROL $0C
+81EB: .byte $27
+81EC: .byte $FF
+81ED: BRK
+81EE: ROL A
+81EF: BMI $8233
+81F1: .byte $0C
+81F2: SEC
+81F3: .byte $0C
+81F4: .byte $3A
+81F5: .byte $0C
+81F6: .byte $3B
+81F7: .byte $0C
+81F8: RTI
+81F9: .byte $54
+81FA: .byte $42
+81FB: ASL $40
+81FD: ASL $3B
+81FF: BMI $8241
+8201: .byte $0C
+8202: SEC
+8203: .byte $0C
+8204: .byte $3A
+8205: .byte $0C
+8206: .byte $3B
+8207: .byte $0C
+8208: RTI
+8209: BIT $3B
+820B: ASL $40
+820D: ASL $3B
+820F: BPL $824B
+8211: BPL $824B
+8213: BPL $824B
+8215: BMI $8259
+8217: .byte $0C
+8218: SEC
+8219: .byte $0C
+821A: .byte $3A
+821B: .byte $0C
+821C: .byte $3B
+821D: .byte $0C
+821E: RTI
+821F: .byte $54
+8220: .byte $42
+8221: ASL $40
+8223: ASL $3B
+8225: BMI $8267
+8227: .byte $0C
+8228: SEC
+8229: .byte $0C
+822A: .byte $3A
+822B: .byte $0C
+822C: .byte $3B
+822D: .byte $0C
+822E: RTI
+822F: BIT $3B
+8231: ASL $40
+8233: ASL $3B
+8235: BPL $8271
+8237: BPL $8274
+8239: BPL $827B
+823B: .byte $FF
+823C: BRK
+823D: PLP
+823E: .byte $3C
+823F: .byte $42
+8240: .byte $0C
+8241: .byte $3B
+8242: .byte $0C
+8243: .byte $42
+8244: .byte $3C
+8245: RTI
+8246: CLC
+8247: .byte $3A
+8248: CLC
+8249: RTI
+824A: .byte $3C
+824B: .byte $42
+824C: .byte $0C
+824D: .byte $3B
+824E: .byte $0C
+824F: .byte $42
+8250: .byte $3C
+8251: RTI
+8252: BPL $828E
+8254: BPL $8291
+8256: BPL $8298
+8258: ASL $3B
+825A: ASL $3A
+825C: .byte $54
+825D: SEC
+825E: STY $00FF
+8261: AND #$FF
+8263: ORA ($FD,X)
+8265: .byte $0C
+8266: .byte $22
+8267: .byte $0C
+8268: PLP
+8269: .byte $0C
+826A: ROL A
+826B: .byte $0C
+826C: .byte $2B
+826D: .byte $0C
+826E: BMI $827C
+8270: .byte $32
+8271: .byte $0C
+8272: ROL $24,X
+8274: SEC
+8275: .byte $3C
+8276: PLP
+8277: .byte $FF
+8278: ORA ($00,X)
+827A: .byte $FF
+827B: BRK
+827C: JSR $3818
+827F: CLC
+8280: .byte $37
+8281: CLC
+8282: .byte $34
+8283: CLC
+8284: .byte $37
+8285: BMI $82BF
+8287: .byte $0C
+8288: .byte $2B
+8289: .byte $0C
+828A: .byte $33
+828B: .byte $0C
+828C: ROL $0C,X
+828E: SEC
+828F: BMI $82CB
+8291: BPL $82C9
+8293: BPL $82CD
+8295: BPL $82D1
+8297: RTS
+8298: .byte $3C
+8299: .byte $0C
+829A: .byte $12
+829B: STX $0C
+829D: .byte $14
+829E: STX $06
+82A0: ASL $86,X
+82A2: .byte $0C
+82A3: CLC
+82A4: STX $0C
+82A6: .byte $1A
+82A7: STX $06
+82A9: JSR $0086
+82AC: .byte $FF
+82AD: .byte $03
+82AE: ORA $FF
+82B0: BRK
+82B1: JSR $01FF
+82B4: .byte $FC
+82B5: STY $3B06
+82B8: ASL $38
+82BA: STX $06
+82BC: .byte $3B
+82BD: ASL $38
+82BF: STX $06
+82C1: .byte $3B
+82C2: ASL $38
+82C4: STX $06
+82C6: .byte $3B
+82C7: ASL $38
+82C9: STX $06
+82CB: SEC
+82CC: ASL $3A
+82CE: ASL $3B
+82D0: ASL $40
+82D2: ASL $3B
+82D4: ASL $38
+82D6: STX $06
+82D8: .byte $3B
+82D9: ASL $38
+82DB: STX $06
+82DD: .byte $3B
+82DE: ASL $38
+82E0: STX $06
+82E2: .byte $3B
+82E3: ASL $38
+82E5: STX $06
+82E7: SEC
+82E8: ASL $3A
+82EA: ASL $3B
+82EC: ASL $40
+82EE: ASL $3B
+82F0: ASL $38
+82F2: STX $06
+82F4: .byte $3B
+82F5: ASL $38
+82F7: STX $06
+82F9: .byte $3B
+82FA: ASL $38
+82FC: STX $06
+82FE: .byte $3B
+82FF: ASL $38
+8301: STX $06
+8303: SEC
+8304: ASL $3A
+8306: ASL $3B
+8308: .byte $0C
+8309: .byte $3B
+830A: ASL $3A
+830C: ASL $38
+830E: .byte $0C
+830F: .byte $3A
+8310: ASL $38
+8312: ASL $37
+8314: .byte $12
+8315: .byte $3A
+8316: .byte $12
+8317: .byte $32
+8318: .byte $0C
+8319: RTI
+831A: STX $06
+831C: .byte $3B
+831D: ASL $38
+831F: STX $06
+8321: .byte $3B
+8322: ASL $38
+8324: STX $06
+8326: .byte $3B
+8327: ASL $38
+8329: STX $06
+832B: .byte $3B
+832C: ASL $38
+832E: STX $06
+8330: SEC
+8331: ASL $3A
+8333: ASL $3B
+8335: ASL $40
+8337: ASL $3B
+8339: ASL $38
+833B: STX $06
+833D: .byte $3B
+833E: ASL $38
+8340: STX $06
+8342: .byte $3B
+8343: ASL $38
+8345: STX $06
+8347: .byte $3B
+8348: ASL $38
+834A: STX $06
+834C: SEC
+834D: ASL $3A
+834F: ASL $3B
+8351: ASL $40
+8353: ASL $3B
+8355: ASL $38
+8357: STX $06
+8359: .byte $3B
+835A: ASL $38
+835C: STX $06
+835E: .byte $3B
+835F: ASL $38
+8361: STX $06
+8363: .byte $3B
+8364: ASL $38
+8366: STX $06
+8368: SEC
+8369: ASL $3A
+836B: ASL $3B
+836D: .byte $0C
+836E: .byte $3B
+836F: ASL $3A
+8371: ASL $38
+8373: .byte $0C
+8374: RTI
+8375: ASL $3B
+8377: ASL $3A
+8379: .byte $12
+837A: .byte $42
+837B: .byte $12
+837C: LSR $0C
+837E: .byte $47
+837F: .byte $FF
+8380: BRK
+8381: AND #$8C
+8383: BMI $83CD
+8385: .byte $0C
+8386: SEC
+8387: .byte $0C
+8388: .byte $3A
+8389: .byte $0C
+838A: .byte $3C
+838B: .byte $0C
+838C: RTI
+838D: .byte $0C
+838E: .byte $3C
+838F: .byte $0C
+8390: SEC
+8391: .byte $0C
+8392: .byte $32
+8393: .byte $0C
+8394: .byte $42
+8395: .byte $0C
+8396: .byte $3C
+8397: .byte $0C
+8398: SEC
+8399: .byte $0C
+839A: LSR $0C
+839C: .byte $42
+839D: BIT $43
+839F: BIT $40
+83A1: BMI $83DB
+83A3: CLC
+83A4: PHA
+83A5: CLC
+83A6: LSR $18
+83A8: .byte $43
+83A9: .byte $54
+83AA: .byte $42
+83AB: ASL $3A
+83AD: ASL $3B
+83AF: BMI $83F1
+83B1: CLC
+83B2: .byte $3B
+83B3: CLC
+83B4: .byte $3A
+83B5: ASL $3B
+83B7: ASL $3A
+83B9: LSR $FF38
+83BC: BRK
+83BD: JSR $1A06
+83C0: ASL $1A
+83C2: ASL $1A
+83C4: ASL $1A
+83C6: STY $1A12
+83C9: .byte $12
+83CA: .byte $22
+83CB: .byte $0C
+83CC: .byte $22
+83CD: .byte $FF
+83CE: BRK
+83CF: ROL A
+83D0: .byte $FF
+83D1: ORA ($FD,X)
+83D3: STY $4230
+83D6: .byte $0C
+83D7: SEC
+83D8: .byte $0C
+83D9: .byte $3A
+83DA: .byte $0C
+83DB: .byte $3B
+83DC: .byte $0C
+83DD: RTI
+83DE: .byte $54
+83DF: .byte $42
+83E0: ASL $40
+83E2: ASL $3B
+83E4: BMI $8426
+83E6: .byte $0C
+83E7: SEC
+83E8: .byte $0C
+83E9: .byte $3A
+83EA: .byte $0C
+83EB: .byte $3B
+83EC: .byte $0C
+83ED: RTI
+83EE: BIT $3B
+83F0: ASL $40
+83F2: ASL $3B
+83F4: BPL $8430
+83F6: BPL $8430
+83F8: BPL $8430
+83FA: BMI $843E
+83FC: .byte $0C
+83FD: SEC
+83FE: .byte $0C
+83FF: .byte $3A
+8400: .byte $0C
+8401: .byte $3B
+8402: .byte $0C
+8403: RTI
+8404: .byte $54
+8405: .byte $42
+8406: ASL $40
+8408: ASL $3B
+840A: BMI $844C
+840C: .byte $0C
+840D: SEC
+840E: .byte $0C
+840F: .byte $3A
+8410: .byte $0C
+8411: .byte $3B
+8412: .byte $0C
+8413: RTI
+8414: BIT $3B
+8416: ASL $40
+8418: ASL $3B
+841A: BPL $8456
+841C: BPL $8459
+841E: BPL $8460
+8420: .byte $FF
+8421: ORA ($00,X)
+8423: .byte $FF
+8424: .byte $03
+8425: BRK
+8426: .byte $FF
+8427: BRK
+8428: PLP
+8429: STY $3824
+842C: .byte $0C
+842D: SEC
+842E: .byte $0C
+842F: SEC
+8430: .byte $3C
+8431: .byte $3A
+8432: CLC
+8433: ROL $18,X
+8435: .byte $3A
+8436: TYA
+8437: BIT $38
+8439: .byte $0C
+843A: SEC
+843B: .byte $0C
+843C: SEC
+843D: .byte $3C
+843E: .byte $3A
+843F: BPL $8477
+8441: BPL $847B
+8443: BPL $847F
+8445: .byte $FF
+8446: .byte $03
+8447: ORA $30
+8449: SEC
+844A: .byte $FF
+844B: ORA ($FC,X)
+844D: ASL $3B
+844F: ASL $3A
+8451: ASL $38
+8453: ASL $32
+8455: ASL $3B
+8457: ASL $3A
+8459: ASL $38
+845B: ASL $32
+845D: ASL $3B
+845F: ASL $3A
+8461: ASL $38
+8463: ASL $32
+8465: ASL $3B
+8467: ASL $3A
+8469: ASL $38
+846B: ASL $32
+846D: ASL $3B
+846F: ASL $3A
+8471: ASL $38
+8473: ASL $32
+8475: ASL $3B
+8477: ASL $3A
+8479: ASL $38
+847B: ASL $32
+847D: ASL $3B
+847F: ASL $3A
+8481: ASL $38
+8483: ASL $32
+8485: ASL $3B
+8487: ASL $3A
+8489: ASL $38
+848B: ASL $32
+848D: ASL $3B
+848F: ASL $3A
+8491: ASL $38
+8493: ASL $32
+8495: ASL $3B
+8497: ASL $3A
+8499: ASL $38
+849B: ASL $32
+849D: .byte $FF
+849E: .byte $03
+849F: BRK
+84A0: .byte $FF
+84A1: ORA ($00,X)
+84A3: CLC
+84A4: .byte $32
+84A5: CLC
+84A6: .byte $32
+84A7: CLC
+84A8: .byte $32
+84A9: CLC
+84AA: .byte $32
+84AB: BMI $84E0
+84AD: .byte $FF
+84AE: .byte $03
+84AF: ORA $0C
+84B1: PLP
+84B2: .byte $0C
+84B3: .byte $2B
+84B4: .byte $0C
+84B5: .byte $2B
+84B6: .byte $0C
+84B7: .byte $2B
+84B8: BMI $84EA
+84BA: BPL $84EC
+84BC: BPL $84EE
+84BE: BPL $84F0
+84C0: RTS
+84C1: .byte $32
+84C2: .byte $0C
+84C3: CLC
+84C4: STX $0C
+84C6: .byte $1A
+84C7: STX $06
+84C9: .byte $1B
+84CA: STX $0C
+84CC: JSR $0C86
+84CF: .byte $22
+84D0: STX $06
+84D2: ROL $86
+84D4: BRK
+84D5: .byte $0C
+84D6: CLC
+84D7: STX $0C
+84D9: CLC
+84DA: STX $12
+84DC: CLC
+84DD: STX $06
+84DF: .byte $22
+84E0: STX $06
+84E2: PLP
+84E3: STX $06
+84E5: .byte $22
+84E6: STX $0C
+84E8: ASL $86,X
+84EA: .byte $0C
+84EB: ASL $86,X
+84ED: .byte $12
+84EE: ASL $86,X
+84F0: ASL $20
+84F2: STX $06
+84F4: ROL $86
+84F6: ASL $20
+84F8: STX $0C
+84FA: .byte $13
+84FB: STX $0C
+84FD: .byte $13
+84FE: STX $12
+8500: .byte $13
+8501: STX $06
+8503: .byte $1B
+8504: STX $06
+8506: .byte $23
+8507: STX $06
+8509: .byte $1B
+850A: STX $0C
+850C: .byte $12
+850D: STX $0C
+850F: .byte $12
+8510: STX $12
+8512: .byte $12
+8513: STX $06
+8515: .byte $1A
+8516: STX $06
+8518: .byte $22
+8519: STX $06
+851B: .byte $1A
+851C: STX $0C
+851E: CLC
+851F: STX $0C
+8521: CLC
+8522: STX $12
+8524: CLC
+8525: STX $06
+8527: .byte $22
+8528: STX $06
+852A: PLP
+852B: STX $06
+852D: .byte $22
+852E: STX $0C
+8530: ASL $86,X
+8532: .byte $0C
+8533: ASL $86,X
+8535: .byte $12
+8536: ASL $86,X
+8538: ASL $20
+853A: STX $06
+853C: ROL $86
+853E: ASL $20
+8540: STX $0C
+8542: .byte $13
+8543: STX $0C
+8545: .byte $13
+8546: STX $12
+8548: .byte $13
+8549: STX $06
+854B: .byte $1B
+854C: STX $06
+854E: .byte $23
+854F: STX $06
+8551: .byte $1B
+8552: STX $0C
+8554: .byte $12
+8555: STX $0C
+8557: .byte $12
+8558: STX $12
+855A: .byte $12
+855B: STX $06
+855D: .byte $1A
+855E: STX $06
+8560: .byte $22
+8561: STX $06
+8563: .byte $1A
+8564: STX $0C
+8566: CLC
+8567: STX $0C
+8569: CLC
+856A: STX $12
+856C: CLC
+856D: STX $06
+856F: .byte $22
+8570: STX $06
+8572: PLP
+8573: STX $06
+8575: .byte $22
+8576: STX $0C
+8578: CLC
+8579: STX $0C
+857B: CLC
+857C: STX $12
+857E: CLC
+857F: STX $06
+8581: .byte $1C
+8582: STX $06
+8584: PLP
+8585: STX $06
+8587: .byte $1C
+8588: STX $0C
+858A: JSR $0C86
+858D: JSR $1286
+8590: JSR $0686
+8593: PLP
+8594: STX $06
+8596: BMI $851E
+8598: ASL $28
+859A: STX $0C
+859C: JSR $0C86
+859F: JSR $1286
+85A2: JSR $0686
+85A5: PLP
+85A6: STX $06
+85A8: BMI $8530
+85AA: ASL $28
+85AC: STX $0C
+85AE: .byte $22
+85AF: STX $0C
+85B1: .byte $22
+85B2: STX $12
+85B4: .byte $22
+85B5: STX $06
+85B7: ROL A
+85B8: STX $06
+85BA: .byte $32
+85BB: STX $06
+85BD: ROL A
+85BE: STX $0C
+85C0: .byte $22
+85C1: STX $0C
+85C3: .byte $22
+85C4: STX $12
+85C6: .byte $22
+85C7: STX $06
+85C9: ROL A
+85CA: STX $06
+85CC: .byte $32
+85CD: STX $06
+85CF: ROL A
+85D0: STX $0C
+85D2: CLC
+85D3: STX $0C
+85D5: CLC
+85D6: STX $12
+85D8: CLC
+85D9: STX $06
+85DB: .byte $12
+85DC: STX $06
+85DE: ASL $86,X
+85E0: ASL $17
+85E2: STX $0C
+85E4: CLC
+85E5: .byte $03
+85E6: .byte $22
+85E7: .byte $83
+85E8: .byte $03
+85E9: .byte $22
+85EA: .byte $83
+85EB: .byte $03
+85EC: .byte $22
+85ED: .byte $83
+85EE: .byte $03
+85EF: .byte $22
+85F0: .byte $83
+85F1: STY $220C
+85F4: STX $0C
+85F6: ROL $86
+85F8: .byte $0C
+85F9: .byte $27
+85FA: .byte $FF
+85FB: ORA ($00,X)
+85FD: .byte $0C
+85FE: CLC
+85FF: STX $0C
+8601: CLC
+8602: STX $12
+8604: CLC
+8605: STX $06
+8607: .byte $22
+8608: STX $06
+860A: PLP
+860B: STX $06
+860D: .byte $22
+860E: STX $0C
+8610: ASL $86,X
+8612: .byte $0C
+8613: ASL $86,X
+8615: .byte $12
+8616: ASL $86,X
+8618: ASL $20
+861A: STX $06
+861C: ROL $86
+861E: ASL $20
+8620: STX $0C
+8622: .byte $14
+8623: STX $0C
+8625: .byte $14
+8626: STX $12
+8628: .byte $14
+8629: STX $06
+862B: JSR $0686
+862E: BIT $86
+8630: ASL $20
+8632: STX $0C
+8634: .byte $13
+8635: STX $0C
+8637: .byte $23
+8638: STX $06
+863A: .byte $13
+863B: STX $0C
+863D: ASL $86,X
+863F: .byte $0C
+8640: ROL $86
+8642: ASL $16
+8644: STX $0C
+8646: CLC
+8647: STX $0C
+8649: CLC
+864A: STX $12
+864C: CLC
+864D: STX $06
+864F: .byte $22
+8650: STX $06
+8652: PLP
+8653: STX $06
+8655: .byte $22
+8656: STX $0C
+8658: ASL $86,X
+865A: .byte $0C
+865B: ASL $86,X
+865D: .byte $12
+865E: ASL $86,X
+8660: ASL $20
+8662: STX $06
+8664: ROL $86
+8666: ASL $20
+8668: STX $0C
+866A: .byte $14
+866B: STX $0C
+866D: .byte $14
+866E: STX $12
+8670: .byte $14
+8671: STX $06
+8673: JSR $0686
+8676: BIT $86
+8678: ASL $20
+867A: STX $0C
+867C: .byte $13
+867D: STX $0C
+867F: .byte $23
+8680: STX $06
+8682: .byte $13
+8683: STX $0C
+8685: ASL $86,X
+8687: .byte $0C
+8688: ROL $86
+868A: ASL $16
+868C: STX $0C
+868E: .byte $13
+868F: STX $0C
+8691: .byte $13
+8692: STX $12
+8694: .byte $13
+8695: STX $06
+8697: .byte $1B
+8698: STX $06
+869A: .byte $23
+869B: STX $06
+869D: .byte $1B
+869E: STX $0C
+86A0: ASL $86,X
+86A2: .byte $0C
+86A3: ASL $86,X
+86A5: .byte $12
+86A6: ASL $86,X
+86A8: ASL $20
+86AA: STX $06
+86AC: ROL $86
+86AE: ASL $20
+86B0: STX $0C
+86B2: .byte $13
+86B3: STX $0C
+86B5: .byte $13
+86B6: STX $12
+86B8: .byte $13
+86B9: STX $06
+86BB: .byte $1B
+86BC: STX $06
+86BE: .byte $23
+86BF: STX $06
+86C1: .byte $1B
+86C2: STX $0C
+86C4: ASL $86,X
+86C6: .byte $0C
+86C7: ASL $86,X
+86C9: .byte $12
+86CA: ASL $86,X
+86CC: ASL $20
+86CE: STX $06
+86D0: ROL $86
+86D2: ASL $20
+86D4: STX $0C
+86D6: CLC
+86D7: STY $180C
+86DA: STY $180C
+86DD: STY $180C
+86E0: STY $160C
+86E3: STY $160C
+86E6: STY $160C
+86E9: STY $160C
+86EC: STY $130C
+86EF: STY $130C
+86F2: STY $130C
+86F5: STY $130C
+86F8: STY $1206
+86FB: STX $06
+86FD: .byte $12
+86FE: STX $06
+8700: .byte $12
+8701: STX $06
+8703: .byte $12
+8704: STX $06
+8706: .byte $12
+8707: STX $06
+8709: .byte $12
+870A: STX $06
+870C: .byte $12
+870D: STX $06
+870F: .byte $12
+8710: STX $0C
+8712: .byte $13
+8713: STX $0C
+8715: .byte $13
+8716: STX $12
+8718: .byte $13
+8719: STX $06
+871B: .byte $1B
+871C: STX $06
+871E: .byte $23
+871F: STX $06
+8721: .byte $1B
+8722: STX $0C
+8724: ASL $86,X
+8726: .byte $0C
+8727: ASL $86,X
+8729: .byte $12
+872A: ASL $86,X
+872C: ASL $20
+872E: STX $06
+8730: ROL $86
+8732: ASL $20
+8734: STX $0C
+8736: CLC
+8737: STX $0C
+8739: CLC
+873A: STX $12
+873C: CLC
+873D: STX $06
+873F: .byte $22
+8740: STX $06
+8742: PLP
+8743: STX $06
+8745: .byte $22
+8746: STX $0C
+8748: CLC
+8749: STX $0C
+874B: .byte $1A
+874C: STX $06
+874E: .byte $1B
+874F: STX $0C
+8751: JSR $0C86
+8754: .byte $22
+8755: STX $06
+8757: ROL $86
+8759: BRK
+875A: .byte $FF
+875B: ORA ($00,X)
+875D: .byte $FF
+875E: BRK
+875F: .byte $22
+8760: ASL $86
+8762: ASL $06
+8764: .byte $FF
+8765: BRK
+8766: .byte $23
+8767: .byte $0C
+8768: .byte $FF
+8769: BRK
+876A: .byte $22
+876B: ASL $06
+876D: ASL $86
+876F: ASL $06
+8771: .byte $FF
+8772: BRK
+8773: .byte $23
+8774: .byte $0C
+8775: .byte $FF
+8776: BRK
+8777: .byte $22
+8778: ASL $06
+877A: ASL $86
+877C: ASL $06
+877E: .byte $FF
+877F: BRK
+8780: .byte $23
+8781: .byte $0C
+8782: .byte $FF
+8783: BRK
+8784: .byte $22
+8785: ASL $06
+8787: ASL $86
+8789: ASL $06
+878B: .byte $FF
+878C: BRK
+878D: .byte $23
+878E: .byte $0C
+878F: .byte $FF
+8790: BRK
+8791: .byte $22
+8792: ASL $06
+8794: .byte $FF
+8795: BRK
+8796: .byte $22
+8797: ASL $86
+8799: ASL $06
+879B: .byte $FF
+879C: BRK
+879D: .byte $23
+879E: .byte $0C
+879F: .byte $FF
+87A0: BRK
+87A1: .byte $22
+87A2: ASL $06
+87A4: ASL $86
+87A6: ASL $06
+87A8: .byte $FF
+87A9: BRK
+87AA: .byte $23
+87AB: .byte $0C
+87AC: .byte $FF
+87AD: BRK
+87AE: .byte $22
+87AF: ASL $06
+87B1: ASL $86
+87B3: ASL $06
+87B5: .byte $FF
+87B6: BRK
+87B7: .byte $23
+87B8: .byte $0C
+87B9: .byte $FF
+87BA: BRK
+87BB: .byte $22
+87BC: ASL $06
+87BE: ASL $FF
+87C0: BRK
+87C1: .byte $23
+87C2: .byte $0C
+87C3: ASL $FF
+87C5: BRK
+87C6: .byte $22
+87C7: ASL $FF
+87C9: BRK
+87CA: .byte $23
+87CB: .byte $0C
+87CC: ASL $FF
+87CE: BRK
+87CF: .byte $22
+87D0: ASL $86
+87D2: ASL $06
+87D4: .byte $FF
+87D5: BRK
+87D6: .byte $23
+87D7: .byte $0C
+87D8: .byte $FF
+87D9: BRK
+87DA: .byte $22
+87DB: ASL $06
+87DD: ASL $86
+87DF: ASL $06
+87E1: .byte $FF
+87E2: BRK
+87E3: .byte $23
+87E4: .byte $0C
+87E5: .byte $FF
+87E6: BRK
+87E7: .byte $22
+87E8: ASL $06
+87EA: ASL $86
+87EC: ASL $06
+87EE: .byte $FF
+87EF: BRK
+87F0: .byte $23
+87F1: .byte $0C
+87F2: .byte $FF
+87F3: BRK
+87F4: .byte $22
+87F5: ASL $06
+87F7: ASL $86
+87F9: ASL $06
+87FB: .byte $FF
+87FC: BRK
+87FD: .byte $23
+87FE: .byte $0C
+87FF: .byte $FF
+8800: BRK
+8801: .byte $22
+8802: ASL $06
+8804: .byte $FF
+8805: BRK
+8806: .byte $22
+8807: ASL $86
+8809: ASL $06
+880B: .byte $FF
+880C: BRK
+880D: .byte $23
+880E: .byte $0C
+880F: .byte $FF
+8810: BRK
+8811: .byte $22
+8812: ASL $06
+8814: ASL $86
+8816: ASL $06
+8818: .byte $FF
+8819: BRK
+881A: .byte $23
+881B: .byte $0C
+881C: .byte $FF
+881D: BRK
+881E: .byte $22
+881F: ASL $06
+8821: ASL $86
+8823: ASL $06
+8825: .byte $FF
+8826: BRK
+8827: .byte $23
+8828: .byte $0C
+8829: .byte $FF
+882A: BRK
+882B: .byte $22
+882C: ASL $06
+882E: ASL $FF
+8830: BRK
+8831: .byte $23
+8832: .byte $0C
+8833: ASL $FF
+8835: BRK
+8836: .byte $22
+8837: ASL $FF
+8839: BRK
+883A: .byte $23
+883B: ASL $06
+883D: ASL $FF
+883F: BRK
+8840: .byte $22
+8841: ASL $86
+8843: ASL $06
+8845: .byte $FF
+8846: BRK
+8847: .byte $23
+8848: .byte $0C
+8849: .byte $FF
+884A: BRK
+884B: .byte $22
+884C: ASL $06
+884E: ASL $86
+8850: ASL $06
+8852: .byte $FF
+8853: BRK
+8854: .byte $23
+8855: .byte $0C
+8856: .byte $FF
+8857: BRK
+8858: .byte $22
+8859: ASL $06
+885B: ASL $86
+885D: ASL $06
+885F: .byte $FF
+8860: BRK
+8861: .byte $23
+8862: .byte $0C
+8863: .byte $FF
+8864: BRK
+8865: .byte $22
+8866: ASL $06
+8868: ASL $86
+886A: ASL $06
+886C: .byte $FF
+886D: BRK
+886E: .byte $23
+886F: .byte $0C
+8870: .byte $FF
+8871: BRK
+8872: .byte $22
+8873: ASL $06
+8875: .byte $FF
+8876: BRK
+8877: .byte $22
+8878: ASL $86
+887A: ASL $06
+887C: .byte $FF
+887D: BRK
+887E: .byte $23
+887F: .byte $0C
+8880: .byte $FF
+8881: BRK
+8882: .byte $22
+8883: ASL $06
+8885: ASL $86
+8887: ASL $06
+8889: .byte $FF
+888A: BRK
+888B: .byte $23
+888C: .byte $0C
+888D: .byte $FF
+888E: BRK
+888F: .byte $22
+8890: ASL $06
+8892: ASL $86
+8894: ASL $06
+8896: .byte $FF
+8897: BRK
+8898: .byte $23
+8899: .byte $0C
+889A: .byte $FF
+889B: BRK
+889C: .byte $22
+889D: ASL $06
+889F: ASL $86
+88A1: ASL $06
+88A3: .byte $FF
+88A4: BRK
+88A5: .byte $23
+88A6: .byte $0C
+88A7: .byte $FF
+88A8: BRK
+88A9: .byte $22
+88AA: ASL $06
+88AC: .byte $FF
+88AD: BRK
+88AE: .byte $22
+88AF: ASL $86
+88B1: ASL $06
+88B3: .byte $FF
+88B4: BRK
+88B5: .byte $23
+88B6: .byte $0C
+88B7: .byte $FF
+88B8: BRK
+88B9: .byte $22
+88BA: ASL $06
+88BC: ASL $86
+88BE: ASL $06
+88C0: .byte $FF
+88C1: BRK
+88C2: .byte $23
+88C3: .byte $0C
+88C4: .byte $FF
+88C5: BRK
+88C6: .byte $22
+88C7: ASL $06
+88C9: ASL $86
+88CB: ASL $06
+88CD: .byte $FF
+88CE: BRK
+88CF: .byte $23
+88D0: .byte $0C
+88D1: .byte $FF
+88D2: BRK
+88D3: .byte $22
+88D4: ASL $06
+88D6: ASL $86
+88D8: ASL $06
+88DA: .byte $FF
+88DB: BRK
+88DC: .byte $23
+88DD: .byte $0C
+88DE: .byte $FF
+88DF: BRK
+88E0: .byte $22
+88E1: ASL $06
+88E3: .byte $FF
+88E4: BRK
+88E5: .byte $22
+88E6: ASL $86
+88E8: ASL $06
+88EA: .byte $FF
+88EB: BRK
+88EC: .byte $23
+88ED: .byte $0C
+88EE: .byte $FF
+88EF: BRK
+88F0: .byte $22
+88F1: ASL $06
+88F3: ASL $86
+88F5: ASL $06
+88F7: .byte $FF
+88F8: BRK
+88F9: .byte $23
+88FA: .byte $0C
+88FB: .byte $FF
+88FC: BRK
+88FD: .byte $22
+88FE: ASL $06
+8900: .byte $FF
+8901: BRK
+8902: .byte $23
+8903: .byte $0C
+8904: .byte $FF
+8905: BRK
+8906: .byte $22
+8907: ASL $06
+8909: .byte $FF
+890A: BRK
+890B: .byte $23
+890C: ASL $FF
+890E: BRK
+890F: .byte $22
+8910: ASL $06
+8912: ASL $FF
+8914: BRK
+8915: .byte $23
+8916: ASL $FF
+8918: BRK
+8919: .byte $22
+891A: ASL $06
+891C: .byte $FF
+891D: BRK
+891E: .byte $23
+891F: ASL $FF
+8921: BRK
+8922: .byte $22
+8923: ASL $06
+8925: .byte $FF
+8926: BRK
+8927: .byte $23
+8928: ASL $FF
+892A: BRK
+892B: .byte $22
+892C: ASL $FF
+892E: BRK
+892F: .byte $22
+8930: ASL $86
+8932: ASL $06
+8934: .byte $FF
+8935: BRK
+8936: .byte $23
+8937: .byte $0C
+8938: .byte $FF
+8939: BRK
+893A: .byte $22
+893B: ASL $06
+893D: ASL $86
+893F: ASL $06
+8941: .byte $FF
+8942: BRK
+8943: .byte $23
+8944: .byte $0C
+8945: .byte $FF
+8946: BRK
+8947: .byte $22
+8948: ASL $06
+894A: ASL $86
+894C: ASL $06
+894E: .byte $FF
+894F: BRK
+8950: .byte $23
+8951: .byte $0C
+8952: .byte $FF
+8953: BRK
+8954: .byte $22
+8955: ASL $06
+8957: ASL $86
+8959: ASL $06
+895B: .byte $FF
+895C: BRK
+895D: .byte $23
+895E: .byte $0C
+895F: .byte $FF
+8960: BRK
+8961: .byte $22
+8962: ASL $06
+8964: .byte $FF
+8965: BRK
+8966: .byte $22
+8967: ASL $86
+8969: ASL $06
+896B: .byte $FF
+896C: BRK
+896D: .byte $23
+896E: .byte $0C
+896F: .byte $FF
+8970: BRK
+8971: .byte $22
+8972: ASL $06
+8974: ASL $86
+8976: ASL $06
+8978: .byte $FF
+8979: BRK
+897A: .byte $23
+897B: .byte $0C
+897C: .byte $FF
+897D: BRK
+897E: .byte $22
+897F: ASL $06
+8981: ASL $86
+8983: ASL $06
+8985: .byte $FF
+8986: BRK
+8987: .byte $23
+8988: .byte $0C
+8989: .byte $FF
+898A: BRK
+898B: .byte $22
+898C: ASL $06
+898E: ASL $86
+8990: ASL $06
+8992: .byte $FF
+8993: BRK
+8994: .byte $23
+8995: .byte $0C
+8996: .byte $FF
+8997: BRK
+8998: .byte $22
+8999: ASL $06
+899B: .byte $FF
+899C: BRK
+899D: .byte $22
+899E: ASL $86
+89A0: ASL $06
+89A2: .byte $FF
+89A3: BRK
+89A4: .byte $23
+89A5: .byte $0C
+89A6: .byte $FF
+89A7: BRK
+89A8: .byte $22
+89A9: ASL $06
+89AB: ASL $86
+89AD: ASL $06
+89AF: .byte $FF
+89B0: BRK
+89B1: .byte $23
+89B2: .byte $0C
+89B3: .byte $FF
+89B4: BRK
+89B5: .byte $22
+89B6: ASL $06
+89B8: ASL $86
+89BA: ASL $06
+89BC: .byte $FF
+89BD: BRK
+89BE: .byte $23
+89BF: .byte $0C
+89C0: .byte $FF
+89C1: BRK
+89C2: .byte $22
+89C3: ASL $06
+89C5: ASL $86
+89C7: ASL $06
+89C9: .byte $FF
+89CA: BRK
+89CB: .byte $23
+89CC: .byte $0C
+89CD: .byte $FF
+89CE: BRK
+89CF: .byte $22
+89D0: ASL $06
+89D2: .byte $FF
+89D3: BRK
+89D4: .byte $22
+89D5: ASL $86
+89D7: ASL $06
+89D9: .byte $FF
+89DA: BRK
+89DB: .byte $23
+89DC: .byte $0C
+89DD: .byte $FF
+89DE: BRK
+89DF: .byte $22
+89E0: ASL $06
+89E2: ASL $86
+89E4: ASL $06
+89E6: .byte $FF
+89E7: BRK
+89E8: .byte $23
+89E9: .byte $0C
+89EA: .byte $FF
+89EB: BRK
+89EC: .byte $22
+89ED: ASL $06
+89EF: ASL $86
+89F1: ASL $06
+89F3: .byte $FF
+89F4: BRK
+89F5: .byte $23
+89F6: .byte $0C
+89F7: .byte $FF
+89F8: BRK
+89F9: .byte $22
+89FA: ASL $06
+89FC: ASL $86
+89FE: ASL $06
+8A00: .byte $FF
+8A01: BRK
+8A02: .byte $23
+8A03: .byte $0C
+8A04: .byte $FF
+8A05: BRK
+8A06: .byte $22
+8A07: ASL $06
+8A09: .byte $FF
+8A0A: BRK
+8A0B: .byte $22
+8A0C: ASL $86
+8A0E: ASL $06
+8A10: .byte $FF
+8A11: BRK
+8A12: .byte $23
+8A13: .byte $0C
+8A14: .byte $FF
+8A15: BRK
+8A16: .byte $22
+8A17: ASL $06
+8A19: ASL $86
+8A1B: ASL $06
+8A1D: .byte $FF
+8A1E: BRK
+8A1F: .byte $23
+8A20: .byte $0C
+8A21: .byte $FF
+8A22: BRK
+8A23: .byte $22
+8A24: ASL $06
+8A26: ASL $86
+8A28: ASL $06
+8A2A: .byte $FF
+8A2B: BRK
+8A2C: .byte $23
+8A2D: .byte $0C
+8A2E: .byte $FF
+8A2F: BRK
+8A30: .byte $22
+8A31: ASL $06
+8A33: ASL $86
+8A35: ASL $06
+8A37: .byte $FF
+8A38: BRK
+8A39: .byte $23
+8A3A: .byte $0C
+8A3B: .byte $FF
+8A3C: BRK
+8A3D: .byte $22
+8A3E: ASL $06
+8A40: .byte $FF
+8A41: BRK
+8A42: .byte $22
+8A43: ASL $86
+8A45: ASL $06
+8A47: .byte $FF
+8A48: BRK
+8A49: .byte $23
+8A4A: .byte $0C
+8A4B: .byte $FF
+8A4C: BRK
+8A4D: .byte $22
+8A4E: ASL $06
+8A50: ASL $86
+8A52: ASL $06
+8A54: .byte $FF
+8A55: BRK
+8A56: .byte $23
+8A57: .byte $0C
+8A58: .byte $FF
+8A59: BRK
+8A5A: .byte $22
+8A5B: ASL $06
+8A5D: ASL $86
+8A5F: ASL $06
+8A61: .byte $FF
+8A62: BRK
+8A63: .byte $23
+8A64: .byte $0C
+8A65: .byte $FF
+8A66: BRK
+8A67: .byte $22
+8A68: ASL $06
+8A6A: ASL $86
+8A6C: ASL $06
+8A6E: .byte $FF
+8A6F: BRK
+8A70: .byte $23
+8A71: .byte $0C
+8A72: .byte $FF
+8A73: BRK
+8A74: .byte $22
+8A75: ASL $06
+8A77: .byte $FF
+8A78: BRK
+8A79: .byte $22
+8A7A: ASL $06
+8A7C: ASL $06
+8A7E: ASL $06
+8A80: ASL $06
+8A82: ASL $06
+8A84: ASL $06
+8A86: ASL $06
+8A88: ASL $06
+8A8A: .byte $FF
+8A8B: BRK
+8A8C: .byte $23
+8A8D: ASL $FF
+8A8F: BRK
+8A90: .byte $22
+8A91: ASL $06
+8A93: ASL $06
+8A95: ASL $06
+8A97: ASL $06
+8A99: ASL $06
+8A9B: ASL $06
+8A9D: ASL $06
+8A9F: ASL $FF
+8AA1: BRK
+8AA2: .byte $22
+8AA3: ASL $06
+8AA5: ASL $06
+8AA7: .byte $FF
+8AA8: BRK
+8AA9: .byte $23
+8AAA: ASL $FF
+8AAC: BRK
+8AAD: .byte $22
+8AAE: ASL $06
+8AB0: ASL $06
+8AB2: ASL $06
+8AB4: ASL $FF
+8AB6: BRK
+8AB7: .byte $23
+8AB8: ASL $FF
+8ABA: BRK
+8ABB: .byte $22
+8ABC: ASL $06
+8ABE: ASL $FF
+8AC0: BRK
+8AC1: .byte $23
+8AC2: .byte $0C
+8AC3: .byte $0C
+8AC4: .byte $0C
+8AC5: .byte $0C
+8AC6: .byte $0C
+8AC7: .byte $0C
+8AC8: .byte $0C
+8AC9: ASL $06
+8ACB: .byte $FF
+8ACC: BRK
+8ACD: .byte $22
+8ACE: ASL $86
+8AD0: ASL $06
+8AD2: .byte $FF
+8AD3: BRK
+8AD4: .byte $23
+8AD5: .byte $0C
+8AD6: .byte $FF
+8AD7: BRK
+8AD8: .byte $22
+8AD9: ASL $06
+8ADB: ASL $86
+8ADD: ASL $06
+8ADF: .byte $FF
+8AE0: BRK
+8AE1: .byte $23
+8AE2: .byte $0C
+8AE3: .byte $FF
+8AE4: BRK
+8AE5: .byte $22
+8AE6: ASL $06
+8AE8: ASL $86
+8AEA: ASL $06
+8AEC: .byte $FF
+8AED: BRK
+8AEE: .byte $23
+8AEF: .byte $0C
+8AF0: .byte $FF
+8AF1: BRK
+8AF2: .byte $22
+8AF3: ASL $06
+8AF5: ASL $86
+8AF7: ASL $06
+8AF9: .byte $FF
+8AFA: BRK
+8AFB: .byte $23
+8AFC: .byte $0C
+8AFD: .byte $FF
+8AFE: BRK
+8AFF: .byte $22
+8B00: ASL $06
+8B02: .byte $FF
+8B03: BRK
+8B04: .byte $22
+8B05: ASL $86
+8B07: ASL $06
+8B09: .byte $FF
+8B0A: BRK
+8B0B: .byte $23
+8B0C: .byte $0C
+8B0D: .byte $FF
+8B0E: BRK
+8B0F: .byte $22
+8B10: ASL $06
+8B12: ASL $86
+8B14: ASL $06
+8B16: .byte $FF
+8B17: BRK
+8B18: .byte $23
+8B19: .byte $0C
+8B1A: .byte $FF
+8B1B: BRK
+8B1C: .byte $22
+8B1D: ASL $06
+8B1F: .byte $FF
+8B20: BRK
+8B21: .byte $23
+8B22: BPL $8B34
+8B24: BPL $8B25
+8B26: BRK
+8B27: .byte $22
+8B28: .byte $03
+8B29: .byte $03
+8B2A: ASL $06
+8B2C: ASL $FF
+8B2E: BRK
+8B2F: .byte $23
+8B30: ASL $06
+8B32: ASL $06
+8B34: BRK
+8B35: .byte $FF
+8B36: ORA ($FF,X)
+8B38: .byte $FF
+8B39: BRK
+8B3A: JSR $2208
+8B3D: PHP
+8B3E: .byte $22
+8B3F: PHP
+8B40: ROL $08
+8B42: ROL A
+8B43: PHP
+8B44: ROL $08
+8B46: .byte $22
+8B47: PHP
+8B48: ROL $08
+8B4A: ROL A
+8B4B: CLC
+8B4C: BMI $8B66
+8B4E: BIT $2B10
+8B51: PHP
+8B52: .byte $22
+8B53: PHP
+8B54: .byte $22
+8B55: PHP
+8B56: ROL $08
+8B58: ROL A
+8B59: PHP
+8B5A: ROL $08
+8B5C: .byte $22
+8B5D: PHP
+8B5E: ROL $08
+8B60: ROL A
+8B61: CLC
+8B62: BMI $8B7C
+8B64: BIT $2B10
+8B67: JSR $082A
+8B6A: .byte $22
+8B6B: PHP
+8B6C: BIT $08
+8B6E: ROL $08
+8B70: PLP
+8B71: BPL $8B9D
+8B73: PHP
+8B74: PLP
+8B75: PHP
+8B76: ROL $88
+8B78: CLC
+8B79: BMI $8BBB
+8B7B: ROL A
+8B7C: DEY
+8B7D: .byte $FF
+8B7E: BRK
+8B7F: BRK
+8B80: PHP
+8B81: .byte $3B
+8B82: PHP
+8B83: .byte $3A
+8B84: PHP
+8B85: AND $3808,Y
+8B88: PHP
+8B89: .byte $37
+8B8A: PHP
+8B8B: ROL $08,X
+8B8D: .byte $34
+8B8E: .byte $FF
+8B8F: BRK
+8B90: JSR $2A20
+8B93: PHP
+8B94: .byte $22
+8B95: PHP
+8B96: BIT $08
+8B98: ROL $08
+8B9A: PLP
+8B9B: BPL $8BC7
+8B9D: PHP
+8B9E: PLP
+8B9F: PHP
+8BA0: ROL $88
+8BA2: CLC
+8BA3: BMI $8BE5
+8BA5: ROL A
+8BA6: DEY
+8BA7: .byte $FF
+8BA8: BRK
+8BA9: BRK
+8BAA: PHP
+8BAB: .byte $3B
+8BAC: PHP
+8BAD: .byte $3A
+8BAE: PHP
+8BAF: AND $3808,Y
+8BB2: PHP
+8BB3: .byte $37
+8BB4: PHP
+8BB5: ROL $08,X
+8BB7: .byte $34
+8BB8: .byte $FF
+8BB9: BRK
+8BBA: JSR $2B08
+8BBD: PHP
+8BBE: ROL $08
+8BC0: .byte $22
+8BC1: PHP
+8BC2: ROL $88
+8BC4: CLC
+8BC5: .byte $22
+8BC6: BCC $8BC7
+8BC8: BRK
+8BC9: BRK
+8BCA: PHP
+8BCB: .byte $32
+8BCC: PHP
+8BCD: .byte $32
+8BCE: PHP
+8BCF: BMI $8BE1
+8BD1: .byte $32
+8BD2: DEY
+8BD3: .byte $FF
+8BD4: BRK
+8BD5: JSR $2220
+8BD8: JSR $2024
+8BDB: ROL $20
+8BDD: PLP
+8BDE: RTI
+8BDF: ROL A
+8BE0: CPY #$40
+8BE2: ROL A
+8BE3: CPY #$00
+8BE5: .byte $FF
+8BE6: ORA ($FE,X)
+8BE8: .byte $FF
+8BE9: BRK
+8BEA: JSR $1A08
+8BED: PHP
+8BEE: .byte $1A
+8BEF: PHP
+8BF0: .byte $22
+8BF1: PHP
+8BF2: ROL $08
+8BF4: .byte $22
+8BF5: PHP
+8BF6: .byte $1A
+8BF7: PHP
+8BF8: .byte $22
+8BF9: PHP
+8BFA: ROL $18
+8BFC: AND #$18
+8BFE: PLP
+8BFF: BPL $8C28
+8C01: PHP
+8C02: .byte $1A
+8C03: PHP
+8C04: .byte $1A
+8C05: PHP
+8C06: .byte $22
+8C07: PHP
+8C08: ROL $08
+8C0A: .byte $22
+8C0B: PHP
+8C0C: .byte $1A
+8C0D: PHP
+8C0E: .byte $22
+8C0F: PHP
+8C10: ROL $18
+8C12: AND #$18
+8C14: PLP
+8C15: BPL $8C3E
+8C17: .byte $FF
+8C18: .byte $03
+8C19: PHP
+8C1A: JSR $082A
+8C1D: .byte $22
+8C1E: PHP
+8C1F: BIT $08
+8C21: ROL $08
+8C23: PLP
+8C24: BPL $8C50
+8C26: PHP
+8C27: PLP
+8C28: PHP
+8C29: ROL $88
+8C2B: CLC
+8C2C: BMI $8C6E
+8C2E: ROL A
+8C2F: DEY
+8C30: DEY
+8C31: .byte $FF
+8C32: ORA ($FC,X)
+8C34: .byte $FF
+8C35: .byte $03
+8C36: BRK
+8C37: .byte $FF
+8C38: BRK
+8C39: BRK
+8C3A: PHP
+8C3B: .byte $3B
+8C3C: PHP
+8C3D: .byte $3A
+8C3E: PHP
+8C3F: AND $3808,Y
+8C42: PHP
+8C43: .byte $37
+8C44: PHP
+8C45: ROL $FF,X
+8C47: BRK
+8C48: JSR $03FF
+8C4B: PHP
+8C4C: .byte $FF
+8C4D: ORA ($FE,X)
+8C4F: JSR $082A
+8C52: .byte $22
+8C53: PHP
+8C54: BIT $08
+8C56: ROL $08
+8C58: PLP
+8C59: BPL $8C85
+8C5B: PHP
+8C5C: PLP
+8C5D: PHP
+8C5E: ROL $88
+8C60: CLC
+8C61: BMI $8CA3
+8C63: ROL A
+8C64: DEY
+8C65: DEY
+8C66: .byte $FF
+8C67: BRK
+8C68: BRK
+8C69: .byte $FF
+8C6A: .byte $03
+8C6B: BRK
+8C6C: .byte $FF
+8C6D: ORA ($FC,X)
+8C6F: PHP
+8C70: .byte $3B
+8C71: PHP
+8C72: .byte $3A
+8C73: PHP
+8C74: AND $3808,Y
+8C77: PHP
+8C78: .byte $37
+8C79: PHP
+8C7A: ROL $FF,X
+8C7C: BRK
+8C7D: JSR $03FF
+8C80: PHP
+8C81: .byte $FF
+8C82: ORA ($FE,X)
+8C84: PHP
+8C85: .byte $2B
+8C86: PHP
+8C87: ROL $08
+8C89: .byte $22
+8C8A: PHP
+8C8B: ROL $88
+8C8D: CLC
+8C8E: .byte $22
+8C8F: BCC $8C90
+8C91: .byte $03
+8C92: BRK
+8C93: .byte $FF
+8C94: BRK
+8C95: BRK
+8C96: PHP
+8C97: PLP
+8C98: PHP
+8C99: PLP
+8C9A: PHP
+8C9B: ROL $10
+8C9D: PLP
+8C9E: DEY
+8C9F: .byte $FF
+8CA0: BRK
+8CA1: JSR $1A20
+8CA4: JSR $201C
+8CA7: JSR $2220
+8CAA: RTI
+8CAB: BIT $88
+8CAD: PHP
+8CAE: ROL A
+8CAF: PHP
+8CB0: BMI $8CBA
+8CB2: .byte $34
+8CB3: PHP
+8CB4: .byte $3A
+8CB5: PHP
+8CB6: BMI $8CC0
+8CB8: .byte $34
+8CB9: PHP
+8CBA: .byte $3A
+8CBB: RTI
+8CBC: BIT $88
+8CBE: PHP
+8CBF: ROL A
+8CC0: PHP
+8CC1: AND ($08),Y
+8CC3: .byte $34
+8CC4: PHP
+8CC5: .byte $3A
+8CC6: PHP
+8CC7: AND ($08),Y
+8CC9: .byte $34
+8CCA: PHP
+8CCB: .byte $3A
+8CCC: BRK
+8CCD: .byte $04
+8CCE: .byte $12
+8CCF: STY $04
+8CD1: .byte $12
+8CD2: STY $B0
+8CD4: CLC
+8CD5: ASL $18,X
+8CD7: .byte $14
+8CD8: BPL $8CED
+8CDA: .byte $04
+8CDB: .byte $12
+8CDC: STY $04
+8CDE: .byte $12
+8CDF: STY $B0
+8CE1: CLC
+8CE2: ASL $18,X
+8CE4: .byte $14
+8CE5: BPL $8CFA
+8CE7: PHP
+8CE8: .byte $12
+8CE9: PHP
+8CEA: .byte $22
+8CEB: PHP
+8CEC: .byte $12
+8CED: PHP
+8CEE: .byte $22
+8CEF: PHP
+8CF0: .byte $12
+8CF1: PHP
+8CF2: .byte $22
+8CF3: PHP
+8CF4: .byte $12
+8CF5: PHP
+8CF6: .byte $22
+8CF7: PHP
+8CF8: .byte $14
+8CF9: PHP
+8CFA: BIT $08
+8CFC: .byte $14
+8CFD: PHP
+8CFE: BIT $08
+8D00: .byte $14
+8D01: PHP
+8D02: BIT $08
+8D04: .byte $14
+8D05: PHP
+8D06: BIT $08
+8D08: ASL $08,X
+8D0A: ROL $08
+8D0C: ASL $08,X
+8D0E: ROL $08
+8D10: ASL $08,X
+8D12: ROL $08
+8D14: ASL $08,X
+8D16: ROL $08
+8D18: .byte $14
+8D19: PHP
+8D1A: BIT $08
+8D1C: .byte $14
+8D1D: PHP
+8D1E: BIT $08
+8D20: .byte $14
+8D21: PHP
+8D22: BIT $08
+8D24: .byte $14
+8D25: PHP
+8D26: BIT $08
+8D28: .byte $12
+8D29: PHP
+8D2A: .byte $22
+8D2B: PHP
+8D2C: .byte $12
+8D2D: PHP
+8D2E: .byte $22
+8D2F: PHP
+8D30: .byte $12
+8D31: PHP
+8D32: .byte $22
+8D33: PHP
+8D34: .byte $12
+8D35: PHP
+8D36: .byte $22
+8D37: PHP
+8D38: .byte $14
+8D39: PHP
+8D3A: BIT $08
+8D3C: .byte $14
+8D3D: PHP
+8D3E: BIT $08
+8D40: .byte $14
+8D41: PHP
+8D42: BIT $08
+8D44: .byte $14
+8D45: PHP
+8D46: BIT $08
+8D48: ASL $08,X
+8D4A: ROL $08
+8D4C: ASL $08,X
+8D4E: ROL $08
+8D50: ASL $08,X
+8D52: ROL $08
+8D54: ASL $08,X
+8D56: ROL $08
+8D58: .byte $14
+8D59: PHP
+8D5A: BIT $08
+8D5C: .byte $14
+8D5D: PHP
+8D5E: BIT $08
+8D60: .byte $14
+8D61: PHP
+8D62: BIT $08
+8D64: .byte $14
+8D65: PHP
+8D66: BIT $08
+8D68: .byte $13
+8D69: PHP
+8D6A: .byte $23
+8D6B: PHP
+8D6C: .byte $13
+8D6D: PHP
+8D6E: .byte $23
+8D6F: PHP
+8D70: .byte $13
+8D71: PHP
+8D72: .byte $23
+8D73: PHP
+8D74: .byte $13
+8D75: PHP
+8D76: .byte $23
+8D77: PHP
+8D78: .byte $13
+8D79: PHP
+8D7A: .byte $23
+8D7B: PHP
+8D7C: .byte $13
+8D7D: PHP
+8D7E: .byte $23
+8D7F: PHP
+8D80: .byte $13
+8D81: PHP
+8D82: .byte $23
+8D83: PHP
+8D84: .byte $13
+8D85: PHP
+8D86: .byte $23
+8D87: PHP
+8D88: ASL $08,X
+8D8A: ROL $08
+8D8C: ASL $08,X
+8D8E: ROL $08
+8D90: CLC
+8D91: PHP
+8D92: PLP
+8D93: PHP
+8D94: CLC
+8D95: PHP
+8D96: PLP
+8D97: PHP
+8D98: ORA $2908,Y
+8D9B: PHP
+8D9C: ORA $2908,Y
+8D9F: PHP
+8DA0: .byte $1B
+8DA1: PHP
+8DA2: .byte $2B
+8DA3: PHP
+8DA4: .byte $1B
+8DA5: PHP
+8DA6: .byte $2B
+8DA7: PHP
+8DA8: JSR $3008
+8DAB: PHP
+8DAC: JSR $3008
+8DAF: PHP
+8DB0: JSR $3008
+8DB3: PHP
+8DB4: JSR $3008
+8DB7: PHP
+8DB8: JSR $3008
+8DBB: PHP
+8DBC: JSR $3008
+8DBF: PHP
+8DC0: JSR $3008
+8DC3: PHP
+8DC4: JSR $3008
+8DC7: PHP
+8DC8: AND ($08,X)
+8DCA: AND ($08),Y
+8DCC: AND ($08,X)
+8DCE: AND ($08),Y
+8DD0: AND ($08,X)
+8DD2: AND ($08),Y
+8DD4: AND ($08,X)
+8DD6: AND ($08),Y
+8DD8: AND ($08,X)
+8DDA: AND ($08),Y
+8DDC: AND ($08,X)
+8DDE: AND ($08),Y
+8DE0: AND ($08,X)
+8DE2: AND ($08),Y
+8DE4: AND ($08,X)
+8DE6: AND ($00),Y
+8DE8: .byte $FF
+8DE9: ORA ($FE,X)
+8DEB: .byte $FF
+8DEC: BRK
+8DED: .byte $23
+8DEE: PHP
+8DEF: PHP
+8DF0: .byte $FF
+8DF1: BRK
+8DF2: .byte $22
+8DF3: PHP
+8DF4: PHP
+8DF5: PHP
+8DF6: PHP
+8DF7: PHP
+8DF8: PHP
+8DF9: .byte $FF
+8DFA: BRK
+8DFB: .byte $23
+8DFC: PHP
+8DFD: .byte $FF
+8DFE: BRK
+8DFF: .byte $22
+8E00: PHP
+8E01: PHP
+8E02: .byte $FF
+8E03: BRK
+8E04: .byte $23
+8E05: PHP
+8E06: .byte $FF
+8E07: BRK
+8E08: .byte $22
+8E09: PHP
+8E0A: PHP
+8E0B: .byte $FF
+8E0C: BRK
+8E0D: .byte $23
+8E0E: PHP
+8E0F: PHP
+8E10: .byte $FF
+8E11: BRK
+8E12: .byte $23
+8E13: PHP
+8E14: PHP
+8E15: .byte $FF
+8E16: BRK
+8E17: .byte $22
+8E18: PHP
+8E19: PHP
+8E1A: PHP
+8E1B: PHP
+8E1C: PHP
+8E1D: PHP
+8E1E: .byte $FF
+8E1F: BRK
+8E20: .byte $23
+8E21: PHP
+8E22: .byte $FF
+8E23: BRK
+8E24: .byte $22
+8E25: PHP
+8E26: PHP
+8E27: .byte $FF
+8E28: BRK
+8E29: .byte $23
+8E2A: PHP
+8E2B: .byte $FF
+8E2C: BRK
+8E2D: .byte $22
+8E2E: PHP
+8E2F: PHP
+8E30: .byte $FF
+8E31: BRK
+8E32: .byte $23
+8E33: .byte $04
+8E34: .byte $04
+8E35: .byte $04
+8E36: .byte $04
+8E37: .byte $FF
+8E38: BRK
+8E39: .byte $22
+8E3A: PHP
+8E3B: PHP
+8E3C: PHP
+8E3D: PHP
+8E3E: .byte $FF
+8E3F: BRK
+8E40: .byte $23
+8E41: PHP
+8E42: .byte $FF
+8E43: BRK
+8E44: .byte $22
+8E45: PHP
+8E46: PHP
+8E47: PHP
+8E48: PHP
+8E49: PHP
+8E4A: PHP
+8E4B: PHP
+8E4C: .byte $FF
+8E4D: BRK
+8E4E: .byte $23
+8E4F: PHP
+8E50: .byte $FF
+8E51: BRK
+8E52: .byte $22
+8E53: PHP
+8E54: PHP
+8E55: PHP
+8E56: PHP
+8E57: PHP
+8E58: PHP
+8E59: PHP
+8E5A: .byte $FF
+8E5B: BRK
+8E5C: .byte $23
+8E5D: PHP
+8E5E: .byte $FF
+8E5F: BRK
+8E60: .byte $22
+8E61: PHP
+8E62: PHP
+8E63: PHP
+8E64: PHP
+8E65: PHP
+8E66: PHP
+8E67: PHP
+8E68: .byte $FF
+8E69: BRK
+8E6A: .byte $23
+8E6B: PHP
+8E6C: .byte $FF
+8E6D: BRK
+8E6E: .byte $22
+8E6F: PHP
+8E70: PHP
+8E71: PHP
+8E72: .byte $FF
+8E73: BRK
+8E74: .byte $22
+8E75: PHP
+8E76: PHP
+8E77: PHP
+8E78: PHP
+8E79: .byte $FF
+8E7A: BRK
+8E7B: .byte $23
+8E7C: PHP
+8E7D: .byte $FF
+8E7E: BRK
+8E7F: .byte $22
+8E80: PHP
+8E81: PHP
+8E82: PHP
+8E83: PHP
+8E84: PHP
+8E85: PHP
+8E86: PHP
+8E87: .byte $FF
+8E88: BRK
+8E89: .byte $23
+8E8A: PHP
+8E8B: .byte $FF
+8E8C: BRK
+8E8D: .byte $22
+8E8E: PHP
+8E8F: PHP
+8E90: PHP
+8E91: PHP
+8E92: PHP
+8E93: PHP
+8E94: PHP
+8E95: .byte $FF
+8E96: BRK
+8E97: .byte $23
+8E98: PHP
+8E99: .byte $FF
+8E9A: BRK
+8E9B: .byte $22
+8E9C: PHP
+8E9D: PHP
+8E9E: PHP
+8E9F: .byte $FF
+8EA0: BRK
+8EA1: .byte $23
+8EA2: PHP
+8EA3: .byte $FF
+8EA4: BRK
+8EA5: .byte $22
+8EA6: PHP
+8EA7: PHP
+8EA8: PHP
+8EA9: .byte $FF
+8EAA: BRK
+8EAB: .byte $23
+8EAC: PHP
+8EAD: .byte $FF
+8EAE: BRK
+8EAF: .byte $22
+8EB0: PHP
+8EB1: .byte $FF
+8EB2: BRK
+8EB3: .byte $23
+8EB4: PHP
+8EB5: PHP
+8EB6: .byte $FF
+8EB7: BRK
+8EB8: .byte $23
+8EB9: PHP
+8EBA: .byte $FF
+8EBB: BRK
+8EBC: .byte $22
+8EBD: PHP
+8EBE: PHP
+8EBF: PHP
+8EC0: PHP
+8EC1: PHP
+8EC2: PHP
+8EC3: PHP
+8EC4: .byte $FF
+8EC5: BRK
+8EC6: .byte $23
+8EC7: PHP
+8EC8: .byte $FF
+8EC9: BRK
+8ECA: .byte $22
+8ECB: PHP
+8ECC: PHP
+8ECD: .byte $FF
+8ECE: BRK
+8ECF: .byte $23
+8ED0: PHP
+8ED1: .byte $FF
+8ED2: BRK
+8ED3: .byte $22
+8ED4: PHP
+8ED5: PHP
+8ED6: .byte $FF
+8ED7: BRK
+8ED8: .byte $23
+8ED9: PHP
+8EDA: PHP
+8EDB: .byte $FF
+8EDC: BRK
+8EDD: .byte $22
+8EDE: PHP
+8EDF: PHP
+8EE0: .byte $FF
+8EE1: BRK
+8EE2: .byte $23
+8EE3: PHP
+8EE4: .byte $FF
+8EE5: BRK
+8EE6: .byte $22
+8EE7: PHP
+8EE8: PHP
+8EE9: PHP
+8EEA: .byte $FF
+8EEB: BRK
+8EEC: .byte $23
+8EED: PHP
+8EEE: .byte $FF
+8EEF: BRK
+8EF0: .byte $22
+8EF1: PHP
+8EF2: PHP
+8EF3: PHP
+8EF4: .byte $FF
+8EF5: BRK
+8EF6: .byte $23
+8EF7: PHP
+8EF8: .byte $FF
+8EF9: BRK
+8EFA: .byte $22
+8EFB: PHP
+8EFC: PHP
+8EFD: PHP
+8EFE: .byte $FF
+8EFF: BRK
+8F00: .byte $23
+8F01: PHP
+8F02: .byte $FF
+8F03: BRK
+8F04: .byte $22
+8F05: PHP
+8F06: .byte $FF
+8F07: BRK
+8F08: .byte $22
+8F09: PHP
+8F0A: PHP
+8F0B: .byte $FF
+8F0C: BRK
+8F0D: .byte $23
+8F0E: PHP
+8F0F: .byte $FF
+8F10: BRK
+8F11: .byte $22
+8F12: PHP
+8F13: PHP
+8F14: PHP
+8F15: .byte $FF
+8F16: BRK
+8F17: .byte $23
+8F18: PHP
+8F19: .byte $FF
+8F1A: BRK
+8F1B: .byte $22
+8F1C: PHP
+8F1D: PHP
+8F1E: PHP
+8F1F: .byte $FF
+8F20: BRK
+8F21: .byte $23
+8F22: PHP
+8F23: .byte $FF
+8F24: BRK
+8F25: .byte $22
+8F26: PHP
+8F27: .byte $FF
+8F28: BRK
+8F29: .byte $23
+8F2A: PHP
+8F2B: .byte $FF
+8F2C: BRK
+8F2D: .byte $22
+8F2E: PHP
+8F2F: .byte $FF
+8F30: BRK
+8F31: .byte $23
+8F32: PHP
+8F33: .byte $FF
+8F34: BRK
+8F35: .byte $22
+8F36: PHP
+8F37: PHP
+8F38: PHP
+8F39: .byte $FF
+8F3A: BRK
+8F3B: .byte $23
+8F3C: PHP
+8F3D: .byte $FF
+8F3E: BRK
+8F3F: .byte $22
+8F40: PHP
+8F41: PHP
+8F42: PHP
+8F43: .byte $FF
+8F44: BRK
+8F45: .byte $23
+8F46: PHP
+8F47: .byte $FF
+8F48: BRK
+8F49: .byte $22
+8F4A: PHP
+8F4B: .byte $FF
+8F4C: BRK
+8F4D: .byte $23
+8F4E: PHP
+8F4F: .byte $04
+8F50: .byte $04
+8F51: PHP
+8F52: .byte $04
+8F53: .byte $04
+8F54: PHP
+8F55: .byte $04
+8F56: .byte $04
+8F57: PHP
+8F58: .byte $04
+8F59: .byte $04
+8F5A: BRK
+8F5B: .byte $FF
+8F5C: BRK
+8F5D: AND #$FF
+8F5F: ORA ($FA,X)
+8F61: PHP
+8F62: .byte $3A
+8F63: PHP
+8F64: .byte $37
+8F65: .byte $FF
+8F66: ORA ($FB,X)
+8F68: PHP
+8F69: .byte $32
+8F6A: PHP
+8F6B: .byte $3C
+8F6C: .byte $FF
+8F6D: ORA ($FC,X)
+8F6F: PHP
+8F70: SEC
+8F71: PHP
+8F72: .byte $32
+8F73: .byte $FF
+8F74: ORA ($FD,X)
+8F76: PHP
+8F77: .byte $3A
+8F78: PHP
+8F79: .byte $37
+8F7A: PHP
+8F7B: .byte $32
+8F7C: PHP
+8F7D: .byte $3C
+8F7E: PHP
+8F7F: SEC
+8F80: PHP
+8F81: .byte $32
+8F82: PHP
+8F83: .byte $3A
+8F84: PHP
+8F85: .byte $37
+8F86: .byte $FF
+8F87: ORA ($FE,X)
+8F89: PHP
+8F8A: .byte $32
+8F8B: PHP
+8F8C: .byte $3C
+8F8D: PHP
+8F8E: SEC
+8F8F: PHP
+8F90: .byte $32
+8F91: PHP
+8F92: .byte $3A
+8F93: PHP
+8F94: .byte $37
+8F95: PHP
+8F96: .byte $32
+8F97: PHP
+8F98: .byte $3C
+8F99: PHP
+8F9A: SEC
+8F9B: PHP
+8F9C: .byte $32
+8F9D: PHP
+8F9E: .byte $3A
+8F9F: PHP
+8FA0: .byte $37
+8FA1: PHP
+8FA2: .byte $32
+8FA3: PHP
+8FA4: .byte $3C
+8FA5: PHP
+8FA6: SEC
+8FA7: PHP
+8FA8: .byte $32
+8FA9: PHP
+8FAA: .byte $3A
+8FAB: PHP
+8FAC: .byte $37
+8FAD: PHP
+8FAE: .byte $32
+8FAF: PHP
+8FB0: .byte $3C
+8FB1: PHP
+8FB2: SEC
+8FB3: PHP
+8FB4: .byte $32
+8FB5: PHP
+8FB6: .byte $3A
+8FB7: PHP
+8FB8: ROL $08,X
+8FBA: BMI $8FC4
+8FBC: .byte $32
+8FBD: PHP
+8FBE: BMI $8FC8
+8FC0: PLP
+8FC1: CLC
+8FC2: ROL A
+8FC3: CLC
+8FC4: PLP
+8FC5: .byte $FF
+8FC6: ORA ($00,X)
+8FC8: BMI $8FF1
+8FCA: CLC
+8FCB: PLP
+8FCC: CLC
+8FCD: ROL A
+8FCE: BMI $8FF4
+8FD0: BMI $8FF9
+8FD2: BMI $8FFC
+8FD4: CLC
+8FD5: .byte $22
+8FD6: CLC
+8FD7: BIT $20
+8FD9: ROL $08
+8FDB: BIT $08
+8FDD: ROL $08
+8FDF: JSR $1808
+8FE2: PHP
+8FE3: JSR $2208
+8FE6: PHP
+8FE7: BIT $08
+8FE9: PLP
+8FEA: BMI $9013
+8FEC: CLC
+8FED: PLP
+8FEE: CLC
+8FEF: ROL A
+8FF0: BMI $9016
+8FF2: BMI $901B
+8FF4: BMI $901E
+8FF6: CLC
+8FF7: .byte $22
+8FF8: CLC
+8FF9: PLP
+8FFA: CLC
+8FFB: .byte $32
+8FFC: CLC
+8FFD: BMI $9017
+8FFF: PLP
+9000: CLC
+9001: ROL A
+9002: PLP
+9003: .byte $2B
+9004: JSR $3033
+9007: .byte $3B
+9008: CLC
+9009: SEC
+900A: CLC
+900B: AND $3B18,Y
+900E: PLP
+900F: .byte $33
+9010: JSR $1033
+9013: .byte $33
+9014: BMI $9049
+9016: SEC
+9017: .byte $33
+9018: PLP
+9019: .byte $33
+901A: SEC
+901B: .byte $33
+901C: PLP
+901D: BMI $902F
+901F: BMI $9029
+9021: BMI $902B
+9023: ROL A
+9024: PHP
+9025: ROL $08
+9027: JSR $2608
+902A: BMI $9054
+902C: BMI $9060
+902E: BVC $9068
+9030: PHP
+9031: .byte $22
+9032: PHP
+9033: BIT $00
+9035: .byte $FF
+9036: BRK
+9037: AND #$FF
+9039: .byte $03
+903A: PHP
+903B: DEY
+903C: PHP
+903D: .byte $3A
+903E: PHP
+903F: .byte $37
+9040: .byte $FF
+9041: ORA ($F8,X)
+9043: PHP
+9044: .byte $32
+9045: PHP
+9046: .byte $3C
+9047: .byte $FF
+9048: ORA ($F9,X)
+904A: PHP
+904B: SEC
+904C: PHP
+904D: .byte $32
+904E: .byte $FF
+904F: ORA ($FA,X)
+9051: PHP
+9052: .byte $3A
+9053: PHP
+9054: .byte $37
+9055: PHP
+9056: .byte $32
+9057: PHP
+9058: .byte $3C
+9059: PHP
+905A: SEC
+905B: PHP
+905C: .byte $32
+905D: .byte $FF
+905E: ORA ($FB,X)
+9060: PHP
+9061: .byte $3A
+9062: PHP
+9063: .byte $37
+9064: PHP
+9065: .byte $32
+9066: PHP
+9067: .byte $3C
+9068: PHP
+9069: SEC
+906A: .byte $FF
+906B: ORA ($FC,X)
+906D: PHP
+906E: .byte $32
+906F: PHP
+9070: .byte $3A
+9071: PHP
+9072: .byte $37
+9073: PHP
+9074: .byte $32
+9075: PHP
+9076: .byte $3C
+9077: PHP
+9078: SEC
+9079: PHP
+907A: .byte $32
+907B: PHP
+907C: .byte $3A
+907D: PHP
+907E: .byte $37
+907F: PHP
+9080: .byte $32
+9081: PHP
+9082: .byte $3C
+9083: PHP
+9084: SEC
+9085: PHP
+9086: .byte $32
+9087: PHP
+9088: .byte $3A
+9089: PHP
+908A: .byte $37
+908B: PHP
+908C: .byte $32
+908D: PHP
+908E: .byte $3C
+908F: PHP
+9090: SEC
+9091: PHP
+9092: .byte $32
+9093: PHP
+9094: .byte $3A
+9095: PHP
+9096: ROL $08,X
+9098: BMI $90A2
+909A: .byte $32
+909B: PHP
+909C: BMI $90A6
+909E: PLP
+909F: CLC
+90A0: ROL A
+90A1: CLC
+90A2: PLP
+90A3: DEY
+90A4: BMI $90CD
+90A6: CLC
+90A7: PLP
+90A8: CLC
+90A9: ROL A
+90AA: BMI $90D0
+90AC: BMI $90D5
+90AE: BMI $90D8
+90B0: CLC
+90B1: .byte $22
+90B2: CLC
+90B3: BIT $20
+90B5: ROL $08
+90B7: BIT $08
+90B9: ROL $08
+90BB: JSR $1808
+90BE: PHP
+90BF: JSR $2208
+90C2: PHP
+90C3: BIT $08
+90C5: PLP
+90C6: BMI $90EF
+90C8: CLC
+90C9: PLP
+90CA: CLC
+90CB: ROL A
+90CC: BMI $90F2
+90CE: BMI $90F7
+90D0: BMI $90FA
+90D2: CLC
+90D3: .byte $22
+90D4: CLC
+90D5: PLP
+90D6: CLC
+90D7: .byte $32
+90D8: CLC
+90D9: BMI $90F3
+90DB: PLP
+90DC: PHP
+90DD: ROL A
+90DE: PLP
+90DF: .byte $23
+90E0: JSR $3033
+90E3: .byte $3B
+90E4: CLC
+90E5: SEC
+90E6: CLC
+90E7: AND $3B18,Y
+90EA: PLP
+90EB: .byte $33
+90EC: JSR $102B
+90EF: .byte $33
+90F0: BMI $912D
+90F2: BMI $912D
+90F4: DEY
+90F5: PLP
+90F6: AND $3838,Y
+90F9: PLP
+90FA: SEC
+90FB: CLC
+90FC: ROL $08,X
+90FE: BMI $9108
+9100: ROL A
+9101: PHP
+9102: ROL $08
+9104: JSR $2608
+9107: BMI $9131
+9109: BMI $9133
+910B: SEC
+910C: SEC
+910D: BPL $9131
+910F: CLC
+9110: BIT $00
+9112: .byte $FF
+9113: .byte $04
+9114: .byte $FF
+9115: RTS
+9116: .byte $22
+9117: RTS
+9118: JSR $1C50
+911B: PHP
+911C: CLC
+911D: PHP
+911E: .byte $1A
+911F: BPL $913C
+9121: DEY
+9122: BPL $913F
+9124: DEY
+9125: .byte $FF
+9126: .byte $04
+9127: .byte $1A
+9128: PHP
+9129: JSR $2008
+912C: PHP
+912D: JSR $2008
+9130: PHP
+9131: JSR $2008
+9134: PHP
+9135: .byte $22
+9136: BCC $9140
+9138: .byte $22
+9139: BCC $9143
+913B: .byte $22
+913C: PHP
+913D: .byte $22
+913E: PHP
+913F: .byte $22
+9140: PHP
+9141: .byte $22
+9142: BCC $914C
+9144: JSR $0890
+9147: JSR $0890
+914A: JSR $2008
+914D: PHP
+914E: JSR $2008
+9151: BCC $915B
+9153: .byte $1C
+9154: BCC $915E
+9156: .byte $1C
+9157: BCC $9161
+9159: .byte $1C
+915A: PHP
+915B: .byte $1C
+915C: PHP
+915D: .byte $1C
+915E: PHP
+915F: .byte $1C
+9160: BCC $916A
+9162: .byte $1B
+9163: BCC $916D
+9165: .byte $1B
+9166: BCC $9170
+9168: JSR $2008
+916B: PHP
+916C: JSR $2008
+916F: PHP
+9170: JSR $2008
+9173: PHP
+9174: .byte $22
+9175: BCC $917F
+9177: .byte $22
+9178: BCC $9182
+917A: .byte $22
+917B: PHP
+917C: .byte $22
+917D: PHP
+917E: .byte $22
+917F: PHP
+9180: .byte $22
+9181: BCC $918B
+9183: JSR $0890
+9186: JSR $0890
+9189: JSR $2008
+918C: PHP
+918D: JSR $2008
+9190: BCC $919A
+9192: .byte $1C
+9193: BCC $919D
+9195: .byte $1C
+9196: BCC $91A0
+9198: .byte $1C
+9199: PHP
+919A: .byte $1C
+919B: PHP
+919C: .byte $1C
+919D: PHP
+919E: .byte $1C
+919F: BCC $91A9
+91A1: .byte $1B
+91A2: BCC $91AC
+91A4: .byte $1B
+91A5: BCC $91AF
+91A7: JSR $2008
+91AA: PHP
+91AB: JSR $2008
+91AE: PHP
+91AF: JSR $2008
+91B2: PHP
+91B3: .byte $23
+91B4: BCC $91BE
+91B6: .byte $23
+91B7: BCC $91C1
+91B9: .byte $23
+91BA: PHP
+91BB: .byte $23
+91BC: PHP
+91BD: .byte $23
+91BE: PHP
+91BF: .byte $23
+91C0: BCC $91CA
+91C2: AND ($90,X)
+91C4: PHP
+91C5: AND ($90,X)
+91C7: PHP
+91C8: AND ($08,X)
+91CA: AND ($08,X)
+91CC: AND ($08,X)
+91CE: AND ($90,X)
+91D0: PHP
+91D1: JSR $0890
+91D4: JSR $0890
+91D7: JSR $2008
+91DA: PHP
+91DB: JSR $2008
+91DE: BCC $91E8
+91E0: .byte $1C
+91E1: BCC $91EB
+91E3: .byte $1C
+91E4: BCC $91EE
+91E6: .byte $1C
+91E7: PHP
+91E8: .byte $1C
+91E9: PHP
+91EA: .byte $1C
+91EB: PHP
+91EC: .byte $1C
+91ED: BCC $91F7
+91EF: .byte $1B
+91F0: BCC $91FA
+91F2: .byte $1B
+91F3: BCC $91FD
+91F5: .byte $1B
+91F6: PHP
+91F7: .byte $1B
+91F8: PHP
+91F9: .byte $1B
+91FA: PHP
+91FB: .byte $1B
+91FC: BCC $9206
+91FE: ORA $0890,Y
+9201: ORA $0890,Y
+9204: ORA $1908,Y
+9207: PHP
+9208: ORA $1908,Y
+920B: BCC $9215
+920D: CLC
+920E: BCC $9218
+9210: CLC
+9211: BCC $921B
+9213: CLC
+9214: PHP
+9215: CLC
+9216: PHP
+9217: CLC
+9218: PHP
+9219: CLC
+921A: BCC $9224
+921C: CLC
+921D: BCC $9227
+921F: CLC
+9220: BCC $922A
+9222: CLC
+9223: PHP
+9224: CLC
+9225: PHP
+9226: CLC
+9227: PHP
+9228: CLC
+9229: PHP
+922A: CLC
+922B: PHP
+922C: CLC
+922D: BRK
+922E: .byte $FF
+922F: ORA ($00,X)
+9231: .byte $FF
+9232: BRK
+9233: .byte $22
+9234: PHP
+9235: CPY #$88
+9237: PHP
+9238: PHP
+9239: PHP
+923A: CPY #$88
+923C: PHP
+923D: PHP
+923E: PHP
+923F: CPY #$88
+9241: .byte $04
+9242: .byte $04
+9243: .byte $04
+9244: .byte $04
+9245: PHP
+9246: DEY
+9247: PHP
+9248: PHP
+9249: DEY
+924A: PHP
+924B: .byte $04
+924C: .byte $04
+924D: PHP
+924E: PHP
+924F: .byte $04
+9250: .byte $04
+9251: .byte $04
+9252: .byte $04
+9253: .byte $04
+9254: .byte $04
+9255: PHP
+9256: BCC $9260
+9258: BCC $9262
+925A: BCC $9264
+925C: DEY
+925D: .byte $04
+925E: .byte $04
+925F: PHP
+9260: BCC $926A
+9262: BCC $926C
+9264: BCC $926E
+9266: DEY
+9267: .byte $04
+9268: .byte $04
+9269: PHP
+926A: BCC $9274
+926C: BCC $9276
+926E: BCC $9278
+9270: DEY
+9271: .byte $04
+9272: .byte $04
+9273: PHP
+9274: BCC $927E
+9276: BCC $9280
+9278: BCC $9282
+927A: DEY
+927B: .byte $04
+927C: .byte $04
+927D: PHP
+927E: BCC $9288
+9280: BCC $928A
+9282: BCC $928C
+9284: DEY
+9285: .byte $04
+9286: .byte $04
+9287: PHP
+9288: BCC $9292
+928A: BCC $9294
+928C: BCC $9296
+928E: DEY
+928F: .byte $04
+9290: .byte $04
+9291: PHP
+9292: BCC $929C
+9294: BCC $929E
+9296: BCC $92A0
+9298: DEY
+9299: .byte $04
+929A: .byte $04
+929B: PHP
+929C: BCC $92A6
+929E: BCC $92A8
+92A0: DEY
+92A1: PHP
+92A2: DEY
+92A3: PHP
+92A4: PHP
+92A5: PHP
+92A6: BCC $92B0
+92A8: BCC $92B2
+92AA: BCC $92B4
+92AC: DEY
+92AD: .byte $04
+92AE: .byte $04
+92AF: PHP
+92B0: BCC $92BA
+92B2: BCC $92BC
+92B4: BCC $92BE
+92B6: DEY
+92B7: .byte $04
+92B8: .byte $04
+92B9: PHP
+92BA: BCC $92C4
+92BC: BCC $92C6
+92BE: BCC $92C8
+92C0: DEY
+92C1: .byte $04
+92C2: .byte $04
+92C3: PHP
+92C4: BCC $92CE
+92C6: BCC $92D0
+92C8: BCC $92D2
+92CA: DEY
+92CB: .byte $04
+92CC: .byte $04
+92CD: PHP
+92CE: BCC $92D8
+92D0: BCC $92DA
+92D2: BCC $92DC
+92D4: DEY
+92D5: .byte $04
+92D6: .byte $04
+92D7: PHP
+92D8: BCC $92E2
+92DA: BCC $92E4
+92DC: BCC $92E6
+92DE: DEY
+92DF: .byte $04
+92E0: .byte $04
+92E1: PHP
+92E2: BCC $92EC
+92E4: BCC $92EE
+92E6: BCC $92F0
+92E8: DEY
+92E9: .byte $04
+92EA: .byte $04
+92EB: PHP
+92EC: BCC $92F6
+92EE: BCC $92F8
+92F0: BCC $92FA
+92F2: PHP
+92F3: PHP
+92F4: BRK
+92F5: .byte $FF
+92F6: ORA ($00,X)
+92F8: .byte $FF
+92F9: BRK
+92FA: PLP
+92FB: JSR $102A
+92FE: .byte $34
+92FF: JSR $3032
+9302: SEC
+9303: BMI $933B
+9305: JSR $3030
+9308: .byte $32
+9309: JSR $102A
+930C: .byte $34
+930D: JSR $3032
+9310: SEC
+9311: BMI $9349
+9313: JSR $303B
+9316: .byte $42
+9317: .byte $FF
+9318: BRK
+9319: BRK
+931A: BPL $9378
+931C: BPL $9376
+931E: BPL $937A
+9320: BPL $9376
+9322: BPL $937C
+9324: BPL $9378
+9326: BPL $937C
+9328: BPL $9376
+932A: BPL $9388
+932C: BPL $9386
+932E: BPL $938A
+9330: BPL $9386
+9332: BPL $938C
+9334: BPL $9388
+9336: BPL $938C
+9338: BPL $9386
+933A: BPL $9398
+933C: BPL $9396
+933E: BPL $939A
+9340: BPL $9396
+9342: BPL $939C
+9344: BPL $9398
+9346: BPL $939C
+9348: BPL $9396
+934A: BPL $93A8
+934C: BPL $93A6
+934E: BPL $93AA
+9350: BPL $93A6
+9352: BPL $93AC
+9354: BPL $93A8
+9356: BPL $93AC
+9358: BPL $93A6
+935A: .byte $FF
+935B: BRK
+935C: PLP
+935D: BPL $9393
+935F: BPL $9393
+9361: BPL $938D
+9363: BPL $9399
+9365: BPL $9399
+9367: BMI $9393
+9369: BPL $939F
+936B: BPL $939F
+936D: BPL $9397
+936F: BPL $93A5
+9371: BPL $93A5
+9373: BMI $939D
+9375: BMI $939D
+9377: BMI $93A4
+9379: JSR $1032
+937C: ROL $10,X
+937E: .byte $34
+937F: BPL $93B1
+9381: .byte $FF
+9382: ORA ($FD,X)
+9384: BPL $93BC
+9386: BPL $93BC
+9388: BPL $93BA
+938A: .byte $FF
+938B: ORA ($FA,X)
+938D: BPL $93C5
+938F: BPL $93C5
+9391: BRK
+9392: .byte $FF
+9393: ORA ($FB,X)
+9395: .byte $FF
+9396: .byte $03
+9397: ORA $FF
+9399: BRK
+939A: PLP
+939B: TYA
+939C: JSR $102A
+939F: .byte $34
+93A0: JSR $3032
+93A3: SEC
+93A4: BMI $93DC
+93A6: JSR $3030
+93A9: .byte $32
+93AA: JSR $102A
+93AD: .byte $34
+93AE: JSR $3032
+93B1: SEC
+93B2: BMI $93EA
+93B4: JSR $303B
+93B7: .byte $42
+93B8: .byte $FF
+93B9: BRK
+93BA: BRK
+93BB: .byte $FF
+93BC: .byte $03
+93BD: BRK
+93BE: BPL $941C
+93C0: BPL $941A
+93C2: BPL $941E
+93C4: BPL $941A
+93C6: BPL $9420
+93C8: BPL $941C
+93CA: BPL $9420
+93CC: BPL $941A
+93CE: BPL $942C
+93D0: BPL $942A
+93D2: BPL $942E
+93D4: BPL $942A
+93D6: BPL $9430
+93D8: BPL $942C
+93DA: BPL $9430
+93DC: BPL $942A
+93DE: BPL $943C
+93E0: BPL $943A
+93E2: BPL $943E
+93E4: BPL $943A
+93E6: BPL $9440
+93E8: BPL $943C
+93EA: BPL $9440
+93EC: BPL $943A
+93EE: BPL $944C
+93F0: BPL $944A
+93F2: BPL $944E
+93F4: BPL $944A
+93F6: BPL $9450
+93F8: BPL $944C
+93FA: BPL $9450
+93FC: BPL $944A
+93FE: .byte $FF
+93FF: BRK
+9400: PLP
+9401: .byte $FF
+9402: .byte $03
+9403: ORA $10
+9405: .byte $34
+9406: BPL $943A
+9408: BPL $9434
+940A: BPL $9440
+940C: BPL $9440
+940E: BMI $943A
+9410: BPL $9446
+9412: BPL $9446
+9414: BPL $943E
+9416: BPL $944C
+9418: BPL $944C
+941A: BMI $9444
+941C: BMI $9444
+941E: BMI $944B
+9420: JSR $1032
+9423: ROL $10,X
+9425: .byte $34
+9426: BPL $9458
+9428: .byte $FF
+9429: ORA ($F8,X)
+942B: BPL $9463
+942D: BPL $9463
+942F: BPL $9461
+9431: .byte $FF
+9432: ORA ($F5,X)
+9434: PHP
+9435: ROL $00,X
+9437: RTI
+9438: .byte $1A
+9439: RTI
+943A: .byte $1A
+943B: RTI
+943C: .byte $1B
+943D: BCC $9447
+943F: .byte $1B
+9440: DEY
+9441: PHP
+9442: .byte $1B
+9443: CLC
+9444: .byte $22
+9445: RTI
+9446: .byte $1A
+9447: RTI
+9448: .byte $1A
+9449: RTI
+944A: .byte $1B
+944B: JSR $2022
+944E: ROL $40
+9450: ROL A
+9451: RTI
+9452: ROL A
+9453: RTI
+9454: PLP
+9455: RTI
+9456: PLP
+9457: RTI
+9458: .byte $27
+9459: RTI
+945A: .byte $27
+945B: RTI
+945C: ROL $40
+945E: ROL $40
+9460: .byte $1B
+9461: RTI
+9462: .byte $1B
+9463: RTI
+9464: JSR $2420
+9467: JSR $4028
+946A: .byte $1B
+946B: RTI
+946C: .byte $1B
+946D: RTI
+946E: JSR $2040
+9471: BRK
+9472: .byte $FF
+9473: ORA ($FE,X)
+9475: .byte $FF
+9476: BRK
+9477: .byte $22
+9478: BPL $948A
+947A: .byte $FF
+947B: BRK
+947C: .byte $23
+947D: BPL $947E
+947F: BRK
+9480: .byte $22
+9481: BPL $9493
+9483: BPL $9484
+9485: BRK
+9486: .byte $23
+9487: BPL $9488
+9489: BRK
+948A: .byte $22
+948B: BPL $949D
+948D: BPL $948E
+948F: BRK
+9490: .byte $23
+9491: BPL $9492
+9493: BRK
+9494: .byte $22
+9495: BPL $94A7
+9497: BPL $9498
+9499: BRK
+949A: .byte $23
+949B: BPL $949C
+949D: BRK
+949E: .byte $22
+949F: BPL $94A0
+94A1: BRK
+94A2: .byte $22
+94A3: BPL $94B5
+94A5: .byte $FF
+94A6: BRK
+94A7: .byte $23
+94A8: BPL $94A9
+94AA: BRK
+94AB: .byte $22
+94AC: BPL $94BE
+94AE: BPL $94AF
+94B0: BRK
+94B1: .byte $23
+94B2: BPL $94B3
+94B4: BRK
+94B5: .byte $22
+94B6: BPL $94C8
+94B8: BPL $94B9
+94BA: BRK
+94BB: .byte $23
+94BC: BPL $94BD
+94BE: BRK
+94BF: .byte $22
+94C0: BPL $94D2
+94C2: BPL $94C3
+94C4: BRK
+94C5: .byte $23
+94C6: BPL $94C7
+94C8: BRK
+94C9: .byte $22
+94CA: BPL $94CB
+94CC: BRK
+94CD: .byte $22
+94CE: BPL $9460
+94D0: BPL $9462
+94D2: BPL $9464
+94D4: BPL $9466
+94D6: BPL $9468
+94D8: BPL $946A
+94DA: BPL $946C
+94DC: BPL $946E
+94DE: BPL $9470
+94E0: BPL $9472
+94E2: BPL $9474
+94E4: BPL $9476
+94E6: BPL $9478
+94E8: BPL $947A
+94EA: BPL $947C
+94EC: .byte $FF
+94ED: BRK
+94EE: .byte $23
+94EF: JSR $00FF
+94F2: .byte $22
+94F3: BPL $9505
+94F5: .byte $FF
+94F6: BRK
+94F7: .byte $23
+94F8: BPL $94F9
+94FA: BRK
+94FB: .byte $22
+94FC: BPL $950E
+94FE: BPL $94FF
+9500: BRK
+9501: .byte $23
+9502: BPL $9503
+9504: BRK
+9505: .byte $22
+9506: BPL $9518
+9508: BPL $9509
+950A: BRK
+950B: .byte $23
+950C: BPL $950D
+950E: BRK
+950F: .byte $22
+9510: BPL $9522
+9512: BPL $9513
+9514: BRK
+9515: .byte $23
+9516: BPL $9517
+9518: BRK
+9519: .byte $22
+951A: BPL $951B
+951C: BRK
+951D: .byte $22
+951E: BPL $9530
+9520: .byte $FF
+9521: BRK
+9522: .byte $23
+9523: BPL $9524
+9525: BRK
+9526: .byte $22
+9527: BPL $9539
+9529: BPL $952A
+952B: BRK
+952C: .byte $23
+952D: BPL $952E
+952F: BRK
+9530: .byte $22
+9531: BPL $9543
+9533: BPL $9534
+9535: BRK
+9536: .byte $23
+9537: BPL $9538
+9539: BRK
+953A: .byte $22
+953B: BPL $954D
+953D: BPL $953E
+953F: BRK
+9540: .byte $23
+9541: BPL $9542
+9543: BRK
+9544: .byte $22
+9545: BPL $9547
+9547: .byte $FF
+9548: BRK
+9549: AND #$FF
+954B: ORA ($00,X)
+954D: ASL $1A
+954F: ASL $24
+9551: ASL $2A
+9553: ASL $2C
+9555: ASL $31
+9557: ASL $34
+9559: .byte $FF
+955A: ORA ($FE,X)
+955C: ASL $2A
+955E: ASL $34
+9560: ASL $3A
+9562: ASL $3C
+9564: ASL $41
+9566: ASL $44
+9568: .byte $FF
+9569: ORA ($FC,X)
+956B: ASL $1A
+956D: ASL $24
+956F: ASL $2A
+9571: ASL $2C
+9573: ASL $31
+9575: ASL $34
+9577: .byte $FF
+9578: ORA ($FA,X)
+957A: ASL $2A
+957C: ASL $34
+957E: ASL $3A
+9580: ASL $3C
+9582: ASL $41
+9584: ASL $44
+9586: BRK
+9587: .byte $FF
+9588: BRK
+9589: AND #$FF
+958B: ORA ($FE,X)
+958D: STX $06
+958F: .byte $1A
+9590: ASL $24
+9592: ASL $2A
+9594: ASL $2C
+9596: ASL $31
+9598: ASL $34
+959A: .byte $FF
+959B: ORA ($FC,X)
+959D: ASL $2A
+959F: ASL $34
+95A1: ASL $3A
+95A3: ASL $3C
+95A5: ASL $41
+95A7: ASL $44
+95A9: .byte $FF
+95AA: ORA ($FA,X)
+95AC: ASL $1A
+95AE: ASL $24
+95B0: ASL $2A
+95B2: ASL $2C
+95B4: ASL $31
+95B6: ASL $34
+95B8: .byte $FF
+95B9: ORA ($F9,X)
+95BB: ASL $2A
+95BD: ASL $34
+95BF: ASL $3A
+95C1: ASL $3C
+95C3: ASL $41
+95C5: BRK
+95C6: PHA
+95C7: .byte $1A
+95C8: INY
+95C9: BRK
+95CA: .byte $FF
+95CB: BRK
+95CC: JSR $01FF
+95CF: BRK
+95D0: .byte $12
+95D1: ROL A
+95D2: ASL $1228,X
+95D5: ROL A
+95D6: .byte $12
+95D7: BMI $95E5
+95D9: PLP
+95DA: .byte $12
+95DB: ROL A
+95DC: ASL $1228,X
+95DF: ROL A
+95E0: .byte $12
+95E1: BMI $95EF
+95E3: .byte $32
+95E4: .byte $12
+95E5: .byte $32
+95E6: .byte $0C
+95E7: .byte $34
+95E8: .byte $12
+95E9: BMI $95FD
+95EB: .byte $32
+95EC: .byte $0C
+95ED: .byte $34
+95EE: .byte $12
+95EF: BMI $9603
+95F1: .byte $32
+95F2: .byte $0C
+95F3: .byte $34
+95F4: .byte $12
+95F5: BMI $9609
+95F7: .byte $32
+95F8: .byte $0C
+95F9: BMI $960D
+95FB: .byte $32
+95FC: .byte $12
+95FD: ROL A
+95FE: ASL $1228,X
+9601: ROL A
+9602: .byte $12
+9603: BMI $9611
+9605: PLP
+9606: .byte $12
+9607: ROL A
+9608: ASL $1228,X
+960B: ROL A
+960C: .byte $12
+960D: BMI $961B
+960F: .byte $32
+9610: .byte $12
+9611: .byte $32
+9612: .byte $0C
+9613: .byte $34
+9614: .byte $12
+9615: BMI $9629
+9617: .byte $32
+9618: .byte $0C
+9619: .byte $34
+961A: .byte $12
+961B: BMI $962F
+961D: .byte $32
+961E: .byte $0C
+961F: .byte $34
+9620: .byte $12
+9621: BMI $9629
+9623: .byte $32
+9624: ASL $30
+9626: ASL $28
+9628: ASL $2A
+962A: ASL $24
+962C: ASL $22
+962E: ASL $20
+9630: ASL $1C
+9632: .byte $12
+9633: .byte $1A
+9634: .byte $12
+9635: .byte $14
+9636: .byte $12
+9637: ROL A
+9638: ROL A
+9639: BIT $12
+963B: .byte $1A
+963C: .byte $12
+963D: .byte $14
+963E: .byte $12
+963F: ROL A
+9640: ROL A
+9641: BIT $12
+9643: .byte $1A
+9644: .byte $12
+9645: .byte $14
+9646: .byte $12
+9647: ROL A
+9648: .byte $12
+9649: BIT $0C
+964B: ROL A
+964C: .byte $0C
+964D: BIT $3012
+9650: .byte $12
+9651: BIT $2A0C
+9654: .byte $12
+9655: .byte $32
+9656: .byte $12
+9657: BMI $9665
+9659: BIT $2A12
+965C: .byte $12
+965D: BIT $12
+965F: .byte $3A
+9660: ROL A
+9661: .byte $34
+9662: .byte $12
+9663: ROL A
+9664: .byte $12
+9665: BIT $12
+9667: .byte $3A
+9668: ROL A
+9669: .byte $34
+966A: .byte $12
+966B: ROL A
+966C: .byte $12
+966D: BIT $12
+966F: .byte $3A
+9670: .byte $12
+9671: .byte $34
+9672: .byte $0C
+9673: .byte $3A
+9674: .byte $0C
+9675: SEC
+9676: .byte $12
+9677: ROL $0C,X
+9679: SEC
+967A: .byte $0C
+967B: .byte $3A
+967C: ASL $36
+967E: .byte $12
+967F: SEC
+9680: .byte $12
+9681: .byte $32
+9682: .byte $0C
+9683: BIT $FF00
+9686: BRK
+9687: JSR $03FF
+968A: PHP
+968B: .byte $FF
+968C: ORA ($FF,X)
+968E: .byte $12
+968F: BIT $1E
+9691: .byte $22
+9692: .byte $12
+9693: BIT $12
+9695: PLP
+9696: .byte $0C
+9697: .byte $22
+9698: .byte $12
+9699: BIT $1E
+969B: .byte $22
+969C: .byte $12
+969D: BIT $12
+969F: PLP
+96A0: .byte $0C
+96A1: ROL A
+96A2: .byte $12
+96A3: ROL A
+96A4: .byte $0C
+96A5: ROL A
+96A6: .byte $12
+96A7: ROL A
+96A8: .byte $12
+96A9: ROL A
+96AA: .byte $0C
+96AB: ROL A
+96AC: .byte $12
+96AD: ROL A
+96AE: .byte $12
+96AF: ROL A
+96B0: .byte $0C
+96B1: ROL A
+96B2: .byte $12
+96B3: ROL A
+96B4: .byte $12
+96B5: ROL A
+96B6: .byte $0C
+96B7: ROL A
+96B8: .byte $12
+96B9: PLP
+96BA: .byte $12
+96BB: BIT $1E
+96BD: .byte $22
+96BE: .byte $12
+96BF: BIT $12
+96C1: PLP
+96C2: .byte $0C
+96C3: .byte $22
+96C4: .byte $12
+96C5: BIT $1E
+96C7: .byte $22
+96C8: .byte $12
+96C9: BIT $12
+96CB: PLP
+96CC: .byte $0C
+96CD: ROL A
+96CE: .byte $12
+96CF: ROL A
+96D0: .byte $0C
+96D1: ROL A
+96D2: .byte $12
+96D3: ROL A
+96D4: .byte $12
+96D5: ROL A
+96D6: .byte $0C
+96D7: ROL A
+96D8: .byte $12
+96D9: ROL A
+96DA: .byte $12
+96DB: ROL A
+96DC: .byte $0C
+96DD: ROL A
+96DE: .byte $12
+96DF: ROL A
+96E0: ASL $2A
+96E2: ASL $28
+96E4: ASL $22
+96E6: ASL $24
+96E8: ASL $20
+96EA: ASL $1C
+96EC: ASL $1A
+96EE: ASL $18
+96F0: .byte $FF
+96F1: ORA ($FE,X)
+96F3: STX $12
+96F5: .byte $1A
+96F6: .byte $12
+96F7: .byte $14
+96F8: .byte $12
+96F9: ROL A
+96FA: ROL A
+96FB: BIT $12
+96FD: .byte $1A
+96FE: .byte $12
+96FF: .byte $14
+9700: .byte $12
+9701: ROL A
+9702: ROL A
+9703: BIT $12
+9705: .byte $1A
+9706: .byte $12
+9707: .byte $14
+9708: .byte $12
+9709: ROL A
+970A: .byte $0C
+970B: BIT $FF
+970D: ORA ($FF,X)
+970F: .byte $0C
+9710: BIT $0C
+9712: .byte $27
+9713: .byte $12
+9714: ROL A
+9715: .byte $12
+9716: PLP
+9717: .byte $0C
+9718: ROL A
+9719: .byte $12
+971A: PLP
+971B: .byte $12
+971C: .byte $22
+971D: .byte $12
+971E: PLP
+971F: .byte $FF
+9720: ORA ($FE,X)
+9722: .byte $12
+9723: ROL A
+9724: .byte $12
+9725: BIT $12
+9727: .byte $3A
+9728: ROL A
+9729: .byte $34
+972A: .byte $12
+972B: ROL A
+972C: .byte $12
+972D: BIT $12
+972F: .byte $3A
+9730: ROL A
+9731: .byte $34
+9732: .byte $12
+9733: ROL A
+9734: .byte $12
+9735: BIT $12
+9737: .byte $3A
+9738: .byte $0C
+9739: .byte $34
+973A: .byte $FF
+973B: ORA ($FF,X)
+973D: .byte $0C
+973E: .byte $34
+973F: .byte $0C
+9740: .byte $32
+9741: .byte $12
+9742: BMI $9750
+9744: .byte $32
+9745: .byte $12
+9746: .byte $34
+9747: .byte $FF
+9748: ORA ($FE,X)
+974A: ASL $36
+974C: ASL $38
+974E: ASL $32
+9750: ASL $2C
+9752: ASL $32
+9754: ASL $2C
+9756: ASL $28
+9758: ASL $22
+975A: BRK
+975B: ASL $1A
+975D: STX $06
+975F: ROL A
+9760: ASL $2A
+9762: ASL $1A
+9764: STX $06
+9766: ROL A
+9767: ASL $2A
+9769: ASL $1A
+976B: STX $06
+976D: ROL A
+976E: ASL $2A
+9770: ASL $1A
+9772: STX $06
+9774: ROL A
+9775: ASL $2A
+9777: ASL $1A
+9779: STX $06
+977B: ROL A
+977C: ASL $2A
+977E: ASL $1A
+9780: STX $06
+9782: ROL A
+9783: ASL $2A
+9785: ASL $1A
+9787: STX $06
+9789: ROL A
+978A: ASL $2A
+978C: ASL $1A
+978E: STX $06
+9790: ROL A
+9791: ASL $2A
+9793: ASL $17
+9795: STX $06
+9797: .byte $27
+9798: ASL $27
+979A: ASL $17
+979C: STX $06
+979E: .byte $27
+979F: ASL $27
+97A1: ASL $17
+97A3: STX $06
+97A5: .byte $27
+97A6: ASL $27
+97A8: ASL $17
+97AA: STX $06
+97AC: .byte $27
+97AD: ASL $27
+97AF: ASL $16
+97B1: STX $06
+97B3: ROL $06
+97B5: ROL $06
+97B7: ASL $86,X
+97B9: ASL $26
+97BB: ASL $26
+97BD: ASL $16
+97BF: STX $06
+97C1: ROL $06
+97C3: ROL $06
+97C5: ASL $06,X
+97C7: ROL $06
+97C9: CLC
+97CA: ASL $28
+97CC: ASL $1A
+97CE: STX $06
+97D0: ROL A
+97D1: ASL $2A
+97D3: ASL $1A
+97D5: STX $06
+97D7: ROL A
+97D8: ASL $2A
+97DA: ASL $1A
+97DC: STX $06
+97DE: ROL A
+97DF: ASL $2A
+97E1: ASL $1A
+97E3: STX $06
+97E5: ROL A
+97E6: ASL $2A
+97E8: ASL $1A
+97EA: STX $06
+97EC: ROL A
+97ED: ASL $2A
+97EF: ASL $1A
+97F1: STX $06
+97F3: ROL A
+97F4: ASL $2A
+97F6: ASL $1A
+97F8: STX $06
+97FA: ROL A
+97FB: ASL $2A
+97FD: ASL $1A
+97FF: STX $06
+9801: ROL A
+9802: ASL $2A
+9804: ASL $17
+9806: STX $06
+9808: .byte $27
+9809: ASL $27
+980B: ASL $17
+980D: STX $06
+980F: .byte $27
+9810: ASL $27
+9812: ASL $17
+9814: STX $06
+9816: .byte $27
+9817: ASL $27
+9819: ASL $17
+981B: STX $06
+981D: .byte $27
+981E: ASL $27
+9820: ASL $16
+9822: STX $06
+9824: ROL $06
+9826: ROL $06
+9828: ASL $86,X
+982A: ASL $26
+982C: ASL $26
+982E: ASL $16
+9830: STX $06
+9832: ROL $06
+9834: ROL $06
+9836: ASL $06,X
+9838: ROL $06
+983A: CLC
+983B: ASL $28
+983D: ASL $1A
+983F: STX $06
+9841: ROL A
+9842: ASL $2A
+9844: ASL $1A
+9846: STX $06
+9848: ROL A
+9849: ASL $2A
+984B: ASL $1A
+984D: STX $06
+984F: ROL A
+9850: ASL $2A
+9852: ASL $1A
+9854: STX $06
+9856: ROL A
+9857: ASL $2A
+9859: ASL $18
+985B: STX $06
+985D: PLP
+985E: ASL $28
+9860: ASL $18
+9862: STX $06
+9864: PLP
+9865: ASL $28
+9867: ASL $18
+9869: STX $06
+986B: PLP
+986C: ASL $28
+986E: ASL $18
+9870: STX $06
+9872: PLP
+9873: ASL $28
+9875: ASL $17
+9877: STX $06
+9879: .byte $27
+987A: ASL $27
+987C: ASL $17
+987E: STX $06
+9880: .byte $27
+9881: ASL $27
+9883: ASL $17
+9885: STX $06
+9887: .byte $27
+9888: ASL $27
+988A: ASL $17
+988C: STX $06
+988E: .byte $27
+988F: ASL $27
+9891: ASL $16
+9893: STX $06
+9895: ROL $06
+9897: ROL $06
+9899: ASL $86,X
+989B: ASL $26
+989D: ASL $26
+989F: ASL $18
+98A1: STX $06
+98A3: PLP
+98A4: ASL $28
+98A6: ASL $18
+98A8: STX $06
+98AA: PLP
+98AB: ASL $28
+98AD: ASL $1A
+98AF: STX $06
+98B1: ROL A
+98B2: ASL $2A
+98B4: ASL $1A
+98B6: STX $06
+98B8: ROL A
+98B9: ASL $2A
+98BB: ASL $1A
+98BD: STX $06
+98BF: ROL A
+98C0: ASL $2A
+98C2: ASL $1A
+98C4: STX $06
+98C6: ROL A
+98C7: ASL $2A
+98C9: ASL $18
+98CB: STX $06
+98CD: PLP
+98CE: ASL $28
+98D0: ASL $18
+98D2: STX $06
+98D4: PLP
+98D5: ASL $28
+98D7: ASL $18
+98D9: STX $06
+98DB: PLP
+98DC: ASL $28
+98DE: ASL $18
+98E0: STX $06
+98E2: PLP
+98E3: ASL $28
+98E5: ASL $17
+98E7: STX $06
+98E9: .byte $27
+98EA: ASL $27
+98EC: ASL $17
+98EE: STX $06
+98F0: .byte $27
+98F1: ASL $27
+98F3: ASL $17
+98F5: STX $06
+98F7: .byte $27
+98F8: ASL $27
+98FA: ASL $17
+98FC: STX $06
+98FE: .byte $27
+98FF: ASL $27
+9901: ASL $16
+9903: STX $06
+9905: ROL $06
+9907: ROL $06
+9909: ASL $86,X
+990B: ASL $26
+990D: ASL $26
+990F: ASL $18
+9911: STX $06
+9913: PLP
+9914: ASL $28
+9916: ASL $18
+9918: STX $06
+991A: PLP
+991B: ASL $28
+991D: BRK
+991E: .byte $FF
+991F: ORA ($FE,X)
+9921: .byte $FF
+9922: BRK
+9923: .byte $22
+9924: ASL $06
+9926: .byte $FF
+9927: BRK
+9928: .byte $23
+9929: ASL $FF
+992B: BRK
+992C: .byte $22
+992D: ASL $06
+992F: ASL $FF
+9931: BRK
+9932: .byte $23
+9933: ASL $FF
+9935: BRK
+9936: .byte $22
+9937: ASL $06
+9939: ASL $FF
+993B: BRK
+993C: .byte $23
+993D: ASL $FF
+993F: BRK
+9940: .byte $22
+9941: ASL $06
+9943: ASL $FF
+9945: BRK
+9946: .byte $23
+9947: ASL $FF
+9949: BRK
+994A: .byte $22
+994B: ASL $06
+994D: ASL $FF
+994F: BRK
+9950: .byte $23
+9951: ASL $FF
+9953: BRK
+9954: .byte $22
+9955: ASL $06
+9957: ASL $FF
+9959: BRK
+995A: .byte $23
+995B: ASL $FF
+995D: BRK
+995E: .byte $22
+995F: ASL $06
+9961: ASL $FF
+9963: BRK
+9964: .byte $23
+9965: ASL $FF
+9967: BRK
+9968: .byte $22
+9969: ASL $06
+996B: ASL $FF
+996D: BRK
+996E: .byte $23
+996F: ASL $FF
+9971: BRK
+9972: .byte $22
+9973: ASL $06
+9975: ASL $FF
+9977: BRK
+9978: .byte $23
+9979: ASL $FF
+997B: BRK
+997C: .byte $22
+997D: ASL $06
+997F: ASL $FF
+9981: BRK
+9982: .byte $23
+9983: ASL $FF
+9985: BRK
+9986: .byte $22
+9987: ASL $06
+9989: ASL $FF
+998B: BRK
+998C: .byte $23
+998D: ASL $FF
+998F: BRK
+9990: .byte $22
+9991: ASL $06
+9993: ASL $FF
+9995: BRK
+9996: .byte $23
+9997: ASL $FF
+9999: BRK
+999A: .byte $22
+999B: ASL $06
+999D: ASL $FF
+999F: BRK
+99A0: .byte $23
+99A1: ASL $FF
+99A3: BRK
+99A4: .byte $22
+99A5: ASL $06
+99A7: ASL $FF
+99A9: BRK
+99AA: .byte $23
+99AB: ASL $FF
+99AD: BRK
+99AE: .byte $22
+99AF: ASL $06
+99B1: ASL $FF
+99B3: BRK
+99B4: .byte $23
+99B5: ASL $FF
+99B7: BRK
+99B8: .byte $22
+99B9: ASL $06
+99BB: ASL $FF
+99BD: BRK
+99BE: .byte $23
+99BF: ASL $FF
+99C1: BRK
+99C2: .byte $22
+99C3: ASL $06
+99C5: ASL $FF
+99C7: BRK
+99C8: .byte $23
+99C9: ASL $FF
+99CB: BRK
+99CC: .byte $22
+99CD: ASL $06
+99CF: ASL $FF
+99D1: BRK
+99D2: .byte $23
+99D3: ASL $FF
+99D5: BRK
+99D6: .byte $22
+99D7: ASL $06
+99D9: ASL $FF
+99DB: BRK
+99DC: .byte $23
+99DD: ASL $FF
+99DF: BRK
+99E0: .byte $22
+99E1: ASL $06
+99E3: ASL $FF
+99E5: BRK
+99E6: .byte $23
+99E7: ASL $FF
+99E9: BRK
+99EA: .byte $22
+99EB: ASL $06
+99ED: ASL $FF
+99EF: BRK
+99F0: .byte $23
+99F1: ASL $FF
+99F3: BRK
+99F4: .byte $22
+99F5: ASL $06
+99F7: ASL $FF
+99F9: BRK
+99FA: .byte $23
+99FB: ASL $FF
+99FD: BRK
+99FE: .byte $22
+99FF: ASL $06
+9A01: ASL $FF
+9A03: BRK
+9A04: .byte $23
+9A05: ASL $FF
+9A07: BRK
+9A08: .byte $22
+9A09: ASL $06
+9A0B: ASL $FF
+9A0D: BRK
+9A0E: .byte $23
+9A0F: ASL $FF
+9A11: BRK
+9A12: .byte $22
+9A13: ASL $06
+9A15: ASL $FF
+9A17: BRK
+9A18: .byte $23
+9A19: ASL $FF
+9A1B: BRK
+9A1C: .byte $22
+9A1D: ASL $06
+9A1F: ASL $FF
+9A21: BRK
+9A22: .byte $23
+9A23: ASL $FF
+9A25: BRK
+9A26: .byte $22
+9A27: ASL $06
+9A29: ASL $FF
+9A2B: BRK
+9A2C: .byte $23
+9A2D: ASL $FF
+9A2F: BRK
+9A30: .byte $22
+9A31: ASL $06
+9A33: ASL $FF
+9A35: BRK
+9A36: .byte $23
+9A37: ASL $FF
+9A39: BRK
+9A3A: .byte $22
+9A3B: ASL $06
+9A3D: ASL $FF
+9A3F: BRK
+9A40: .byte $23
+9A41: ASL $FF
+9A43: BRK
+9A44: .byte $22
+9A45: ASL $06
+9A47: ASL $FF
+9A49: BRK
+9A4A: .byte $23
+9A4B: ASL $FF
+9A4D: BRK
+9A4E: .byte $22
+9A4F: ASL $FF
+9A51: BRK
+9A52: .byte $23
+9A53: ASL $06
+9A55: ASL $06
+9A57: ASL $06
+9A59: ASL $06
+9A5B: .byte $FF
+9A5C: BRK
+9A5D: .byte $22
+9A5E: ASL $06
+9A60: .byte $FF
+9A61: BRK
+9A62: .byte $23
+9A63: ASL $FF
+9A65: BRK
+9A66: .byte $22
+9A67: ASL $06
+9A69: ASL $FF
+9A6B: BRK
+9A6C: .byte $23
+9A6D: ASL $FF
+9A6F: BRK
+9A70: .byte $22
+9A71: ASL $06
+9A73: ASL $FF
+9A75: BRK
+9A76: .byte $23
+9A77: ASL $FF
+9A79: BRK
+9A7A: .byte $22
+9A7B: ASL $06
+9A7D: ASL $FF
+9A7F: BRK
+9A80: .byte $23
+9A81: ASL $FF
+9A83: BRK
+9A84: .byte $22
+9A85: ASL $06
+9A87: ASL $FF
+9A89: BRK
+9A8A: .byte $23
+9A8B: ASL $FF
+9A8D: BRK
+9A8E: .byte $22
+9A8F: ASL $06
+9A91: ASL $FF
+9A93: BRK
+9A94: .byte $23
+9A95: ASL $FF
+9A97: BRK
+9A98: .byte $22
+9A99: ASL $06
+9A9B: ASL $FF
+9A9D: BRK
+9A9E: .byte $23
+9A9F: ASL $FF
+9AA1: BRK
+9AA2: .byte $22
+9AA3: ASL $06
+9AA5: ASL $FF
+9AA7: BRK
+9AA8: .byte $23
+9AA9: ASL $FF
+9AAB: BRK
+9AAC: .byte $22
+9AAD: ASL $06
+9AAF: ASL $FF
+9AB1: BRK
+9AB2: .byte $23
+9AB3: ASL $FF
+9AB5: BRK
+9AB6: .byte $22
+9AB7: ASL $06
+9AB9: ASL $FF
+9ABB: BRK
+9ABC: .byte $23
+9ABD: ASL $FF
+9ABF: BRK
+9AC0: .byte $22
+9AC1: ASL $06
+9AC3: ASL $FF
+9AC5: BRK
+9AC6: .byte $23
+9AC7: ASL $FF
+9AC9: BRK
+9ACA: .byte $22
+9ACB: ASL $06
+9ACD: ASL $FF
+9ACF: BRK
+9AD0: .byte $23
+9AD1: ASL $FF
+9AD3: BRK
+9AD4: .byte $22
+9AD5: ASL $06
+9AD7: ASL $FF
+9AD9: BRK
+9ADA: .byte $23
+9ADB: ASL $FF
+9ADD: BRK
+9ADE: .byte $22
+9ADF: ASL $06
+9AE1: ASL $FF
+9AE3: BRK
+9AE4: .byte $23
+9AE5: ASL $FF
+9AE7: BRK
+9AE8: .byte $22
+9AE9: ASL $06
+9AEB: ASL $FF
+9AED: BRK
+9AEE: .byte $23
+9AEF: ASL $FF
+9AF1: BRK
+9AF2: .byte $22
+9AF3: ASL $06
+9AF5: ASL $FF
+9AF7: BRK
+9AF8: .byte $23
+9AF9: ASL $FF
+9AFB: BRK
+9AFC: .byte $22
+9AFD: ASL $FF
+9AFF: BRK
+9B00: .byte $22
+9B01: ASL $06
+9B03: .byte $FF
+9B04: BRK
+9B05: .byte $23
+9B06: ASL $FF
+9B08: BRK
+9B09: .byte $22
+9B0A: ASL $06
+9B0C: ASL $FF
+9B0E: BRK
+9B0F: .byte $23
+9B10: ASL $FF
+9B12: BRK
+9B13: .byte $22
+9B14: ASL $06
+9B16: ASL $FF
+9B18: BRK
+9B19: .byte $23
+9B1A: ASL $FF
+9B1C: BRK
+9B1D: .byte $22
+9B1E: ASL $06
+9B20: ASL $FF
+9B22: BRK
+9B23: .byte $23
+9B24: ASL $FF
+9B26: BRK
+9B27: .byte $22
+9B28: ASL $06
+9B2A: ASL $FF
+9B2C: BRK
+9B2D: .byte $23
+9B2E: ASL $FF
+9B30: BRK
+9B31: .byte $22
+9B32: ASL $06
+9B34: ASL $FF
+9B36: BRK
+9B37: .byte $23
+9B38: ASL $FF
+9B3A: BRK
+9B3B: .byte $22
+9B3C: ASL $06
+9B3E: ASL $FF
+9B40: BRK
+9B41: .byte $23
+9B42: ASL $FF
+9B44: BRK
+9B45: .byte $22
+9B46: ASL $06
+9B48: ASL $FF
+9B4A: BRK
+9B4B: .byte $23
+9B4C: ASL $FF
+9B4E: BRK
+9B4F: .byte $22
+9B50: ASL $06
+9B52: ASL $FF
+9B54: BRK
+9B55: .byte $23
+9B56: ASL $FF
+9B58: BRK
+9B59: .byte $22
+9B5A: ASL $06
+9B5C: ASL $FF
+9B5E: BRK
+9B5F: .byte $23
+9B60: ASL $FF
+9B62: BRK
+9B63: .byte $22
+9B64: ASL $06
+9B66: ASL $FF
+9B68: BRK
+9B69: .byte $23
+9B6A: ASL $FF
+9B6C: BRK
+9B6D: .byte $22
+9B6E: ASL $06
+9B70: ASL $FF
+9B72: BRK
+9B73: .byte $23
+9B74: ASL $FF
+9B76: BRK
+9B77: .byte $22
+9B78: ASL $06
+9B7A: ASL $FF
+9B7C: BRK
+9B7D: .byte $23
+9B7E: ASL $FF
+9B80: BRK
+9B81: .byte $22
+9B82: ASL $06
+9B84: ASL $FF
+9B86: BRK
+9B87: .byte $23
+9B88: ASL $FF
+9B8A: BRK
+9B8B: .byte $22
+9B8C: ASL $FF
+9B8E: BRK
+9B8F: .byte $23
+9B90: ASL $06
+9B92: ASL $06
+9B94: ASL $06
+9B96: .byte $FF
+9B97: BRK
+9B98: .byte $22
+9B99: ASL $FF
+9B9B: BRK
+9B9C: .byte $23
+9B9D: ASL $00
+9B9F: BRK
+9BA0: BRK
+9BA1: BRK
+9BA2: BRK
+9BA3: BRK
+9BA4: BRK
+9BA5: BRK
+9BA6: BRK
+9BA7: BRK
+9BA8: BRK
+9BA9: BRK
+9BAA: BRK
+9BAB: BRK
+9BAC: BRK
+9BAD: BRK
+9BAE: BRK
+9BAF: BRK
+9BB0: BRK
+9BB1: BRK
+9BB2: BRK
+9BB3: BRK
+9BB4: BRK
+9BB5: BRK
+9BB6: BRK
+9BB7: BRK
+9BB8: BRK
+9BB9: BRK
+9BBA: BRK
+9BBB: BRK
+9BBC: BRK
+9BBD: BRK
+9BBE: BRK
+9BBF: BRK
+9BC0: BRK
+9BC1: BRK
+9BC2: BRK
+9BC3: BRK
+9BC4: BRK
+9BC5: BRK
+9BC6: BRK
+9BC7: BRK
+9BC8: BRK
+9BC9: BRK
+9BCA: ASL $3D37
+9BCD: ROL $083F,X
+9BD0: ORA #$00
+9BD2: BRK
+9BD3: ASL A
+9BD4: .byte $0B
+9BD5: BRK
+9BD6: BRK
+9BD7: BRK
+9BD8: BRK
+9BD9: PLP
+9BDA: .byte $7F
+9BDB: BRK
+9BDC: BRK
+9BDD: BRK
+9BDE: .byte $80
+9BDF: ASL $01
+9BE1: ORA ($00,X)
+9BE3: BRK
+9BE4: LDY #$00
+9BE6: .byte $03
+9BE7: BPL $9BE9
+9BE9: BRK
+9BEA: BRK
+9BEB: BRK
+9BEC: BRK
+9BED: BRK
+9BEE: BRK
+9BEF: BRK
+9BF0: .byte $FF
+9BF1: .byte $FF
+9BF2: .byte $FF
+9BF3: .byte $FF
+9BF4: .byte $03
+9BF5: ORA ($00,X)
+9BF7: BRK
+9BF8: BRK
+9BF9: .byte $32
+9BFA: BRK
+9BFB: .byte $12
+9BFC: .byte $03
+9BFD: ORA ($10,X)
+9BFF: BRK
+9C00: BRK
+9C01: BRK
+9C02: BRK
+9C03: BRK
+9C04: BRK
+9C05: BRK
+9C06: BRK
+9C07: BRK
+9C08: BRK
+9C09: BRK
+9C0A: BRK
+9C0B: BRK
+9C0C: BRK
+9C0D: BRK
+9C0E: BRK
+9C0F: ROL $4000,X
+9C12: BRK
+9C13: BRK
+9C14: BRK
+9C15: .byte $80
+9C16: BRK
+9C17: .byte $80
+9C18: BRK
+9C19: LDY #$00
+9C1B: BRK
+9C1C: BRK
+9C1D: BRK
+9C1E: BRK
+9C1F: BRK
+9C20: BRK
+9C21: BRK
+9C22: BRK
+9C23: .byte $3C
+9C24: BRK
+9C25: BRK
+9C26: BRK
+9C27: BRK
+9C28: BRK
+9C29: BRK
+9C2A: BRK
+9C2B: BRK
+9C2C: BRK
+9C2D: ORA $00
+9C2F: BRK
+9C30: BRK
+9C31: BRK
+9C32: ORA ($00,X)
+9C34: BRK
+9C35: BRK
+9C36: BRK
+9C37: BRK
+9C38: BRK
+9C39: BRK
+9C3A: BRK
+9C3B: BRK
+9C3C: BRK
+9C3D: BRK
+9C3E: BRK
+9C3F: BRK
+9C40: BRK
+9C41: BRK
+9C42: ORA ($00,X)
+9C44: BRK
+9C45: BRK
+9C46: BRK
+9C47: BRK
+9C48: BRK
+9C49: BRK
+9C4A: BRK
+9C4B: BRK
+9C4C: BRK
+9C4D: BRK
+9C4E: BRK
+9C4F: BRK
+9C50: BRK
+9C51: BRK
+9C52: ORA ($00,X)
+9C54: BRK
+9C55: BRK
+9C56: BRK
+9C57: BRK
+9C58: .byte $9F
+9C59: BRK
+9C5A: BRK
+9C5B: BRK
+9C5C: BRK
+9C5D: BRK
+9C5E: BRK
+9C5F: BRK
+9C60: BRK
+9C61: BRK
+9C62: ORA ($00,X)
+9C64: BRK
+9C65: BRK
+9C66: BRK
+9C67: BRK
+9C68: CPY #$02
+9C6A: BRK
+9C6B: BRK
+9C6C: BRK
+9C6D: BRK
+9C6E: BRK
+9C6F: BRK
+9C70: BRK
+9C71: BRK
+9C72: ORA ($00,X)
+9C74: BRK
+9C75: BRK
+9C76: BRK
+9C77: BRK
+9C78: .byte $8F
+9C79: ORA ($00,X)
+9C7B: BRK
+9C7C: BRK
+9C7D: BRK
+9C7E: BRK
+9C7F: .byte $0F
+9C80: BRK
+9C81: BRK
+9C82: BRK
+9C83: BRK
+9C84: BRK
+9C85: BRK
+9C86: BRK
+9C87: BRK
+9C88: BRK
+9C89: BRK
+9C8A: BRK
+9C8B: BRK
+9C8C: JSR $0200
+9C8F: BRK
+9C90: BRK
+9C91: .byte $03
+9C92: BRK
+9C93: BRK
+9C94: BRK
+9C95: BRK
+9C96: BRK
+9C97: .byte $02
+9C98: BRK
+9C99: ORA ($00,X)
+9C9B: BRK
+9C9C: .byte $44
+9C9D: BRK
+9C9E: .byte $FB
+9C9F: CMP $DEDD,X
+9CA2: .byte $DF
+9CA3: .byte $DF
+9CA4: .byte $FB
+9CA5: CMP $DDDD,X
+9CA8: DEC $FBDF,X
+9CAB: CMP $DFDE,X
+9CAE: .byte $DF
+9CAF: .byte $DF
+9CB0: .byte $FB
+9CB1: CMP $DFDF,X
+9CB4: .byte $DF
+9CB5: .byte $DF
+9CB6: .byte $FB
+9CB7: CPY #$C0
+9CB9: CPY #$C0
+9CBB: CPY #$C0
+9CBD: .byte $FB
+9CBE: .byte $FB
+9CBF: .byte $DA
+9CC0: .byte $DA
+9CC1: .byte $DA
+9CC2: .byte $DA
+9CC3: .byte $DC
+9CC4: .byte $FB
+9CC5: .byte $DB
+9CC6: .byte $DF
+9CC7: .byte $DF
+9CC8: .byte $DF
+9CC9: .byte $DF
+9CCA: .byte $FB
+9CCB: .byte $DA
+9CCC: .byte $DA
+9CCD: .byte $DA
+9CCE: .byte $DA
+9CCF: .byte $DB
+9CD0: .byte $FB
+9CD1: .byte $DA
+9CD2: .byte $DA
+9CD3: .byte $DA
+9CD4: .byte $DB
+9CD5: .byte $DC
+9CD6: .byte $FB
+9CD7: CPY #$C0
+9CD9: CPY #$C0
+9CDB: CPY #$C0
+9CDD: .byte $FB
+9CDE: BRK
+9CDF: BRK
+9CE0: BRK
+9CE1: BRK
+9CE2: BRK
+9CE3: BRK
+9CE4: BRK
+9CE5: BRK
+9CE6: BRK
+9CE7: BRK
+9CE8: BRK
+9CE9: BRK
+9CEA: BRK
+9CEB: BRK
+9CEC: BRK
+9CED: BRK
+9CEE: BRK
+9CEF: BRK
+9CF0: BRK
+9CF1: BRK
+9CF2: BRK
+9CF3: BRK
+9CF4: BRK
+9CF5: BRK
+9CF6: BRK
+9CF7: BRK
+9CF8: BRK
+9CF9: BRK
+9CFA: BRK
+9CFB: BRK
+9CFC: BRK
+9CFD: BRK
+9CFE: BRK
+9CFF: BRK
+9D00: BRK
+9D01: BRK
+9D02: BRK
+9D03: BRK
+9D04: BRK
+9D05: BRK
+9D06: BRK
+9D07: BRK
+9D08: BRK
+9D09: BRK
+9D0A: BRK
+9D0B: BRK
+9D0C: BRK
+9D0D: BRK
+9D0E: BRK
+9D0F: BRK
+9D10: BRK
+9D11: BRK
+9D12: BRK
+9D13: BRK
+9D14: BRK
+9D15: BRK
+9D16: BRK
+9D17: BRK
+9D18: BRK
+9D19: BRK
+9D1A: BRK
+9D1B: BRK
+9D1C: BRK
+9D1D: BRK
+9D1E: BRK
+9D1F: BRK
+9D20: BRK
+9D21: BRK
+9D22: BRK
+9D23: BRK
+9D24: BRK
+9D25: BRK
+9D26: BRK
+9D27: BRK
+9D28: BRK
+9D29: BRK
+9D2A: BRK
+9D2B: BRK
+9D2C: BRK
+9D2D: BRK
+9D2E: BRK
+9D2F: BRK
+9D30: BRK
+9D31: BRK
+9D32: BRK
+9D33: BRK
+9D34: BRK
+9D35: BRK
+9D36: BRK
+9D37: BRK
+9D38: BRK
+9D39: BRK
+9D3A: BRK
+9D3B: BRK
+9D3C: BRK
+9D3D: BRK
+9D3E: .byte $FF
+9D3F: .byte $FF
+9D40: .byte $FF
+9D41: .byte $FF
+9D42: .byte $FF
+9D43: .byte $FF
+9D44: .byte $FF
+9D45: .byte $FF
+9D46: .byte $FF
+9D47: .byte $FF
+9D48: .byte $FF
+9D49: .byte $FF
+9D4A: .byte $FF
+9D4B: .byte $FF
+9D4C: .byte $FF
+9D4D: .byte $FF
+9D4E: BRK
+9D4F: BRK
+9D50: BRK
+9D51: BRK
+9D52: BRK
+9D53: BRK
+9D54: BRK
+9D55: BRK
+9D56: BRK
+9D57: BRK
+9D58: BRK
+9D59: BRK
+9D5A: BRK
+9D5B: BRK
+9D5C: BRK
+9D5D: BRK
+9D5E: BRK
+9D5F: .byte $32
+9D60: BRK
+9D61: BRK
+9D62: BRK
+9D63: BRK
+9D64: BRK
+9D65: BRK
+9D66: BRK
+9D67: BRK
+9D68: BRK
+9D69: BRK
+9D6A: BRK
+9D6B: BRK
+9D6C: BRK
+9D6D: BRK
+9D6E: BRK
+9D6F: BRK
+9D70: BRK
+9D71: BRK
+9D72: BRK
+9D73: BRK
+9D74: BRK
+9D75: BRK
+9D76: BRK
+9D77: BRK
+9D78: BRK
+9D79: BRK
+9D7A: BRK
+9D7B: BRK
+9D7C: BRK
+9D7D: BRK
+9D7E: BRK
+9D7F: BRK
+9D80: BRK
+9D81: BRK
+9D82: BRK
+9D83: BRK
+9D84: BRK
+9D85: BRK
+9D86: BRK
+9D87: BRK
+9D88: BRK
+9D89: BRK
+9D8A: BRK
+9D8B: BRK
+9D8C: BRK
+9D8D: BRK
+9D8E: BRK
+9D8F: BRK
+9D90: BRK
+9D91: BRK
+9D92: BRK
+9D93: BRK
+9D94: BRK
+9D95: BRK
+9D96: BRK
+9D97: BRK
+9D98: BRK
+9D99: BRK
+9D9A: BRK
+9D9B: BRK
+9D9C: BRK
+9D9D: BRK
+9D9E: BRK
+9D9F: BRK
+9DA0: CPY #$C0
+9DA2: CPY #$C0
+9DA4: CPY #$C0
+9DA6: CPY #$C0
+9DA8: CPY #$C0
+9DAA: CPY #$C0
+9DAC: CPY #$C0
+9DAE: CPY #$C0
+9DB0: CPY #$C0
+9DB2: CPY #$00
+9DB4: CPY #$C0
+9DB6: CPY #$C0
+9DB8: CPY #$C0
+9DBA: CPY #$C0
+9DBC: CPY #$C0
+9DBE: CPY #$C0
+9DC0: CPY #$C0
+9DC2: CPY #$C0
+9DC4: CPY #$C0
+9DC6: CPY #$00
+9DC8: BRK
+9DC9: ORA ($01,X)
+9DCB: BRK
+9DCC: BRK
+9DCD: ORA ($03,X)
+9DCF: BRK
+9DD0: BRK
+9DD1: ORA ($00,X)
+9DD3: BRK
+9DD4: BRK
+9DD5: BRK
+9DD6: ROL $50,X
+9DD8: BRK
+9DD9: ORA $01
+9DDB: BRK
+9DDC: BRK
+9DDD: ORA ($03,X)
+9DDF: BRK
+9DE0: BRK
+9DE1: ORA ($00,X)
+9DE3: BRK
+9DE4: BRK
+9DE5: BRK
+9DE6: .byte $37
+9DE7: BVC $9DE9
+9DE9: ORA #$01
+9DEB: BRK
+9DEC: BRK
+9DED: ORA ($03,X)
+9DEF: BRK
+9DF0: BRK
+9DF1: ORA ($00,X)
+9DF3: BRK
+9DF4: BRK
+9DF5: BRK
+9DF6: SEC
+9DF7: BVC $9DF9
+9DF9: ORA $0001
+9DFC: BRK
+9DFD: ORA ($03,X)
+9DFF: BRK
+9E00: BRK
+9E01: ORA ($00,X)
+9E03: BRK
+9E04: BRK
+9E05: BRK
+9E06: AND $0050,Y
+9E09: ORA ($00),Y
+9E0B: ORA ($00,X)
+9E0D: ORA ($03,X)
+9E0F: BRK
+9E10: BRK
+9E11: ORA ($00,X)
+9E13: BRK
+9E14: BRK
+9E15: BRK
+9E16: AND $0050,Y
+9E19: ORA $00,X
+9E1B: ORA ($00,X)
+9E1D: ORA ($03,X)
+9E1F: BRK
+9E20: BRK
+9E21: ORA ($00,X)
+9E23: BRK
+9E24: BRK
+9E25: BRK
+9E26: .byte $3A
+9E27: BVC $9E29
+9E29: JSR $0200
+9E2C: BRK
+9E2D: ORA ($03,X)
+9E2F: BRK
+9E30: BRK
+9E31: ORA ($00,X)
+9E33: BRK
+9E34: BRK
+9E35: BRK
+9E36: BMI $9E48
+9E38: BRK
+9E39: JSR $0200
+9E3C: BRK
+9E3D: ORA ($03,X)
+9E3F: BRK
+9E40: BRK
+9E41: ORA ($00,X)
+9E43: BRK
+9E44: BRK
+9E45: BRK
+9E46: BMI $9E58
+9E48: BRK
+9E49: JSR $0200
+9E4C: BRK
+9E4D: ORA ($03,X)
+9E4F: BRK
+9E50: BRK
+9E51: ORA ($00,X)
+9E53: BRK
+9E54: BRK
+9E55: BRK
+9E56: BMI $9E68
+9E58: BRK
+9E59: SBC ($00,X)
+9E5B: ORA ($00,X)
+9E5D: ORA ($00,X)
+9E5F: BRK
+9E60: BRK
+9E61: ORA ($00,X)
+9E63: BRK
+9E64: BRK
+9E65: BRK
+9E66: BMI $9E78
+9E68: BRK
+9E69: SBC #$00
+9E6B: ORA ($00,X)
+9E6D: ORA ($00,X)
+9E6F: BRK
+9E70: BRK
+9E71: ORA ($00,X)
+9E73: BRK
+9E74: BRK
+9E75: BRK
+9E76: BMI $9E88
+9E78: BRK
+9E79: CPX #$00
+9E7B: ORA ($00,X)
+9E7D: ORA ($00,X)
+9E7F: BRK
+9E80: BRK
+9E81: ORA ($00,X)
+9E83: BRK
+9E84: BRK
+9E85: BRK
+9E86: BMI $9E98
+9E88: BRK
+9E89: CPX #$00
+9E8B: ORA ($00,X)
+9E8D: ORA ($00,X)
+9E8F: BRK
+9E90: BRK
+9E91: ORA ($00,X)
+9E93: BRK
+9E94: BRK
+9E95: BRK
+9E96: BMI $9EA8
+9E98: BRK
+9E99: CPX #$00
+9E9B: ORA ($00,X)
+9E9D: ORA ($00,X)
+9E9F: BRK
+9EA0: BRK
+9EA1: ORA ($00,X)
+9EA3: BRK
+9EA4: BRK
+9EA5: BRK
+9EA6: BMI $9EB8
+9EA8: BRK
+9EA9: CPX #$00
+9EAB: ORA ($00,X)
+9EAD: ORA ($00,X)
+9EAF: BRK
+9EB0: BRK
+9EB1: ORA ($00,X)
+9EB3: BRK
+9EB4: BRK
+9EB5: BRK
+9EB6: BMI $9EC8
+9EB8: BRK
+9EB9: CPX #$00
+9EBB: ORA ($00,X)
+9EBD: ORA ($00,X)
+9EBF: BRK
+9EC0: BRK
+9EC1: ORA ($00,X)
+9EC3: BRK
+9EC4: BRK
+9EC5: BRK
+9EC6: BMI $9ED8
+9EC8: BRK
+9EC9: .byte $1F
+9ECA: .byte $1F
+9ECB: .byte $1F
+9ECC: .byte $1F
+9ECD: .byte $1F
+9ECE: .byte $1F
+9ECF: .byte $1F
+9ED0: .byte $1F
+9ED1: .byte $1F
+9ED2: .byte $1F
+9ED3: .byte $1F
+9ED4: .byte $1F
+9ED5: .byte $1F
+9ED6: .byte $1F
+9ED7: .byte $1F
+9ED8: .byte $1F
+9ED9: .byte $1F
+9EDA: .byte $1F
+9EDB: .byte $1F
+9EDC: .byte $1F
+9EDD: .byte $1F
+9EDE: .byte $1F
+9EDF: .byte $1F
+9EE0: .byte $1F
+9EE1: .byte $1F
+9EE2: .byte $1F
+9EE3: .byte $1F
+9EE4: .byte $1F
+9EE5: .byte $1F
+9EE6: .byte $1F
+9EE7: .byte $1F
+9EE8: .byte $1F
+9EE9: .byte $1F
+9EEA: .byte $1F
+9EEB: .byte $1F
+9EEC: .byte $1F
+9EED: .byte $1F
+9EEE: .byte $1F
+9EEF: .byte $1F
+9EF0: .byte $1F
+9EF1: .byte $1F
+9EF2: .byte $1F
+9EF3: .byte $1F
+9EF4: .byte $1F
+9EF5: .byte $1F
+9EF6: .byte $1F
+9EF7: .byte $1F
+9EF8: .byte $1F
+9EF9: .byte $1F
+9EFA: .byte $1F
+9EFB: .byte $1F
+9EFC: .byte $1F
+9EFD: .byte $1F
+9EFE: .byte $1F
+9EFF: .byte $1F
+9F00: .byte $1F
+9F01: .byte $1F
+9F02: .byte $1F
+9F03: .byte $1F
+9F04: .byte $1F
+9F05: .byte $1F
+9F06: .byte $1F
+9F07: .byte $1F
+9F08: .byte $1F
+9F09: .byte $1F
+9F0A: .byte $1F
+9F0B: .byte $1F
+9F0C: .byte $1F
+9F0D: .byte $1F
+9F0E: .byte $1F
+9F0F: .byte $1F
+9F10: .byte $1F
+9F11: .byte $1F
+9F12: .byte $1F
+9F13: .byte $1F
+9F14: .byte $1F
+9F15: .byte $1F
+9F16: .byte $1F
+9F17: .byte $1F
+9F18: .byte $1F
+9F19: .byte $1F
+9F1A: .byte $1F
+9F1B: .byte $1F
+9F1C: .byte $1F
+9F1D: .byte $1F
+9F1E: .byte $1F
+9F1F: .byte $1F
+9F20: .byte $1F
+9F21: .byte $1F
+9F22: .byte $1F
+9F23: .byte $1F
+9F24: .byte $1F
+9F25: .byte $1F
+9F26: .byte $1F
+9F27: .byte $1F
+9F28: .byte $1F
+9F29: .byte $1F
+9F2A: .byte $1F
+9F2B: .byte $1F
+9F2C: .byte $1F
+9F2D: BRK
+9F2E: .byte $1F
+9F2F: .byte $1F
+9F30: .byte $1F
+9F31: .byte $1F
+9F32: .byte $1F
+9F33: .byte $1F
+9F34: .byte $1F
+9F35: .byte $1F
+9F36: .byte $1F
+9F37: .byte $1F
+9F38: BRK
+9F39: .byte $1F
+9F3A: .byte $1F
+9F3B: .byte $1F
+9F3C: .byte $1F
+9F3D: .byte $1F
+9F3E: .byte $1F
+9F3F: .byte $1F
+9F40: .byte $1F
+9F41: .byte $1F
+9F42: .byte $1F
+9F43: .byte $1F
+9F44: .byte $1F
+9F45: .byte $1F
+9F46: .byte $1F
+9F47: .byte $1F
+9F48: .byte $1F
+9F49: .byte $1F
+9F4A: .byte $1F
+9F4B: .byte $1F
+9F4C: BRK
+9F4D: BRK
+9F4E: BRK
+9F4F: .byte $1F
+9F50: BRK
+9F51: .byte $1F
+9F52: .byte $1F
+9F53: .byte $1F
+9F54: .byte $1F
+9F55: .byte $1F
+9F56: BRK
+9F57: BRK
+9F58: BRK
+9F59: BRK
+9F5A: .byte $1F
+9F5B: .byte $1F
+9F5C: .byte $1F
+9F5D: .byte $1F
+9F5E: BRK
+9F5F: BRK
+9F60: BRK
+9F61: BRK
+9F62: .byte $1F
+9F63: .byte $1F
+9F64: .byte $1F
+9F65: BRK
+9F66: .byte $1F
+9F67: .byte $1F
+9F68: .byte $1F
+9F69: .byte $1F
+9F6A: .byte $1F
+9F6B: BRK
+9F6C: BRK
+9F6D: BRK
+9F6E: BRK
+9F6F: BRK
+9F70: BRK
+9F71: BRK
+9F72: BRK
+9F73: BRK
+9F74: BRK
+9F75: BRK
+9F76: BRK
+9F77: BRK
+9F78: BRK
+9F79: BRK
+9F7A: BRK
+9F7B: BRK
+9F7C: BRK
+9F7D: BRK
+9F7E: BRK
+9F7F: BRK
+9F80: BRK
+9F81: BRK
+9F82: BRK
+9F83: BRK
+9F84: BRK
+9F85: BRK
+9F86: BRK
+9F87: .byte $1F
+9F88: .byte $1F
+9F89: .byte $1F
+9F8A: BRK
+9F8B: BRK
+9F8C: BRK
+9F8D: JSR $2221
+9F90: .byte $23
+9F91: BIT $25
+9F93: ROL $27
+9F95: PLP
+9F96: AND #$2A
+9F98: .byte $2B
+9F99: BIT $2E2D
+9F9C: .byte $2F
+9F9D: BMI $9FD0
+9F9F: .byte $32
+9FA0: .byte $33
+9FA1: .byte $34
+9FA2: AND $36,X
+9FA4: .byte $37
+9FA5: ORA $0000,X
+9FA8: .byte $1F
+9FA9: .byte $1F
+9FAA: .byte $1F
+9FAB: BRK
+9FAC: BRK
+9FAD: SEC
+9FAE: AND $3B3A,Y
+9FB1: .byte $3C
+9FB2: AND $3F3E,X
+9FB5: RTI
+9FB6: EOR ($42,X)
+9FB8: .byte $43
+9FB9: .byte $44
+9FBA: EOR $46
+9FBC: .byte $47
+9FBD: PHA
+9FBE: EOR #$4A
+9FC0: .byte $4B
+9FC1: JMP $4E4D
+9FC4: .byte $4F
+9FC5: BRK
+9FC6: BRK
+9FC7: .byte $1F
+9FC8: .byte $1F
+9FC9: .byte $1F
+9FCA: .byte $1F
+9FCB: .byte $1F
+9FCC: BRK
+9FCD: BVC $A020
+9FCF: .byte $52
+9FD0: .byte $53
+9FD1: .byte $54
+9FD2: EOR $56,X
+9FD4: .byte $57
+9FD5: CLI
+9FD6: EOR $5B5A,Y
+9FD9: .byte $5C
+9FDA: EOR $005E,X
+9FDD: .byte $5F
+9FDE: RTS
+9FDF: ADC ($62,X)
+9FE1: .byte $63
+9FE2: .byte $64
+9FE3: ADC $66
+9FE5: BRK
+9FE6: .byte $1F
+9FE7: .byte $1F
+9FE8: .byte $1F
+9FE9: .byte $1F
+9FEA: .byte $1F
+9FEB: BRK
+9FEC: BRK
+9FED: .byte $67
+9FEE: PLA
+9FEF: ADC #$6A
+9FF1: .byte $6B
+9FF2: JMP ($6E6D)
+9FF5: .byte $6F
+9FF6: BVS $A069
+9FF8: .byte $72
+9FF9: .byte $73
+9FFA: .byte $74
+9FFB: ADC $76,X
+9FFD: .byte $77
+9FFE: SEI
+9FFF: .byte $79
