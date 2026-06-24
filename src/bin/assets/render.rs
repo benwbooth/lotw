@@ -133,6 +133,34 @@ pub fn render_all_rooms(prg: &[u8], chr: &[u8], assets_dir: &Path, outdir: &Path
     Ok(())
 }
 
+/// Stitch all rooms into one world map (4 map columns x 16 rows) — the spatial
+/// connectivity of the world at a glance.
+pub fn render_world(prg: &[u8], chr: &[u8], assets_dir: &Path, out: &Path) -> Result<(), Box<dyn Error>> {
+    let rdir = assets_dir.join("rooms");
+    let manifest: serde_json::Value = serde_json::from_str(&fs::read_to_string(rdir.join("manifest.json"))?)?;
+    let (rw, rh) = (COLS * 16, ROWS * 16); // one room
+    let (ww, wh) = (4 * rw, 16 * rh);
+    let mut world = vec![0u8; ww * wh * 3];
+    for room in manifest["rooms"].as_array().ok_or("bad manifest")? {
+        let (mx, my) = (room["mapx"].as_u64().unwrap() as usize, room["mapy"].as_u64().unwrap() as usize);
+        let header = unhex(room["header_hex"].as_str().unwrap())?;
+        let pal: Vec<u8> = room["palette"]["indices"].as_array().unwrap().iter().map(|v| v.as_u64().unwrap() as u8).collect();
+        let csv = fs::read_to_string(rdir.join(format!("room-{my:02}-{mx}.csv")))?;
+        let grid: Vec<Vec<u8>> = csv.lines().filter(|l| !l.trim().is_empty())
+            .map(|l| l.split(',').map(|t| t.trim().parse().unwrap()).collect()).collect();
+        let img = render_room(prg, chr, &header, &grid, &pal);
+        let (ox, oy) = (mx * rw, my * rh);
+        for y in 0..rh {
+            let src = (y * rw) * 3;
+            let dst = ((oy + y) * ww + ox) * 3;
+            world[dst..dst + rw * 3].copy_from_slice(&img[src..src + rw * 3]);
+        }
+    }
+    write_rgb_png(out, ww, wh, &world)?;
+    println!("world map {ww}x{wh} -> {}", out.display());
+    Ok(())
+}
+
 fn unhex(s: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     (0..s.len() / 2).map(|i| Ok(u8::from_str_radix(&s[2 * i..2 * i + 2], 16)?)).collect()
 }

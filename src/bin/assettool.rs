@@ -48,7 +48,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             let dir = args.get(3).map(String::as_str).unwrap_or("assets");
             let out = args.get(4).map(String::as_str).unwrap_or("render");
             let ines = parse_ines(&fs::read(rom)?)?;
-            assets::render::render_all_rooms(&ines.prg, &ines.chr, std::path::Path::new(dir), std::path::Path::new(out))
+            let (ad, od) = (std::path::Path::new(dir), std::path::Path::new(out));
+            assets::render::render_all_rooms(&ines.prg, &ines.chr, ad, od)?;
+            assets::render::render_world(&ines.prg, &ines.chr, ad, &od.join("world.png"))
         }
         _ => {
             eprintln!(
