@@ -20,9 +20,12 @@ const ROOM: usize = 1024;
 const RW: usize = COLS * 16; // room pixel width (1024)
 const RH: usize = ROWS * 16; // room pixel height (192)
 const MAP_COLS: usize = 4;
-const MAP_ROWS: usize = 16;
+// Rows 0-15 = the main dungeon/overworld grid (banks 0-7). Rows 16-17 (bank 8)
+// are the special "home" area: interiors + the outdoor surface (room 16-3) +
+// the fragment shrine (row 17).
+const MAP_ROWS: usize = 18;
 const WW: usize = MAP_COLS * RW; // world pixel width (4096)
-const WH: usize = MAP_ROWS * RH; // world pixel height (3072)
+const WH: usize = MAP_ROWS * RH; // world pixel height
 
 struct Actor {
     kind: u8,
@@ -81,8 +84,8 @@ impl App {
         let prg = rom[16..16 + prg_len].to_vec();
         let chr = rom[16 + prg_len..].to_vec();
         let mut rooms = Vec::new();
-        for mapy in 0..16 {
-            for mapx in 0..4 {
+        for mapy in 0..MAP_ROWS {
+            for mapx in 0..MAP_COLS {
                 let off = room_offset(mapx, mapy);
                 let tiles = &prg[off..off + TILES];
                 let meta = &prg[off + TILES..off + ROOM];
@@ -211,10 +214,10 @@ impl eframe::App for App {
             ui.heading("World (mapX -> , mapY v)");
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let mut clicked = None;
-                for mapy in 0..16 {
+                for mapy in 0..MAP_ROWS {
                     ui.horizontal(|ui| {
-                        for mapx in 0..4 {
-                            let idx = mapy * 4 + mapx;
+                        for mapx in 0..MAP_COLS {
+                            let idx = mapy * MAP_COLS + mapx;
                             if self.thumbs[idx].is_none() {
                                 let r = &self.rooms[idx];
                                 let rgb = render::render_room(&self.prg, &self.chr, &r.header, &r.grid, &r.pal);
