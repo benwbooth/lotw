@@ -19,6 +19,10 @@ const TILES: usize = COLS * ROWS;
 const ROOM: usize = 1024;
 const RW: usize = COLS * 16; // room pixel width (1024)
 const RH: usize = ROWS * 16; // room pixel height (192)
+const MAP_COLS: usize = 4;
+const MAP_ROWS: usize = 16;
+const WW: usize = MAP_COLS * RW; // world pixel width (4096)
+const WH: usize = MAP_ROWS * RH; // world pixel height (3072)
 
 struct Actor {
     kind: u8,
@@ -48,12 +52,25 @@ struct App {
     sel_metatile: u8,
     out_path: String,
     status: String,
+    world_view: bool,
+    world_tex: Option<egui::TextureHandle>,
+    world_rgb: Vec<u8>,
+    world_zoom: f32,
 }
 
 fn room_offset(mapx: usize, mapy: usize) -> usize {
     let bank = mapy / 2;
     let slot = (mapy & 1) * 4 + mapx;
     bank * 0x2000 + slot * 0x400
+}
+
+/// Copy a room RGB image into a wider world buffer at pixel (ox, oy).
+fn blit_room(world: &mut [u8], world_w: usize, ox: usize, oy: usize, room: &[u8]) {
+    for y in 0..RH {
+        let src = (y * RW) * 3;
+        let dst = ((oy + y) * world_w + ox) * 3;
+        world[dst..dst + RW * 3].copy_from_slice(&room[src..src + RW * 3]);
+    }
 }
 
 impl App {
@@ -102,6 +119,10 @@ impl App {
             sel_metatile: 0,
             out_path,
             status: String::new(),
+            world_view: false,
+            world_tex: None,
+            world_rgb: Vec::new(),
+            world_zoom: 1.0,
         })
     }
 
@@ -121,6 +142,25 @@ impl App {
     fn select(&mut self, idx: usize, ctx: &egui::Context) {
         self.selected = idx;
         self.render_room_tex(ctx);
+    }
+
+    /// Stitch all 64 rooms into one continuous world image (4096x3072).
+    fn build_world(&mut self, ctx: &egui::Context) {
+        let mut rgb = vec![0u8; WW * WH * 3];
+        for room in &self.rooms {
+            let img = render::render_room(&self.prg, &self.chr, &room.header, &room.grid, &room.pal);
+            blit_room(&mut rgb, WW, room.mapx * RW, room.mapy * RH, &img);
+        }
+        self.world_rgb = rgb;
+        self.world_tex = Some(self.tex(ctx, "world", WW, WH, &self.world_rgb));
+    }
+
+    /// Re-render one room into the cached world image and refresh the texture.
+    fn refresh_world_room(&mut self, idx: usize, ctx: &egui::Context) {
+        let room = &self.rooms[idx];
+        let img = render::render_room(&self.prg, &self.chr, &room.header, &room.grid, &room.pal);
+        blit_room(&mut self.world_rgb, WW, room.mapx * RW, room.mapy * RH, &img);
+        self.world_tex = Some(self.tex(ctx, "world", WW, WH, &self.world_rgb));
     }
 
     fn save(&mut self) {
@@ -151,6 +191,13 @@ impl eframe::App for App {
             ui.horizontal(|ui| {
                 if ui.button("Save ROM").clicked() {
                     self.save();
+                }
+                if ui.toggle_value(&mut self.world_view, "World view").clicked() && self.world_view && self.world_tex.is_none() {
+                    self.build_world(ctx);
+                }
+                if self.world_view {
+                    ui.label("zoom");
+                    ui.add(egui::Slider::new(&mut self.world_zoom, 0.25..=2.0).fixed_decimals(2));
                 }
                 ui.label(format!("out: {}", self.out_path));
                 ui.separator();
@@ -193,6 +240,50 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.world_view {
+                ui.label(format!(
+                    "Continuous world ({MAP_COLS}x{MAP_ROWS} rooms, {WW}x{WH}px) — paint metatile {} (uses each room's own tileset)",
+                    self.sel_metatile
+                ));
+                let z = self.world_zoom;
+                let mut wpaint: Option<(usize, usize, usize)> = None;
+                egui::ScrollArea::both().show(ui, |ui| {
+                    if let Some(tex) = &self.world_tex {
+                        let resp = ui.add(
+                            egui::Image::new(tex)
+                                .fit_to_exact_size(egui::vec2(WW as f32 * z, WH as f32 * z))
+                                .sense(egui::Sense::click()),
+                        );
+                        // Room boundary grid.
+                        let p = ui.painter_at(resp.rect);
+                        let stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(70, 70, 90));
+                        for mx in 0..=MAP_COLS {
+                            let x = resp.rect.min.x + mx as f32 * RW as f32 * z;
+                            p.line_segment([egui::pos2(x, resp.rect.min.y), egui::pos2(x, resp.rect.max.y)], stroke);
+                        }
+                        for my in 0..=MAP_ROWS {
+                            let y = resp.rect.min.y + my as f32 * RH as f32 * z;
+                            p.line_segment([egui::pos2(resp.rect.min.x, y), egui::pos2(resp.rect.max.x, y)], stroke);
+                        }
+                        if resp.clicked() {
+                            if let Some(pos) = resp.interact_pointer_pos() {
+                                let local = pos - resp.rect.min;
+                                let (wx, wy) = ((local.x / z / 16.0) as usize, (local.y / z / 16.0) as usize);
+                                let (mapx, mapy) = (wx / COLS, wy / ROWS);
+                                if mapx < MAP_COLS && mapy < MAP_ROWS {
+                                    wpaint = Some((mapy * MAP_COLS + mapx, wy % ROWS, wx % COLS));
+                                }
+                            }
+                        }
+                    }
+                });
+                if let Some((idx, row, c)) = wpaint {
+                    self.rooms[idx].grid[row][c] = self.sel_metatile;
+                    self.refresh_world_room(idx, ctx);
+                }
+                return;
+            }
+
             let r = &self.rooms[self.selected];
             ui.label(format!("Room {:02}-{} @ PRG {:#07x} — selected metatile {}", r.mapy, r.mapx, r.off, self.sel_metatile));
 
