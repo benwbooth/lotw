@@ -11,7 +11,7 @@ png = { version = "0.17", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
 
-eframe = { version = "0.29", optional = true, default-features = false, features = ["glow", "default_fonts"] }
+eframe = { version = "0.29", optional = true, default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
 
 [features]
 default = []
