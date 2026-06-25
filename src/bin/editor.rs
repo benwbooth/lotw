@@ -44,12 +44,7 @@ enum Tool {
     Line,
     Rect,
     Ellipse,
-}
-
-struct Actor {
-    kind: u8,
-    x: u8,
-    y: u8,
+    Object,
 }
 
 struct RoomData {
@@ -57,9 +52,15 @@ struct RoomData {
     mapy: usize,
     off: usize,
     header: Vec<u8>,
-    grid: Vec<Vec<u8>>, // ROWS x COLS
+    grid: Vec<Vec<u8>>,      // ROWS x COLS
     pal: Vec<u8>,
-    actors: Vec<Actor>,
+    records: Vec<[u8; 16]>, // 12 actor-spawn records; all-zero = empty slot
+}
+
+impl RoomData {
+    fn active(&self, i: usize) -> bool {
+        self.records[i].iter().any(|&b| b != 0)
+    }
 }
 
 struct App {
@@ -84,6 +85,8 @@ struct App {
     tool: Tool,
     drag_start: Option<(i32, i32)>, // metatile cell where a shape drag began (view-local)
     pending_nav: Option<usize>,     // room idx to scroll the world view to
+    sel_object: Option<usize>,      // selected actor slot in the selected room
+    obj_kind: u8,                   // type byte for newly-created objects
 }
 
 fn room_offset(mapx: usize, mapy: usize) -> usize {
@@ -170,13 +173,14 @@ impl App {
                 let tiles = &prg[off..off + TILES];
                 let meta = &prg[off + TILES..off + ROOM];
                 let grid: Vec<Vec<u8>> = (0..ROWS).map(|r| (0..COLS).map(|c| tiles[c * ROWS + r]).collect()).collect();
-                let actors = (0..12)
+                let records = (0..12)
                     .map(|i| {
-                        let rec = &meta[0x20 + i * 16..0x20 + (i + 1) * 16];
-                        Actor { kind: rec[0], x: rec[2], y: rec[3] }
+                        let mut a = [0u8; 16];
+                        a.copy_from_slice(&meta[0x20 + i * 16..0x20 + (i + 1) * 16]);
+                        a
                     })
                     .collect();
-                rooms.push(RoomData { mapx, mapy, off, header: meta[0..0x20].to_vec(), grid, pal: meta[0xE0..0x100].to_vec(), actors });
+                rooms.push(RoomData { mapx, mapy, off, header: meta[0..0x20].to_vec(), grid, pal: meta[0xE0..0x100].to_vec(), records });
             }
         }
         let thumbs = (0..rooms.len()).map(|_| None).collect();
@@ -202,6 +206,8 @@ impl App {
             tool: Tool::Paint,
             drag_start: None,
             pending_nav: None,
+            sel_object: None,
+            obj_kind: 0x51,
         })
     }
 
@@ -254,6 +260,13 @@ impl App {
                     prg[r.off + c * ROWS + row] = r.grid[row][c];
                 }
             }
+            // Meta page: header + 12 actor records + room palette.
+            let m = r.off + TILES;
+            prg[m..m + 0x20].copy_from_slice(&r.header);
+            for i in 0..12 {
+                prg[m + 0x20 + i * 16..m + 0x20 + (i + 1) * 16].copy_from_slice(&r.records[i]);
+            }
+            prg[m + 0xE0..m + 0x100].copy_from_slice(&r.pal);
         }
         let mut rom = self.ines_header.clone();
         rom.extend_from_slice(&prg);
@@ -267,7 +280,7 @@ impl App {
     /// Cells a tool produces between drag start `s` and current `e` (or just `e`).
     fn tool_cells(&self, s: Option<(i32, i32)>, e: (i32, i32)) -> Vec<(i32, i32)> {
         match self.tool {
-            Tool::Paint | Tool::Eyedrop => vec![e],
+            Tool::Paint | Tool::Eyedrop | Tool::Object => vec![e],
             Tool::Line => line_cells(s.unwrap_or(e).0, s.unwrap_or(e).1, e.0, e.1),
             Tool::Rect => rect_cells(s.unwrap_or(e).0, s.unwrap_or(e).1, e.0, e.1),
             Tool::Ellipse => ellipse_cells(s.unwrap_or(e).0, s.unwrap_or(e).1, e.0, e.1),
@@ -312,11 +325,33 @@ impl eframe::App for App {
                     (Tool::Line, "Line"),
                     (Tool::Rect, "Rect"),
                     (Tool::Ellipse, "Ellipse"),
+                    (Tool::Object, "Object"),
                 ] {
                     ui.selectable_value(&mut self.tool, t, name);
                 }
             });
             ui.label(format!("metatile {} (room {:02}-{})", self.sel_metatile, self.rooms[self.selected].mapy, self.rooms[self.selected].mapx));
+
+            // Object tool: type for new objects + selected object's fields.
+            if self.tool == Tool::Object {
+                ui.horizontal(|ui| {
+                    ui.label("new type:");
+                    ui.add(egui::DragValue::new(&mut self.obj_kind).hexadecimal(2, false, false));
+                });
+                ui.label("click empty = create, click obj = select,\ndrag = move, Delete = remove");
+                if let Some(i) = self.sel_object {
+                    let rec = &mut self.rooms[self.selected].records[i];
+                    ui.horizontal(|ui| {
+                        ui.label(format!("obj {i}:"));
+                        ui.label("type");
+                        ui.add(egui::DragValue::new(&mut rec[0]).hexadecimal(2, false, false));
+                        ui.label("hp");
+                        ui.add(egui::DragValue::new(&mut rec[4]));
+                        ui.label("dmg");
+                        ui.add(egui::DragValue::new(&mut rec[5]));
+                    });
+                }
+            }
 
             // Metatile palette (always visible; uses the selected room's tileset).
             if let Some(atlas) = &self.atlas_tex {
@@ -396,6 +431,9 @@ impl App {
         let mut commit: Vec<(i32, i32)> = Vec::new();
         let mut eyedrop: Option<(i32, i32)> = None;
         let mut preview: Vec<(i32, i32)> = Vec::new();
+        let mut obj_click: Option<(i32, i32)> = None;
+        let mut obj_drag: Option<(i32, i32)> = None;
+        let object_tool = self.tool == Tool::Object;
         egui::ScrollArea::both().show(ui, |ui| {
             let Some(tex) = &self.room_tex else { return };
             let resp = ui.add(egui::Image::new(tex).fit_to_exact_size(egui::vec2(RW as f32 * z, RH as f32 * z)).sense(egui::Sense::click_and_drag()));
@@ -411,7 +449,7 @@ impl App {
             };
             match self.tool {
                 Tool::Paint => {
-                    if (resp.dragged() || resp.clicked()) {
+                    if resp.dragged() || resp.clicked() {
                         if let Some(p) = resp.interact_pointer_pos() {
                             commit.push(cell(p));
                         }
@@ -422,6 +460,14 @@ impl App {
                         if let Some(p) = resp.interact_pointer_pos() {
                             eyedrop = Some(cell(p));
                         }
+                    }
+                }
+                Tool::Object => {
+                    if resp.clicked() {
+                        obj_click = resp.interact_pointer_pos().map(cell);
+                    }
+                    if resp.dragged() {
+                        obj_drag = resp.interact_pointer_pos().map(cell);
                     }
                 }
                 Tool::Line | Tool::Rect | Tool::Ellipse => {
@@ -441,21 +487,36 @@ impl App {
                     }
                 }
             }
-            // actor markers + shape preview overlay
             let p = ui.painter_at(resp.rect);
-            for a in &self.rooms[self.selected].actors {
-                if a.x == 0 && a.y == 0 {
+            // objects: boxes + type byte (selected = orange)
+            let room = &self.rooms[self.selected];
+            for i in 0..12 {
+                if !room.active(i) {
                     continue;
                 }
-                let c = resp.rect.min + egui::vec2(a.x as f32 * 16.0 * z + 8.0 * z, a.y as f32 * z);
-                p.circle_stroke(c, 5.0, egui::Stroke::new(1.5, egui::Color32::YELLOW));
+                let rec = &room.records[i];
+                let o = resp.rect.min + egui::vec2(rec[2] as f32 * 16.0 * z, rec[3] as f32 * z);
+                let rect = egui::Rect::from_min_size(o, egui::vec2(16.0 * z, 16.0 * z));
+                let col = if Some(i) == self.sel_object { egui::Color32::from_rgb(255, 130, 0) } else { egui::Color32::YELLOW };
+                p.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, col));
+                p.text(rect.min, egui::Align2::LEFT_TOP, format!("{:02x}", rec[0]), egui::FontId::monospace(9.0), col);
             }
+            // shape preview
             for (cx, cy) in &preview {
                 let o = resp.rect.min + egui::vec2(*cx as f32 * 16.0 * z, *cy as f32 * 16.0 * z);
                 p.rect_stroke(egui::Rect::from_min_size(o, egui::vec2(16.0 * z, 16.0 * z)), 0.0, egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 255, 255)));
             }
+            // tile-snapped cursor (white outer + black inner for contrast on any bg)
+            if let Some(hp) = resp.hover_pos() {
+                let l = hp - resp.rect.min;
+                let o = resp.rect.min + egui::vec2((l.x / (16.0 * z)).floor() * 16.0 * z, (l.y / (16.0 * z)).floor() * 16.0 * z);
+                let rect = egui::Rect::from_min_size(o, egui::vec2(16.0 * z, 16.0 * z));
+                p.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, egui::Color32::WHITE));
+                p.rect_stroke(rect.shrink(2.0), 0.0, egui::Stroke::new(1.0, egui::Color32::BLACK));
+                ui.ctx().set_cursor_icon(egui::CursorIcon::None);
+            }
         });
-        // apply
+        // apply paint/eyedrop
         if let Some((c, rr)) = eyedrop {
             if (0..COLS as i32).contains(&c) && (0..ROWS as i32).contains(&rr) {
                 self.sel_metatile = self.rooms[self.selected].grid[rr as usize][c as usize];
@@ -468,6 +529,32 @@ impl App {
                 }
             }
             self.render_room_tex(ctx);
+        }
+        // object: select existing / create new
+        if let Some((cx, cy)) = obj_click {
+            let room = &self.rooms[self.selected];
+            let hit = (0..12).find(|&i| room.active(i) && room.records[i][2] as i32 == cx && (room.records[i][3] as i32) / 16 == cy);
+            if let Some(i) = hit {
+                self.sel_object = Some(i);
+            } else if let Some(free) = (0..9).find(|&i| !self.rooms[self.selected].active(i)) {
+                self.rooms[self.selected].records[free] = [self.obj_kind, 0x02, cx as u8, (cy * 16) as u8, 0x10, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                self.sel_object = Some(free);
+            }
+        }
+        // object: drag selected to a new tile
+        if let (Some((cx, cy)), Some(i)) = (obj_drag, self.sel_object) {
+            let rec = &mut self.rooms[self.selected].records[i];
+            rec[2] = cx as u8;
+            rec[3] = (cy * 16) as u8;
+        }
+        // object: delete selected
+        if object_tool {
+            if let Some(i) = self.sel_object {
+                if ui.input(|inp| inp.key_pressed(egui::Key::Delete) || inp.key_pressed(egui::Key::Backspace)) {
+                    self.rooms[self.selected].records[i] = [0; 16];
+                    self.sel_object = None;
+                }
+            }
         }
     }
 
@@ -506,6 +593,7 @@ impl App {
                         }
                     }
                 }
+                Tool::Object => {} // object editing is done in the single-room view
                 Tool::Line | Tool::Rect | Tool::Ellipse => {
                     if resp.drag_started() {
                         self.drag_start = resp.interact_pointer_pos().map(cell);
@@ -537,6 +625,14 @@ impl App {
             for (cx, cy) in &preview {
                 let o = resp.rect.min + egui::vec2(*cx as f32 * 16.0 * z, *cy as f32 * 16.0 * z);
                 p.rect_stroke(egui::Rect::from_min_size(o, egui::vec2(16.0 * z, 16.0 * z)), 0.0, egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 255, 255)));
+            }
+            // tile-snapped cursor
+            if let Some(hp) = resp.hover_pos() {
+                let o = resp.rect.min + egui::vec2((((hp.x - resp.rect.min.x) / (16.0 * z)).floor()) * 16.0 * z, (((hp.y - resp.rect.min.y) / (16.0 * z)).floor()) * 16.0 * z);
+                let rect = egui::Rect::from_min_size(o, egui::vec2(16.0 * z, 16.0 * z));
+                p.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, egui::Color32::WHITE));
+                p.rect_stroke(rect.shrink(2.0), 0.0, egui::Stroke::new(1.0, egui::Color32::BLACK));
+                ui.ctx().set_cursor_icon(egui::CursorIcon::None);
             }
             // navigate to a clicked room
             if let Some(idx) = nav {
