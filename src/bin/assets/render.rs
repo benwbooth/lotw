@@ -97,6 +97,37 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
     img
 }
 
+/// Render a raw 32x30 nametable screen (960 tiles + 64 attribute bytes) to a
+/// 256x240 RGB image, given the two BG CHR banks and a 32-byte palette. Used for
+/// full-screen layouts that aren't metatile rooms (title screen, etc.).
+pub fn render_nametable(chr: &[u8], nt: &[u8], chr0: u8, chr1: u8, pal: &[u8]) -> Vec<u8> {
+    let win = [chr0 & 0xFE, (chr0 & 0xFE) | 1, chr1 & 0xFE, (chr1 & 0xFE) | 1];
+    let (w, h) = (256usize, 240usize);
+    let mut img = vec![0u8; w * h * 3];
+    for row in 0..30 {
+        for col in 0..32 {
+            let t = nt[row * 32 + col] as usize;
+            let attr = nt[0x3C0 + (row / 4) * 8 + (col / 4)] as usize;
+            let quad = ((row / 2) & 1) * 2 + ((col / 2) & 1);
+            let sp = (attr >> (quad * 2)) & 3;
+            let base = win[t / 64] as usize * 1024 + (t % 64) * 16;
+            for y in 0..8 {
+                let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
+                for x in 0..8 {
+                    let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
+                    let idx = if v == 0 { pal[0] } else { pal[sp * 4 + v as usize] };
+                    let (r, g, b) = nes_rgb(idx);
+                    let o = ((row * 8 + y) * w + col * 8 + x) * 3;
+                    img[o] = r;
+                    img[o + 1] = g;
+                    img[o + 2] = b;
+                }
+            }
+        }
+    }
+    img
+}
+
 pub fn rgb_to_png_bytes(w: usize, h: usize, rgb: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut out = Vec::new();
     {

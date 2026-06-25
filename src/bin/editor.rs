@@ -59,7 +59,14 @@ struct App {
     world_tex: Option<egui::TextureHandle>,
     world_rgb: Vec<u8>,
     world_zoom: f32,
+    title_view: bool,
+    title_tex: Option<egui::TextureHandle>,
 }
+
+// Title screen data (PRG, with banks 12@$8000 / 13@$A000 mapped at the title).
+const TITLE_NT: usize = 0x19EC9; // nametable (1024 bytes)
+const TITLE_PAL: usize = 0x1A2C9; // 32-byte palette
+const TITLE_CHR: usize = 0x1A2E9; // chr0,chr1 bytes
 
 fn room_offset(mapx: usize, mapy: usize) -> usize {
     let bank = mapy / 2;
@@ -126,6 +133,8 @@ impl App {
             world_tex: None,
             world_rgb: Vec::new(),
             world_zoom: 1.0,
+            title_view: false,
+            title_tex: None,
         })
     }
 
@@ -145,6 +154,17 @@ impl App {
     fn select(&mut self, idx: usize, ctx: &egui::Context) {
         self.selected = idx;
         self.render_room_tex(ctx);
+    }
+
+    fn render_title_tex(&mut self, ctx: &egui::Context) {
+        let rgb = render::render_nametable(
+            &self.chr,
+            &self.prg[TITLE_NT..TITLE_NT + 1024],
+            self.prg[TITLE_CHR],
+            self.prg[TITLE_CHR + 1],
+            &self.prg[TITLE_PAL..TITLE_PAL + 32],
+        );
+        self.title_tex = Some(self.tex(ctx, "title", 256, 240, &rgb));
     }
 
     /// Stitch all 64 rooms into one continuous world image (4096x3072).
@@ -195,8 +215,21 @@ impl eframe::App for App {
                 if ui.button("Save ROM").clicked() {
                     self.save();
                 }
-                if ui.toggle_value(&mut self.world_view, "World view").clicked() && self.world_view && self.world_tex.is_none() {
-                    self.build_world(ctx);
+                if ui.toggle_value(&mut self.world_view, "World view").clicked() {
+                    if self.world_view {
+                        self.title_view = false;
+                        if self.world_tex.is_none() {
+                            self.build_world(ctx);
+                        }
+                    }
+                }
+                if ui.toggle_value(&mut self.title_view, "Title").clicked() {
+                    if self.title_view {
+                        self.world_view = false;
+                        if self.title_tex.is_none() {
+                            self.render_title_tex(ctx);
+                        }
+                    }
                 }
                 if self.world_view {
                     ui.label("zoom");
@@ -243,6 +276,15 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.title_view {
+                ui.label("Title screen — nametable $19EC9, CHR banks $1A2E9, palette $1A2C9");
+                if let Some(tex) = &self.title_tex {
+                    egui::ScrollArea::both().show(ui, |ui| {
+                        ui.add(egui::Image::new(tex).fit_to_exact_size(egui::vec2(512.0, 480.0)));
+                    });
+                }
+                return;
+            }
             if self.world_view {
                 ui.label(format!(
                     "Continuous world ({MAP_COLS}x{MAP_ROWS} rooms, {WW}x{WH}px) — paint metatile {} (uses each room's own tileset)",
