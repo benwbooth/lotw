@@ -1,40 +1,37 @@
 import QtQuick
 import QtQuick.Window
+import com.lotw.editor
 
 Window {
     visible: true
-    width: 640
-    height: 480
-    title: "cxx-qt pinch test"
+    width: 1100
+    height: 360
+    title: "LotW editor (cxx-qt)"
     color: "#222222"
 
     Text {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.topMargin: 8
         color: "#cccccc"
-        text: "Pinch the square (two-finger) — or ctrl+scroll. scale: " + content.scale.toFixed(2)
+        text: "Room " + canvas.selected + " — pinch to zoom (scale " + canvas.scale.toFixed(2) + ")"
     }
 
-    Rectangle {
-        id: content
+    RoomCanvas {
+        id: canvas
+        selected: 0
+        width: 1024
+        height: 192
         anchors.centerIn: parent
-        width: 220
-        height: 220
-        color: "tomato"
-        Text {
-            anchors.centerIn: parent
-            text: "pinch me"
-            color: "white"
-        }
+        transformOrigin: Item.Center
+
         PinchHandler {
-            target: content
-            minimumScale: 0.2
-            maximumScale: 12.0
+            target: canvas
+            minimumScale: 0.25
+            maximumScale: 8.0
         }
         WheelHandler {
             acceptedModifiers: Qt.ControlModifier
-            onWheel: (e) => content.scale = Math.max(0.2, Math.min(12.0, content.scale * (1 + e.angleDelta.y / 1200)))
+            onWheel: (e) => canvas.scale = Math.max(0.25, Math.min(8.0, canvas.scale * (1 + e.angleDelta.y / 1200)))
         }
     }
 }

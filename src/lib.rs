@@ -42,6 +42,7 @@ pub mod engine;
 pub mod frame;
 pub mod game;
 pub mod ppu;
+pub mod render;
 pub mod scripts;
 pub mod state;
 

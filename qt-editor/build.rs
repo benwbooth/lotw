@@ -1,7 +1,13 @@
-use cxx_qt_build::CxxQtBuilder;
+use cxx_qt_build::{CxxQtBuilder, QmlModule};
 
 fn main() {
-    // Link QtQuick/QML; the QML file is loaded from disk at runtime (no qrc
-    // module needed for this minimal pinch test).
-    CxxQtBuilder::new().qt_module("Quick").build();
+    CxxQtBuilder::new()
+        .qt_module("Quick")
+        .qml_module(QmlModule::<&str, _> {
+            uri: "com.lotw.editor",
+            rust_files: &["src/room_canvas.rs"],
+            qml_files: &["qml/main.qml"],
+            ..Default::default()
+        })
+        .build();
 }
