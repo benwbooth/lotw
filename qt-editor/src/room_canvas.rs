@@ -42,6 +42,10 @@ pub mod qobject {
 
         #[inherit]
         fn update(self: Pin<&mut RoomCanvas>);
+        #[inherit]
+        fn width(self: &RoomCanvas) -> f64;
+        #[inherit]
+        fn height(self: &RoomCanvas) -> f64;
 
         #[qinvokable]
         fn refresh(self: Pin<&mut RoomCanvas>);
@@ -198,13 +202,16 @@ fn line_cells(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> {
 }
 
 impl qobject::RoomCanvas {
-    fn paint(self: Pin<&mut Self>, painter: *mut qobject::QPainter) {
+    fn paint(mut self: Pin<&mut Self>, painter: *mut qobject::QPainter) {
         let painter = match unsafe { painter.as_mut() } {
             Some(p) => unsafe { Pin::new_unchecked(p) },
             None => return,
         };
+        // Item's on-screen size; the native image is scaled to fill it (zoom).
+        let dw = self.as_ref().get_ref().width().max(1.0) as i32;
+        let dh = self.as_ref().get_ref().height().max(1.0) as i32;
         let mode = self.rust().mode;
-        let rust = unsafe { self.rust_mut().get_unchecked_mut() };
+        let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
         let (rgb, w, h) = match mode {
             ATLAS => {
                 let s = rust.sel();
@@ -238,7 +245,8 @@ impl qobject::RoomCanvas {
             }
         };
         let img = unsafe { QImage::from_raw_bytes(rgb, w, h, QImageFormat::Format_RGB888) };
-        painter.draw_image(&QRect::new(0, 0, w, h), &img);
+        let _ = (w, h);
+        painter.draw_image(&QRect::new(0, 0, dw, dh), &img);
     }
 
     fn refresh(self: Pin<&mut Self>) {

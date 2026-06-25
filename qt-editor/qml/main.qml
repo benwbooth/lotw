@@ -13,16 +13,28 @@ ApplicationWindow {
     property string status: ""
     property int view: 0          // 0 room, 1 world, 2 title
     property string tool: "paint" // paint | pick | hand | line | rect | ellipse
+    property real zoom: 2.0
     property int dragC0: -1
     property int dragR0: -1
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : 0 }
+    function tile(v) { return Math.floor(v / zoom / 16) }   // item px -> tile index
+
+    // Zoom about the viewport centre (keeps the same point under the centre).
+    function setZoom(nz) {
+        nz = Math.max(0.1, Math.min(12, nz))
+        if (Math.abs(nz - zoom) < 0.0001) return
+        var cx = (flick.contentX + flick.width / 2) / zoom
+        var cy = (flick.contentY + flick.height / 2) / zoom
+        zoom = nz
+        flick.contentX = Math.max(0, cx * nz - flick.width / 2)
+        flick.contentY = Math.max(0, cy * nz - flick.height / 2)
+    }
 
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
             spacing: 4
-            // view switch
             Row {
                 spacing: 1
                 Repeater {
@@ -31,12 +43,18 @@ ApplicationWindow {
                         text: modelData[0]
                         checkable: true
                         checked: view === modelData[1]
-                        onClicked: { view = modelData[1]; roomView.mode = modeFor(view); roomView.refresh() }
+                        onClicked: {
+                            view = modelData[1]
+                            roomView.mode = modeFor(view)
+                            zoom = (view === 1) ? 0.4 : 2.0
+                            flick.contentX = 0
+                            flick.contentY = 0
+                            roomView.refresh()
+                        }
                     }
                 }
             }
             ToolSeparator {}
-            // tools (room view only)
             Row {
                 spacing: 1
                 visible: view === 0
@@ -52,7 +70,7 @@ ApplicationWindow {
             }
             ToolSeparator { visible: view === 0 }
             Button { text: "Save ROM"; onClicked: status = roomView.save_rom("build/lotw-edited.nes") }
-            Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile; color: "#ddd" }
+            Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
             Item { Layout.fillWidth: true }
             Label { text: status; color: "#9f9" }
         }
@@ -62,90 +80,76 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 6
 
-        // ---- canvas area ----
         Flickable {
             id: flick
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentWidth: wrap.width
-            contentHeight: wrap.height
+            contentWidth: roomView.width
+            contentHeight: roomView.height
             clip: true
-            interactive: tool === "hand" || view !== 0   // pan only with Hand (or in world/title)
-            ScrollBar.vertical: ScrollBar {}
-            ScrollBar.horizontal: ScrollBar {}
+            interactive: tool === "hand" || view !== 0
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
+            ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOn }
 
-            Item {
-                id: wrap
-                width: roomView.width * roomView.scale
-                height: roomView.height * roomView.scale
+            RoomCanvas {
+                id: roomView
+                mode: 0
+                property real nativeW: mode === 2 ? 4096 : mode === 3 ? 256 : 1024
+                property real nativeH: mode === 2 ? 18 * 192 : mode === 3 ? 240 : 192
+                width: nativeW * zoom
+                height: nativeH * zoom
+                onSelectedChanged: refresh()
 
-                RoomCanvas {
-                    id: roomView
-                    mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : 192
-                    scale: view === 1 ? 0.4 : 2.0
-                    transformOrigin: Item.TopLeft
-                    onSelectedChanged: refresh()
-
-                    PinchHandler {
-                        target: roomView
-                        minimumScale: 0.2
-                        maximumScale: 12.0
-                        rotationAxis.enabled: false
-                        xAxis.enabled: false
-                        yAxis.enabled: false
+                PinchHandler {
+                    target: null
+                    property real base: 1
+                    onActiveChanged: if (active) base = zoom
+                    onActiveScaleChanged: setZoom(base * activeScale)
+                }
+                WheelHandler {
+                    acceptedModifiers: Qt.ControlModifier
+                    onWheel: (e) => setZoom(zoom * (1 + e.angleDelta.y / 800))
+                }
+                HoverHandler {
+                    id: hov
+                    enabled: view === 0
+                    onPointChanged: {
+                        roomView.cursor_col = tile(point.position.x)
+                        roomView.cursor_row = tile(point.position.y)
+                        roomView.refresh()
                     }
-                    WheelHandler {
-                        acceptedModifiers: Qt.ControlModifier
-                        onWheel: (e) => roomView.scale = Math.max(0.2, Math.min(12.0, roomView.scale * (1 + e.angleDelta.y / 1200)))
+                    onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: tool !== "hand"
+                    onPressed: (m) => {
+                        if (view === 1) {
+                            var idx = roomView.world_room_at(Math.floor(m.x / zoom), Math.floor(m.y / zoom))
+                            if (idx >= 0) { roomView.selected = idx; view = 0; roomView.mode = 0; zoom = 2.0; flick.contentX = 0; flick.contentY = 0; roomView.refresh() }
+                            return
+                        }
+                        if (view !== 0) return
+                        var c = tile(m.x), r = tile(m.y)
+                        if (tool === "paint") roomView.paint_tile(c, r)
+                        else if (tool === "pick") { var v = roomView.metatile_at(c, r); if (v >= 0) roomView.sel_metatile = v }
+                        else { dragC0 = c; dragR0 = r }
                     }
-
-                    // inverse-color tile cursor (room view, non-hand tools)
-                    HoverHandler {
-                        id: hov
-                        enabled: view === 0
-                        onPointChanged: {
-                            roomView.cursor_col = Math.floor(point.position.x / 16)
-                            roomView.cursor_row = Math.floor(point.position.y / 16)
-                            roomView.refresh()
-                        }
-                        onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
+                    onPositionChanged: (m) => {
+                        if (view === 0 && tool === "paint" && m.buttons) roomView.paint_tile(tile(m.x), tile(m.y))
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: tool !== "hand"
-                        function cell(m) { return [Math.floor(m.x / 16), Math.floor(m.y / 16)] }
-                        onPressed: (m) => {
-                            if (view === 1) { // world: navigate
-                                var idx = roomView.world_room_at(m.x, m.y)
-                                if (idx >= 0) { roomView.selected = idx; view = 0; roomView.mode = 0; roomView.refresh() }
-                                return
-                            }
-                            if (view !== 0) return
-                            var c = cell(m)
-                            if (tool === "paint") roomView.paint_tile(c[0], c[1])
-                            else if (tool === "pick") { var v = roomView.metatile_at(c[0], c[1]); if (v >= 0) roomView.sel_metatile = v }
-                            else { dragC0 = c[0]; dragR0 = c[1] }
-                        }
-                        onPositionChanged: (m) => {
-                            if (view === 0 && tool === "paint" && m.buttons) { var c = cell(m); roomView.paint_tile(c[0], c[1]) }
-                        }
-                        onReleased: (m) => {
-                            if (view !== 0 || dragC0 < 0) return
-                            var c = cell(m)
-                            if (tool === "line") roomView.paint_line(dragC0, dragR0, c[0], c[1])
-                            else if (tool === "rect") roomView.paint_rect(dragC0, dragR0, c[0], c[1])
-                            else if (tool === "ellipse") roomView.paint_ellipse(dragC0, dragR0, c[0], c[1])
-                            dragC0 = -1
-                        }
+                    onReleased: (m) => {
+                        if (view !== 0 || dragC0 < 0) return
+                        var c = tile(m.x), r = tile(m.y)
+                        if (tool === "line") roomView.paint_line(dragC0, dragR0, c, r)
+                        else if (tool === "rect") roomView.paint_rect(dragC0, dragR0, c, r)
+                        else if (tool === "ellipse") roomView.paint_ellipse(dragC0, dragR0, c, r)
+                        dragC0 = -1
                     }
                 }
             }
         }
 
-        // ---- metatile palette (room view) ----
         ColumnLayout {
             visible: view === 0
             Layout.preferredWidth: 264
