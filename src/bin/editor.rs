@@ -311,6 +311,32 @@ impl eframe::App for App {
                         self.render_title_tex(ctx);
                     }
                 }
+                // Zoom controls for the active view (pinch/ctrl+scroll also work).
+                if !self.title_view {
+                    ui.separator();
+                    let world = self.world_view;
+                    let (lo, hi) = if world { (0.1, 4.0) } else { (0.5, 8.0) };
+                    ui.label("zoom");
+                    if ui.button("−").clicked() {
+                        if world {
+                            self.world_zoom = (self.world_zoom / 1.25).max(lo);
+                        } else {
+                            self.room_zoom = (self.room_zoom / 1.25).max(lo);
+                        }
+                    }
+                    if world {
+                        ui.add(egui::Slider::new(&mut self.world_zoom, lo..=hi).fixed_decimals(2));
+                    } else {
+                        ui.add(egui::Slider::new(&mut self.room_zoom, lo..=hi).fixed_decimals(2));
+                    }
+                    if ui.button("+").clicked() {
+                        if world {
+                            self.world_zoom = (self.world_zoom * 1.25).min(hi);
+                        } else {
+                            self.room_zoom = (self.room_zoom * 1.25).min(hi);
+                        }
+                    }
+                }
                 ui.separator();
                 ui.label(&self.status);
             });
