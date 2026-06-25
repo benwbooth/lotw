@@ -40,10 +40,12 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
     };
     for (ry, row) in grid.iter().enumerate() {
         for (cx, &mt) in row.iter().enumerate() {
-            // A metatile's BG sub-palette is its top 2 bits (the attribute build
-            // reads metatile_id & 0xC0); the low 6 bits select within the group.
+            // A metatile byte packs palette in the top 2 bits and shape in the
+            // low 6: the view computes `(idx<<2) as u8`, i.e. (idx&0x3F)*4, so
+            // only 64 tile-table shapes exist; the high bits pick the palette.
             let subpal = (mt as usize >> 6) & 3;
-            let quad = &prg[tt + mt as usize * 4..tt + mt as usize * 4 + 4];
+            let shape = mt as usize & 0x3F;
+            let quad = &prg[tt + shape * 4..tt + shape * 4 + 4];
             // quad is column-major: 0=TL 1=BL 2=TR 3=BR (the view writes entry
             // 0/1 down one nametable column, then 2/3 down the next).
             for (qi, &t) in quad.iter().enumerate() {
@@ -74,7 +76,8 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
     for mt in 0..256usize {
         let (ax, ay) = ((mt % 16) * 16, (mt / 16) * 16);
         let subpal = (mt >> 6) & 3;
-        let quad = &prg[tt + mt * 4..tt + mt * 4 + 4];
+        let shape = mt & 0x3F;
+        let quad = &prg[tt + shape * 4..tt + shape * 4 + 4];
         for (qi, &t) in quad.iter().enumerate() {
             let (sx, sy) = ((qi / 2) * 8, (qi & 1) * 8);
             let base = win[t as usize / 64] as usize * 1024 + (t as usize % 64) * 16;
