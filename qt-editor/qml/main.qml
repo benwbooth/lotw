@@ -28,6 +28,10 @@ Window {
             target: canvas
             minimumScale: 0.25
             maximumScale: 8.0
+            // Zoom only — no rotation, no translation drift.
+            rotationAxis.enabled: false
+            xAxis.enabled: false
+            yAxis.enabled: false
         }
         WheelHandler {
             acceptedModifiers: Qt.ControlModifier
