@@ -11,15 +11,23 @@ png = { version = "0.17", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
 
+eframe = { version = "0.29", optional = true, default-features = false, features = ["glow", "default_fonts"] }
+
 [features]
 default = []
 sdl = ["dep:sdl3"]
 assets = ["dep:png", "dep:serde", "dep:serde_json"]
+editor = ["assets", "dep:eframe"]
 
 [[bin]]
 name = "assettool"
 path = "src/bin/assettool.rs"
 required-features = ["assets"]
+
+[[bin]]
+name = "lotw-editor"
+path = "src/bin/editor.rs"
+required-features = ["editor"]
 
 [[bin]]
 name = "play"

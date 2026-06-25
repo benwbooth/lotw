@@ -39,7 +39,28 @@
             xvfb-run
             # Emulator for lockstep byte-exact verification against the real ROM
             fceux
+            # egui/winit runtime libs for the native asset editor (lotw-editor)
+            libxkbcommon
+            libGL
+            wayland
+            libx11
+            libxcursor
+            libxi
+            libxrandr
           ];
+          # winit/glow dlopen the windowing + GL libs at runtime, so they must be
+          # on LD_LIBRARY_PATH (being build inputs alone is not enough).
+          shellHook = ''
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
+              pkgs.libxkbcommon
+              pkgs.libGL
+              pkgs.wayland
+              pkgs.libx11
+              pkgs.libxcursor
+              pkgs.libxi
+              pkgs.libxrandr
+            ]}:''${LD_LIBRARY_PATH:-}"
+          '';
         };
       });
 

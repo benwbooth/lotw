@@ -33,3 +33,4 @@ assets/chr/
 
 # Rendered asset previews (regenerable via `assettool render`)
 /render/
+/build/lotw-edited.nes
