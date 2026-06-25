@@ -40,6 +40,9 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
     };
     for (ry, row) in grid.iter().enumerate() {
         for (cx, &mt) in row.iter().enumerate() {
+            // A metatile's BG sub-palette is its top 2 bits (the attribute build
+            // reads metatile_id & 0xC0); the low 6 bits select within the group.
+            let subpal = (mt as usize >> 6) & 3;
             let quad = &prg[tt + mt as usize * 4..tt + mt as usize * 4 + 4];
             // quad sub-tiles: 0=TL 1=TR 2=BL 3=BR
             for (qi, &t) in quad.iter().enumerate() {
@@ -50,7 +53,7 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
                     for x in 0..8 {
                         let bit = 7 - x;
                         let v = ((p0 >> bit) & 1) | (((p1 >> bit) & 1) << 1);
-                        put(&mut img, cx * 16 + sx + x, ry * 16 + sy + y, v, 0);
+                        put(&mut img, cx * 16 + sx + x, ry * 16 + sy + y, v, subpal);
                     }
                 }
             }
@@ -69,6 +72,7 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
     let mut img = vec![0u8; w * h * 3];
     for mt in 0..256usize {
         let (ax, ay) = ((mt % 16) * 16, (mt / 16) * 16);
+        let subpal = (mt >> 6) & 3;
         let quad = &prg[tt + mt * 4..tt + mt * 4 + 4];
         for (qi, &t) in quad.iter().enumerate() {
             let (sx, sy) = ((qi & 1) * 8, (qi / 2) * 8);
@@ -77,7 +81,7 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
                 let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
                 for x in 0..8 {
                     let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
-                    let (r, g, b) = nes_rgb(pal[v as usize]);
+                    let (r, g, b) = nes_rgb(pal[subpal * 4 + v as usize]);
                     let o = ((ay + sy + y) * w + (ax + sx + x)) * 3;
                     img[o] = r;
                     img[o + 1] = g;
