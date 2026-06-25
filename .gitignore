@@ -34,3 +34,6 @@ assets/chr/
 # Rendered asset previews (regenerable via `assettool render`)
 /render/
 /build/lotw-edited.nes
+
+# cxx-qt editor build output
+/qt-editor/target/

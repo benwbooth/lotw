@@ -21,6 +21,27 @@
         };
         patches = [ ];   # nixpkgs' release patches don't apply to git main
       });
+      # nixpkgs splits Qt across outputs (qmltyperegistrar/qmlcachegen live in
+      # qtdeclarative, not qtbase), but cxx-qt's qt-build-utils only looks in the
+      # libexec qmake reports (qtbase). Merge the host tools and wrap qmake to
+      # report the merged dir for *_LIBEXECS queries.
+      qtMergedLibexecFor = pkgs: pkgs.runCommand "qt-merged-libexec" { } ''
+        mkdir -p $out
+        for d in ${pkgs.qt6.qtbase}/libexec ${pkgs.qt6.qtdeclarative}/libexec; do
+          for f in "$d"/*; do ln -sf "$f" "$out/" 2>/dev/null || true; done
+        done
+        true
+      '';
+      qmakeWrapperFor = pkgs:
+        let libexec = qtMergedLibexecFor pkgs;
+        in pkgs.writeShellScriptBin "qmake" ''
+          if [ "$1" = "-query" ]; then
+            case "$2" in
+              QT_HOST_LIBEXECS*|QT_INSTALL_LIBEXECS*) echo "${libexec}"; exit 0 ;;
+            esac
+          fi
+          exec ${pkgs.qt6.qtbase}/bin/qmake "$@"
+        '';
     in
     {
       devShells = forAllSystems (pkgs: {
@@ -47,9 +68,18 @@
             libxcursor
             libxi
             libxrandr
+            # Qt6 toolchain for the cxx-qt editor (qmake/moc, QML/QtQuick, native
+            # Wayland platform plugin so touchpad pinch gestures are delivered)
+            qt6.qtbase
+            qt6.qtdeclarative
+            qt6.qtwayland
+            qt6.qtshadertools
+            cmake
+            ninja
           ];
           # winit/glow dlopen the windowing + GL libs at runtime, so they must be
-          # on LD_LIBRARY_PATH (being build inputs alone is not enough).
+          # on LD_LIBRARY_PATH (being build inputs alone is not enough). Qt needs
+          # QMAKE for cxx-qt-build plus QML/plugin paths at runtime.
           shellHook = ''
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
               pkgs.libxkbcommon
@@ -59,7 +89,14 @@
               pkgs.libxcursor
               pkgs.libxi
               pkgs.libxrandr
+              pkgs.qt6.qtbase
+              pkgs.qt6.qtdeclarative
             ]}:''${LD_LIBRARY_PATH:-}"
+            export QMAKE="${qmakeWrapperFor pkgs}/bin/qmake"
+            export QT_QPA_PLATFORM=wayland
+            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
+            export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
+            export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins:${pkgs.qt6.qtdeclarative}/lib/qt-6/plugins"
           '';
         };
       });
