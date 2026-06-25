@@ -196,53 +196,59 @@ impl eframe::App for App {
             let r = &self.rooms[self.selected];
             ui.label(format!("Room {:02}-{} @ PRG {:#07x} — selected metatile {}", r.mapy, r.mapx, r.off, self.sel_metatile));
 
-            // Room canvas (paintable).
             let mut paint: Option<(usize, usize)> = None;
-            if let Some(tex) = &self.room_tex {
-                let scale = 1.0;
-                let size = egui::vec2(RW as f32 * scale, RH as f32 * scale);
-                let resp = ui.add(egui::Image::new(tex).fit_to_exact_size(size).sense(egui::Sense::click()));
-                // overlay actor markers
-                let p = ui.painter_at(resp.rect);
-                for a in &self.rooms[self.selected].actors {
-                    if a.x == 0 && a.y == 0 {
-                        continue;
+            let mut pick: Option<u8> = None;
+            egui::ScrollArea::both().show(ui, |ui| {
+                // Room canvas (paintable). 2x zoom by default.
+                if let Some(tex) = &self.room_tex {
+                    let scale = 2.0;
+                    let size = egui::vec2(RW as f32 * scale, RH as f32 * scale);
+                    let resp = ui.add(egui::Image::new(tex).fit_to_exact_size(size).sense(egui::Sense::click()));
+                    let p = ui.painter_at(resp.rect);
+                    for a in &self.rooms[self.selected].actors {
+                        if a.x == 0 && a.y == 0 {
+                            continue;
+                        }
+                        let c = resp.rect.min + egui::vec2(a.x as f32 * 16.0 * scale + 8.0 * scale, a.y as f32 * scale);
+                        p.circle_stroke(c, 6.0, egui::Stroke::new(1.5, egui::Color32::YELLOW));
+                        p.text(c + egui::vec2(0.0, -10.0), egui::Align2::CENTER_CENTER, a.kind, egui::FontId::monospace(9.0), egui::Color32::YELLOW);
                     }
-                    let c = resp.rect.min + egui::vec2(a.x as f32 * 16.0 * scale + 8.0, a.y as f32 * scale);
-                    p.circle_stroke(c, 6.0, egui::Stroke::new(1.5, egui::Color32::YELLOW));
-                    p.text(c + egui::vec2(0.0, -10.0), egui::Align2::CENTER_CENTER, a.kind, egui::FontId::monospace(9.0), egui::Color32::YELLOW);
-                }
-                if resp.clicked() {
-                    if let Some(pos) = resp.interact_pointer_pos() {
-                        let local = pos - resp.rect.min;
-                        let (c, row) = ((local.x / (16.0 * scale)) as usize, (local.y / (16.0 * scale)) as usize);
-                        if c < COLS && row < ROWS {
-                            paint = Some((row, c));
+                    if resp.clicked() {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            let local = pos - resp.rect.min;
+                            let (c, row) = ((local.x / (16.0 * scale)) as usize, (local.y / (16.0 * scale)) as usize);
+                            if c < COLS && row < ROWS {
+                                paint = Some((row, c));
+                            }
                         }
                     }
                 }
+
+                ui.separator();
+                ui.label("Metatile palette (click to pick):");
+                if let Some(atlas) = &self.atlas_tex {
+                    let z = 32.0; // 2x metatile cells
+                    let resp = ui.add(egui::Image::new(atlas).fit_to_exact_size(egui::vec2(16.0 * z, 16.0 * z)).sense(egui::Sense::click()));
+                    let sel = self.sel_metatile as usize;
+                    let cell = resp.rect.min + egui::vec2((sel % 16) as f32 * z, (sel / 16) as f32 * z);
+                    ui.painter_at(resp.rect).rect_stroke(egui::Rect::from_min_size(cell, egui::vec2(z, z)), 0.0, egui::Stroke::new(2.0, egui::Color32::GREEN));
+                    if resp.clicked() {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            let local = pos - resp.rect.min;
+                            let (mx, my) = ((local.x / z) as usize, (local.y / z) as usize);
+                            if mx < 16 && my < 16 {
+                                pick = Some((my * 16 + mx) as u8);
+                            }
+                        }
+                    }
+                }
+            });
+            if let Some(m) = pick {
+                self.sel_metatile = m;
             }
             if let Some((row, c)) = paint {
                 self.rooms[self.selected].grid[row][c] = self.sel_metatile;
                 self.render_room_tex(ctx);
-            }
-
-            ui.separator();
-            ui.label("Metatile palette (click to pick):");
-            if let Some(atlas) = &self.atlas_tex {
-                let resp = ui.add(egui::Image::new(atlas).fit_to_exact_size(egui::vec2(256.0, 256.0)).sense(egui::Sense::click()));
-                let sel = self.sel_metatile as usize;
-                let cell = resp.rect.min + egui::vec2((sel % 16) as f32 * 16.0, (sel / 16) as f32 * 16.0);
-                ui.painter_at(resp.rect).rect_stroke(egui::Rect::from_min_size(cell, egui::vec2(16.0, 16.0)), 0.0, egui::Stroke::new(2.0, egui::Color32::GREEN));
-                if resp.clicked() {
-                    if let Some(pos) = resp.interact_pointer_pos() {
-                        let local = pos - resp.rect.min;
-                        let (mx, my) = ((local.x / 16.0) as usize, (local.y / 16.0) as usize);
-                        if mx < 16 && my < 16 {
-                            self.sel_metatile = (my * 16 + mx) as u8;
-                        }
-                    }
-                }
             }
         });
     }

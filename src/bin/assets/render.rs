@@ -44,9 +44,10 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
             // reads metatile_id & 0xC0); the low 6 bits select within the group.
             let subpal = (mt as usize >> 6) & 3;
             let quad = &prg[tt + mt as usize * 4..tt + mt as usize * 4 + 4];
-            // quad sub-tiles: 0=TL 1=TR 2=BL 3=BR
+            // quad is column-major: 0=TL 1=BL 2=TR 3=BR (the view writes entry
+            // 0/1 down one nametable column, then 2/3 down the next).
             for (qi, &t) in quad.iter().enumerate() {
-                let (sx, sy) = ((qi & 1) * 8, (qi / 2) * 8);
+                let (sx, sy) = ((qi / 2) * 8, (qi & 1) * 8);
                 let base = chr_tile(t as usize);
                 for y in 0..8 {
                     let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
@@ -75,7 +76,7 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
         let subpal = (mt >> 6) & 3;
         let quad = &prg[tt + mt * 4..tt + mt * 4 + 4];
         for (qi, &t) in quad.iter().enumerate() {
-            let (sx, sy) = ((qi & 1) * 8, (qi / 2) * 8);
+            let (sx, sy) = ((qi / 2) * 8, (qi & 1) * 8);
             let base = win[t as usize / 64] as usize * 1024 + (t as usize % 64) * 16;
             for y in 0..8 {
                 let (p0, p1) = (chr.get(base + y).copied().unwrap_or(0), chr.get(base + y + 8).copied().unwrap_or(0));
