@@ -10,6 +10,7 @@ pub const TITLE: i32 = 3;
 pub const SPRITES: i32 = 4; // raw CHR tile dump
 pub const ENTITIES: i32 = 5; // assembled actor metasprites
 pub const CHARS: i32 = 6; // player characters (poses) with family palettes
+pub const ENEMIES: i32 = 7; // placed actors, real palettes, grouped by behavior
 
 const FAMILY_PAL: usize = 0x1FFC5; // PRG: FAMILY_PALETTE_TABLE $FFC5, 6 x 4 bytes
 const PLAYER_BANK0: usize = 56; // CHR bank for character 0; char c uses 56+c
@@ -471,6 +472,29 @@ impl qobject::RoomCanvas {
                 }
                 (buf, w as i32, h as i32)
             }
+            ENEMIES => {
+                // Placed actors, each as its real 16x16 metasprite with the room
+                // sprite palette + banks, in a grid sorted by behavior.
+                let n = rust.entities.len();
+                let rows = n.div_ceil(SS_COLS);
+                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
+                let mut buf = vec![0u8; w * h * 3];
+                for i in 0..w * h {
+                    let (x, y) = (i % w, i / w);
+                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
+                    buf[i * 3] = c;
+                    buf[i * 3 + 1] = c;
+                    buf[i * 3 + 2] = c;
+                }
+                let f = rust.anim_frame;
+                for (k, e) in rust.entities.iter().enumerate() {
+                    let room = &rust.rooms[e.room];
+                    let banks = lotw::render::sprite_banks(room.mapy);
+                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
+                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
+                }
+                (buf, w as i32, h as i32)
+            }
             _ => {
                 let s = rust.sel();
                 if rust.room_cache.is_none() || rust.cache_sel != s as i32 {
@@ -773,6 +797,7 @@ impl qobject::RoomCanvas {
             ATLAS => 256,
             SPRITES => 64 * 8,
             ENTITIES | CHARS => 16 * 16,
+            ENEMIES => (SS_COLS * SS_CELL) as i32,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -785,6 +810,7 @@ impl qobject::RoomCanvas {
             SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
             ENTITIES => (r.chr.len() / 16 / 4).div_ceil(16).max(1) as i32 * 16,
             CHARS => (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).count().max(1) as i32 * 16,
+            ENEMIES => (r.entities.len().div_ceil(SS_COLS).max(1) * SS_CELL) as i32,
             WORLD => WH,
             TITLE => 240,
             _ => 192,
