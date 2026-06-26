@@ -109,7 +109,7 @@ ApplicationWindow {
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
-            Label { text: (view === 3 || view === 4) ? hoverInfo : ""; color: "#9cf" }
+            Label { text: view >= 3 ? hoverInfo : ""; color: "#9cf" }
             Item { Layout.fillWidth: true }
             Label { text: status; color: "#9f9" }
         }
@@ -160,8 +160,25 @@ ApplicationWindow {
                         onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
                     }
                     HoverHandler {
-                        enabled: view === 3 || view === 4
+                        enabled: view >= 3
                         onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
+                    }
+
+                    // Chars view: persistent character name label per row.
+                    Repeater {
+                        model: view === 5 ? roomView.char_count() : 0
+                        Rectangle {
+                            required property int index
+                            x: 1; y: index * 16 + 1
+                            width: lbl.width + 4; height: 9
+                            color: "#b0000000"
+                            Text {
+                                id: lbl
+                                anchors.centerIn: parent
+                                text: roomView.char_name(index)
+                                color: "#fff"; font.pixelSize: 7
+                            }
+                        }
                     }
                     MouseArea {
                         anchors.fill: parent

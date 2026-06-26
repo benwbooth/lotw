@@ -13,6 +13,8 @@ pub const CHARS: i32 = 6; // player characters (poses) with family palettes
 
 const FAMILY_PAL: usize = 0x1FFC5; // PRG: FAMILY_PALETTE_TABLE $FFC5, 6 x 4 bytes
 const PLAYER_BANK0: usize = 56; // CHR bank for character 0; char c uses 56+c
+// Drasle family, character_index order (Pochi = the round creature at index 4).
+const CHAR_NAMES: [&str; 6] = ["Xemn", "Meyna", "Roas", "Lyll", "Pochi", "char5"];
 
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
@@ -115,6 +117,10 @@ pub mod qobject {
         fn entity_info(self: &RoomCanvas, i: i32) -> QString;
         #[qinvokable]
         fn tile_info(self: &RoomCanvas, x: i32, y: i32) -> QString;
+        #[qinvokable]
+        fn char_count(self: &RoomCanvas) -> i32;
+        #[qinvokable]
+        fn char_name(self: &RoomCanvas, i: i32) -> QString;
         #[qinvokable]
         fn save_rom(self: &RoomCanvas, path: QString) -> QString;
     }
@@ -785,6 +791,14 @@ impl qobject::RoomCanvas {
 
     fn tile_info(&self, x: i32, y: i32) -> QString {
         let r = self.rust();
+        if r.mode == CHARS {
+            let chars: Vec<usize> = (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect();
+            let row = (y as usize / 16).min(chars.len().saturating_sub(1));
+            let c = chars.get(row).copied().unwrap_or(0);
+            let pose = x as usize / 16;
+            let bt = (PLAYER_BANK0 + c) * 64 + pose * 4;
+            return QString::from(&format!("{} — pose {pose}  (bank {}, tile 0x{bt:02x})", CHAR_NAMES[c], PLAYER_BANK0 + c));
+        }
         // Tiles mode: 8px cells, 64/row; Entities mode: 16px cells, 16/row.
         let (tile, base) = if r.mode == ENTITIES {
             let m = (y as usize / 16) * 16 + (x as usize / 16);
@@ -800,6 +814,21 @@ impl qobject::RoomCanvas {
             _ => "background / font / UI",
         };
         QString::from(&format!("bank {bank}  tile 0x{tile:02x}  — {label}"))
+    }
+
+    fn char_list(&self) -> Vec<usize> {
+        let r = self.rust();
+        (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect()
+    }
+    fn char_count(&self) -> i32 {
+        self.char_list().len() as i32
+    }
+    fn char_name(&self, i: i32) -> QString {
+        let list = self.char_list();
+        match list.get(i.max(0) as usize) {
+            Some(&c) => QString::from(CHAR_NAMES[c]),
+            None => QString::from(""),
+        }
     }
 
     fn entity_count(&self) -> i32 {
