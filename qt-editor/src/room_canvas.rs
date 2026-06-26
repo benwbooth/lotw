@@ -7,6 +7,7 @@ pub const ROOM: i32 = 0;
 pub const ATLAS: i32 = 1;
 pub const WORLD: i32 = 2;
 pub const TITLE: i32 = 3;
+pub const SPRITES: i32 = 4;
 
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
@@ -50,6 +51,8 @@ pub mod qobject {
 
         #[qinvokable]
         fn refresh(self: Pin<&mut RoomCanvas>);
+        #[qinvokable]
+        fn set_anim(self: Pin<&mut RoomCanvas>, f: i32);
         #[qinvokable]
         fn paint_tile(self: Pin<&mut RoomCanvas>, col: i32, row: i32);
         #[qinvokable]
@@ -123,6 +126,7 @@ pub struct RoomCanvasRust {
     cache_sel: i32,
     pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
     obj_rev: i32,
+    anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
 }
@@ -172,6 +176,7 @@ impl Default for RoomCanvasRust {
             cache_sel: -1,
             pv: (0, 0, 0, 0, 0),
             obj_rev: 0,
+            anim_frame: 0,
             undo: Vec::new(),
             redo: Vec::new(),
         }
@@ -327,6 +332,24 @@ impl qobject::RoomCanvas {
                 256,
                 240,
             ),
+            SPRITES => {
+                let s = rust.sel();
+                let banks = lotw::render::sprite_banks(rust.rooms[s].mapy);
+                let mut buf = vec![0u8; 256 * 256 * 3];
+                for i in 0..256 * 256 {
+                    let (x, y) = (i % 256, i / 256);
+                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
+                    buf[i * 3] = c;
+                    buf[i * 3 + 1] = c;
+                    buf[i * 3 + 2] = c;
+                }
+                // All 256 actor sprites (byte0 = tile), animation frame applied.
+                let f = rust.anim_frame;
+                for t in 0..256usize {
+                    lotw::render::blit_sprite(&rust.chr, &rust.rooms[s].pal, (t as u8).wrapping_add(f), 0, &banks, &mut buf, 256, (t % 16) * 16, (t / 16) * 16);
+                }
+                (buf, 256, 256)
+            }
             _ => {
                 let s = rust.sel();
                 if rust.room_cache.is_none() || rust.cache_sel != s as i32 {
@@ -337,10 +360,11 @@ impl qobject::RoomCanvas {
                 let mut rgb = rust.room_cache.clone().unwrap();
                 // draw object spawn sprites (real entity graphics, transparent bg).
                 let banks = lotw::render::sprite_banks(rust.rooms[s].mapy);
+                let af = rust.anim_frame;
                 for i in 0..12 {
                     if rust.rooms[s].active(i) {
                         let rec = rust.rooms[s].records[i];
-                        lotw::render::blit_sprite(&rust.chr, &rust.rooms[s].pal, rec[0], rec[1], &banks, &mut rgb, 1024, rec[2] as usize * 16, rec[3] as usize);
+                        lotw::render::blit_sprite(&rust.chr, &rust.rooms[s].pal, rec[0].wrapping_add(af), rec[1], &banks, &mut rgb, 1024, rec[2] as usize * 16, rec[3] as usize);
                     }
                 }
                 // live shape-tool preview: blit the selected metatile into the cells.
@@ -366,6 +390,14 @@ impl qobject::RoomCanvas {
     }
 
     fn refresh(self: Pin<&mut Self>) {
+        self.update();
+    }
+
+    fn set_anim(mut self: Pin<&mut Self>, f: i32) {
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            rust.anim_frame = f as u8;
+        }
         self.update();
     }
 
@@ -617,7 +649,7 @@ impl qobject::RoomCanvas {
 
     fn img_w(&self) -> i32 {
         match self.rust().mode {
-            ATLAS => 256,
+            ATLAS | SPRITES => 256,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -625,7 +657,7 @@ impl qobject::RoomCanvas {
     }
     fn img_h(&self) -> i32 {
         match self.rust().mode {
-            ATLAS => 256,
+            ATLAS | SPRITES => 256,
             WORLD => WH,
             TITLE => 240,
             _ => 192,

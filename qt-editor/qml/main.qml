@@ -19,7 +19,16 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
 
-    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : 0 }
+    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
+    property bool animate: false
+    property int animTick: 0
+
+    Timer {
+        running: animate
+        interval: 250
+        repeat: true
+        onTriggered: { animTick = animTick === 0 ? 4 : 0; roomView.set_anim(animTick) }
+    }
     function tile(v) { return Math.floor(v / 16) }   // native px -> tile index
 
     // Zoom about the viewport centre. zoom drives roomView.scale (GPU transform),
@@ -41,7 +50,7 @@ ApplicationWindow {
             Row {
                 spacing: 1
                 Repeater {
-                    model: [["Room",0],["World",1],["Title",2]]
+                    model: [["Room",0],["World",1],["Title",2],["Sprites",3]]
                     Button {
                         text: modelData[0]
                         checkable: true
@@ -81,6 +90,14 @@ ApplicationWindow {
             Button { text: "↷"; ToolTip.visible: hovered; ToolTip.text: "Redo (Ctrl+Y)"; onClicked: { roomView.redo(); objSel = -1 } }
             Button { text: "Save ROM"; onClicked: status = roomView.save_rom("build/lotw-edited.nes") }
             ToolSeparator {}
+            CheckBox {
+                text: "Animate"
+                checked: animate
+                onToggled: { animate = checked; if (!checked) { animTick = 0; roomView.set_anim(0) } }
+                ToolTip.visible: hovered
+                ToolTip.text: "Cycle sprite frames (approx)"
+            }
+            ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
@@ -113,8 +130,8 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : 192
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 256 : 1024
+                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 256 : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
