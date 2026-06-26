@@ -76,6 +76,7 @@
             qt6.qtshadertools
             cmake
             ninja
+            watchexec # auto-rebuild/restart the Qt editor on change
           ];
           # winit/glow dlopen the windowing + GL libs at runtime, so they must be
           # on LD_LIBRARY_PATH (being build inputs alone is not enough). Qt needs
