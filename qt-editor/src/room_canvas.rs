@@ -9,6 +9,10 @@ pub const WORLD: i32 = 2;
 pub const TITLE: i32 = 3;
 pub const SPRITES: i32 = 4; // raw CHR tile dump
 pub const ENTITIES: i32 = 5; // assembled actor metasprites
+pub const CHARS: i32 = 6; // player characters (poses) with family palettes
+
+const FAMILY_PAL: usize = 0x1FFC5; // PRG: FAMILY_PALETTE_TABLE $FFC5, 6 x 4 bytes
+const PLAYER_BANK0: usize = 56; // CHR bank for character 0; char c uses 56+c
 
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
@@ -435,6 +439,30 @@ impl qobject::RoomCanvas {
                 }
                 (buf, w as i32, h as i32)
             }
+            CHARS => {
+                // Each player character: bank 56+c as 16 pose metasprites, with
+                // its family palette. Char 5's palette is empty (not a character).
+                let chars: Vec<usize> = (0..6).filter(|&c| rust.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect();
+                let cols = 16usize;
+                let (w, h) = (cols * 16, chars.len().max(1) * 16);
+                let mut buf = vec![0u8; w * h * 3];
+                for i in 0..w * h {
+                    let (x, y) = (i % w, i / w);
+                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
+                    buf[i * 3] = c;
+                    buf[i * 3 + 1] = c;
+                    buf[i * 3 + 2] = c;
+                }
+                for (row, &c) in chars.iter().enumerate() {
+                    let fp = &rust.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4];
+                    let pal4 = [(0, 0, 0), lotw::render::nes_rgb(fp[1]), lotw::render::nes_rgb(fp[2]), lotw::render::nes_rgb(fp[3])];
+                    for k in 0..cols {
+                        let base_tile = (PLAYER_BANK0 + c) * 64 + k * 4;
+                        lotw::render::blit_metasprite_raw(&rust.chr, &pal4, base_tile, &mut buf, w, k * 16, row * 16);
+                    }
+                }
+                (buf, w as i32, h as i32)
+            }
             _ => {
                 let s = rust.sel();
                 if rust.room_cache.is_none() || rust.cache_sel != s as i32 {
@@ -736,7 +764,7 @@ impl qobject::RoomCanvas {
         match self.rust().mode {
             ATLAS => 256,
             SPRITES => 64 * 8,
-            ENTITIES => 16 * 16,
+            ENTITIES | CHARS => 16 * 16,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -748,6 +776,7 @@ impl qobject::RoomCanvas {
             ATLAS => 256,
             SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
             ENTITIES => (r.chr.len() / 16 / 4).div_ceil(16).max(1) as i32 * 16,
+            CHARS => (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).count().max(1) as i32 * 16,
             WORLD => WH,
             TITLE => 240,
             _ => 192,

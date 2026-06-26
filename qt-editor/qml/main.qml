@@ -19,7 +19,7 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
 
-    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : v === 4 ? 5 : 0 }
+    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : v === 4 ? 5 : v === 5 ? 6 : 0 }
     property bool animate: false
     property int animTick: 0
     property string hoverInfo: ""
@@ -51,7 +51,7 @@ ApplicationWindow {
             Row {
                 spacing: 1
                 Repeater {
-                    model: [["Room",0],["World",1],["Title",2],["Tiles",3],["Entities",4]]
+                    model: [["Room",0],["World",1],["Title",2],["Tiles",3],["Entities",4],["Chars",5]]
                     Button {
                         text: modelData[0]
                         checkable: true
@@ -139,8 +139,8 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : mode === 5 ? 256 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : mode === 5 ? img_h() : 192
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : (mode === 5 || mode === 6) ? 256 : 1024
+                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : (mode === 5 || mode === 6) ? img_h() : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
