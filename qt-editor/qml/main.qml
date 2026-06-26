@@ -22,6 +22,7 @@ ApplicationWindow {
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : v === 4 ? 5 : 0 }
     property bool animate: false
     property int animTick: 0
+    property string hoverInfo: ""
 
     Timer {
         running: animate
@@ -108,6 +109,7 @@ ApplicationWindow {
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
+            Label { text: (view === 3 || view === 4) ? hoverInfo : ""; color: "#9cf" }
             Item { Layout.fillWidth: true }
             Label { text: status; color: "#9f9" }
         }
@@ -156,6 +158,10 @@ ApplicationWindow {
                         enabled: view === 0
                         onPointChanged: { roomView.cursor_col = tile(point.position.x); roomView.cursor_row = tile(point.position.y); roomView.refresh() }
                         onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
+                    }
+                    HoverHandler {
+                        enabled: view === 3 || view === 4
+                        onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
                     }
                     MouseArea {
                         anchors.fill: parent

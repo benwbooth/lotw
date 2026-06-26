@@ -110,6 +110,8 @@ pub mod qobject {
         #[qinvokable]
         fn entity_info(self: &RoomCanvas, i: i32) -> QString;
         #[qinvokable]
+        fn tile_info(self: &RoomCanvas, x: i32, y: i32) -> QString;
+        #[qinvokable]
         fn save_rom(self: &RoomCanvas, path: QString) -> QString;
     }
 
@@ -750,6 +752,25 @@ impl qobject::RoomCanvas {
             TITLE => 240,
             _ => 192,
         }
+    }
+
+    fn tile_info(&self, x: i32, y: i32) -> QString {
+        let r = self.rust();
+        // Tiles mode: 8px cells, 64/row; Entities mode: 16px cells, 16/row.
+        let (tile, base) = if r.mode == ENTITIES {
+            let m = (y as usize / 16) * 16 + (x as usize / 16);
+            (m * 4, m * 4)
+        } else {
+            let t = (y as usize / 8) * 64 + (x as usize / 8);
+            (t, t)
+        };
+        let bank = base / 64;
+        let label = match bank {
+            52..=55 => "home/special sprites",
+            56..=63 => "player & actor sprites",
+            _ => "background / font / UI",
+        };
+        QString::from(&format!("bank {bank}  tile 0x{tile:02x}  — {label}"))
     }
 
     fn entity_count(&self) -> i32 {
