@@ -11,8 +11,25 @@ pub const SHEET: i32 = 4; // single sprite tab: labeled subsections per characte
 
 const FAMILY_PAL: usize = 0x1FFC5; // PRG: FAMILY_PALETTE_TABLE $FFC5, 6 x 4 bytes
 const PLAYER_BANK0: usize = 56; // CHR bank for character 0; char c uses 56+c
-// Drasle family, character_index order (Pochi = the round creature at index 4).
+// Drasle family ("Drasle" = "Dragon Slayer"; surname Worzen), character_index
+// order (Pochi the pet = the round creature at index 4). Names + roles per the
+// USA NES manual.
 const CHAR_NAMES: [&str; 6] = ["Xemn", "Meyna", "Roas", "Lyll", "Pochi", "char5"];
+const CHAR_ROLES: [&str; 6] = ["Father", "Mother", "Son", "Daughter", "Pet", ""];
+
+/// The four crown-guardian bosses, indexed by enemy CHR bank 48..51. Mapping is
+/// by ascending boss HP (100/150/200/255), which matches the documented
+/// difficulty order Taratunes < Erebone < Archwinger < Rockgaea (Archwinger's
+/// winged body and Rockgaea's golem body are also visually confirmed).
+fn boss_name(bank: u8) -> &'static str {
+    match bank {
+        48 => "Taratunes (spider)",
+        49 => "Erebone (skeleton)",
+        50 => "Archwinger (winged)",
+        51 => "Rockgaea (golem)",
+        _ => "boss",
+    }
+}
 
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
@@ -146,7 +163,7 @@ pub struct RoomCanvasRust {
     redo: Vec<Snapshot>,
 }
 
-/// One 16x16 cell in a sprite-sheet section.
+/// One cell in a sprite-sheet section.
 #[derive(Clone, Copy)]
 enum Cell {
     /// Player/family pose: 4 consecutive CHR tiles, fixed family palette, animates.
@@ -154,15 +171,21 @@ enum Cell {
     /// Placed/area actor: spawn tile + attr, drawn with a real room palette + the
     /// room's per-area sprite banks (so the colours match the game), animates.
     Actor { tile: u8, attr: u8, room: usize },
+    /// Large actor (boss): a 32x32 body assembled from four 16x16 pieces, the way
+    /// `compose_large_actor_body_slots` lays them out (TL=base, TR=base|4,
+    /// BL=base|0x20, BR=base|0x24). `base` is the top-left animation frame tile.
+    Boss { base: u8, attr: u8, room: usize },
     /// Raw CHR-bank metasprite: 4 consecutive tiles, palette chosen live from the
     /// `sprite_pal` selector. Used for shared object/boss banks. Static.
     Bank { base_tile: usize },
 }
 
-/// A labeled sprite-sheet subsection (a row of related metasprites).
+/// A labeled sprite-sheet subsection (a row of related metasprites). `cell_px`
+/// is the pixel pitch of each cell (large for boss rows).
 struct Section {
     label: String,
     cells: Vec<Cell>,
+    cell_px: usize,
 }
 
 impl Section {
@@ -170,7 +193,7 @@ impl Section {
         self.cells.len().div_ceil(SS_COLS).max(1)
     }
     fn height(&self) -> usize {
-        SS_LABEL_H + self.rows() * SS_CELL
+        SS_LABEL_H + self.rows() * self.cell_px
     }
 }
 
@@ -223,7 +246,7 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
         let cells = (0..SS_COLS)
             .map(|k| Cell::Family { base_tile: (PLAYER_BANK0 + c) * 64 + k * 4, pal4 })
             .collect();
-        sections.push(Section { label: format!("{} — player poses", CHAR_NAMES[c]), cells });
+        sections.push(Section { label: format!("{} — {} (player)", CHAR_NAMES[c], CHAR_ROLES[c]), cells, cell_px: SS_CELL });
     }
 
     // --- Area enemies, one section per distinct header[1] CHR bank ---
@@ -255,6 +278,20 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
         }
     }
     for (b, info) in &banks {
+        // Boss rooms are exactly those whose enemy bank (CHR slot 3) is >= 48
+        // (see update_room_actors: "CHR bank 3 >= 48 selects a boss room").
+        // Their actor is a 32x32 four-piece body, so show the four animation
+        // frames composed, not the 16x16 slices.
+        if *b >= 48 {
+            let attr = info.any_attr;
+            // animate_large_actor_body_tiles: base = 0x41 | (frame bits3-4).
+            let cells = [0x41u8, 0x49, 0x51, 0x59]
+                .iter()
+                .map(|&base| Cell::Boss { base, attr, room: info.rep_room })
+                .collect();
+            sections.push(Section { label: format!("{} — boss (bank {b})", boss_name(*b)), cells, cell_px: 40 });
+            continue;
+        }
         let cells = (0..SS_COLS)
             .map(|m| {
                 let attr = info.attr_by_m[m].unwrap_or(info.any_attr);
@@ -262,13 +299,13 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
                 Cell::Actor { tile: (0x41 + m * 4) as u8, attr, room: info.rep_room }
             })
             .collect();
-        sections.push(Section { label: format!("Area enemies — CHR bank {b}"), cells });
+        sections.push(Section { label: format!("Area enemies — CHR bank {b}"), cells, cell_px: SS_CELL });
     }
 
     // --- Shared sprite banks (object/projectile + boss tiles) ---
     for (bank, name) in [(61usize, "Boss bodies — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
         let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
-        sections.push(Section { label: name.to_string(), cells });
+        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL });
     }
 
     sections
@@ -388,8 +425,9 @@ impl RoomCanvasRust {
             }
             labels.push((sec.label.clone(), y as i32));
             let band_y = y + SS_LABEL_H;
+            let cp = sec.cell_px;
             // Sprite band: faint checkerboard so transparency reads.
-            for yy in band_y..(band_y + sec.rows() * SS_CELL).min(h) {
+            for yy in band_y..(band_y + sec.rows() * cp).min(h) {
                 for xx in 0..w {
                     if ((xx / 8 + yy / 8) & 1) == 0 {
                         continue;
@@ -401,8 +439,8 @@ impl RoomCanvasRust {
                 }
             }
             for (i, cell) in sec.cells.iter().enumerate() {
-                let cx = (i % SS_COLS) * SS_CELL + 4;
-                let cy = band_y + (i / SS_COLS) * SS_CELL + 4;
+                let cx = (i % SS_COLS) * cp + 4;
+                let cy = band_y + (i / SS_COLS) * cp + 4;
                 match *cell {
                     Cell::Family { base_tile, pal4 } => {
                         lotw::render::blit_metasprite_raw(&self.chr, &pal4, base_tile + f as usize, &mut buf, w, cx, cy);
@@ -414,6 +452,14 @@ impl RoomCanvasRust {
                         let r = &self.rooms[room];
                         let banks = lotw::render::sprite_banks(&r.header);
                         lotw::render::blit_sprite(&self.chr, &r.pal, tile.wrapping_add(f), attr, &banks, &mut buf, w, cx, cy);
+                    }
+                    Cell::Boss { base, attr, room } => {
+                        let r = &self.rooms[room];
+                        let banks = lotw::render::sprite_banks(&r.header);
+                        // 2x2 of 16x16 pieces -> 32x32 (compose_large_actor_body_slots).
+                        for (dx, dy, t) in [(0, 0, base), (16, 0, base | 4), (0, 16, base | 0x20), (16, 16, base | 0x24)] {
+                            lotw::render::blit_sprite(&self.chr, &r.pal, t, attr, &banks, &mut buf, w, cx + dx, cy + dy);
+                        }
                     }
                 }
             }
@@ -890,8 +936,8 @@ impl qobject::RoomCanvas {
             let band = top + SS_LABEL_H as i32;
             let bot = top + sec.height() as i32;
             if y >= top && y < bot {
-                let col = (x as usize / SS_CELL).min(SS_COLS - 1);
-                let row = ((y - band).max(0) as usize) / SS_CELL;
+                let col = (x as usize / sec.cell_px).min(SS_COLS - 1);
+                let row = ((y - band).max(0) as usize) / sec.cell_px;
                 let idx = row * SS_COLS + col;
                 if idx < sec.cells.len() {
                     return QString::from(&format!("{}  — cell {idx}", sec.label));
