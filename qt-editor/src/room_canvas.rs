@@ -439,9 +439,10 @@ impl qobject::RoomCanvas {
                     let b = (4 + (sp as usize - 1).min(3)) * 4;
                     [(0, 0, 0), lotw::render::nes_rgb(p[b + 1]), lotw::render::nes_rgb(p[b + 2]), lotw::render::nes_rgb(p[b + 3])]
                 };
+                let f = rust.anim_frame as usize;
                 for m in 0..n {
                     let (cx, cy) = ((m % cols) * 16, (m / cols) * 16);
-                    lotw::render::blit_metasprite_raw(&rust.chr, &pal4, m * 4, &mut buf, w, cx, cy);
+                    lotw::render::blit_metasprite_raw(&rust.chr, &pal4, m * 4 + f, &mut buf, w, cx, cy);
                 }
                 (buf, w as i32, h as i32)
             }
@@ -459,11 +460,12 @@ impl qobject::RoomCanvas {
                     buf[i * 3 + 1] = c;
                     buf[i * 3 + 2] = c;
                 }
+                let f = rust.anim_frame as usize; // 0/4: step to the next pose frame
                 for (row, &c) in chars.iter().enumerate() {
                     let fp = &rust.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4];
                     let pal4 = [(0, 0, 0), lotw::render::nes_rgb(fp[1]), lotw::render::nes_rgb(fp[2]), lotw::render::nes_rgb(fp[3])];
                     for k in 0..cols {
-                        let base_tile = (PLAYER_BANK0 + c) * 64 + k * 4;
+                        let base_tile = (PLAYER_BANK0 + c) * 64 + k * 4 + f;
                         lotw::render::blit_metasprite_raw(&rust.chr, &pal4, base_tile, &mut buf, w, k * 16, row * 16);
                     }
                 }
@@ -809,9 +811,10 @@ impl qobject::RoomCanvas {
         };
         let bank = base / 64;
         let label = match bank {
-            52..=55 => "home/special sprites",
-            56..=63 => "player & actor sprites",
-            _ => "background / font / UI",
+            52..=55 => "home/special sprites".to_string(),
+            56..=60 => format!("player: {}", CHAR_NAMES[bank - 56]),
+            61..=63 => "enemy / actor sprites".to_string(),
+            _ => "background / font / UI".to_string(),
         };
         QString::from(&format!("bank {bank}  tile 0x{tile:02x}  — {label}"))
     }
