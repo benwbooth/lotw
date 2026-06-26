@@ -58,6 +58,10 @@ pub mod qobject {
         #[qinvokable]
         fn paint_ellipse(self: Pin<&mut RoomCanvas>, c0: i32, r0: i32, c1: i32, r1: i32);
         #[qinvokable]
+        fn set_preview(self: Pin<&mut RoomCanvas>, kind: i32, c0: i32, r0: i32, c1: i32, r1: i32);
+        #[qinvokable]
+        fn clear_preview(self: Pin<&mut RoomCanvas>);
+        #[qinvokable]
         fn metatile_at(self: &RoomCanvas, col: i32, row: i32) -> i32;
         #[qinvokable]
         fn world_room_at(self: &RoomCanvas, x: i32, y: i32) -> i32;
@@ -89,6 +93,7 @@ pub struct RoomCanvasRust {
     world_cache: Option<Vec<u8>>,
     room_cache: Option<Vec<u8>>,
     cache_sel: i32,
+    pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
 }
 
 impl Default for RoomCanvasRust {
@@ -112,6 +117,7 @@ impl Default for RoomCanvasRust {
             world_cache: None,
             room_cache: None,
             cache_sel: -1,
+            pv: (0, 0, 0, 0, 0),
         }
     }
 }
@@ -201,6 +207,44 @@ fn line_cells(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> {
     out
 }
 
+fn rect_cells(c0: i32, r0: i32, c1: i32, r1: i32) -> Vec<(i32, i32)> {
+    let (xa, xb) = (c0.min(c1), c0.max(c1));
+    let (ya, yb) = (r0.min(r1), r0.max(r1));
+    let mut out = Vec::new();
+    for x in xa..=xb {
+        out.push((x, ya));
+        out.push((x, yb));
+    }
+    for y in ya..=yb {
+        out.push((xa, y));
+        out.push((xb, y));
+    }
+    out
+}
+
+fn ellipse_cells(c0: i32, r0: i32, c1: i32, r1: i32) -> Vec<(i32, i32)> {
+    let (xa, xb) = (c0.min(c1), c0.max(c1));
+    let (ya, yb) = (r0.min(r1), r0.max(r1));
+    let (cx, cy) = ((xa + xb) as f32 / 2.0, (ya + yb) as f32 / 2.0);
+    let (rx, ry) = (((xb - xa) as f32 / 2.0).max(0.5), ((yb - ya) as f32 / 2.0).max(0.5));
+    let steps = (((rx + ry) * 8.0) as i32).max(16);
+    (0..steps)
+        .map(|i| {
+            let t = i as f32 / steps as f32 * std::f32::consts::TAU;
+            ((cx + rx * t.cos()).round() as i32, (cy + ry * t.sin()).round() as i32)
+        })
+        .collect()
+}
+
+fn shape_cells(kind: i32, c0: i32, r0: i32, c1: i32, r1: i32) -> Vec<(i32, i32)> {
+    match kind {
+        1 => line_cells(c0, r0, c1, r1),
+        2 => rect_cells(c0, r0, c1, r1),
+        3 => ellipse_cells(c0, r0, c1, r1),
+        _ => Vec::new(),
+    }
+}
+
 impl qobject::RoomCanvas {
     fn paint(mut self: Pin<&mut Self>, painter: *mut qobject::QPainter) {
         let painter = match unsafe { painter.as_mut() } {
@@ -238,6 +282,17 @@ impl qobject::RoomCanvas {
                     rust.cache_sel = s as i32;
                 }
                 let mut rgb = rust.room_cache.clone().unwrap();
+                // live shape-tool preview: blit the selected metatile into the cells.
+                let (kind, c0, r0, c1, r1) = rust.pv;
+                if kind != 0 {
+                    let room = &rust.rooms[s];
+                    let mt = rust.sel_metatile as u8;
+                    for (c, r) in shape_cells(kind, c0, r0, c1, r1) {
+                        if c >= 0 && r >= 0 && c < 64 && r < 12 {
+                            lotw::render::blit_metatile(&rust.prg, &rust.chr, &room.header, &room.pal, mt, &mut rgb, 1024, c as usize * 16, r as usize * 16);
+                        }
+                    }
+                }
                 if rust.cursor_col >= 0 && rust.cursor_row >= 0 && rust.cursor_col < 64 && rust.cursor_row < 12 {
                     invert_border(&mut rgb, 1024, rust.cursor_col as usize * 16, rust.cursor_row as usize * 16, 16);
                 }
@@ -283,15 +338,8 @@ impl qobject::RoomCanvas {
         }
         {
             let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
-            let (xa, xb) = (c0.min(c1), c0.max(c1));
-            let (ya, yb) = (r0.min(r1), r0.max(r1));
-            for x in xa..=xb {
-                rust.set_cell(x, ya);
-                rust.set_cell(x, yb);
-            }
-            for y in ya..=yb {
-                rust.set_cell(xa, y);
-                rust.set_cell(xb, y);
+            for (c, r) in rect_cells(c0, r0, c1, r1) {
+                rust.set_cell(c, r);
             }
         }
         self.update();
@@ -303,15 +351,25 @@ impl qobject::RoomCanvas {
         }
         {
             let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
-            let (xa, xb) = (c0.min(c1), c0.max(c1));
-            let (ya, yb) = (r0.min(r1), r0.max(r1));
-            let (cx, cy) = ((xa + xb) as f32 / 2.0, (ya + yb) as f32 / 2.0);
-            let (rx, ry) = (((xb - xa) as f32 / 2.0).max(0.5), ((yb - ya) as f32 / 2.0).max(0.5));
-            let steps = (((rx + ry) * 8.0) as i32).max(16);
-            for i in 0..steps {
-                let t = i as f32 / steps as f32 * std::f32::consts::TAU;
-                rust.set_cell((cx + rx * t.cos()).round() as i32, (cy + ry * t.sin()).round() as i32);
+            for (c, r) in ellipse_cells(c0, r0, c1, r1) {
+                rust.set_cell(c, r);
             }
+        }
+        self.update();
+    }
+
+    fn set_preview(mut self: Pin<&mut Self>, kind: i32, c0: i32, r0: i32, c1: i32, r1: i32) {
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            rust.pv = (kind, c0, r0, c1, r1);
+        }
+        self.update();
+    }
+
+    fn clear_preview(mut self: Pin<&mut Self>) {
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            rust.pv = (0, 0, 0, 0, 0);
         }
         self.update();
     }

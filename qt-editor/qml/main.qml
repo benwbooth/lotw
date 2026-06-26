@@ -59,12 +59,16 @@ ApplicationWindow {
                 spacing: 1
                 visible: view === 0
                 Repeater {
-                    model: ["paint","pick","hand","line","rect","ellipse"]
+                    model: [["paint","✏️","Paint (drag)"],["pick","🎨","Eyedropper"],["hand","✋","Pan"],
+                            ["line","╱","Line"],["rect","▭","Rectangle"],["ellipse","◯","Ellipse"]]
                     Button {
-                        text: modelData
+                        text: modelData[1]
+                        font.pixelSize: 16
                         checkable: true
-                        checked: tool === modelData
-                        onClicked: tool = modelData
+                        checked: tool === modelData[0]
+                        onClicked: tool = modelData[0]
+                        ToolTip.visible: hovered
+                        ToolTip.text: modelData[2]
                     }
                 }
             }
@@ -136,10 +140,16 @@ ApplicationWindow {
                         else { dragC0 = c; dragR0 = r }
                     }
                     onPositionChanged: (m) => {
-                        if (view === 0 && tool === "paint" && m.buttons) roomView.paint_tile(tile(m.x), tile(m.y))
+                        if (view !== 0 || !m.buttons) return
+                        if (tool === "paint") roomView.paint_tile(tile(m.x), tile(m.y))
+                        else if (dragC0 >= 0) {
+                            var k = tool === "line" ? 1 : tool === "rect" ? 2 : tool === "ellipse" ? 3 : 0
+                            if (k) roomView.set_preview(k, dragC0, dragR0, tile(m.x), tile(m.y))
+                        }
                     }
                     onReleased: (m) => {
                         if (view !== 0 || dragC0 < 0) return
+                        roomView.clear_preview()
                         var c = tile(m.x), r = tile(m.y)
                         if (tool === "line") roomView.paint_line(dragC0, dragR0, c, r)
                         else if (tool === "rect") roomView.paint_rect(dragC0, dragR0, c, r)

@@ -106,6 +106,22 @@ pub fn render_nametable(chr: &[u8], nt: &[u8], chr0: u8, chr1: u8, pal: &[u8]) -
     img
 }
 
+/// Render a single metatile `mt` (shape = low 6 bits, palette = high 2) into an
+/// RGB buffer at pixel (px,py). Used for shape-tool previews.
+pub fn blit_metatile(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8], mt: u8, dst: &mut [u8], dst_w: usize, px: usize, py: usize) {
+    let tt = TT_BASE + header[0] as usize * 256;
+    let (cb0, cb1) = (header[5] & 0xFE, header[6] & 0xFE);
+    let win = [cb0, cb0 | 1, cb1, cb1 | 1];
+    let subpal = (mt as usize >> 6) & 3;
+    let shape = mt as usize & 0x3F;
+    let quad = &prg[tt + shape * 4..tt + shape * 4 + 4];
+    for (qi, &t) in quad.iter().enumerate() {
+        let (sx, sy) = ((qi / 2) * 8, (qi & 1) * 8);
+        let base = win[t as usize / 64] as usize * 1024 + (t as usize % 64) * 16;
+        blit_tile(dst, dst_w, px + sx, py + sy, chr, base, pal, subpal);
+    }
+}
+
 /// Draw one 8x8 2bpp CHR tile at (px,py) into an RGB buffer using sub-palette
 /// `subpal` (pixel value 0 always uses the universal backdrop pal[0]).
 fn blit_tile(img: &mut [u8], w: usize, px: usize, py: usize, chr: &[u8], base: usize, pal: &[u8], subpal: usize) {
