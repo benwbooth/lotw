@@ -281,9 +281,6 @@ impl qobject::RoomCanvas {
             Some(p) => unsafe { Pin::new_unchecked(p) },
             None => return,
         };
-        // Item's on-screen size; the native image is scaled to fill it (zoom).
-        let dw = self.as_ref().get_ref().width().max(1.0) as i32;
-        let dh = self.as_ref().get_ref().height().max(1.0) as i32;
         let mode = self.rust().mode;
         let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
         let (rgb, w, h) = match mode {
@@ -330,8 +327,8 @@ impl qobject::RoomCanvas {
             }
         };
         let img = unsafe { QImage::from_raw_bytes(rgb, w, h, QImageFormat::Format_RGB888) };
-        let _ = (w, h);
-        painter.draw_image(&QRect::new(0, 0, dw, dh), &img);
+        // Draw at native size; QML scales the item on the GPU (smooth, cheap).
+        painter.draw_image(&QRect::new(0, 0, w, h), &img);
     }
 
     fn refresh(self: Pin<&mut Self>) {
