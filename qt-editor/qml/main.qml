@@ -80,6 +80,9 @@ ApplicationWindow {
             Button { text: "↶"; ToolTip.visible: hovered; ToolTip.text: "Undo (Ctrl+Z)"; onClicked: { roomView.undo(); objSel = -1 } }
             Button { text: "↷"; ToolTip.visible: hovered; ToolTip.text: "Redo (Ctrl+Y)"; onClicked: { roomView.redo(); objSel = -1 } }
             Button { text: "Save ROM"; onClicked: status = roomView.save_rom("build/lotw-edited.nes") }
+            ToolSeparator {}
+            Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
+            Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
             Item { Layout.fillWidth: true }
             Label { text: status; color: "#9f9" }
@@ -98,6 +101,7 @@ ApplicationWindow {
             contentHeight: wrap.height
             clip: true
             interactive: tool === "hand" || view !== 0
+            flickableDirection: Flickable.HorizontalAndVerticalFlick
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
             ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOn }
 
@@ -122,10 +126,6 @@ ApplicationWindow {
                         property real base: 1
                         onActiveChanged: if (active) base = zoom
                         onActiveScaleChanged: setZoom(base * activeScale)
-                    }
-                    WheelHandler {
-                        acceptedModifiers: Qt.ControlModifier
-                        onWheel: (e) => setZoom(zoom * (1 + e.angleDelta.y / 800))
                     }
                     HoverHandler {
                         id: hov
@@ -180,15 +180,21 @@ ApplicationWindow {
                             x: (roomView.obj_rev, roomView.obj_x(index)) * 16
                             y: (roomView.obj_rev, roomView.obj_y(index))
                             width: 16; height: 16
-                            color: "transparent"
-                            border.color: objSel === index ? "#ff8c00" : "#ffdd00"
+                            radius: 8
+                            color: objSel === index ? "#66ff8c00" : "#553a9bff"   // translucent spawn marker
+                            border.color: objSel === index ? "#ff8c00" : "#8cc8ff"
                             border.width: 2 / zoom
+                            // crosshair centre
+                            Rectangle { anchors.centerIn: parent; width: 16; height: 2 / zoom; color: parent.border.color }
+                            Rectangle { anchors.centerIn: parent; width: 2 / zoom; height: 16; color: parent.border.color }
                             Text {
-                                anchors.centerIn: parent
-                                text: ((roomView.obj_rev, roomView.obj_kind(index))).toString(16)
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: parent.bottom
+                                text: "0x" + ((roomView.obj_rev, roomView.obj_kind(index))).toString(16)
                                 color: parent.border.color
-                                font.pixelSize: 10
+                                font.pixelSize: 9
                                 scale: 1 / zoom
+                                transformOrigin: Item.Top
                             }
                             ToolTip {
                                 visible: objHov.hovered
