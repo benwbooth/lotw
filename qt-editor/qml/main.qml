@@ -77,6 +77,8 @@ ApplicationWindow {
                 }
             }
             ToolSeparator { visible: view === 0 }
+            Button { text: "↶"; ToolTip.visible: hovered; ToolTip.text: "Undo (Ctrl+Z)"; onClicked: { roomView.undo(); objSel = -1 } }
+            Button { text: "↷"; ToolTip.visible: hovered; ToolTip.text: "Redo (Ctrl+Y)"; onClicked: { roomView.redo(); objSel = -1 } }
             Button { text: "Save ROM"; onClicked: status = roomView.save_rom("build/lotw-edited.nes") }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
             Item { Layout.fillWidth: true }
@@ -142,8 +144,9 @@ ApplicationWindow {
                             }
                             if (view !== 0) return
                             var c = tile(m.x), r = tile(m.y)
+                            if (tool === "pick") { var v = roomView.metatile_at(c, r); if (v >= 0) roomView.sel_metatile = v; return }
+                            roomView.begin_edit()
                             if (tool === "paint") roomView.paint_tile(c, r)
-                            else if (tool === "pick") { var v = roomView.metatile_at(c, r); if (v >= 0) roomView.sel_metatile = v }
                             else if (tool === "object") objSel = roomView.create_obj(c, Math.floor(m.y), newKind)
                             else { dragC0 = c; dragR0 = r }
                         }
@@ -188,7 +191,7 @@ ApplicationWindow {
                             MouseArea {
                                 anchors.fill: parent
                                 enabled: tool === "object"
-                                onPressed: objSel = index
+                                onPressed: { objSel = index; roomView.begin_edit() }
                                 onPositionChanged: (m) => {
                                     if (!pressed) return
                                     var p = mapToItem(roomView, m.x, m.y)
@@ -204,7 +207,14 @@ ApplicationWindow {
         Shortcut {
             sequences: [StandardKey.Delete, StandardKey.Backspace]
             enabled: tool === "object" && objSel >= 0
-            onActivated: { roomView.delete_obj(objSel); objSel = -1 }
+            onActivated: { roomView.begin_edit(); roomView.delete_obj(objSel); objSel = -1 }
+        }
+        Shortcut { sequence: StandardKey.Undo; onActivated: { roomView.undo(); objSel = -1 } }
+        Shortcut { sequences: [StandardKey.Redo, "Ctrl+Y"]; onActivated: { roomView.redo(); objSel = -1 } }
+        Shortcut {
+            sequence: "Ctrl+D"
+            enabled: tool === "object" && objSel >= 0
+            onActivated: { roomView.begin_edit(); objSel = roomView.copy_obj(objSel) }
         }
 
         ColumnLayout {
@@ -243,7 +253,11 @@ ApplicationWindow {
                     text: "selected obj " + objSel + "  type 0x" + (objSel >= 0 ? (roomView.obj_rev, roomView.obj_kind(objSel)).toString(16) : "")
                     color: "#fc0"
                 }
-                Button { visible: objSel >= 0; text: "Delete object"; onClicked: { roomView.delete_obj(objSel); objSel = -1 } }
+                RowLayout {
+                    visible: objSel >= 0
+                    Button { text: "Duplicate"; onClicked: { roomView.begin_edit(); objSel = roomView.copy_obj(objSel) } }
+                    Button { text: "Delete"; onClicked: { roomView.begin_edit(); roomView.delete_obj(objSel); objSel = -1 } }
+                }
             }
             Item { Layout.fillHeight: true }
         }
