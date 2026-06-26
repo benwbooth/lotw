@@ -112,9 +112,22 @@ pub struct RoomCanvasRust {
     obj_rev: i32,
 }
 
+fn rom_path() -> String {
+    if let Ok(p) = std::env::var("LOTW_ROM") {
+        return p;
+    }
+    for p in ["rom/lotw.nes", "../rom/lotw.nes", "../../rom/lotw.nes"] {
+        if std::path::Path::new(p).exists() {
+            return p.to_string();
+        }
+    }
+    "rom/lotw.nes".to_string()
+}
+
 impl Default for RoomCanvasRust {
     fn default() -> Self {
-        let rom = std::fs::read("rom/lotw.nes").expect("read rom/lotw.nes");
+        let path = rom_path();
+        let rom = std::fs::read(&path).unwrap_or_else(|e| panic!("read {path}: {e}"));
         let prg_len = rom[4] as usize * 16_384;
         let header = rom[0..16].to_vec();
         let prg = rom[16..16 + prg_len].to_vec();

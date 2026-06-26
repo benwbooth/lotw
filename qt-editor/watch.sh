@@ -5,12 +5,12 @@
 # Run inside the dev shell so Qt/QMAKE env is set:
 #   nix develop -c ./qt-editor/watch.sh
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."   # repo root, so rom/lotw.nes resolves
 
 exec watchexec \
   --restart \
-  --watch src \
-  --watch qml \
-  --watch ../src/render.rs \
+  --watch qt-editor/src \
+  --watch qt-editor/qml \
+  --watch src/render.rs \
   --exts rs,qml \
-  -- 'cargo build && QT_QPA_PLATFORM=wayland exec ./target/debug/qt-editor'
+  -- 'cargo build --manifest-path qt-editor/Cargo.toml && QT_QPA_PLATFORM=wayland exec qt-editor/target/debug/qt-editor'
