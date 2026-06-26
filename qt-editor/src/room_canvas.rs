@@ -335,6 +335,14 @@ impl qobject::RoomCanvas {
                     rust.cache_sel = s as i32;
                 }
                 let mut rgb = rust.room_cache.clone().unwrap();
+                // draw object spawn sprites (real entity graphics, transparent bg).
+                let banks = lotw::render::sprite_banks(rust.rooms[s].mapy);
+                for i in 0..12 {
+                    if rust.rooms[s].active(i) {
+                        let rec = rust.rooms[s].records[i];
+                        lotw::render::blit_sprite(&rust.chr, &rust.rooms[s].pal, rec[0], rec[1], &banks, &mut rgb, 1024, rec[2] as usize * 16, rec[3] as usize);
+                    }
+                }
                 // live shape-tool preview: blit the selected metatile into the cells.
                 let (kind, c0, r0, c1, r1) = rust.pv;
                 if kind != 0 {
@@ -479,6 +487,7 @@ impl qobject::RoomCanvas {
     fn bump_obj_rev(mut self: Pin<&mut Self>) {
         let rev = self.rust().obj_rev;
         self.as_mut().set_obj_rev(rev + 1);
+        self.update(); // redraw object sprites in the room
     }
 
     fn set_obj(mut self: Pin<&mut Self>, slot: i32, kind: i32, x: i32, y: i32) {

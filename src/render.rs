@@ -122,6 +122,51 @@ pub fn blit_metatile(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8], mt: u8, 
     }
 }
 
+/// Blit a 16x16 actor sprite into an RGB buffer at (px,py), pixel value 0 left
+/// transparent. `tile` = record byte0 (8x16 OAM tile: bit0 picks the pattern
+/// table, bits7-1*2 = top tile; the actor is the left tile + tile+2 right).
+/// `attr` = record byte1 (sub-palette in bits0-1, H/V flip in bits6/7). `banks`
+/// are the four 1KB CHR banks covering the chosen pattern table.
+pub fn blit_sprite(chr: &[u8], pal: &[u8], tile: u8, attr: u8, banks: &[u8; 4], dst: &mut [u8], dst_w: usize, px: usize, py: usize) {
+    let pbase = (4 + (attr & 3) as usize) * 4; // sprite sub-palette (4..7)
+    let (fh, fv) = (attr & 0x40 != 0, attr & 0x80 != 0);
+    let r = tile.wrapping_add(2);
+    let cells = [
+        (0usize, 0usize, tile & 0xFE),
+        (0, 8, tile & 0xFE | 1),
+        (8, 0, r & 0xFE),
+        (8, 8, r & 0xFE | 1),
+    ];
+    for (cx, cy, st) in cells {
+        let base = banks[st as usize / 64] as usize * 1024 + (st as usize % 64) * 16;
+        for y in 0..8 {
+            let p0 = chr.get(base + y).copied().unwrap_or(0);
+            let p1 = chr.get(base + y + 8).copied().unwrap_or(0);
+            for x in 0..8 {
+                let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
+                if v == 0 {
+                    continue;
+                }
+                let dx = if fh { 15 - (cx + x) } else { cx + x };
+                let dy = if fv { 15 - (cy + y) } else { cy + y };
+                let (rr, gg, bb) = nes_rgb(pal[pbase + v as usize]);
+                let o = ((py + dy) * dst_w + px + dx) * 3;
+                if o + 2 < dst.len() {
+                    dst[o] = rr;
+                    dst[o + 1] = gg;
+                    dst[o + 2] = bb;
+                }
+            }
+        }
+    }
+}
+
+/// Sprite CHR banks for the four $1000-table windows. Gameplay rooms use
+/// [56(player), 61, 62, 63]; the special home/shrine rows use 52..55.
+pub fn sprite_banks(mapy: usize) -> [u8; 4] {
+    if mapy >= 16 { [52, 53, 54, 55] } else { [56, 61, 62, 63] }
+}
+
 /// Draw one 8x8 2bpp CHR tile at (px,py) into an RGB buffer using sub-palette
 /// `subpal` (pixel value 0 always uses the universal backdrop pal[0]).
 fn blit_tile(img: &mut [u8], w: usize, px: usize, py: usize, chr: &[u8], base: usize, pal: &[u8], subpal: usize) {
