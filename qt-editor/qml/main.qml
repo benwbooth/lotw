@@ -19,7 +19,7 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
 
-    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : v === 4 ? 5 : v === 5 ? 6 : v === 6 ? 7 : 0 }
+    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
     property bool animate: false
     property int animTick: 0
     property string hoverInfo: ""
@@ -51,7 +51,7 @@ ApplicationWindow {
             Row {
                 spacing: 1
                 Repeater {
-                    model: [["Room",0],["World",1],["Title",2],["Tiles",3],["Entities",4],["Chars",5],["Enemies",6]]
+                    model: [["Room",0],["World",1],["Title",2],["Sprites",3]]
                     Button {
                         text: modelData[0]
                         checkable: true
@@ -99,17 +99,17 @@ ApplicationWindow {
                 ToolTip.text: "Cycle sprite frames (approx)"
             }
             Button {
-                visible: view === 3 || view === 4
-                text: "Palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
+                visible: view === 3
+                text: "Bank palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
                 onClicked: { roomView.sprite_pal = (roomView.sprite_pal + 1) % 5; roomView.refresh() }
                 ToolTip.visible: hovered
-                ToolTip.text: "Cycle CHR dump palette (grey / room sprite palettes)"
+                ToolTip.text: "Palette for the shared boss/object bank rows (grey / room sprite palettes). Players & area enemies already use their real palettes."
             }
             ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
             Label { text: "room " + roomView.room_label(roomView.selected) + "  mt " + roomView.sel_metatile + "  " + zoom.toFixed(2) + "x"; color: "#ddd" }
-            Label { text: view >= 3 ? hoverInfo : ""; color: "#9cf" }
+            Label { text: view === 3 ? hoverInfo : ""; color: "#9cf" }
             Item { Layout.fillWidth: true }
             Label { text: status; color: "#9f9" }
         }
@@ -139,8 +139,8 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : (mode === 5 || mode === 6) ? 256 : mode === 7 ? 288 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : (mode === 5 || mode === 6 || mode === 7) ? img_h() : 192
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? img_w() : 1024
+                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? img_h() : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
@@ -160,39 +160,10 @@ ApplicationWindow {
                         onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
                     }
                     HoverHandler {
-                        enabled: view >= 3
+                        enabled: view === 3
                         onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
                     }
 
-                    // Chars view: persistent character name label per row.
-                    Repeater {
-                        model: view === 5 ? roomView.char_count() : 0
-                        Rectangle {
-                            required property int index
-                            x: 1; y: index * 16 + 1
-                            width: lbl.width + 4; height: 9
-                            color: "#b0000000"
-                            Text {
-                                id: lbl
-                                anchors.centerIn: parent
-                                text: roomView.char_name(index)
-                                color: "#fff"; font.pixelSize: 7
-                            }
-                        }
-                    }
-
-                    // Enemies view: hover label per placed actor (behavior/room).
-                    Repeater {
-                        model: view === 6 ? roomView.entity_count() : 0
-                        Item {
-                            required property int index
-                            x: (index % 12) * 24
-                            y: Math.floor(index / 12) * 24
-                            width: 24; height: 24
-                            HoverHandler { id: enHov }
-                            ToolTip { visible: enHov.hovered; text: roomView.entity_info(index) }
-                        }
-                    }
                     MouseArea {
                         anchors.fill: parent
                         enabled: tool !== "hand"

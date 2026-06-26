@@ -1,16 +1,13 @@
 use core::pin::Pin;
 use cxx_qt::CxxQtType;
-use cxx_qt_lib::{QImage, QImageFormat, QRect, QString};
+use cxx_qt_lib::{QColor, QFont, QImage, QImageFormat, QPen, QPoint, QRect, QString};
 
 // View modes.
 pub const ROOM: i32 = 0;
 pub const ATLAS: i32 = 1;
 pub const WORLD: i32 = 2;
 pub const TITLE: i32 = 3;
-pub const SPRITES: i32 = 4; // raw CHR tile dump
-pub const ENTITIES: i32 = 5; // assembled actor metasprites
-pub const CHARS: i32 = 6; // player characters (poses) with family palettes
-pub const ENEMIES: i32 = 7; // placed actors, real palettes, grouped by behavior
+pub const SHEET: i32 = 4; // single sprite tab: labeled subsections per character/creature
 
 const FAMILY_PAL: usize = 0x1FFC5; // PRG: FAMILY_PALETTE_TABLE $FFC5, 6 x 4 bytes
 const PLAYER_BANK0: usize = 56; // CHR bank for character 0; char c uses 56+c
@@ -23,6 +20,11 @@ const WH: i32 = MAP_ROWS as i32 * 192; // world height (18 rows)
 const TITLE_NT: usize = 0x19EC9;
 const TITLE_PAL: usize = 0x1A2C9;
 const TITLE_CHR: usize = 0x1A2E9;
+
+// Sprite-sheet layout.
+const SS_COLS: usize = 16; // metasprites per row (= one 64-tile CHR bank)
+const SS_CELL: usize = 24; // pixel cell (16px sprite + 8px gap), scaled by QML
+const SS_LABEL_H: usize = 16; // section header strip height
 
 #[cxx_qt::bridge]
 pub mod qobject {
@@ -113,15 +115,7 @@ pub mod qobject {
         #[qinvokable]
         fn img_h(self: &RoomCanvas) -> i32;
         #[qinvokable]
-        fn entity_count(self: &RoomCanvas) -> i32;
-        #[qinvokable]
-        fn entity_info(self: &RoomCanvas, i: i32) -> QString;
-        #[qinvokable]
         fn tile_info(self: &RoomCanvas, x: i32, y: i32) -> QString;
-        #[qinvokable]
-        fn char_count(self: &RoomCanvas) -> i32;
-        #[qinvokable]
-        fn char_name(self: &RoomCanvas, i: i32) -> QString;
         #[qinvokable]
         fn save_rom(self: &RoomCanvas, path: QString) -> QString;
     }
@@ -147,23 +141,38 @@ pub struct RoomCanvasRust {
     obj_rev: i32,
     sprite_pal: i32,
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
-    entities: Vec<Entity>, // unique actor appearances across all rooms
+    sections: Vec<Section>, // sprite-sheet subsections (players / area enemies / banks)
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
 }
 
-/// A distinct actor appearance (sprite tile + attributes) and a room it appears
-/// in (for the correct sprite palette + CHR banks).
+/// One 16x16 cell in a sprite-sheet section.
 #[derive(Clone, Copy)]
-struct Entity {
-    tile: u8,
-    attr: u8,
-    room: usize,
-    behavior: u8,
+enum Cell {
+    /// Player/family pose: 4 consecutive CHR tiles, fixed family palette, animates.
+    Family { base_tile: usize, pal4: [(u8, u8, u8); 4] },
+    /// Placed/area actor: spawn tile + attr, drawn with a real room palette + the
+    /// room's per-area sprite banks (so the colours match the game), animates.
+    Actor { tile: u8, attr: u8, room: usize },
+    /// Raw CHR-bank metasprite: 4 consecutive tiles, palette chosen live from the
+    /// `sprite_pal` selector. Used for shared object/boss banks. Static.
+    Bank { base_tile: usize },
 }
 
-const SS_COLS: usize = 12;
-const SS_CELL: usize = 24;
+/// A labeled sprite-sheet subsection (a row of related metasprites).
+struct Section {
+    label: String,
+    cells: Vec<Cell>,
+}
+
+impl Section {
+    fn rows(&self) -> usize {
+        self.cells.len().div_ceil(SS_COLS).max(1)
+    }
+    fn height(&self) -> usize {
+        SS_LABEL_H + self.rows() * SS_CELL
+    }
+}
 
 /// Pre-edit snapshot of a single room (grid + actor records) for undo/redo.
 struct Snapshot {
@@ -184,6 +193,87 @@ fn rom_path() -> String {
     "rom/lotw.nes".to_string()
 }
 
+fn greyscale4() -> [(u8, u8, u8); 4] {
+    [(0, 0, 0), (85, 85, 85), (170, 170, 170), (255, 255, 255)]
+}
+
+/// Build the sprite-sheet subsections by reverse-engineering how the game maps
+/// sprites to CHR banks:
+///   * Players: per character, bank `56+c`, 16 pose metasprites, family palette.
+///   * Area enemies: the enemy sprite window (tiles 0x40-0x7F) is CHR slot 3,
+///     loaded per room from descriptor byte +1 (`header[1]`). Each distinct
+///     bank holds one area's creatures; render all 16 of its metasprites with
+///     the palette of a representative placed enemy.
+///   * Shared banks 62/63 (object/projectile tiles) and 61 (boss bodies).
+fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
+    let mut sections = Vec::new();
+
+    // --- Players (named, family palettes) ---
+    for c in 0..6 {
+        let fp = &prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4];
+        if !fp.iter().any(|&b| b != 0) {
+            continue; // char 5 = empty palette, not a real character
+        }
+        let pal4 = [
+            (0, 0, 0),
+            lotw::render::nes_rgb(fp[1]),
+            lotw::render::nes_rgb(fp[2]),
+            lotw::render::nes_rgb(fp[3]),
+        ];
+        let cells = (0..SS_COLS)
+            .map(|k| Cell::Family { base_tile: (PLAYER_BANK0 + c) * 64 + k * 4, pal4 })
+            .collect();
+        sections.push(Section { label: format!("{} — player poses", CHAR_NAMES[c]), cells });
+    }
+
+    // --- Area enemies, one section per distinct header[1] CHR bank ---
+    // For each bank: a representative room (first that uses it) for the palette,
+    // and a per-metasprite palette from the placed enemies that use it.
+    use std::collections::BTreeMap;
+    struct BankInfo {
+        rep_room: usize,
+        attr_by_m: [Option<u8>; 16],
+        any_attr: u8,
+    }
+    let mut banks: BTreeMap<u8, BankInfo> = BTreeMap::new();
+    for (idx, room) in rooms.iter().enumerate() {
+        let b = room.header[1];
+        if b == 0 {
+            continue; // sentinel / no enemy bank
+        }
+        let info = banks.entry(b).or_insert(BankInfo { rep_room: idx, attr_by_m: [None; 16], any_attr: 0 });
+        for i in 0..12 {
+            if room.active(i) {
+                let rec = room.records[i];
+                // window-1 spawn tile -> metasprite index within the bank.
+                if (0x40..0x80).contains(&rec[0]) {
+                    let m = ((rec[0] as usize) % 64) / 4;
+                    info.attr_by_m[m] = Some(rec[1] & 3);
+                    info.any_attr = rec[1] & 3;
+                }
+            }
+        }
+    }
+    for (b, info) in &banks {
+        let cells = (0..SS_COLS)
+            .map(|m| {
+                let attr = info.attr_by_m[m].unwrap_or(info.any_attr);
+                // tile 0x41 + m*4 selects metasprite m of window 1 (see blit_sprite).
+                Cell::Actor { tile: (0x41 + m * 4) as u8, attr, room: info.rep_room }
+            })
+            .collect();
+        sections.push(Section { label: format!("Area enemies — CHR bank {b}"), cells });
+    }
+
+    // --- Shared sprite banks (object/projectile + boss tiles) ---
+    for (bank, name) in [(61usize, "Boss bodies — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
+        let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
+        sections.push(Section { label: name.to_string(), cells });
+    }
+
+    sections
+}
+
 impl Default for RoomCanvasRust {
     fn default() -> Self {
         let path = rom_path();
@@ -194,20 +284,7 @@ impl Default for RoomCanvasRust {
         let chr = rom[16 + prg_len..].to_vec();
         let rooms = lotw::render::decode_rooms(&prg, MAP_ROWS);
         let orig_rooms = rooms.clone();
-        // Collect unique actor appearances (by tile + sub-palette) across rooms.
-        let mut entities: Vec<Entity> = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-        for (idx, room) in rooms.iter().enumerate() {
-            for i in 0..12 {
-                if room.active(i) {
-                    let rec = room.records[i];
-                    if seen.insert((rec[0], rec[1] & 3)) {
-                        entities.push(Entity { tile: rec[0], attr: rec[1], room: idx, behavior: rec[8] });
-                    }
-                }
-            }
-        }
-        entities.sort_by_key(|e| (e.behavior, e.tile));
+        let sections = build_sections(&prg, &rooms);
         Self {
             selected: 0,
             mode: 0,
@@ -226,7 +303,7 @@ impl Default for RoomCanvasRust {
             obj_rev: 0,
             sprite_pal: 0,
             anim_frame: 0,
-            entities,
+            sections,
             undo: Vec::new(),
             redo: Vec::new(),
         }
@@ -261,6 +338,88 @@ impl RoomCanvasRust {
             self.room_cache = None;
             self.world_cache = None;
         }
+    }
+
+    /// Total pixel height of the stacked sprite-sheet sections.
+    fn sheet_height(&self) -> i32 {
+        self.sections.iter().map(|s| s.height()).sum::<usize>() as i32
+    }
+
+    /// Live palette for `Cell::Bank` cells from the `sprite_pal` selector.
+    fn bank_pal4(&self) -> [(u8, u8, u8); 4] {
+        if self.sprite_pal == 0 {
+            return greyscale4();
+        }
+        let p = &self.rooms[self.sel()].pal;
+        let b = (4 + (self.sprite_pal as usize - 1).min(3)) * 4;
+        [
+            (0, 0, 0),
+            lotw::render::nes_rgb(p[b + 1]),
+            lotw::render::nes_rgb(p[b + 2]),
+            lotw::render::nes_rgb(p[b + 3]),
+        ]
+    }
+
+    /// Render the whole sprite tab into one tall RGB image, returning it with the
+    /// per-section header positions so the caller can draw text labels on top.
+    fn render_sheet(&self) -> (Vec<u8>, i32, i32, Vec<(String, i32)>) {
+        let w = SS_COLS * SS_CELL;
+        let h = self.sheet_height().max(SS_CELL as i32) as usize;
+        let mut buf = vec![0u8; w * h * 3];
+        // Dark background.
+        for px in buf.chunks_exact_mut(3) {
+            px[0] = 24;
+            px[1] = 24;
+            px[2] = 30;
+        }
+        let f = self.anim_frame;
+        let bank_pal4 = self.bank_pal4();
+        let mut labels = Vec::new();
+        let mut y = 0usize;
+        for sec in &self.sections {
+            // Header strip.
+            for yy in y..(y + SS_LABEL_H).min(h) {
+                for xx in 0..w {
+                    let o = (yy * w + xx) * 3;
+                    buf[o] = 46;
+                    buf[o + 1] = 46;
+                    buf[o + 2] = 64;
+                }
+            }
+            labels.push((sec.label.clone(), y as i32));
+            let band_y = y + SS_LABEL_H;
+            // Sprite band: faint checkerboard so transparency reads.
+            for yy in band_y..(band_y + sec.rows() * SS_CELL).min(h) {
+                for xx in 0..w {
+                    if ((xx / 8 + yy / 8) & 1) == 0 {
+                        continue;
+                    }
+                    let o = (yy * w + xx) * 3;
+                    buf[o] = 34;
+                    buf[o + 1] = 34;
+                    buf[o + 2] = 42;
+                }
+            }
+            for (i, cell) in sec.cells.iter().enumerate() {
+                let cx = (i % SS_COLS) * SS_CELL + 4;
+                let cy = band_y + (i / SS_COLS) * SS_CELL + 4;
+                match *cell {
+                    Cell::Family { base_tile, pal4 } => {
+                        lotw::render::blit_metasprite_raw(&self.chr, &pal4, base_tile + f as usize, &mut buf, w, cx, cy);
+                    }
+                    Cell::Bank { base_tile } => {
+                        lotw::render::blit_metasprite_raw(&self.chr, &bank_pal4, base_tile, &mut buf, w, cx, cy);
+                    }
+                    Cell::Actor { tile, attr, room } => {
+                        let r = &self.rooms[room];
+                        let banks = lotw::render::sprite_banks(&r.header);
+                        lotw::render::blit_sprite(&self.chr, &r.pal, tile.wrapping_add(f), attr, &banks, &mut buf, w, cx, cy);
+                    }
+                }
+            }
+            y += sec.height();
+        }
+        (buf, w as i32, h as i32, labels)
     }
 }
 
@@ -358,11 +517,30 @@ fn shape_cells(kind: i32, c0: i32, r0: i32, c1: i32, r1: i32) -> Vec<(i32, i32)>
 
 impl qobject::RoomCanvas {
     fn paint(mut self: Pin<&mut Self>, painter: *mut qobject::QPainter) {
-        let painter = match unsafe { painter.as_mut() } {
+        let mut painter = match unsafe { painter.as_mut() } {
             Some(p) => unsafe { Pin::new_unchecked(p) },
             None => return,
         };
         let mode = self.rust().mode;
+
+        // Single sprite tab: stacked labeled subsections, with text labels drawn
+        // directly via QPainter on top of the rendered sheet.
+        if mode == SHEET {
+            let (rgb, w, h, labels) = self.rust().render_sheet();
+            let img = unsafe { QImage::from_raw_bytes(rgb, w, h, QImageFormat::Format_RGB888) };
+            painter.as_mut().draw_image(&QRect::new(0, 0, w, h), &img);
+            let mut font = QFont::default();
+            font.set_pixel_size(11);
+            font.set_bold(true);
+            painter.as_mut().set_font(&font);
+            let pen = QPen::from(&QColor::from_rgb(245, 240, 150));
+            painter.as_mut().set_pen(&pen);
+            for (text, y) in labels {
+                painter.as_mut().draw_text(&QPoint::new(4, y + 12), &QString::from(&text));
+            }
+            return;
+        }
+
         let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
         let (rgb, w, h) = match mode {
             ATLAS => {
@@ -382,119 +560,6 @@ impl qobject::RoomCanvas {
                 256,
                 240,
             ),
-            SPRITES => {
-                // Full CHR tile dump: 64 cols (one 64-tile bank per row), 8x8 each.
-                let cols = 64usize;
-                let n = rust.chr.len() / 16;
-                let rows = n.div_ceil(cols);
-                let (w, h) = (cols * 8, rows * 8);
-                let mut buf = vec![0u8; w * h * 3];
-                // palette: 0 = greyscale, 1..4 = the selected room's sprite sub-palettes
-                let sp = rust.sprite_pal;
-                let s = rust.sel();
-                let pal4: [(u8, u8, u8); 4] = if sp == 0 {
-                    [(0, 0, 0), (85, 85, 85), (170, 170, 170), (255, 255, 255)]
-                } else {
-                    let p = &rust.rooms[s].pal;
-                    let b = (4 + (sp as usize - 1).min(3)) * 4;
-                    [lotw::render::nes_rgb(p[0]), lotw::render::nes_rgb(p[b + 1]), lotw::render::nes_rgb(p[b + 2]), lotw::render::nes_rgb(p[b + 3])]
-                };
-                for t in 0..n {
-                    let base = t * 16;
-                    let (ox, oy) = ((t % cols) * 8, (t / cols) * 8);
-                    for y in 0..8 {
-                        let (p0, p1) = (rust.chr[base + y], rust.chr[base + y + 8]);
-                        for x in 0..8 {
-                            let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
-                            let (r, g, b) = pal4[v as usize];
-                            let o = ((oy + y) * w + ox + x) * 3;
-                            buf[o] = r;
-                            buf[o + 1] = g;
-                            buf[o + 2] = b;
-                        }
-                    }
-                }
-                (buf, w as i32, h as i32)
-            }
-            ENTITIES => {
-                // Every 16x16 metasprite in the CHR (4 consecutive tiles), 16 per
-                // row = one 64-tile bank, over a transparency checkerboard.
-                let cols = 16usize;
-                let n = rust.chr.len() / 16 / 4;
-                let rows = n.div_ceil(cols);
-                let (w, h) = (cols * 16, rows.max(1) * 16);
-                let mut buf = vec![0u8; w * h * 3];
-                for i in 0..w * h {
-                    let (x, y) = (i % w, i / w);
-                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
-                    buf[i * 3] = c;
-                    buf[i * 3 + 1] = c;
-                    buf[i * 3 + 2] = c;
-                }
-                let sp = rust.sprite_pal;
-                let s = rust.sel();
-                let pal4: [(u8, u8, u8); 4] = if sp == 0 {
-                    [(0, 0, 0), (85, 85, 85), (170, 170, 170), (255, 255, 255)]
-                } else {
-                    let p = &rust.rooms[s].pal;
-                    let b = (4 + (sp as usize - 1).min(3)) * 4;
-                    [(0, 0, 0), lotw::render::nes_rgb(p[b + 1]), lotw::render::nes_rgb(p[b + 2]), lotw::render::nes_rgb(p[b + 3])]
-                };
-                let f = rust.anim_frame as usize;
-                for m in 0..n {
-                    let (cx, cy) = ((m % cols) * 16, (m / cols) * 16);
-                    lotw::render::blit_metasprite_raw(&rust.chr, &pal4, m * 4 + f, &mut buf, w, cx, cy);
-                }
-                (buf, w as i32, h as i32)
-            }
-            CHARS => {
-                // Each player character: bank 56+c as 16 pose metasprites, with
-                // its family palette. Char 5's palette is empty (not a character).
-                let chars: Vec<usize> = (0..6).filter(|&c| rust.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect();
-                let cols = 16usize;
-                let (w, h) = (cols * 16, chars.len().max(1) * 16);
-                let mut buf = vec![0u8; w * h * 3];
-                for i in 0..w * h {
-                    let (x, y) = (i % w, i / w);
-                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
-                    buf[i * 3] = c;
-                    buf[i * 3 + 1] = c;
-                    buf[i * 3 + 2] = c;
-                }
-                let f = rust.anim_frame as usize; // 0/4: step to the next pose frame
-                for (row, &c) in chars.iter().enumerate() {
-                    let fp = &rust.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4];
-                    let pal4 = [(0, 0, 0), lotw::render::nes_rgb(fp[1]), lotw::render::nes_rgb(fp[2]), lotw::render::nes_rgb(fp[3])];
-                    for k in 0..cols {
-                        let base_tile = (PLAYER_BANK0 + c) * 64 + k * 4 + f;
-                        lotw::render::blit_metasprite_raw(&rust.chr, &pal4, base_tile, &mut buf, w, k * 16, row * 16);
-                    }
-                }
-                (buf, w as i32, h as i32)
-            }
-            ENEMIES => {
-                // Placed actors, each as its real 16x16 metasprite with the room
-                // sprite palette + banks, in a grid sorted by behavior.
-                let n = rust.entities.len();
-                let rows = n.div_ceil(SS_COLS);
-                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
-                let mut buf = vec![0u8; w * h * 3];
-                for i in 0..w * h {
-                    let (x, y) = (i % w, i / w);
-                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
-                    buf[i * 3] = c;
-                    buf[i * 3 + 1] = c;
-                    buf[i * 3 + 2] = c;
-                }
-                let f = rust.anim_frame;
-                for (k, e) in rust.entities.iter().enumerate() {
-                    let room = &rust.rooms[e.room];
-                    let banks = lotw::render::sprite_banks(room.mapy);
-                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
-                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
-                }
-                (buf, w as i32, h as i32)
-            }
             _ => {
                 let s = rust.sel();
                 if rust.room_cache.is_none() || rust.cache_sel != s as i32 {
@@ -503,8 +568,9 @@ impl qobject::RoomCanvas {
                     rust.cache_sel = s as i32;
                 }
                 let mut rgb = rust.room_cache.clone().unwrap();
-                // draw object spawn sprites (real entity graphics, transparent bg).
-                let banks = lotw::render::sprite_banks(rust.rooms[s].mapy);
+                // draw object spawn sprites (real entity graphics, transparent bg)
+                // using the room's per-area sprite banks.
+                let banks = lotw::render::sprite_banks(&rust.rooms[s].header);
                 let af = rust.anim_frame;
                 for i in 0..12 {
                     if rust.rooms[s].active(i) {
@@ -795,9 +861,7 @@ impl qobject::RoomCanvas {
     fn img_w(&self) -> i32 {
         match self.rust().mode {
             ATLAS => 256,
-            SPRITES => 64 * 8,
-            ENTITIES | CHARS => 16 * 16,
-            ENEMIES => (SS_COLS * SS_CELL) as i32,
+            SHEET => (SS_COLS * SS_CELL) as i32,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -807,69 +871,36 @@ impl qobject::RoomCanvas {
         let r = self.rust();
         match r.mode {
             ATLAS => 256,
-            SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
-            ENTITIES => (r.chr.len() / 16 / 4).div_ceil(16).max(1) as i32 * 16,
-            CHARS => (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).count().max(1) as i32 * 16,
-            ENEMIES => (r.entities.len().div_ceil(SS_COLS).max(1) * SS_CELL) as i32,
+            SHEET => r.sheet_height(),
             WORLD => WH,
             TITLE => 240,
             _ => 192,
         }
     }
 
+    /// Hover text for the sprite tab: the section the cursor is over, plus the
+    /// metasprite cell index within it.
     fn tile_info(&self, x: i32, y: i32) -> QString {
         let r = self.rust();
-        if r.mode == CHARS {
-            let chars: Vec<usize> = (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect();
-            let row = (y as usize / 16).min(chars.len().saturating_sub(1));
-            let c = chars.get(row).copied().unwrap_or(0);
-            let pose = x as usize / 16;
-            let bt = (PLAYER_BANK0 + c) * 64 + pose * 4;
-            return QString::from(&format!("{} — pose {pose}  (bank {}, tile 0x{bt:02x})", CHAR_NAMES[c], PLAYER_BANK0 + c));
+        if r.mode != SHEET {
+            return QString::from("");
         }
-        // Tiles mode: 8px cells, 64/row; Entities mode: 16px cells, 16/row.
-        let (tile, base) = if r.mode == ENTITIES {
-            let m = (y as usize / 16) * 16 + (x as usize / 16);
-            (m * 4, m * 4)
-        } else {
-            let t = (y as usize / 8) * 64 + (x as usize / 8);
-            (t, t)
-        };
-        let bank = base / 64;
-        let label = match bank {
-            52..=55 => "home/special sprites".to_string(),
-            56..=60 => format!("player: {}", CHAR_NAMES[bank - 56]),
-            61..=63 => "enemy / actor sprites".to_string(),
-            _ => "background / font / UI".to_string(),
-        };
-        QString::from(&format!("bank {bank}  tile 0x{tile:02x}  — {label}"))
-    }
-
-    fn char_list(&self) -> Vec<usize> {
-        let r = self.rust();
-        (0..6).filter(|&c| r.prg[FAMILY_PAL + c * 4..FAMILY_PAL + c * 4 + 4].iter().any(|&b| b != 0)).collect()
-    }
-    fn char_count(&self) -> i32 {
-        self.char_list().len() as i32
-    }
-    fn char_name(&self, i: i32) -> QString {
-        let list = self.char_list();
-        match list.get(i.max(0) as usize) {
-            Some(&c) => QString::from(CHAR_NAMES[c]),
-            None => QString::from(""),
+        let mut top = 0i32;
+        for sec in &r.sections {
+            let band = top + SS_LABEL_H as i32;
+            let bot = top + sec.height() as i32;
+            if y >= top && y < bot {
+                let col = (x as usize / SS_CELL).min(SS_COLS - 1);
+                let row = ((y - band).max(0) as usize) / SS_CELL;
+                let idx = row * SS_COLS + col;
+                if idx < sec.cells.len() {
+                    return QString::from(&format!("{}  — cell {idx}", sec.label));
+                }
+                return QString::from(&sec.label);
+            }
+            top = bot;
         }
-    }
-
-    fn entity_count(&self) -> i32 {
-        self.rust().entities.len() as i32
-    }
-    fn entity_info(&self, i: i32) -> QString {
-        let r = self.rust();
-        if let Some(e) = r.entities.get(i.max(0) as usize) {
-            QString::from(&format!("tile 0x{:02x}  palette {}  behavior {}  (in room {:02}-{})", e.tile, e.attr & 3, e.behavior, r.rooms[e.room].mapy, r.rooms[e.room].mapx))
-        } else {
-            QString::from("")
-        }
+        QString::from("")
     }
 
     fn save_rom(&self, path: QString) -> QString {

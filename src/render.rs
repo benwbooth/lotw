@@ -188,10 +188,15 @@ pub fn blit_metasprite_raw(chr: &[u8], pal4: &[(u8, u8, u8); 4], base_tile: usiz
     }
 }
 
-/// Sprite CHR banks for the four $1000-table windows. Gameplay rooms use
-/// [56(player), 61, 62, 63]; the special home/shrine rows use 52..55.
-pub fn sprite_banks(mapy: usize) -> [u8; 4] {
-    if mapy >= 16 { [52, 53, 54, 55] } else { [56, 61, 62, 63] }
+/// Sprite CHR banks for the four $1000-table (pattern $1000-$1FFF) windows,
+/// each 64 tiles. Window 0 (tiles 0x00-0x3F) is the player bank (MMC3 CHR slot
+/// 2, `56 + character_index`); window 1 (0x40-0x7F, where all actor/enemy spawn
+/// tiles live) is CHR slot 3, loaded per-room from room descriptor byte +1
+/// (`header[1]`) — this is what makes each area's enemies different. Windows
+/// 2/3 (slots 4/5) hold the shared 62/63 object/projectile tiles. See
+/// `text_attr_build` in game.rs (sets slot 3 = descriptor +1).
+pub fn sprite_banks(header: &[u8]) -> [u8; 4] {
+    [56, header[1], 62, 63]
 }
 
 /// Draw one 8x8 2bpp CHR tile at (px,py) into an RGB buffer using sub-palette
