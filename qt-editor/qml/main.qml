@@ -137,8 +137,8 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 256 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 256 : 192
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : 1024
+                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
