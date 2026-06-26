@@ -19,7 +19,7 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
 
-    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
+    function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : v === 4 ? 5 : 0 }
     property bool animate: false
     property int animTick: 0
 
@@ -50,7 +50,7 @@ ApplicationWindow {
             Row {
                 spacing: 1
                 Repeater {
-                    model: [["Room",0],["World",1],["Title",2],["Sprites",3]]
+                    model: [["Room",0],["World",1],["Title",2],["Tiles",3],["Entities",4]]
                     Button {
                         text: modelData[0]
                         checkable: true
@@ -137,8 +137,8 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : 1024
-                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : 192
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : mode === 5 ? 288 : 1024
+                    height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : mode === 5 ? img_h() : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
@@ -242,6 +242,18 @@ ApplicationWindow {
                         }
                     }
 
+                    // Entities view: hover label per assembled actor.
+                    Repeater {
+                        model: view === 4 ? roomView.entity_count() : 0
+                        Item {
+                            required property int index
+                            x: (index % 12) * 24
+                            y: Math.floor(index / 12) * 24
+                            width: 24; height: 24
+                            HoverHandler { id: entHov }
+                            ToolTip { visible: entHov.hovered; text: roomView.entity_info(index) }
+                        }
+                    }
                 }
             }
         }

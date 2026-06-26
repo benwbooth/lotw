@@ -7,7 +7,8 @@ pub const ROOM: i32 = 0;
 pub const ATLAS: i32 = 1;
 pub const WORLD: i32 = 2;
 pub const TITLE: i32 = 3;
-pub const SPRITES: i32 = 4;
+pub const SPRITES: i32 = 4; // raw CHR tile dump
+pub const ENTITIES: i32 = 5; // assembled actor metasprites
 
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
@@ -402,6 +403,27 @@ impl qobject::RoomCanvas {
                 }
                 (buf, w as i32, h as i32)
             }
+            ENTITIES => {
+                let n = rust.entities.len();
+                let rows = n.div_ceil(SS_COLS);
+                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
+                let mut buf = vec![0u8; w * h * 3];
+                for i in 0..w * h {
+                    let (x, y) = (i % w, i / w);
+                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
+                    buf[i * 3] = c;
+                    buf[i * 3 + 1] = c;
+                    buf[i * 3 + 2] = c;
+                }
+                let f = rust.anim_frame;
+                for (k, e) in rust.entities.iter().enumerate() {
+                    let room = &rust.rooms[e.room];
+                    let banks = lotw::render::sprite_banks(room.mapy);
+                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
+                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
+                }
+                (buf, w as i32, h as i32)
+            }
             _ => {
                 let s = rust.sel();
                 if rust.room_cache.is_none() || rust.cache_sel != s as i32 {
@@ -703,6 +725,7 @@ impl qobject::RoomCanvas {
         match self.rust().mode {
             ATLAS => 256,
             SPRITES => 64 * 8,
+            ENTITIES => (SS_COLS * SS_CELL) as i32,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -713,6 +736,7 @@ impl qobject::RoomCanvas {
         match r.mode {
             ATLAS => 256,
             SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
+            ENTITIES => (r.entities.len().div_ceil(SS_COLS).max(1) * SS_CELL) as i32,
             WORLD => WH,
             TITLE => 240,
             _ => 192,
