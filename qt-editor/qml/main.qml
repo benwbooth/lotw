@@ -234,6 +234,19 @@ ApplicationWindow {
                             }
                         }
                     }
+
+                    // sprite-sheet entity hover tooltips
+                    Repeater {
+                        model: view === 3 ? roomView.entity_count() : 0
+                        Item {
+                            required property int index
+                            x: (index % 12) * 24
+                            y: Math.floor(index / 12) * 24
+                            width: 24; height: 24
+                            HoverHandler { id: entHov }
+                            ToolTip { visible: entHov.hovered; text: roomView.entity_info(index) }
+                        }
+                    }
                 }
             }
         }

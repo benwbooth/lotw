@@ -104,6 +104,10 @@ pub mod qobject {
         #[qinvokable]
         fn img_h(self: &RoomCanvas) -> i32;
         #[qinvokable]
+        fn entity_count(self: &RoomCanvas) -> i32;
+        #[qinvokable]
+        fn entity_info(self: &RoomCanvas, i: i32) -> QString;
+        #[qinvokable]
         fn save_rom(self: &RoomCanvas, path: QString) -> QString;
     }
 
@@ -127,9 +131,23 @@ pub struct RoomCanvasRust {
     pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
     obj_rev: i32,
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
+    entities: Vec<Entity>, // unique actor appearances across all rooms
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
 }
+
+/// A distinct actor appearance (sprite tile + attributes) and a room it appears
+/// in (for the correct sprite palette + CHR banks).
+#[derive(Clone, Copy)]
+struct Entity {
+    tile: u8,
+    attr: u8,
+    room: usize,
+    behavior: u8,
+}
+
+const SS_COLS: usize = 12;
+const SS_CELL: usize = 24;
 
 /// Pre-edit snapshot of a single room (grid + actor records) for undo/redo.
 struct Snapshot {
@@ -160,6 +178,20 @@ impl Default for RoomCanvasRust {
         let chr = rom[16 + prg_len..].to_vec();
         let rooms = lotw::render::decode_rooms(&prg, MAP_ROWS);
         let orig_rooms = rooms.clone();
+        // Collect unique actor appearances (by tile + sub-palette) across rooms.
+        let mut entities: Vec<Entity> = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for (idx, room) in rooms.iter().enumerate() {
+            for i in 0..12 {
+                if room.active(i) {
+                    let rec = room.records[i];
+                    if seen.insert((rec[0], rec[1] & 3)) {
+                        entities.push(Entity { tile: rec[0], attr: rec[1], room: idx, behavior: rec[8] });
+                    }
+                }
+            }
+        }
+        entities.sort_by_key(|e| (e.behavior, e.tile));
         Self {
             selected: 0,
             mode: 0,
@@ -177,6 +209,7 @@ impl Default for RoomCanvasRust {
             pv: (0, 0, 0, 0, 0),
             obj_rev: 0,
             anim_frame: 0,
+            entities,
             undo: Vec::new(),
             redo: Vec::new(),
         }
@@ -333,22 +366,25 @@ impl qobject::RoomCanvas {
                 240,
             ),
             SPRITES => {
-                let s = rust.sel();
-                let banks = lotw::render::sprite_banks(rust.rooms[s].mapy);
-                let mut buf = vec![0u8; 256 * 256 * 3];
-                for i in 0..256 * 256 {
-                    let (x, y) = (i % 256, i / 256);
+                let n = rust.entities.len();
+                let rows = (n + SS_COLS - 1) / SS_COLS;
+                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
+                let mut buf = vec![0u8; w * h * 3];
+                for i in 0..w * h {
+                    let (x, y) = (i % w, i / w);
                     let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
                     buf[i * 3] = c;
                     buf[i * 3 + 1] = c;
                     buf[i * 3 + 2] = c;
                 }
-                // All 256 actor sprites (byte0 = tile), animation frame applied.
                 let f = rust.anim_frame;
-                for t in 0..256usize {
-                    lotw::render::blit_sprite(&rust.chr, &rust.rooms[s].pal, (t as u8).wrapping_add(f), 0, &banks, &mut buf, 256, (t % 16) * 16, (t / 16) * 16);
+                for (k, e) in rust.entities.iter().enumerate() {
+                    let room = &rust.rooms[e.room];
+                    let banks = lotw::render::sprite_banks(room.mapy);
+                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
+                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
                 }
-                (buf, 256, 256)
+                (buf, w as i32, h as i32)
             }
             _ => {
                 let s = rust.sel();
@@ -649,18 +685,33 @@ impl qobject::RoomCanvas {
 
     fn img_w(&self) -> i32 {
         match self.rust().mode {
-            ATLAS | SPRITES => 256,
+            ATLAS => 256,
+            SPRITES => (SS_COLS * SS_CELL) as i32,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
         }
     }
     fn img_h(&self) -> i32 {
-        match self.rust().mode {
-            ATLAS | SPRITES => 256,
+        let r = self.rust();
+        match r.mode {
+            ATLAS => 256,
+            SPRITES => (((r.entities.len() + SS_COLS - 1) / SS_COLS).max(1) * SS_CELL) as i32,
             WORLD => WH,
             TITLE => 240,
             _ => 192,
+        }
+    }
+
+    fn entity_count(&self) -> i32 {
+        self.rust().entities.len() as i32
+    }
+    fn entity_info(&self, i: i32) -> QString {
+        let r = self.rust();
+        if let Some(e) = r.entities.get(i.max(0) as usize) {
+            QString::from(&format!("tile 0x{:02x}  palette {}  behavior {}  (in room {:02}-{})", e.tile, e.attr & 3, e.behavior, r.rooms[e.room].mapy, r.rooms[e.room].mapx))
+        } else {
+            QString::from("")
         }
     }
 
