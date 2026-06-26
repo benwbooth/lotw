@@ -62,7 +62,7 @@ ApplicationWindow {
                 spacing: 1
                 visible: view === 0
                 Repeater {
-                    model: [["paint","✏️","Paint (drag)"],["pick","🎨","Eyedropper"],["hand","✋","Pan"],
+                    model: [["paint","✏️","Paint (drag)"],["erase","🧹","Eraser (revert tile to original)"],["pick","🎨","Eyedropper"],["hand","✋","Pan"],
                             ["line","╱","Line"],["rect","▭","Rectangle"],["ellipse","◯","Ellipse"],
                             ["object","📍","Objects (click=create, drag=move, Del=remove)"]]
                     Button {
@@ -147,12 +147,14 @@ ApplicationWindow {
                             if (tool === "pick") { var v = roomView.metatile_at(c, r); if (v >= 0) roomView.sel_metatile = v; return }
                             roomView.begin_edit()
                             if (tool === "paint") roomView.paint_tile(c, r)
+                            else if (tool === "erase") roomView.erase_tile(c, r)
                             else if (tool === "object") objSel = roomView.create_obj(c, Math.floor(m.y), newKind)
                             else { dragC0 = c; dragR0 = r }
                         }
                         onPositionChanged: (m) => {
                             if (view !== 0 || !m.buttons) return
                             if (tool === "paint") roomView.paint_tile(tile(m.x), tile(m.y))
+                            else if (tool === "erase") roomView.erase_tile(tile(m.x), tile(m.y))
                             else if (dragC0 >= 0) {
                                 var k = tool === "line" ? 1 : tool === "rect" ? 2 : tool === "ellipse" ? 3 : 0
                                 if (k) roomView.set_preview(k, dragC0, dragR0, tile(m.x), tile(m.y))
@@ -188,6 +190,15 @@ ApplicationWindow {
                                 font.pixelSize: 10
                                 scale: 1 / zoom
                             }
+                            ToolTip {
+                                visible: objHov.hovered
+                                text: "slot " + index + "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
+                                      "\nattr 0x" + roomView.obj_byte(index,1).toString(16) + " (palette " + (roomView.obj_byte(index,1)&3) + ")" +
+                                      "\nbehavior " + roomView.obj_byte(index,8) +
+                                      "\nHP " + roomView.obj_byte(index,4) + "  dmg " + roomView.obj_byte(index,5) +
+                                      "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index)
+                            }
+                            HoverHandler { id: objHov }
                             MouseArea {
                                 anchors.fill: parent
                                 enabled: tool === "object"
@@ -257,6 +268,10 @@ ApplicationWindow {
                     visible: objSel >= 0
                     Button { text: "Duplicate"; onClicked: { roomView.begin_edit(); objSel = roomView.copy_obj(objSel) } }
                     Button { text: "Delete"; onClicked: { roomView.begin_edit(); roomView.delete_obj(objSel); objSel = -1 } }
+                }
+                Label {
+                    text: "Record bytes — 0: sprite tile, 1: attr/palette, 2: x tile, 3: y px, 4: HP, 5: damage, 8: behavior (0–8). Hover a marker for details."
+                    color: "#999"; wrapMode: Text.WordWrap; Layout.preferredWidth: 256; font.pixelSize: 10
                 }
             }
             Item { Layout.fillHeight: true }

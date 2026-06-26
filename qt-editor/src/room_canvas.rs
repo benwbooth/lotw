@@ -53,6 +53,8 @@ pub mod qobject {
         #[qinvokable]
         fn paint_tile(self: Pin<&mut RoomCanvas>, col: i32, row: i32);
         #[qinvokable]
+        fn erase_tile(self: Pin<&mut RoomCanvas>, col: i32, row: i32);
+        #[qinvokable]
         fn paint_line(self: Pin<&mut RoomCanvas>, c0: i32, r0: i32, c1: i32, r1: i32);
         #[qinvokable]
         fn paint_rect(self: Pin<&mut RoomCanvas>, c0: i32, r0: i32, c1: i32, r1: i32);
@@ -72,6 +74,8 @@ pub mod qobject {
         fn obj_x(self: &RoomCanvas, slot: i32) -> i32;
         #[qinvokable]
         fn obj_y(self: &RoomCanvas, slot: i32) -> i32;
+        #[qinvokable]
+        fn obj_byte(self: &RoomCanvas, slot: i32, i: i32) -> i32;
         #[qinvokable]
         fn set_obj(self: Pin<&mut RoomCanvas>, slot: i32, kind: i32, x: i32, y: i32);
         #[qinvokable]
@@ -113,6 +117,7 @@ pub struct RoomCanvasRust {
     prg: Vec<u8>,
     chr: Vec<u8>,
     rooms: Vec<lotw::render::Room>,
+    orig_rooms: Vec<lotw::render::Room>, // pristine copy for the eraser
     world_cache: Option<Vec<u8>>,
     room_cache: Option<Vec<u8>>,
     cache_sel: i32,
@@ -150,6 +155,7 @@ impl Default for RoomCanvasRust {
         let prg = rom[16..16 + prg_len].to_vec();
         let chr = rom[16 + prg_len..].to_vec();
         let rooms = lotw::render::decode_rooms(&prg, MAP_ROWS);
+        let orig_rooms = rooms.clone();
         Self {
             selected: 0,
             mode: 0,
@@ -160,6 +166,7 @@ impl Default for RoomCanvasRust {
             prg,
             chr,
             rooms,
+            orig_rooms,
             world_cache: None,
             room_cache: None,
             cache_sel: -1,
@@ -420,6 +427,21 @@ impl qobject::RoomCanvas {
         self.update();
     }
 
+    fn erase_tile(mut self: Pin<&mut Self>, col: i32, row: i32) {
+        if self.rust().mode != ROOM || col < 0 || row < 0 || col >= 64 || row >= 12 {
+            return;
+        }
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            let s = rust.sel();
+            let orig = rust.orig_rooms[s].grid[row as usize][col as usize];
+            rust.rooms[s].grid[row as usize][col as usize] = orig;
+            rust.room_cache = None;
+            rust.world_cache = None;
+        }
+        self.update();
+    }
+
     fn metatile_at(&self, col: i32, row: i32) -> i32 {
         let r = self.rust();
         if r.mode != ROOM || col < 0 || row < 0 || col >= 64 || row >= 12 {
@@ -443,6 +465,15 @@ impl qobject::RoomCanvas {
     fn obj_y(&self, slot: i32) -> i32 {
         let r = self.rust();
         if (0..12).contains(&slot) { r.rooms[r.sel()].records[slot as usize][3] as i32 } else { 0 }
+    }
+
+    fn obj_byte(&self, slot: i32, i: i32) -> i32 {
+        let r = self.rust();
+        if (0..12).contains(&slot) && (0..16).contains(&i) {
+            r.rooms[r.sel()].records[slot as usize][i as usize] as i32
+        } else {
+            0
+        }
     }
 
     fn bump_obj_rev(mut self: Pin<&mut Self>) {
