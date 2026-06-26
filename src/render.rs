@@ -161,6 +161,33 @@ pub fn blit_sprite(chr: &[u8], pal: &[u8], tile: u8, attr: u8, banks: &[u8; 4], 
     }
 }
 
+/// Blit a 16x16 metasprite from 4 consecutive CHR tiles directly (no bank
+/// indirection): base = top-left, +1 = bottom-left, +2 = top-right, +3 =
+/// bottom-right (8x16 sprite pairing). Pixel value 0 is transparent. `pal4` is
+/// the 4 RGB colours for pixel values 0..3 (0 unused).
+pub fn blit_metasprite_raw(chr: &[u8], pal4: &[(u8, u8, u8); 4], base_tile: usize, dst: &mut [u8], dst_w: usize, px: usize, py: usize) {
+    for (i, &(cx, cy)) in [(0usize, 0usize), (0, 8), (8, 0), (8, 8)].iter().enumerate() {
+        let off = (base_tile + i) * 16;
+        for y in 0..8 {
+            let p0 = chr.get(off + y).copied().unwrap_or(0);
+            let p1 = chr.get(off + y + 8).copied().unwrap_or(0);
+            for x in 0..8 {
+                let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
+                if v == 0 {
+                    continue;
+                }
+                let (r, g, b) = pal4[v as usize];
+                let o = ((py + cy + y) * dst_w + px + cx + x) * 3;
+                if o + 2 < dst.len() {
+                    dst[o] = r;
+                    dst[o + 1] = g;
+                    dst[o + 2] = b;
+                }
+            }
+        }
+    }
+}
+
 /// Sprite CHR banks for the four $1000-table windows. Gameplay rooms use
 /// [56(player), 61, 62, 63]; the special home/shrine rows use 52..55.
 pub fn sprite_banks(mapy: usize) -> [u8; 4] {

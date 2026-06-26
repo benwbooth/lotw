@@ -404,9 +404,12 @@ impl qobject::RoomCanvas {
                 (buf, w as i32, h as i32)
             }
             ENTITIES => {
-                let n = rust.entities.len();
-                let rows = n.div_ceil(SS_COLS);
-                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
+                // Every 16x16 metasprite in the CHR (4 consecutive tiles), 16 per
+                // row = one 64-tile bank, over a transparency checkerboard.
+                let cols = 16usize;
+                let n = rust.chr.len() / 16 / 4;
+                let rows = n.div_ceil(cols);
+                let (w, h) = (cols * 16, rows.max(1) * 16);
                 let mut buf = vec![0u8; w * h * 3];
                 for i in 0..w * h {
                     let (x, y) = (i % w, i / w);
@@ -415,12 +418,18 @@ impl qobject::RoomCanvas {
                     buf[i * 3 + 1] = c;
                     buf[i * 3 + 2] = c;
                 }
-                let f = rust.anim_frame;
-                for (k, e) in rust.entities.iter().enumerate() {
-                    let room = &rust.rooms[e.room];
-                    let banks = lotw::render::sprite_banks(room.mapy);
-                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
-                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
+                let sp = rust.sprite_pal;
+                let s = rust.sel();
+                let pal4: [(u8, u8, u8); 4] = if sp == 0 {
+                    [(0, 0, 0), (85, 85, 85), (170, 170, 170), (255, 255, 255)]
+                } else {
+                    let p = &rust.rooms[s].pal;
+                    let b = (4 + (sp as usize - 1).min(3)) * 4;
+                    [(0, 0, 0), lotw::render::nes_rgb(p[b + 1]), lotw::render::nes_rgb(p[b + 2]), lotw::render::nes_rgb(p[b + 3])]
+                };
+                for m in 0..n {
+                    let (cx, cy) = ((m % cols) * 16, (m / cols) * 16);
+                    lotw::render::blit_metasprite_raw(&rust.chr, &pal4, m * 4, &mut buf, w, cx, cy);
                 }
                 (buf, w as i32, h as i32)
             }
@@ -725,7 +734,7 @@ impl qobject::RoomCanvas {
         match self.rust().mode {
             ATLAS => 256,
             SPRITES => 64 * 8,
-            ENTITIES => (SS_COLS * SS_CELL) as i32,
+            ENTITIES => 16 * 16,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -736,7 +745,7 @@ impl qobject::RoomCanvas {
         match r.mode {
             ATLAS => 256,
             SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
-            ENTITIES => (r.entities.len().div_ceil(SS_COLS).max(1) * SS_CELL) as i32,
+            ENTITIES => (r.chr.len() / 16 / 4).div_ceil(16).max(1) as i32 * 16,
             WORLD => WH,
             TITLE => 240,
             _ => 192,

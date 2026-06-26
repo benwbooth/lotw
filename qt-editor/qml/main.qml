@@ -98,7 +98,7 @@ ApplicationWindow {
                 ToolTip.text: "Cycle sprite frames (approx)"
             }
             Button {
-                visible: view === 3
+                visible: view === 3 || view === 4
                 text: "Palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
                 onClicked: { roomView.sprite_pal = (roomView.sprite_pal + 1) % 5; roomView.refresh() }
                 ToolTip.visible: hovered
@@ -124,7 +124,7 @@ ApplicationWindow {
             contentWidth: wrap.width
             contentHeight: wrap.height
             clip: true
-            interactive: tool === "hand" || view !== 0
+            interactive: true   // keep wheel/trackpad scroll working in all tools
             flickableDirection: Flickable.HorizontalAndVerticalFlick
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
             ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOn }
@@ -137,7 +137,7 @@ ApplicationWindow {
                 RoomCanvas {
                     id: roomView
                     mode: 0
-                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : mode === 5 ? 288 : 1024
+                    width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? 512 : mode === 5 ? 256 : 1024
                     height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? 512 : mode === 5 ? img_h() : 192
                     scale: zoom
                     transformOrigin: Item.TopLeft
@@ -160,6 +160,7 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         enabled: tool !== "hand"
+                        preventStealing: true   // drag paints, doesn't pan the Flickable
                         onPressed: (m) => {
                             if (view === 1) {
                                 var idx = roomView.world_room_at(m.x, m.y)
@@ -242,18 +243,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // Entities view: hover label per assembled actor.
-                    Repeater {
-                        model: view === 4 ? roomView.entity_count() : 0
-                        Item {
-                            required property int index
-                            x: (index % 12) * 24
-                            y: Math.floor(index / 12) * 24
-                            width: 24; height: 24
-                            HoverHandler { id: entHov }
-                            ToolTip { visible: entHov.hovered; text: roomView.entity_info(index) }
-                        }
-                    }
                 }
             }
         }
