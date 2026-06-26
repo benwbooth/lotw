@@ -37,6 +37,7 @@ pub mod qobject {
         #[qproperty(i32, cursor_col)]
         #[qproperty(i32, cursor_row)]
         #[qproperty(i32, obj_rev)] // bumped on any object edit -> QML reactivity
+        #[qproperty(i32, sprite_pal)] // 0 = greyscale, 1..4 = room sprite palettes
         type RoomCanvas = super::RoomCanvasRust;
 
         #[cxx_override]
@@ -130,6 +131,7 @@ pub struct RoomCanvasRust {
     cache_sel: i32,
     pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
     obj_rev: i32,
+    sprite_pal: i32,
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
     entities: Vec<Entity>, // unique actor appearances across all rooms
     undo: Vec<Snapshot>,
@@ -208,6 +210,7 @@ impl Default for RoomCanvasRust {
             cache_sel: -1,
             pv: (0, 0, 0, 0, 0),
             obj_rev: 0,
+            sprite_pal: 0,
             anim_frame: 0,
             entities,
             undo: Vec::new(),
@@ -366,23 +369,36 @@ impl qobject::RoomCanvas {
                 240,
             ),
             SPRITES => {
-                let n = rust.entities.len();
-                let rows = (n + SS_COLS - 1) / SS_COLS;
-                let (w, h) = (SS_COLS * SS_CELL, rows.max(1) * SS_CELL);
+                // Full CHR tile dump: 64 cols (one 64-tile bank per row), 8x8 each.
+                let cols = 64usize;
+                let n = rust.chr.len() / 16;
+                let rows = n.div_ceil(cols);
+                let (w, h) = (cols * 8, rows * 8);
                 let mut buf = vec![0u8; w * h * 3];
-                for i in 0..w * h {
-                    let (x, y) = (i % w, i / w);
-                    let c = if ((x / 8 + y / 8) & 1) == 0 { 48 } else { 64 };
-                    buf[i * 3] = c;
-                    buf[i * 3 + 1] = c;
-                    buf[i * 3 + 2] = c;
-                }
-                let f = rust.anim_frame;
-                for (k, e) in rust.entities.iter().enumerate() {
-                    let room = &rust.rooms[e.room];
-                    let banks = lotw::render::sprite_banks(room.mapy);
-                    let (cx, cy) = ((k % SS_COLS) * SS_CELL + 4, (k / SS_COLS) * SS_CELL + 4);
-                    lotw::render::blit_sprite(&rust.chr, &room.pal, e.tile.wrapping_add(f), e.attr, &banks, &mut buf, w, cx, cy);
+                // palette: 0 = greyscale, 1..4 = the selected room's sprite sub-palettes
+                let sp = rust.sprite_pal;
+                let s = rust.sel();
+                let pal4: [(u8, u8, u8); 4] = if sp == 0 {
+                    [(0, 0, 0), (85, 85, 85), (170, 170, 170), (255, 255, 255)]
+                } else {
+                    let p = &rust.rooms[s].pal;
+                    let b = (4 + (sp as usize - 1).min(3)) * 4;
+                    [lotw::render::nes_rgb(p[0]), lotw::render::nes_rgb(p[b + 1]), lotw::render::nes_rgb(p[b + 2]), lotw::render::nes_rgb(p[b + 3])]
+                };
+                for t in 0..n {
+                    let base = t * 16;
+                    let (ox, oy) = ((t % cols) * 8, (t / cols) * 8);
+                    for y in 0..8 {
+                        let (p0, p1) = (rust.chr[base + y], rust.chr[base + y + 8]);
+                        for x in 0..8 {
+                            let v = ((p0 >> (7 - x)) & 1) | (((p1 >> (7 - x)) & 1) << 1);
+                            let (r, g, b) = pal4[v as usize];
+                            let o = ((oy + y) * w + ox + x) * 3;
+                            buf[o] = r;
+                            buf[o + 1] = g;
+                            buf[o + 2] = b;
+                        }
+                    }
                 }
                 (buf, w as i32, h as i32)
             }
@@ -686,7 +702,7 @@ impl qobject::RoomCanvas {
     fn img_w(&self) -> i32 {
         match self.rust().mode {
             ATLAS => 256,
-            SPRITES => (SS_COLS * SS_CELL) as i32,
+            SPRITES => 64 * 8,
             WORLD => WW,
             TITLE => 256,
             _ => 1024,
@@ -696,7 +712,7 @@ impl qobject::RoomCanvas {
         let r = self.rust();
         match r.mode {
             ATLAS => 256,
-            SPRITES => (((r.entities.len() + SS_COLS - 1) / SS_COLS).max(1) * SS_CELL) as i32,
+            SPRITES => (r.chr.len() / 16).div_ceil(64) as i32 * 8,
             WORLD => WH,
             TITLE => 240,
             _ => 192,

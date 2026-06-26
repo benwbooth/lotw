@@ -97,6 +97,13 @@ ApplicationWindow {
                 ToolTip.visible: hovered
                 ToolTip.text: "Cycle sprite frames (approx)"
             }
+            Button {
+                visible: view === 3
+                text: "Palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
+                onClicked: { roomView.sprite_pal = (roomView.sprite_pal + 1) % 5; roomView.refresh() }
+                ToolTip.visible: hovered
+                ToolTip.text: "Cycle CHR dump palette (grey / room sprite palettes)"
+            }
             ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
@@ -235,18 +242,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // sprite-sheet entity hover tooltips
-                    Repeater {
-                        model: view === 3 ? roomView.entity_count() : 0
-                        Item {
-                            required property int index
-                            x: (index % 12) * 24
-                            y: Math.floor(index / 12) * 24
-                            width: 24; height: 24
-                            HoverHandler { id: entHov }
-                            ToolTip { visible: entHov.hovered; text: roomView.entity_info(index) }
-                        }
-                    }
                 }
             }
         }
