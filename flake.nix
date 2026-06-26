@@ -98,6 +98,12 @@
             export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
             export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
             export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins:${pkgs.qt6.qtdeclarative}/lib/qt-6/plugins"
+            # Use the native Fusion controls style (instead of the flat "Basic"
+            # default) and let the xdg-desktop-portal platform theme feed the
+            # system (KDE/Plasma) colour scheme + palette through to it. Both are
+            # overridable so a user can pick another style/theme.
+            export QT_QUICK_CONTROLS_STYLE="''${QT_QUICK_CONTROLS_STYLE:-Fusion}"
+            export QT_QPA_PLATFORMTHEME="''${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
           '';
         };
       });
