@@ -16,6 +16,8 @@ ApplicationWindow {
     property real zoom: 2.0
     property int dragC0: -1
     property int dragR0: -1
+    property int objSel: -1
+    property int newKind: 0x51
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : 0 }
     function tile(v) { return Math.floor(v / zoom / 16) }   // item px -> tile index
@@ -60,7 +62,8 @@ ApplicationWindow {
                 visible: view === 0
                 Repeater {
                     model: [["paint","✏️","Paint (drag)"],["pick","🎨","Eyedropper"],["hand","✋","Pan"],
-                            ["line","╱","Line"],["rect","▭","Rectangle"],["ellipse","◯","Ellipse"]]
+                            ["line","╱","Line"],["rect","▭","Rectangle"],["ellipse","◯","Ellipse"],
+                            ["object","📍","Objects (click=create, drag=move, Del=remove)"]]
                     Button {
                         text: modelData[1]
                         font.pixelSize: 16
@@ -137,6 +140,7 @@ ApplicationWindow {
                         var c = tile(m.x), r = tile(m.y)
                         if (tool === "paint") roomView.paint_tile(c, r)
                         else if (tool === "pick") { var v = roomView.metatile_at(c, r); if (v >= 0) roomView.sel_metatile = v }
+                        else if (tool === "object") objSel = roomView.create_obj(c, Math.floor(m.y / zoom), newKind)
                         else { dragC0 = c; dragR0 = r }
                     }
                     onPositionChanged: (m) => {
@@ -157,7 +161,45 @@ ApplicationWindow {
                         dragC0 = -1
                     }
                 }
+
+                // object markers (room view)
+                Repeater {
+                    model: 12
+                    Rectangle {
+                        required property int index
+                        visible: view === 0 && (roomView.obj_rev, roomView.selected, roomView.obj_active(index))
+                        x: (roomView.obj_rev, roomView.obj_x(index)) * 16 * zoom
+                        y: (roomView.obj_rev, roomView.obj_y(index)) * zoom
+                        width: 16 * zoom
+                        height: 16 * zoom
+                        color: "transparent"
+                        border.color: objSel === index ? "#ff8c00" : "#ffdd00"
+                        border.width: 2
+                        Text {
+                            anchors.centerIn: parent
+                            text: ((roomView.obj_rev, roomView.obj_kind(index))).toString(16)
+                            color: parent.border.color
+                            font.pixelSize: Math.max(7, 9 * Math.min(zoom, 1.5))
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: tool === "object"
+                            onPressed: objSel = index
+                            onPositionChanged: (m) => {
+                                if (!pressed) return
+                                var p = mapToItem(roomView, m.x, m.y)
+                                roomView.set_obj(index, roomView.obj_kind(index), Math.floor(p.x / zoom / 16), Math.floor(p.y / zoom))
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        Shortcut {
+            sequences: [StandardKey.Delete, StandardKey.Backspace]
+            enabled: tool === "object" && objSel >= 0
+            onActivated: { roomView.delete_obj(objSel); objSel = -1 }
         }
 
         ColumnLayout {
@@ -179,6 +221,31 @@ ApplicationWindow {
                     y: Math.floor(roomView.sel_metatile / 16) * 16
                     width: 16; height: 16
                     color: "transparent"; border.color: "#0f0"; border.width: 2
+                }
+            }
+
+            // object tool controls
+            ColumnLayout {
+                visible: tool === "object"
+                spacing: 4
+                Label { text: "Objects — click=create, drag=move, Del=remove"; color: "#bbb"; wrapMode: Text.WordWrap; Layout.preferredWidth: 256 }
+                RowLayout {
+                    Label { text: "new type:"; color: "#ddd" }
+                    SpinBox {
+                        from: 0; to: 255; value: newKind
+                        textFromValue: (v) => "0x" + v.toString(16)
+                        onValueModified: newKind = value
+                    }
+                }
+                Label {
+                    visible: objSel >= 0
+                    text: "selected obj " + objSel + "  type 0x" + (objSel >= 0 ? (roomView.obj_rev, roomView.obj_kind(objSel)).toString(16) : "")
+                    color: "#fc0"
+                }
+                Button {
+                    visible: objSel >= 0
+                    text: "Delete object"
+                    onClicked: { roomView.delete_obj(objSel); objSel = -1 }
                 }
             }
             Item { Layout.fillHeight: true }

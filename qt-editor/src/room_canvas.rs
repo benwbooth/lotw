@@ -35,6 +35,7 @@ pub mod qobject {
         #[qproperty(i32, sel_metatile)]
         #[qproperty(i32, cursor_col)]
         #[qproperty(i32, cursor_row)]
+        #[qproperty(i32, obj_rev)] // bumped on any object edit -> QML reactivity
         type RoomCanvas = super::RoomCanvasRust;
 
         #[cxx_override]
@@ -63,6 +64,20 @@ pub mod qobject {
         fn clear_preview(self: Pin<&mut RoomCanvas>);
         #[qinvokable]
         fn metatile_at(self: &RoomCanvas, col: i32, row: i32) -> i32;
+        #[qinvokable]
+        fn obj_active(self: &RoomCanvas, slot: i32) -> bool;
+        #[qinvokable]
+        fn obj_kind(self: &RoomCanvas, slot: i32) -> i32;
+        #[qinvokable]
+        fn obj_x(self: &RoomCanvas, slot: i32) -> i32;
+        #[qinvokable]
+        fn obj_y(self: &RoomCanvas, slot: i32) -> i32;
+        #[qinvokable]
+        fn set_obj(self: Pin<&mut RoomCanvas>, slot: i32, kind: i32, x: i32, y: i32);
+        #[qinvokable]
+        fn delete_obj(self: Pin<&mut RoomCanvas>, slot: i32);
+        #[qinvokable]
+        fn create_obj(self: Pin<&mut RoomCanvas>, x: i32, y: i32, kind: i32) -> i32;
         #[qinvokable]
         fn world_room_at(self: &RoomCanvas, x: i32, y: i32) -> i32;
         #[qinvokable]
@@ -94,6 +109,7 @@ pub struct RoomCanvasRust {
     room_cache: Option<Vec<u8>>,
     cache_sel: i32,
     pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
+    obj_rev: i32,
 }
 
 impl Default for RoomCanvasRust {
@@ -118,6 +134,7 @@ impl Default for RoomCanvasRust {
             room_cache: None,
             cache_sel: -1,
             pv: (0, 0, 0, 0, 0),
+            obj_rev: 0,
         }
     }
 }
@@ -380,6 +397,64 @@ impl qobject::RoomCanvas {
             return -1;
         }
         r.rooms[r.sel()].grid[row as usize][col as usize] as i32
+    }
+
+    fn obj_active(&self, slot: i32) -> bool {
+        let r = self.rust();
+        (0..12).contains(&slot) && r.rooms[r.sel()].active(slot as usize)
+    }
+    fn obj_kind(&self, slot: i32) -> i32 {
+        let r = self.rust();
+        if (0..12).contains(&slot) { r.rooms[r.sel()].records[slot as usize][0] as i32 } else { 0 }
+    }
+    fn obj_x(&self, slot: i32) -> i32 {
+        let r = self.rust();
+        if (0..12).contains(&slot) { r.rooms[r.sel()].records[slot as usize][2] as i32 } else { 0 }
+    }
+    fn obj_y(&self, slot: i32) -> i32 {
+        let r = self.rust();
+        if (0..12).contains(&slot) { r.rooms[r.sel()].records[slot as usize][3] as i32 } else { 0 }
+    }
+
+    fn bump_obj_rev(mut self: Pin<&mut Self>) {
+        let rev = self.rust().obj_rev;
+        self.as_mut().set_obj_rev(rev + 1);
+    }
+
+    fn set_obj(mut self: Pin<&mut Self>, slot: i32, kind: i32, x: i32, y: i32) {
+        if (0..12).contains(&slot) {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            let s = rust.sel();
+            let rec = &mut rust.rooms[s].records[slot as usize];
+            rec[0] = kind.clamp(0, 255) as u8;
+            rec[2] = x.clamp(0, 63) as u8;
+            rec[3] = y.clamp(0, 191) as u8;
+        }
+        self.bump_obj_rev();
+    }
+
+    fn delete_obj(mut self: Pin<&mut Self>, slot: i32) {
+        if (0..12).contains(&slot) {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            let s = rust.sel();
+            rust.rooms[s].records[slot as usize] = [0; 16];
+        }
+        self.bump_obj_rev();
+    }
+
+    fn create_obj(mut self: Pin<&mut Self>, x: i32, y: i32, kind: i32) -> i32 {
+        let mut made = -1;
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            let s = rust.sel();
+            if let Some(free) = (0..9).find(|&i| !rust.rooms[s].active(i)) {
+                rust.rooms[s].records[free] =
+                    [kind.clamp(0, 255) as u8, 0x02, x.clamp(0, 63) as u8, y.clamp(0, 191) as u8, 0x10, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                made = free as i32;
+            }
+        }
+        self.bump_obj_rev();
+        made
     }
 
     fn world_room_at(&self, x: i32, y: i32) -> i32 {
