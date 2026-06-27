@@ -74,6 +74,14 @@
             qt6.qtdeclarative
             qt6.qtwayland
             qt6.qtshadertools
+            # KDE/Plasma integration so QtQuick Controls use the system theme:
+            # qqc2-desktop-style provides the `org.kde.desktop` style, breeze the
+            # widget style/colours, plasma-integration the KDE platform theme
+            # plugin, kio the helpers org.kde.desktop expects.
+            kdePackages.qqc2-desktop-style
+            kdePackages.breeze
+            kdePackages.plasma-integration
+            kdePackages.kio
             cmake
             ninja
             watchexec # auto-rebuild/restart the Qt editor on change
@@ -95,15 +103,17 @@
             ]}:''${LD_LIBRARY_PATH:-}"
             export QMAKE="${qmakeWrapperFor pkgs}/bin/qmake"
             export QT_QPA_PLATFORM=wayland
-            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
+            # QML import + plugin paths. Include qqc2-desktop-style (org.kde.desktop
+            # QML style) and the KDE/breeze widget styles + plasma-integration
+            # platform-theme plugin so the controls follow the system KDE theme,
+            # not the flat "Basic" fallback.
+            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml:${pkgs.kdePackages.qqc2-desktop-style}/lib/qt-6/qml:${pkgs.kdePackages.breeze}/lib/qt-6/qml"
             export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
-            export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins:${pkgs.qt6.qtdeclarative}/lib/qt-6/plugins"
-            # Use the native Fusion controls style (instead of the flat "Basic"
-            # default) and let the xdg-desktop-portal platform theme feed the
-            # system (KDE/Plasma) colour scheme + palette through to it. Both are
-            # overridable so a user can pick another style/theme.
-            export QT_QUICK_CONTROLS_STYLE="''${QT_QUICK_CONTROLS_STYLE:-Fusion}"
-            export QT_QPA_PLATFORMTHEME="''${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
+            export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins:${pkgs.qt6.qtdeclarative}/lib/qt-6/plugins:${pkgs.kdePackages.plasma-integration}/lib/qt-6/plugins:${pkgs.kdePackages.breeze}/lib/qt-6/plugins:${pkgs.kdePackages.kio}/lib/qt-6/plugins"
+            # Default to the KDE desktop style + platform theme (matches the rest
+            # of the Plasma session); both overridable. QT_QPA_PLATFORMTHEME is
+            # left to KDE auto-detection (XDG_CURRENT_DESKTOP) unless preset.
+            export QT_QUICK_CONTROLS_STYLE="''${QT_QUICK_CONTROLS_STYLE:-org.kde.desktop}"
           '';
         };
       });
