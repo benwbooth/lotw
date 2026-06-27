@@ -231,13 +231,11 @@ enum Cell {
 }
 
 /// A labeled sprite-sheet subsection (a row of related metasprites). `cell_px`
-/// is the pixel pitch of each cell (large for boss rows). `cell_names`, when
-/// non-empty, is a per-cell name shown on hover (creature name per cell).
+/// is the pixel pitch of each cell (large for boss rows).
 struct Section {
     label: String,
     cells: Vec<Cell>,
     cell_px: usize,
-    cell_names: Vec<String>,
 }
 
 impl Section {
@@ -280,8 +278,14 @@ fn greyscale4() -> [(u8, u8, u8); 4] {
 ///     bank holds one area's creatures; render all 16 of its metasprites with
 ///     the palette of a representative placed enemy.
 ///   * Shared banks 62/63 (object/projectile tiles) and 61 (boss bodies).
-fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
+fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
     let mut sections = Vec::new();
+    // A creature's 4-metasprite strip (strip k = metasprites 4k..4k+3 = tiles
+    // 16k..16k+16 of the bank) is "real" only if it has non-empty graphics.
+    let strip_nonempty = |bank: u8, k: usize| -> bool {
+        let start = (bank as usize * 64 + k * 16) * 16;
+        chr.get(start..start + 16 * 16).map(|s| s.iter().any(|&b| b != 0)).unwrap_or(false)
+    };
 
     // --- Players (named, family palettes) ---
     for c in 0..6 {
@@ -298,7 +302,7 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
         let cells = (0..SS_COLS)
             .map(|k| Cell::Family { base_tile: (PLAYER_BANK0 + c) * 64 + k * 4, pal4 })
             .collect();
-        sections.push(Section { label: format!("{} — {} (player)", CHAR_NAMES[c], CHAR_ROLES[c]), cells, cell_px: SS_CELL, cell_names: vec![] });
+        sections.push(Section { label: format!("{} — {} (player)", CHAR_NAMES[c], CHAR_ROLES[c]), cells, cell_px: SS_CELL });
     }
 
     // --- Area enemies, one section per distinct header[1] CHR bank ---
@@ -341,32 +345,32 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
                 .iter()
                 .map(|&base| Cell::Boss { base, attr, room: info.rep_room })
                 .collect();
-            sections.push(Section { label: format!("{} — boss (bank {b})", boss_name(*b)), cells, cell_px: 40, cell_names: vec![] });
+            sections.push(Section { label: format!("{} — boss (bank {b})", boss_name(*b)), cells, cell_px: 40 });
             continue;
         }
-        let cells = (0..SS_COLS)
-            .map(|m| {
-                let attr = info.attr_by_m[m].unwrap_or(info.any_attr);
-                // tile 0x41 + m*4 selects metasprite m of window 1 (see blit_sprite).
-                Cell::Actor { tile: (0x41 + m * 4) as u8, attr, room: info.rep_room }
-            })
-            .collect();
-        // Per-cell creature names (each creature spans a 4-metasprite strip).
-        let cell_names = (0..SS_COLS).map(|m| area_creature_name(*b, m / 4).unwrap_or("").to_string()).collect();
-        // Section label lists the named creatures in this bank, left to right.
-        let named: Vec<&str> = (0..4).filter_map(|k| area_creature_name(*b, k)).collect();
-        let label = if named.is_empty() {
-            format!("Area enemies — CHR bank {b}")
-        } else {
-            format!("Bank {b} — {}", named.join(" · "))
-        };
-        sections.push(Section { label, cells, cell_px: SS_CELL, cell_names });
+        // One row per creature: each creature is a 4-metasprite animation strip.
+        for k in 0..4 {
+            if !strip_nonempty(*b, k) {
+                continue;
+            }
+            // Palette: prefer the base frame's placed attr, else any frame's, else
+            // the bank default.
+            let attr = (0..4).find_map(|j| info.attr_by_m[k * 4 + j]).unwrap_or(info.any_attr);
+            let cells = (0..4)
+                .map(|j| Cell::Actor { tile: (0x41 + (k * 4 + j) * 4) as u8, attr, room: info.rep_room })
+                .collect();
+            let label = match area_creature_name(*b, k) {
+                Some(n) => format!("{n}  (bank {b})"),
+                None => format!("Bank {b} creature {k}"),
+            };
+            sections.push(Section { label, cells, cell_px: SS_CELL });
+        }
     }
 
     // --- Shared sprite banks (object/projectile + boss tiles) ---
     for (bank, name) in [(61usize, "Boss bodies — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
         let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
-        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL, cell_names: vec![] });
+        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL });
     }
 
     sections
@@ -382,7 +386,7 @@ impl Default for RoomCanvasRust {
         let chr = rom[16 + prg_len..].to_vec();
         let rooms = lotw::render::decode_rooms(&prg, MAP_ROWS);
         let orig_rooms = rooms.clone();
-        let sections = build_sections(&prg, &rooms);
+        let sections = build_sections(&prg, &chr, &rooms);
         Self {
             selected: 0,
             mode: 0,
@@ -1001,13 +1005,7 @@ impl qobject::RoomCanvas {
                 let row = ((y - band).max(0) as usize) / sec.cell_px;
                 let idx = row * SS_COLS + col;
                 if idx < sec.cells.len() {
-                    // Prefer a per-cell creature name when known.
-                    if let Some(n) = sec.cell_names.get(idx) {
-                        if !n.is_empty() {
-                            return QString::from(&format!("{n}  — cell {idx}  ({})", sec.label));
-                        }
-                    }
-                    return QString::from(&format!("{}  — cell {idx}", sec.label));
+                    return QString::from(&format!("{}  — frame {idx}", sec.label));
                 }
                 return QString::from(&sec.label);
             }
