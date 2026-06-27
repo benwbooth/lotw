@@ -31,6 +31,56 @@ fn boss_name(bank: u8) -> &'static str {
     }
 }
 
+/// Name of the area creature occupying strip `k` (each creature spans a
+/// 4-metasprite animation strip; 4 creatures per bank) of enemy CHR bank
+/// `bank`. Names are from StrategyWiki's monster list, matched to our CHR by
+/// sprite-shape correlation (the manual itself names no regular enemies); only
+/// confident, uniquely-matched assignments are included, so some strips are
+/// left unnamed.
+fn area_creature_name(bank: u8, k: usize) -> Option<&'static str> {
+    let n = match (bank, k) {
+        (36, 0) => "Derudeathgadedo",
+        (36, 1) => "Meta Black",
+        (36, 2) => "Moricdo",
+        (36, 3) => "Killer Bat",
+        (37, 0) => "Tiger",
+        (37, 2) => "Aryu",
+        (37, 3) => "Garba",
+        (38, 1) => "Yashinotkin",
+        (38, 2) => "Orc",
+        (38, 3) => "Slime",
+        (39, 0) => "Giant",
+        (39, 1) => "Lee",
+        (39, 2) => "Golem",
+        (40, 1) => "Mimic",
+        (41, 0) => "Lightball",
+        (41, 1) => "Mayu",
+        (41, 2) => "Kraugen",
+        (42, 1) => "Snake Kid",
+        (42, 3) => "Rock",
+        (43, 1) => "Crawler",
+        (43, 2) => "Skeleton",
+        (43, 3) => "Rock Veest",
+        (44, 0) => "Slug",
+        (44, 1) => "Mummy",
+        (44, 2) => "Cyclops",
+        (44, 3) => "Mu",
+        (45, 0) => "Lion",
+        (45, 1) => "Kirru",
+        (45, 2) => "Elemental",
+        (45, 3) => "Dwarf",
+        (46, 0) => "Roid Moon",
+        (46, 1) => "Dorak",
+        (46, 2) => "Gridel",
+        (46, 3) => "Flail Snail",
+        (47, 0) => "Roman",
+        (47, 1) => "Lizard Man",
+        (47, 2) => "Bupurch",
+        _ => return None,
+    };
+    Some(n)
+}
+
 const MAP_ROWS: usize = 18;
 const WW: i32 = 4 * 1024; // world width
 const WH: i32 = MAP_ROWS as i32 * 192; // world height (18 rows)
@@ -181,11 +231,13 @@ enum Cell {
 }
 
 /// A labeled sprite-sheet subsection (a row of related metasprites). `cell_px`
-/// is the pixel pitch of each cell (large for boss rows).
+/// is the pixel pitch of each cell (large for boss rows). `cell_names`, when
+/// non-empty, is a per-cell name shown on hover (creature name per cell).
 struct Section {
     label: String,
     cells: Vec<Cell>,
     cell_px: usize,
+    cell_names: Vec<String>,
 }
 
 impl Section {
@@ -246,7 +298,7 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
         let cells = (0..SS_COLS)
             .map(|k| Cell::Family { base_tile: (PLAYER_BANK0 + c) * 64 + k * 4, pal4 })
             .collect();
-        sections.push(Section { label: format!("{} — {} (player)", CHAR_NAMES[c], CHAR_ROLES[c]), cells, cell_px: SS_CELL });
+        sections.push(Section { label: format!("{} — {} (player)", CHAR_NAMES[c], CHAR_ROLES[c]), cells, cell_px: SS_CELL, cell_names: vec![] });
     }
 
     // --- Area enemies, one section per distinct header[1] CHR bank ---
@@ -289,7 +341,7 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
                 .iter()
                 .map(|&base| Cell::Boss { base, attr, room: info.rep_room })
                 .collect();
-            sections.push(Section { label: format!("{} — boss (bank {b})", boss_name(*b)), cells, cell_px: 40 });
+            sections.push(Section { label: format!("{} — boss (bank {b})", boss_name(*b)), cells, cell_px: 40, cell_names: vec![] });
             continue;
         }
         let cells = (0..SS_COLS)
@@ -299,13 +351,22 @@ fn build_sections(prg: &[u8], rooms: &[lotw::render::Room]) -> Vec<Section> {
                 Cell::Actor { tile: (0x41 + m * 4) as u8, attr, room: info.rep_room }
             })
             .collect();
-        sections.push(Section { label: format!("Area enemies — CHR bank {b}"), cells, cell_px: SS_CELL });
+        // Per-cell creature names (each creature spans a 4-metasprite strip).
+        let cell_names = (0..SS_COLS).map(|m| area_creature_name(*b, m / 4).unwrap_or("").to_string()).collect();
+        // Section label lists the named creatures in this bank, left to right.
+        let named: Vec<&str> = (0..4).filter_map(|k| area_creature_name(*b, k)).collect();
+        let label = if named.is_empty() {
+            format!("Area enemies — CHR bank {b}")
+        } else {
+            format!("Bank {b} — {}", named.join(" · "))
+        };
+        sections.push(Section { label, cells, cell_px: SS_CELL, cell_names });
     }
 
     // --- Shared sprite banks (object/projectile + boss tiles) ---
     for (bank, name) in [(61usize, "Boss bodies — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
         let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
-        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL });
+        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL, cell_names: vec![] });
     }
 
     sections
@@ -940,6 +1001,12 @@ impl qobject::RoomCanvas {
                 let row = ((y - band).max(0) as usize) / sec.cell_px;
                 let idx = row * SS_COLS + col;
                 if idx < sec.cells.len() {
+                    // Prefer a per-cell creature name when known.
+                    if let Some(n) = sec.cell_names.get(idx) {
+                        if !n.is_empty() {
+                            return QString::from(&format!("{n}  — cell {idx}  ({})", sec.label));
+                        }
+                    }
                     return QString::from(&format!("{}  — cell {idx}", sec.label));
                 }
                 return QString::from(&sec.label);
