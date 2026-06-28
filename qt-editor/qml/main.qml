@@ -232,38 +232,46 @@ ApplicationWindow {
                         }
                     }
 
-                    // object markers (native coords; scaled with the canvas)
+                    // Object overlay: the rendered sprite already marks the spawn
+                    // point, so no crosshair. In the object tool we outline each
+                    // spawn and name it; hovering any object shows its RE details.
                     Repeater {
                         model: 12
-                        Rectangle {
+                        Item {
                             required property int index
                             visible: view === 0 && (roomView.obj_rev, roomView.selected, roomView.obj_active(index))
                             x: (roomView.obj_rev, roomView.obj_x(index)) * 16
                             y: (roomView.obj_rev, roomView.obj_y(index))
                             width: 16; height: 16
-                            radius: 8
-                            color: objSel === index ? "#66ff8c00" : "#553a9bff"   // translucent spawn marker
-                            border.color: objSel === index ? "#ff8c00" : "#8cc8ff"
-                            border.width: 2 / zoom
-                            // crosshair centre
-                            Rectangle { anchors.centerIn: parent; width: 16; height: 2 / zoom; color: parent.border.color }
-                            Rectangle { anchors.centerIn: parent; width: 2 / zoom; height: 16; color: parent.border.color }
+                            // thin selection outline (object tool only)
+                            Rectangle {
+                                anchors.fill: parent
+                                visible: tool === "object"
+                                color: objSel === index ? "#33ffcc00" : "transparent"
+                                border.color: objSel === index ? "#ffcc00" : "#90ffffff"
+                                border.width: (objSel === index ? 2 : 1) / zoom
+                            }
+                            // creature name above the sprite (object tool or hover)
                             Text {
+                                visible: tool === "object" || objHov.hovered
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.bottom
-                                text: "0x" + ((roomView.obj_rev, roomView.obj_kind(index))).toString(16)
-                                color: parent.border.color
-                                font.pixelSize: 9
+                                anchors.bottom: parent.top
+                                text: (roomView.obj_rev, roomView.obj_name(index))
+                                color: objSel === index ? "#ffcc00" : "#fff"
+                                style: Text.Outline; styleColor: "#000"
+                                font.pixelSize: 8
                                 scale: 1 / zoom
-                                transformOrigin: Item.Top
+                                transformOrigin: Item.Bottom
                             }
                             ToolTip {
                                 visible: objHov.hovered
-                                text: "slot " + index + "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
-                                      "\nattr 0x" + roomView.obj_byte(index,1).toString(16) + " (palette " + (roomView.obj_byte(index,1)&3) + ")" +
+                                text: roomView.obj_name(index) +
                                       "\nbehavior " + roomView.obj_byte(index,8) +
-                                      "\nHP " + roomView.obj_byte(index,4) + "  dmg " + roomView.obj_byte(index,5) +
-                                      "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index)
+                                      "   HP " + roomView.obj_byte(index,4) + "   dmg " + roomView.obj_byte(index,5) +
+                                      "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
+                                      "   palette " + (roomView.obj_byte(index,1)&3) +
+                                      "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index) +
+                                      "   (slot " + index + ")"
                             }
                             HoverHandler { id: objHov }
                             MouseArea {

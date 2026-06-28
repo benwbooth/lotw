@@ -160,6 +160,8 @@ pub mod qobject {
         #[qinvokable]
         fn obj_byte(self: &RoomCanvas, slot: i32, i: i32) -> i32;
         #[qinvokable]
+        fn obj_name(self: &RoomCanvas, slot: i32) -> QString;
+        #[qinvokable]
         fn set_obj(self: Pin<&mut RoomCanvas>, slot: i32, kind: i32, x: i32, y: i32);
         #[qinvokable]
         fn delete_obj(self: Pin<&mut RoomCanvas>, slot: i32);
@@ -838,6 +840,31 @@ impl qobject::RoomCanvas {
         } else {
             0
         }
+    }
+
+    /// Creature name for an object slot, from the room's enemy bank (header[1])
+    /// + spawn tile, via the same RE'd mapping the sprite tab uses.
+    fn obj_name(&self, slot: i32) -> QString {
+        let r = self.rust();
+        if !(0..12).contains(&slot) {
+            return QString::from("");
+        }
+        let room = &r.rooms[r.sel()];
+        if !room.active(slot as usize) {
+            return QString::from("");
+        }
+        let rec = room.records[slot as usize];
+        let bank = room.header[1];
+        let name = if bank >= 48 {
+            boss_name(bank).to_string()
+        } else if (0x40..0x80).contains(&rec[0]) {
+            // window-1 spawn tile -> creature strip k = (tile%64)/16 (4 per bank).
+            let k = (rec[0] as usize % 64) / 16;
+            area_creature_name(bank, k).map(|s| s.to_string()).unwrap_or_else(|| format!("bank {bank} #{k}"))
+        } else {
+            format!("tile 0x{:02x}", rec[0])
+        };
+        QString::from(&name)
     }
 
     fn bump_obj_rev(mut self: Pin<&mut Self>) {
