@@ -399,15 +399,20 @@ ApplicationWindow {
 
         ColumnLayout {
             visible: view === 0
-            Layout.preferredWidth: 264
+            Layout.preferredWidth: 528
             Label { text: "Metatile palette:"; color: "#bbb" }
-            RoomCanvas {
-                id: atlasView
-                mode: 1
-                selected: roomView.selected
-                width: 256; height: 256
-                smooth: false
-                onSelectedChanged: refresh()
+            Item {
+                Layout.preferredWidth: 512
+                Layout.preferredHeight: 512
+                RoomCanvas {
+                    id: atlasView
+                    mode: 1
+                    selected: roomView.selected
+                    width: 256; height: 256
+                    scale: 2                 // show the metatile palette at 2x
+                    transformOrigin: Item.TopLeft
+                    smooth: false
+                    onSelectedChanged: refresh()
                 MouseArea {
                     anchors.fill: parent
                     onClicked: (m) => roomView.sel_metatile = Math.floor(m.y / 16) * 16 + Math.floor(m.x / 16)
@@ -422,6 +427,7 @@ ApplicationWindow {
                 HoverHandler {
                     onPointChanged: atlasView.set_atlas_hover(Math.floor(point.position.y / 16) * 16 + Math.floor(point.position.x / 16))
                     onHoveredChanged: if (!hovered) atlasView.set_atlas_hover(-1)
+                }
                 }
             }
 
