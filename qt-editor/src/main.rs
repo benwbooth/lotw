@@ -66,6 +66,12 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
 }
 
 fn main() {
+    // Use the native font rasteriser instead of Qt Quick's distance-field text.
+    // Distance-field glyphs are interpolated from a cached texture, so at
+    // fractional positions/scales (which vary with window size) baselines and
+    // kerning go soft; native rendering snaps crisply to the pixel grid.
+    std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
+
     let mut app = QGuiApplication::new();
 
     // Set the window/app icon to Pochi (best-effort; ignored if the ROM is absent).

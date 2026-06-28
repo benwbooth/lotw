@@ -87,6 +87,7 @@ ApplicationWindow {
                     model: [["Room",0],["World",1],["Title",2],["Sprites",3]]
                     Button {
                         text: modelData[0]
+                        implicitWidth: 70; implicitHeight: 30
                         checkable: true
                         checked: view === modelData[1]
                         onClicked: {
@@ -111,6 +112,7 @@ ApplicationWindow {
                     Button {
                         text: modelData[1]
                         font.pixelSize: 16
+                        implicitWidth: 36; implicitHeight: 30
                         checkable: true
                         checked: tool === modelData[0]
                         onClicked: tool = modelData[0]
