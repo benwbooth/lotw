@@ -36,7 +36,6 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
     property int palSel: -1        // selected room-palette byte (0-31) being edited
-    property int worldHover: -1    // room index under the cursor in the World view
     property int objHover: -1      // object slot under the cursor in the Room view
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
@@ -219,28 +218,12 @@ ApplicationWindow {
                         enabled: view === 3
                         onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
                     }
+                    // World view: inverse-colour border on the hovered room. Drawn
+                    // in paint(); set_world_hover only repaints when the room changes.
                     HoverHandler {
                         enabled: view === 1
-                        onPointChanged: worldHover = roomView.world_room_at(point.position.x, point.position.y)
-                        onHoveredChanged: if (!hovered) worldHover = -1
-                    }
-                    // World view: highlight the hovered room with an inverse-style
-                    // border (overlay rectangle, so the huge world image isn't repainted).
-                    Rectangle {
-                        visible: view === 1 && worldHover >= 0
-                        x: (worldHover % 4) * 1024
-                        y: Math.floor(worldHover / 4) * 192
-                        width: 1024; height: 192
-                        color: "transparent"
-                        border.color: "#ffffff"
-                        border.width: 3 / zoom
-                        Rectangle {   // inner dark line for contrast on light tiles
-                            anchors.fill: parent
-                            anchors.margins: 3 / zoom
-                            color: "transparent"
-                            border.color: "#000000"
-                            border.width: 1 / zoom
-                        }
+                        onPointChanged: roomView.set_world_hover(roomView.world_room_at(point.position.x, point.position.y))
+                        onHoveredChanged: if (!hovered) roomView.set_world_hover(-1)
                     }
 
                     MouseArea {
@@ -399,6 +382,11 @@ ApplicationWindow {
                     y: Math.floor(roomView.sel_metatile / 16) * 16
                     width: 16; height: 16
                     color: "transparent"; border.color: "#0f0"; border.width: 2
+                }
+                // inverse-colour border on the hovered metatile (drawn in paint())
+                HoverHandler {
+                    onPointChanged: atlasView.set_atlas_hover(Math.floor(point.position.y / 16) * 16 + Math.floor(point.position.x / 16))
+                    onHoveredChanged: if (!hovered) atlasView.set_atlas_hover(-1)
                 }
             }
 

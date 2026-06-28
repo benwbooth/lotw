@@ -135,6 +135,10 @@ pub mod qobject {
         #[qinvokable]
         fn set_anim(self: Pin<&mut RoomCanvas>, f: i32);
         #[qinvokable]
+        fn set_world_hover(self: Pin<&mut RoomCanvas>, idx: i32);
+        #[qinvokable]
+        fn set_atlas_hover(self: Pin<&mut RoomCanvas>, idx: i32);
+        #[qinvokable]
         fn paint_tile(self: Pin<&mut RoomCanvas>, col: i32, row: i32);
         #[qinvokable]
         fn erase_tile(self: Pin<&mut RoomCanvas>, col: i32, row: i32);
@@ -220,6 +224,8 @@ pub struct RoomCanvasRust {
     pal_rev: i32,
     sprite_pal: i32,
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
+    world_hover: i32, // room index hovered in the World view (-1 = none)
+    atlas_hover: i32, // metatile index hovered in the metatile atlas (-1 = none)
     sections: Vec<Section>, // sprite-sheet subsections (players / area enemies / banks)
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
@@ -418,6 +424,8 @@ impl Default for RoomCanvasRust {
             pal_rev: 0,
             sprite_pal: 0,
             anim_frame: 0,
+            world_hover: -1,
+            atlas_hover: -1,
             sections,
             undo: Vec::new(),
             redo: Vec::new(),
@@ -565,6 +573,28 @@ fn invert_border(rgb: &mut [u8], w: usize, px: usize, py: usize, size: usize) {
     }
 }
 
+/// Invert a `t`-pixel-thick border of a `rw`x`rh` rect at (px,py) in an RGB image.
+fn invert_rect_border(rgb: &mut [u8], w: usize, px: usize, py: usize, rw: usize, rh: usize, t: usize) {
+    let mut inv = |x: usize, y: usize| {
+        let o = (y * w + x) * 3;
+        if o + 2 < rgb.len() {
+            rgb[o] = 255 - rgb[o];
+            rgb[o + 1] = 255 - rgb[o + 1];
+            rgb[o + 2] = 255 - rgb[o + 2];
+        }
+    };
+    for k in 0..t {
+        for d in 0..rw {
+            inv(px + d, py + k);
+            inv(px + d, py + rh - 1 - k);
+        }
+        for d in 0..rh {
+            inv(px + k, py + d);
+            inv(px + rw - 1 - k, py + d);
+        }
+    }
+}
+
 impl cxx_qt::Constructor<()> for qobject::RoomCanvas {
     type NewArguments = ();
     type BaseArguments = ();
@@ -670,9 +700,24 @@ impl qobject::RoomCanvas {
             ATLAS => {
                 let s = rust.sel();
                 let room = &rust.rooms[s];
-                (lotw::render::render_metatile_atlas(&rust.prg, &rust.chr, &room.header, &room.pal), 256, 256)
+                let mut rgb = lotw::render::render_metatile_atlas(&rust.prg, &rust.chr, &room.header, &room.pal);
+                // inverse-colour border on the hovered metatile (16x16 cells, 16/row)
+                if rust.atlas_hover >= 0 && rust.atlas_hover < 256 {
+                    let (tx, ty) = (rust.atlas_hover as usize % 16, rust.atlas_hover as usize / 16);
+                    invert_border(&mut rgb, 256, tx * 16, ty * 16, 16);
+                }
+                (rgb, 256, 256)
             }
-            WORLD => (rust.world_rgb().to_vec(), WW, WH),
+            WORLD => {
+                let mut rgb = rust.world_rgb().to_vec();
+                // inverse-colour border around the hovered room
+                if rust.world_hover >= 0 {
+                    let idx = rust.world_hover as usize;
+                    let (mx, my) = (idx % 4, idx / 4);
+                    invert_rect_border(&mut rgb, WW as usize, mx * 1024, my * 192, 1024, 192, 3);
+                }
+                (rgb, WW, WH)
+            }
             TITLE => (
                 lotw::render::render_nametable(
                     &rust.chr,
@@ -732,6 +777,31 @@ impl qobject::RoomCanvas {
         {
             let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
             rust.anim_frame = f as u8;
+        }
+        self.update();
+    }
+
+    /// Set the hovered room in the World view; only repaints on change (a World
+    /// repaint clones a large cached image, so per-pixel hover moves must not).
+    fn set_world_hover(mut self: Pin<&mut Self>, idx: i32) {
+        if self.rust().world_hover == idx {
+            return;
+        }
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            rust.world_hover = idx;
+        }
+        self.update();
+    }
+
+    /// Set the hovered metatile in the atlas; only repaints on change.
+    fn set_atlas_hover(mut self: Pin<&mut Self>, idx: i32) {
+        if self.rust().atlas_hover == idx {
+            return;
+        }
+        {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            rust.atlas_hover = idx;
         }
         self.update();
     }
