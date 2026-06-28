@@ -1,16 +1,14 @@
 mod room_canvas;
 
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
+use std::io::Write;
+use std::path::PathBuf;
 
-unsafe extern "C" {
-    // Defined in src/icon_shim.cpp (built by build.rs).
-    fn lotw_set_window_icon_rgba(data: *const u8, w: i32, h: i32);
-}
-
-/// Render the front-facing Pochi sprite (Drasle family pet, character index 4,
-/// CHR bank 60, standing pose 13) from the ROM into an upscaled RGBA icon. Done
-/// at runtime so no ROM-derived art lives in the repo. Returns (pixels, size).
-fn pochi_icon() -> Option<(Vec<u8>, i32)> {
+/// Render the front-facing home Pochi sprite (Drasle family pet) from the ROM
+/// into an upscaled RGBA icon: CHR bank 54 (the home/title family bank),
+/// metasprite 1, drawn in the home room's sprite sub-palette 0. Done at runtime
+/// so no ROM-derived art lives in the repo. Returns (pixels, size).
+fn pochi_icon() -> Option<(Vec<u8>, u32)> {
     let env_path = std::env::var("LOTW_ROM").unwrap_or_default();
     let rom = [env_path.as_str(), "rom/lotw.nes", "../rom/lotw.nes"]
         .iter()
@@ -22,15 +20,17 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
     let prg_len = rom[4] as usize * 16_384;
     let prg = &rom[16..16 + prg_len];
     let chr = &rom[16 + prg_len..];
-    // Family palette for character 4 ($FFC5 + 4*4 -> PRG 0x1FFD5), colours 1-3.
-    let fp = prg.get(0x1FFD5..0x1FFD5 + 4)?;
+    // Home room (mapy 16) sprite sub-palette 0 — the palette the home family
+    // is drawn with. Palette is the last 32 bytes of the room's meta page.
+    let pal_off = lotw::render::room_offset(0, 16) + 768 + 0xE0;
+    let hp = prg.get(pal_off..pal_off + 32)?;
     let pal = [
         (0u8, 0u8, 0u8),
-        lotw::render::nes_rgb(fp[1]),
-        lotw::render::nes_rgb(fp[2]),
-        lotw::render::nes_rgb(fp[3]),
+        lotw::render::nes_rgb(hp[17]),
+        lotw::render::nes_rgb(hp[18]),
+        lotw::render::nes_rgb(hp[19]),
     ];
-    let base = 60 * 64 + 13 * 4; // bank 60, pose 13 -> first of 4 metasprite tiles
+    let base = 54 * 64 + 1 * 4; // bank 54, metasprite 1 -> 4 consecutive tiles
     let mut img = vec![0u8; 16 * 16 * 4]; // transparent background
     for (i, &(cx, cy)) in [(0usize, 0usize), (0, 8), (8, 0), (8, 8)].iter().enumerate() {
         let off = (base + i) * 16;
@@ -51,8 +51,8 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
             }
         }
     }
-    // Nearest-neighbour upscale x8 -> 128x128 for a crisp icon.
-    let s = 8usize;
+    // Nearest-neighbour upscale x16 -> 256x256 for a crisp icon.
+    let s = 16usize;
     let w = 16 * s;
     let mut big = vec![0u8; w * w * 4];
     for y in 0..w {
@@ -62,7 +62,49 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
             big[dst..dst + 4].copy_from_slice(&img[so..so + 4]);
         }
     }
-    Some((big, w as i32))
+    Some((big, w as u32))
+}
+
+/// `$XDG_DATA_HOME` (or `~/.local/share`).
+fn data_home() -> Option<PathBuf> {
+    if let Some(d) = std::env::var_os("XDG_DATA_HOME").filter(|d| !d.is_empty()) {
+        return Some(PathBuf::from(d));
+    }
+    std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share"))
+}
+
+/// Write the Pochi icon as a PNG and install a `lotw-editor.desktop` entry that
+/// points at it. On Wayland the window has no client-set icon; the compositor
+/// (KDE) instead matches the window's app id (set via `setDesktopFileName`) to
+/// this desktop file and uses its `Icon=`. NoDisplay keeps it out of menus.
+fn install_icon_desktop() -> Option<()> {
+    let (rgba, size) = pochi_icon()?;
+    let base = data_home()?;
+    let icon_path = base.join("icons/hicolor/256x256/apps/lotw-editor.png");
+    std::fs::create_dir_all(icon_path.parent()?).ok()?;
+    {
+        let file = std::fs::File::create(&icon_path).ok()?;
+        let mut enc = png::Encoder::new(std::io::BufWriter::new(file), size, size);
+        enc.set_color(png::ColorType::Rgba);
+        enc.set_depth(png::BitDepth::Eight);
+        enc.write_header().ok()?.write_image_data(&rgba).ok()?;
+    }
+    let apps = base.join("applications");
+    std::fs::create_dir_all(&apps).ok()?;
+    let exec = std::env::current_exe().ok().map(|p| p.display().to_string()).unwrap_or_else(|| "qt-editor".into());
+    let desktop = format!(
+        "[Desktop Entry]\n\
+         Type=Application\n\
+         Name=LotW Asset Editor\n\
+         Exec={exec}\n\
+         Icon={icon}\n\
+         StartupWMClass=lotw-editor\n\
+         NoDisplay=true\n\
+         Categories=Development;\n",
+        icon = icon_path.display(),
+    );
+    std::fs::File::create(apps.join("lotw-editor.desktop")).ok()?.write_all(desktop.as_bytes()).ok()?;
+    Some(())
 }
 
 fn main() {
@@ -80,20 +122,19 @@ fn main() {
         std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
     }
 
+    // Install the Pochi icon + desktop entry before the window appears, so the
+    // compositor can pick it up via the app id (best-effort).
+    install_icon_desktop();
+
     let mut app = QGuiApplication::new();
 
     // Stable identity so QSettings (window geometry) has a fixed location, and so
-    // the Wayland compositor (KDE) can associate/remember the window.
+    // the Wayland compositor (KDE) associates the window with lotw-editor.desktop.
     if let Some(mut app) = app.as_mut() {
         app.as_mut().set_organization_name(&QString::from("lotw"));
         app.as_mut().set_application_name(&QString::from("lotw-editor"));
     }
     QGuiApplication::set_desktop_file_name(&QString::from("lotw-editor"));
-
-    // Set the window/app icon to Pochi (best-effort; ignored if the ROM is absent).
-    if let Some((rgba, size)) = pochi_icon() {
-        unsafe { lotw_set_window_icon_rgba(rgba.as_ptr(), size, size) };
-    }
 
     let mut engine = QQmlApplicationEngine::new();
 
