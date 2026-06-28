@@ -24,6 +24,7 @@ ApplicationWindow {
     property int newKind: 0x51
     property int palSel: -1        // selected room-palette byte (0-31) being edited
     property int worldHover: -1    // room index under the cursor in the World view
+    property int objHover: -1      // object slot under the cursor in the Room view
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
     property bool animate: false
@@ -234,7 +235,7 @@ ApplicationWindow {
                             roomView.begin_edit()
                             if (tool === "paint") roomView.paint_tile(c, r)
                             else if (tool === "erase") roomView.erase_tile(c, r)
-                            else if (tool === "object") objSel = roomView.create_obj(c, Math.floor(m.y), newKind)
+                            else if (tool === "object") objSel = roomView.create_obj(c, r * 16, newKind)
                             else { dragC0 = c; dragR0 = r }
                         }
                         onPositionChanged: (m) => {
@@ -288,29 +289,10 @@ ApplicationWindow {
                                 scale: 1 / zoom
                                 transformOrigin: Item.Bottom
                             }
-                            ToolTip {
-                                visible: objHov.hovered
-                                padding: 7
-                                // Size the popup to the text so nothing clips/wraps.
-                                contentWidth: ttText.implicitWidth
-                                contentHeight: ttText.implicitHeight
-                                contentItem: Text {
-                                    id: ttText
-                                    text: (roomView.obj_rev, roomView.selected,
-                                          roomView.obj_name(index)) +
-                                          "\nbehavior " + roomView.obj_byte(index,8) +
-                                          "   HP " + roomView.obj_byte(index,4) + "   dmg " + roomView.obj_byte(index,5) +
-                                          "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
-                                          "   palette " + (roomView.obj_byte(index,1)&3) +
-                                          "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index) +
-                                          "   (slot " + index + ")"
-                                    color: "#eaeaea"
-                                    font.pixelSize: 12
-                                    wrapMode: Text.NoWrap
-                                }
-                                background: Rectangle { color: "#222428"; border.color: "#666"; radius: 4 }
+                            HoverHandler {
+                                id: objHov
+                                onHoveredChanged: objHover = hovered ? index : (objHover === index ? -1 : objHover)
                             }
-                            HoverHandler { id: objHov }
                             MouseArea {
                                 anchors.fill: parent
                                 enabled: tool === "object"
@@ -319,12 +301,43 @@ ApplicationWindow {
                                 onPositionChanged: (m) => {
                                     if (!pressed) return
                                     var p = mapToItem(roomView, m.x, m.y)
-                                    roomView.set_obj(index, roomView.obj_kind(index), Math.floor(p.x / 16), Math.floor(p.y))
+                                    // Snap to a tile location (objects are tile-aligned).
+                                    roomView.set_obj(index, roomView.obj_kind(index), Math.floor(p.x / 16), Math.floor(p.y / 16) * 16)
                                 }
                             }
                         }
                     }
 
+                }
+
+                // Object tooltip in the unscaled content layer. A Popup parented
+                // to the scaled roomView mis-places when shown above the object
+                // (its -height offset gets multiplied by the canvas scale), so we
+                // position a plain rectangle ourselves.
+                Rectangle {
+                    id: objTip
+                    visible: view === 0 && objHover >= 0 && (roomView.obj_rev, roomView.selected, roomView.obj_active(objHover))
+                    z: 100
+                    property real ox: (objHover >= 0 ? roomView.obj_x(objHover) : 0) * 16
+                    property real oy: (objHover >= 0 ? roomView.obj_y(objHover) : 0)
+                    width: objTipText.implicitWidth + 12
+                    height: objTipText.implicitHeight + 8
+                    x: Math.max(0, ox * pixScale + 8 * pixScale - width / 2)
+                    // Above the sprite; flip below for objects near the room top.
+                    y: oy < 40 ? (oy + 16) * pixScale + 4 : oy * pixScale - height - 4
+                    color: "#222428"; border.color: "#666"; radius: 4
+                    Text {
+                        id: objTipText
+                        anchors.centerIn: parent
+                        color: "#eaeaea"; font.pixelSize: 12; textFormat: Text.PlainText
+                        text: objHover < 0 ? "" : ((roomView.obj_rev, roomView.selected, roomView.obj_name(objHover)) +
+                              "\nbehavior " + roomView.obj_byte(objHover,8) +
+                              "   HP " + roomView.obj_byte(objHover,4) + "   dmg " + roomView.obj_byte(objHover,5) +
+                              "\nsprite tile 0x" + roomView.obj_byte(objHover,0).toString(16) +
+                              "   palette " + (roomView.obj_byte(objHover,1)&3) +
+                              "\npos tile " + roomView.obj_x(objHover) + ", y " + roomView.obj_y(objHover) +
+                              "   (slot " + objHover + ")")
+                    }
                 }
             }
         }
