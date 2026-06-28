@@ -404,14 +404,15 @@ fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<S
     // Jiela & Douel) + the title/menu glyphs; 52/53 are the playable family in
     // home poses. The home room has only 3 usable sprite sub-palettes (sub 3 is
     // all black), so each figure is drawn in sub-palette 0. (bank, half, label) ---
+    // Home family order: dad, mom, boy, girl, dog, grandma, grandpa.
     let home_figs: [(usize, usize, &str); 8] = [
-        (52, 0, "Home family — bank 52 A"),
-        (52, 1, "Home family — bank 52 B"),
-        (53, 0, "Home family — bank 53 A"),
-        (53, 1, "Home family — bank 53 B"),
-        (54, 0, "Pochi (home)"),
-        (54, 1, "Jiela — grandmother"),
-        (55, 0, "Douel — grandfather"),
+        (52, 0, "Xemn — father (home)"),
+        (52, 1, "Meyna — mother (home)"),
+        (53, 0, "Roas — son (home)"),
+        (53, 1, "Lyll — daughter (home)"),
+        (54, 0, "Pochi — pet (home)"),
+        (54, 1, "Jiela — grandmother (home)"),
+        (55, 0, "Douel — grandfather (home)"),
         (55, 1, "Title / menu glyphs"),
     ];
     let home_pal4 = pal4_from(&home_pal, 0);
