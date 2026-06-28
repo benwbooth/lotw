@@ -200,6 +200,8 @@ pub mod qobject {
         #[qinvokable]
         fn tile_info(self: &RoomCanvas, x: i32, y: i32) -> QString;
         #[qinvokable]
+        fn tile_solidity(self: &RoomCanvas, col: i32, row: i32) -> QString;
+        #[qinvokable]
         fn save_rom(self: &RoomCanvas, path: QString) -> QString;
     }
 
@@ -576,6 +578,18 @@ fn invert_border(rgb: &mut [u8], w: usize, px: usize, py: usize, size: usize) {
     }
 }
 
+/// Human-readable passability/collision class for a metatile shape id.
+fn tile_class_name(shape: u8) -> &'static str {
+    match shape {
+        0 => "Passable (empty)",
+        2 => "Locked door — needs a key",
+        3 | 4 | 5 => "Door / portal / shop",
+        62 => "Breakable / item-interactable",
+        s if s >= 48 => "Solid wall / hazard",
+        _ => "Passable (background)",
+    }
+}
+
 /// Passability/collision tint for a metatile shape id (`mt & 0x3F`), per the
 /// RE'd terrain rules (probe_player_solid_tile / dispatch_room_tile_action):
 ///   2  = locked door (key)        -> orange
@@ -932,6 +946,16 @@ impl qobject::RoomCanvas {
             rust.world_cache = None;
         }
         self.update();
+    }
+
+    /// Passability/collision class label for the metatile at a room cell.
+    fn tile_solidity(&self, col: i32, row: i32) -> QString {
+        let r = self.rust();
+        if r.mode != ROOM || col < 0 || row < 0 || col >= 64 || row >= 12 {
+            return QString::from("");
+        }
+        let shape = r.rooms[r.sel()].grid[row as usize][col as usize] & 0x3F;
+        QString::from(&format!("{} — shape {shape}", tile_class_name(shape)))
     }
 
     fn metatile_at(&self, col: i32, row: i32) -> i32 {

@@ -358,6 +358,28 @@ ApplicationWindow {
                               "   (slot " + objHover + ")")
                     }
                 }
+
+                // Solidity hint: when the Solidity overlay is on, name the class
+                // of the tile under the cursor (unscaled, follows the room cursor).
+                Rectangle {
+                    id: solidTip
+                    visible: view === 0 && roomView.show_solid && roomView.cursor_col >= 0 && objHover < 0
+                    z: 100
+                    property real cx: roomView.cursor_col * 16
+                    property real cy: roomView.cursor_row * 16
+                    width: solidTipText.implicitWidth + 12
+                    height: solidTipText.implicitHeight + 8
+                    x: Math.max(0, cx * pixScale + 8 * pixScale - width / 2)
+                    y: roomView.cursor_row < 3 ? (cy + 16) * pixScale + 4 : cy * pixScale - height - 4
+                    color: "#222428"; border.color: "#666"; radius: 4
+                    Text {
+                        id: solidTipText
+                        anchors.centerIn: parent
+                        color: "#eaeaea"; font.pixelSize: 12; textFormat: Text.PlainText
+                        text: (roomView.cursor_col, roomView.cursor_row, roomView.selected,
+                               roomView.tile_solidity(roomView.cursor_col, roomView.cursor_row))
+                    }
+                }
             }
         }
 
