@@ -2,7 +2,7 @@ mod room_canvas;
 
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 
-extern "C" {
+unsafe extern "C" {
     // Defined in src/icon_shim.cpp (built by build.rs).
     fn lotw_set_window_icon_rgba(data: *const u8, w: i32, h: i32);
 }
@@ -73,8 +73,12 @@ fn main() {
     // up looking different. With an integer ratio every source pixel maps to a
     // whole number of device pixels. Native (non-distance-field) text keeps fonts
     // crisp under this policy.
-    std::env::set_var("QT_SCALE_FACTOR_ROUNDING_POLICY", "Round");
-    std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
+    // Safe: this runs at the very top of main(), before QGuiApplication spawns
+    // any threads, so the environment has no concurrent reader.
+    unsafe {
+        std::env::set_var("QT_SCALE_FACTOR_ROUNDING_POLICY", "Round");
+        std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
+    }
 
     let mut app = QGuiApplication::new();
 
