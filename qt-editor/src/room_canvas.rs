@@ -397,8 +397,8 @@ fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<S
         sections.push(Section { label: format!("Home / title / family — bank {bank}"), cells, cell_px: SS_CELL });
     }
 
-    // --- Shared sprite banks (object/projectile + boss tiles) ---
-    for (bank, name) in [(61usize, "Boss bodies — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
+    // --- Shared sprite banks (HUD + object/projectile tiles) ---
+    for (bank, name) in [(61usize, "Status display / HUD — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
         let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
         sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL });
     }
