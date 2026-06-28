@@ -118,6 +118,7 @@ pub mod qobject {
         #[qproperty(i32, obj_rev)] // bumped on any object edit -> QML reactivity
         #[qproperty(i32, pal_rev)] // bumped on any palette edit -> QML reactivity
         #[qproperty(i32, sprite_pal)] // 0 = greyscale, 1..4 = room sprite palettes
+        #[qproperty(bool, show_solid)] // overlay tile passability/collision classes
         type RoomCanvas = super::RoomCanvasRust;
 
         #[cxx_override]
@@ -226,6 +227,7 @@ pub struct RoomCanvasRust {
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
     world_hover: i32, // room index hovered in the World view (-1 = none)
     atlas_hover: i32, // metatile index hovered in the metatile atlas (-1 = none)
+    show_solid: bool, // overlay tile passability/collision classes
     sections: Vec<Section>, // sprite-sheet subsections (players / area enemies / banks)
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
@@ -426,6 +428,7 @@ impl Default for RoomCanvasRust {
             anim_frame: 0,
             world_hover: -1,
             atlas_hover: -1,
+            show_solid: false,
             sections,
             undo: Vec::new(),
             redo: Vec::new(),
@@ -570,6 +573,38 @@ fn invert_border(rgb: &mut [u8], w: usize, px: usize, py: usize, size: usize) {
         inv(px + d, py + size - 1);
         inv(px, py + d);
         inv(px + size - 1, py + d);
+    }
+}
+
+/// Passability/collision tint for a metatile shape id (`mt & 0x3F`), per the
+/// RE'd terrain rules (probe_player_solid_tile / dispatch_room_tile_action):
+///   2  = locked door (key)        -> orange
+///   3/4/5 = door / portal / shop  -> blue
+///   62 = item-interactable/breakable -> yellow
+///   >=48 = solid wall / hazard    -> red
+///   else (0, 1, 6..47)            -> passable background (no tint)
+/// Returns None for passable tiles so the room art shows through unchanged.
+fn tile_class_tint(shape: u8) -> Option<(u8, u8, u8)> {
+    match shape {
+        2 => Some((240, 150, 30)),         // locked door
+        3 | 4 | 5 => Some((60, 120, 240)), // door / portal / shop
+        62 => Some((240, 230, 40)),        // interactable / breakable
+        s if s >= 48 => Some((220, 40, 40)), // solid wall / hazard
+        _ => None,                          // passable
+    }
+}
+
+/// Blend a translucent tint over a 16x16 cell at (px,py).
+fn tint_cell(rgb: &mut [u8], w: usize, px: usize, py: usize, (tr, tg, tb): (u8, u8, u8)) {
+    for y in 0..16 {
+        for x in 0..16 {
+            let o = ((py + y) * w + px + x) * 3;
+            if o + 2 < rgb.len() {
+                rgb[o] = ((rgb[o] as u16 * 3 + tr as u16 * 2) / 5) as u8;
+                rgb[o + 1] = ((rgb[o + 1] as u16 * 3 + tg as u16 * 2) / 5) as u8;
+                rgb[o + 2] = ((rgb[o + 2] as u16 * 3 + tb as u16 * 2) / 5) as u8;
+            }
+        }
     }
 }
 
@@ -737,6 +772,18 @@ impl qobject::RoomCanvas {
                     rust.cache_sel = s as i32;
                 }
                 let mut rgb = rust.room_cache.clone().unwrap();
+                // collision overlay: tint each cell by its metatile's passability
+                // class (terrain solidity is read from the shape id = mt & 0x3F).
+                if rust.show_solid {
+                    let grid = &rust.rooms[s].grid;
+                    for (row, line) in grid.iter().enumerate() {
+                        for (col, &mt) in line.iter().enumerate() {
+                            if let Some(c) = tile_class_tint(mt & 0x3F) {
+                                tint_cell(&mut rgb, 1024, col * 16, row * 16, c);
+                            }
+                        }
+                    }
+                }
                 // draw object spawn sprites (real entity graphics, transparent bg)
                 // using the room's per-area sprite banks.
                 let banks = lotw::render::sprite_banks(&rust.rooms[s].header);

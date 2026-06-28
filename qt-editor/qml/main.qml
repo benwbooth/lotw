@@ -145,6 +145,14 @@ ApplicationWindow {
                 ToolTip.visible: hovered
                 ToolTip.text: "Cycle sprite frames (approx)"
             }
+            CheckBox {
+                visible: view === 0
+                text: "Solidity"
+                checked: roomView.show_solid
+                onToggled: { roomView.show_solid = checked; roomView.refresh() }
+                ToolTip.visible: hovered
+                ToolTip.text: "Tint tiles by passability: red=solid wall, orange=locked door, blue=door/portal, yellow=breakable; untinted=passable background"
+            }
             Button {
                 visible: view === 3
                 text: "Bank palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
@@ -211,8 +219,12 @@ ApplicationWindow {
                     HoverHandler {
                         id: hov
                         enabled: view === 0
-                        onPointChanged: { roomView.cursor_col = tile(point.position.x); roomView.cursor_row = tile(point.position.y); roomView.refresh() }
-                        onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh() }
+                        onPointChanged: {
+                            roomView.cursor_col = tile(point.position.x); roomView.cursor_row = tile(point.position.y); roomView.refresh()
+                            // mirror the hovered room tile onto the metatile palette
+                            atlasView.set_atlas_hover(roomView.metatile_at(tile(point.position.x), tile(point.position.y)))
+                        }
+                        onHoveredChanged: if (!hovered) { roomView.cursor_col = -1; roomView.refresh(); atlasView.set_atlas_hover(-1) }
                     }
                     HoverHandler {
                         enabled: view === 3
