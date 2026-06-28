@@ -247,9 +247,9 @@ enum Cell {
     /// `compose_large_actor_body_slots` lays them out (TL=base, TR=base|4,
     /// BL=base|0x20, BR=base|0x24). `base` is the top-left animation frame tile.
     Boss { base: u8, attr: u8, room: usize },
-    /// Raw CHR-bank metasprite: 4 consecutive tiles, palette chosen live from the
-    /// `sprite_pal` selector. Used for shared object/boss banks. Static.
-    Bank { base_tile: usize },
+    /// Raw CHR-bank metasprite: 4 consecutive tiles with a baked palette. Static.
+    /// Used for the shared HUD/object banks and the home/title figure strips.
+    Bank { base_tile: usize, pal4: [(u8, u8, u8); 4] },
 }
 
 /// A labeled sprite-sheet subsection (a row of related metasprites). `cell_px`
@@ -389,18 +389,37 @@ fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<S
         }
     }
 
+    // The 4 RGB colours of a sprite sub-palette (0..3) of a 32-byte room palette.
+    let pal4_from = |pal: &[u8], sub: usize| -> [(u8, u8, u8); 4] {
+        let b = (4 + sub) * 4;
+        [(0, 0, 0), lotw::render::nes_rgb(pal[b + 1]), lotw::render::nes_rgb(pal[b + 2]), lotw::render::nes_rgb(pal[b + 3])]
+    };
+    // Correct palettes: the home/title family is drawn in the home room (mapy>=16)
+    // sprite palette; gameplay objects in a normal room's sprite palette.
+    let home_pal = rooms.iter().find(|r| r.mapy >= 16).map(|r| r.pal.clone()).unwrap_or_else(|| rooms[0].pal.clone());
+    let obj_pal = pal4_from(&rooms[0].pal, 0);
+
     // --- Title/home/menu banks (52-55): the non-playable family (grandparents
-    // Jiela & Douel), home-screen portraits and menu glyphs live here, not in
-    // the gameplay player banks 56-60 ---
+    // Jiela & Douel), home-screen portraits and menu glyphs. Each bank is split
+    // into four 4-metasprite figure sets, each shown in one home sprite palette
+    // (each family member uses one of the room's four sprite sub-palettes). ---
     for bank in 52..=55usize {
-        let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
-        sections.push(Section { label: format!("Home / title / family — bank {bank}"), cells, cell_px: SS_CELL });
+        for k in 0..4 {
+            let pal4 = pal4_from(&home_pal, k);
+            let cells = (0..4).map(|j| Cell::Bank { base_tile: bank * 64 + (k * 4 + j) * 4, pal4 }).collect();
+            sections.push(Section { label: format!("Home / title — bank {bank} · set {k} (palette {k})"), cells, cell_px: SS_CELL });
+        }
     }
 
-    // --- Shared sprite banks (HUD + object/projectile tiles) ---
-    for (bank, name) in [(61usize, "Status display / HUD — bank 61"), (62, "Objects/projectiles — bank 62"), (63, "Objects/projectiles — bank 63")] {
-        let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4 }).collect();
-        sections.push(Section { label: name.to_string(), cells, cell_px: SS_CELL });
+    // --- Shared sprite banks: HUD (61, white) + object/projectile tiles (62/63) ---
+    sections.push(Section {
+        label: "Status display / HUD — bank 61".to_string(),
+        cells: (0..SS_COLS).map(|m| Cell::Bank { base_tile: 61 * 64 + m * 4, pal4: greyscale4() }).collect(),
+        cell_px: SS_CELL,
+    });
+    for bank in [62usize, 63] {
+        let cells = (0..SS_COLS).map(|m| Cell::Bank { base_tile: bank * 64 + m * 4, pal4: obj_pal }).collect();
+        sections.push(Section { label: format!("Objects / projectiles — bank {bank}"), cells, cell_px: SS_CELL });
     }
 
     sections
@@ -481,20 +500,6 @@ impl RoomCanvasRust {
         self.sections.iter().map(|s| s.height()).sum::<usize>() as i32
     }
 
-    /// Live palette for `Cell::Bank` cells from the `sprite_pal` selector.
-    fn bank_pal4(&self) -> [(u8, u8, u8); 4] {
-        if self.sprite_pal == 0 {
-            return greyscale4();
-        }
-        let p = &self.rooms[self.sel()].pal;
-        let b = (4 + (self.sprite_pal as usize - 1).min(3)) * 4;
-        [
-            (0, 0, 0),
-            lotw::render::nes_rgb(p[b + 1]),
-            lotw::render::nes_rgb(p[b + 2]),
-            lotw::render::nes_rgb(p[b + 3]),
-        ]
-    }
 
     /// Render the whole sprite tab into one tall RGB image, returning it with the
     /// per-section header positions so the caller can draw text labels on top.
@@ -509,7 +514,6 @@ impl RoomCanvasRust {
             px[2] = 30;
         }
         let f = self.anim_frame;
-        let bank_pal4 = self.bank_pal4();
         let mut labels = Vec::new();
         let mut y = 0usize;
         for sec in &self.sections {
@@ -544,8 +548,8 @@ impl RoomCanvasRust {
                     Cell::Family { base_tile, pal4 } => {
                         lotw::render::blit_metasprite_raw(&self.chr, &pal4, base_tile + f as usize, &mut buf, w, cx, cy);
                     }
-                    Cell::Bank { base_tile } => {
-                        lotw::render::blit_metasprite_raw(&self.chr, &bank_pal4, base_tile, &mut buf, w, cx, cy);
+                    Cell::Bank { base_tile, pal4 } => {
+                        lotw::render::blit_metasprite_raw(&self.chr, &pal4, base_tile, &mut buf, w, cx, cy);
                     }
                     Cell::Actor { tile, attr, room } => {
                         let r = &self.rooms[room];

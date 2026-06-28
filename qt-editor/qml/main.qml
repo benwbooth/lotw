@@ -153,13 +153,6 @@ ApplicationWindow {
                 ToolTip.visible: hovered
                 ToolTip.text: "Tint tiles by passability: red=solid wall, orange=locked door, blue=door/portal, yellow=breakable; untinted=passable background"
             }
-            Button {
-                visible: view === 3
-                text: "Bank palette: " + (roomView.sprite_pal === 0 ? "grey" : roomView.sprite_pal)
-                onClicked: { roomView.sprite_pal = (roomView.sprite_pal + 1) % 5; roomView.refresh() }
-                ToolTip.visible: hovered
-                ToolTip.text: "Palette for the shared boss/object bank rows (grey / room sprite palettes). Players & area enemies already use their real palettes."
-            }
             ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
             Button { text: "+"; ToolTip.visible: hovered; ToolTip.text: "Zoom in (pinch also works)"; onClicked: setZoom(zoom * 1.25) }
