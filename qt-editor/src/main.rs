@@ -74,6 +74,14 @@ fn main() {
 
     let mut app = QGuiApplication::new();
 
+    // Stable identity so QSettings (window geometry) has a fixed location, and so
+    // the Wayland compositor (KDE) can associate/remember the window.
+    if let Some(mut app) = app.as_mut() {
+        app.as_mut().set_organization_name(&QString::from("lotw"));
+        app.as_mut().set_application_name(&QString::from("lotw-editor"));
+    }
+    QGuiApplication::set_desktop_file_name(&QString::from("lotw-editor"));
+
     // Set the window/app icon to Pochi (best-effort; ignored if the ROM is absent).
     if let Some((rgba, size)) = pochi_icon() {
         unsafe { lotw_set_window_icon_rgba(rgba.as_ptr(), size, size) };

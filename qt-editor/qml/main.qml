@@ -1,14 +1,27 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.settings
 import com.lotw.editor
 
 ApplicationWindow {
+    id: window
     visible: true
     width: 1300
     height: 760
     title: "LotW asset editor (cxx-qt)"
     color: "#222222"
+
+    // Remember window geometry across runs. On Wayland the compositor controls
+    // window position, so x/y restore may be ignored (KDE can remember it via a
+    // window rule on the app id); width/height are restored normally.
+    Settings {
+        category: "window"
+        property alias x: window.x
+        property alias y: window.y
+        property alias width: window.width
+        property alias height: window.height
+    }
 
     property string status: ""
     property int view: 0          // 0 room, 1 world, 2 title
