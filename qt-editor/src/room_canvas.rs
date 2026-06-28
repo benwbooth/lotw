@@ -399,16 +399,25 @@ fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<S
     let home_pal = rooms.iter().find(|r| r.mapy >= 16).map(|r| r.pal.clone()).unwrap_or_else(|| rooms[0].pal.clone());
     let obj_pal = pal4_from(&rooms[0].pal, 0);
 
-    // --- Title/home/menu banks (52-55): the non-playable family (grandparents
-    // Jiela & Douel), home-screen portraits and menu glyphs. Each bank is split
-    // into four 4-metasprite figure sets, each shown in one home sprite palette
-    // (each family member uses one of the room's four sprite sub-palettes). ---
-    for bank in 52..=55usize {
-        for k in 0..4 {
-            let pal4 = pal4_from(&home_pal, k);
-            let cells = (0..4).map(|j| Cell::Bank { base_tile: bank * 64 + (k * 4 + j) * 4, pal4 }).collect();
-            sections.push(Section { label: format!("Home / title — bank {bank} · set {k} (palette {k})"), cells, cell_px: SS_CELL });
-        }
+    // --- Title/home banks (52-55): each bank holds two figures as 8-metasprite
+    // halves. Banks 54/55 are the non-playable family (Pochi, the grandparents
+    // Jiela & Douel) + the title/menu glyphs; 52/53 are the playable family in
+    // home poses. The home room has only 3 usable sprite sub-palettes (sub 3 is
+    // all black), so each figure is drawn in sub-palette 0. (bank, half, label) ---
+    let home_figs: [(usize, usize, &str); 8] = [
+        (52, 0, "Home family — bank 52 A"),
+        (52, 1, "Home family — bank 52 B"),
+        (53, 0, "Home family — bank 53 A"),
+        (53, 1, "Home family — bank 53 B"),
+        (54, 0, "Pochi (home)"),
+        (54, 1, "Jiela — grandmother"),
+        (55, 0, "Douel — grandfather"),
+        (55, 1, "Title / menu glyphs"),
+    ];
+    let home_pal4 = pal4_from(&home_pal, 0);
+    for (bank, half, label) in home_figs {
+        let cells = (0..8).map(|j| Cell::Bank { base_tile: bank * 64 + (half * 8 + j) * 4, pal4: home_pal4 }).collect();
+        sections.push(Section { label: label.to_string(), cells, cell_px: SS_CELL });
     }
 
     // --- Shared sprite banks: HUD (61, white) + object/projectile tiles (62/63) ---
