@@ -14,6 +14,10 @@ ApplicationWindow {
     property int view: 0          // 0 room, 1 world, 2 title
     property string tool: "paint" // paint | pick | hand | line | rect | ellipse | object
     property real zoom: 2.0
+    // The Sprites tab (view 3) must scale by an integer factor so the pixel-art
+    // sprites stay crisp (non-integer nearest-neighbour scaling makes some pixels
+    // wider than others). Background-tile views keep the continuous zoom.
+    property real pixScale: view === 3 ? Math.max(1, Math.round(zoom)) : zoom
     property int dragC0: -1
     property int dragR0: -1
     property int objSel: -1
@@ -133,15 +137,15 @@ ApplicationWindow {
 
             Item {
                 id: wrap
-                width: roomView.width * zoom
-                height: roomView.height * zoom
+                width: roomView.width * pixScale
+                height: roomView.height * pixScale
 
                 RoomCanvas {
                     id: roomView
                     mode: 0
                     width: mode === 2 ? 4096 : mode === 3 ? 256 : mode === 4 ? img_w() : 1024
                     height: mode === 2 ? 18 * 192 : mode === 3 ? 240 : mode === 4 ? img_h() : 192
-                    scale: zoom
+                    scale: pixScale
                     transformOrigin: Item.TopLeft
                     smooth: false       // nearest-neighbour scaling = crisp pixels
                     antialiasing: false
