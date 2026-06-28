@@ -48,6 +48,23 @@ ApplicationWindow {
         flick.contentY = Math.max(0, cy * nz - flick.height / 2)
     }
 
+    // Displayed scale for a given logical zoom (the Sprites view snaps to integer).
+    function scaleFor(z) { return view === 3 ? Math.max(1, Math.round(z)) : z }
+
+    // Zoom while keeping the canvas-local point (lx,ly) pinned under the cursor.
+    // (lx,ly) are roomView-native pixels (handler positions are pre-scale).
+    function zoomAtLocal(nz, lx, ly) {
+        nz = Math.max(0.1, Math.min(16, nz))
+        if (Math.abs(nz - zoom) < 0.0001) return
+        var ns = scaleFor(nz)
+        var ds = ns - scaleFor(zoom)
+        zoom = nz
+        var maxX = Math.max(0, roomView.width * ns - flick.width)
+        var maxY = Math.max(0, roomView.height * ns - flick.height)
+        flick.contentX = Math.max(0, Math.min(flick.contentX + lx * ds, maxX))
+        flick.contentY = Math.max(0, Math.min(flick.contentY + ly * ds, maxY))
+    }
+
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
@@ -154,8 +171,16 @@ ApplicationWindow {
                     PinchHandler {
                         target: null
                         property real base: 1
-                        onActiveChanged: if (active) base = zoom
-                        onActiveScaleChanged: setZoom(base * activeScale)
+                        property real baseX: 0
+                        property real baseY: 0
+                        onActiveChanged: if (active) { base = zoom; baseX = centroid.position.x; baseY = centroid.position.y }
+                        // Zoom toward the pinch centroid (the point under the fingers/cursor).
+                        onActiveScaleChanged: zoomAtLocal(base * activeScale, baseX, baseY)
+                    }
+                    // Ctrl + wheel zooms toward the cursor; plain wheel still scrolls.
+                    WheelHandler {
+                        acceptedModifiers: Qt.ControlModifier
+                        onWheel: (e) => zoomAtLocal(zoom * (e.angleDelta.y > 0 ? 1.25 : 0.8), point.position.x, point.position.y)
                     }
                     HoverHandler {
                         id: hov
