@@ -39,6 +39,13 @@ ApplicationWindow {
     }
     function tile(v) { return Math.floor(v / 16) }   // native px -> tile index
 
+    // After a zoom, force the painted canvas to repaint. QQuickPaintedItem keeps
+    // its backing texture at the item's native size; on a big scale change the
+    // re-sampled regions can show stale/garbage until a repaint runs. The World
+    // view (mode 2) is skipped — its repaint clones a ~40MB cached image, too
+    // costly per pinch step, and it has no sprites to corrupt.
+    function repaintAfterZoom() { if (roomView.mode !== 2) roomView.refresh() }
+
     // Zoom about the viewport centre. zoom drives roomView.scale (GPU transform),
     // so paint() never re-runs on zoom -> smooth even for the huge world image.
     function setZoom(nz) {
@@ -49,6 +56,7 @@ ApplicationWindow {
         zoom = nz
         flick.contentX = Math.max(0, cx * nz - flick.width / 2)
         flick.contentY = Math.max(0, cy * nz - flick.height / 2)
+        repaintAfterZoom()
     }
 
     // Displayed scale for a given logical zoom (the Sprites view snaps to integer).
@@ -66,6 +74,7 @@ ApplicationWindow {
         var maxY = Math.max(0, roomView.height * ns - flick.height)
         flick.contentX = Math.max(0, Math.min(flick.contentX + lx * ds, maxX))
         flick.contentY = Math.max(0, Math.min(flick.contentY + ly * ds, maxY))
+        repaintAfterZoom()
     }
 
     header: ToolBar {
