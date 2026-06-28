@@ -355,7 +355,8 @@ ApplicationWindow {
                               "\nsprite tile 0x" + roomView.obj_byte(objHover,0).toString(16) +
                               "   palette " + (roomView.obj_byte(objHover,1)&3) +
                               "\npos tile " + roomView.obj_x(objHover) + ", y " + roomView.obj_y(objHover) +
-                              "   (slot " + objHover + ")")
+                              "   (slot " + objHover + ")" +
+                              "\n\n" + roomView.tile_solidity(roomView.obj_x(objHover), Math.floor(roomView.obj_y(objHover) / 16)))
                     }
                 }
 
