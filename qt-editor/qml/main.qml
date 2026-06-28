@@ -22,6 +22,7 @@ ApplicationWindow {
     property int dragR0: -1
     property int objSel: -1
     property int newKind: 0x51
+    property int palSel: -1        // selected room-palette byte (0-31) being edited
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
     property bool animate: false
@@ -325,6 +326,54 @@ ApplicationWindow {
                     y: Math.floor(roomView.sel_metatile / 16) * 16
                     width: 16; height: 16
                     color: "transparent"; border.color: "#0f0"; border.width: 2
+                }
+            }
+
+            // --- Room palette editor: 8 sub-palettes (BG 0-3, Spr 0-3) of 4
+            //     NES colours. Click a slot, then pick from the 64-colour grid.
+            Label { text: "Room palette — click a slot, then a colour:"; color: "#bbb"; font.pixelSize: 11 }
+            Column {
+                spacing: 2
+                Repeater {
+                    model: 8
+                    Row {
+                        id: palRow
+                        required property int index
+                        spacing: 2
+                        Text {
+                            width: 30; color: "#888"; font.pixelSize: 9
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: (palRow.index < 4 ? "BG " : "Spr ") + (palRow.index % 4)
+                        }
+                        Repeater {
+                            model: 4
+                            Rectangle {
+                                required property int index
+                                property int slot: palRow.index * 4 + index
+                                width: 30; height: 16
+                                color: (roomView.pal_rev, roomView.selected, roomView.nes_color(roomView.pal_byte(slot)))
+                                border.color: palSel === slot ? "#ffcc00" : "#444"
+                                border.width: palSel === slot ? 2 : 1
+                                MouseArea { anchors.fill: parent; onClicked: palSel = (palSel === slot ? -1 : slot) }
+                            }
+                        }
+                    }
+                }
+            }
+            Label { visible: palSel >= 0; text: "Pick a colour (NES 64):"; color: "#bbb"; font.pixelSize: 11 }
+            Grid {
+                visible: palSel >= 0
+                columns: 16; spacing: 1
+                Repeater {
+                    model: 64
+                    Rectangle {
+                        required property int index
+                        width: 15; height: 15
+                        color: roomView.nes_color(index)
+                        border.color: (roomView.pal_rev, roomView.selected, roomView.pal_byte(palSel) === index) ? "#fff" : "#222"
+                        border.width: (roomView.pal_rev, roomView.pal_byte(palSel) === index) ? 2 : 1
+                        MouseArea { anchors.fill: parent; onClicked: roomView.set_pal(palSel, index) }
+                    }
                 }
             }
 

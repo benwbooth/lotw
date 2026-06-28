@@ -116,6 +116,7 @@ pub mod qobject {
         #[qproperty(i32, cursor_col)]
         #[qproperty(i32, cursor_row)]
         #[qproperty(i32, obj_rev)] // bumped on any object edit -> QML reactivity
+        #[qproperty(i32, pal_rev)] // bumped on any palette edit -> QML reactivity
         #[qproperty(i32, sprite_pal)] // 0 = greyscale, 1..4 = room sprite palettes
         type RoomCanvas = super::RoomCanvasRust;
 
@@ -161,6 +162,12 @@ pub mod qobject {
         fn obj_byte(self: &RoomCanvas, slot: i32, i: i32) -> i32;
         #[qinvokable]
         fn obj_name(self: &RoomCanvas, slot: i32) -> QString;
+        #[qinvokable]
+        fn pal_byte(self: &RoomCanvas, i: i32) -> i32;
+        #[qinvokable]
+        fn nes_color(self: &RoomCanvas, c: i32) -> QString;
+        #[qinvokable]
+        fn set_pal(self: Pin<&mut RoomCanvas>, i: i32, c: i32);
         #[qinvokable]
         fn set_obj(self: Pin<&mut RoomCanvas>, slot: i32, kind: i32, x: i32, y: i32);
         #[qinvokable]
@@ -210,6 +217,7 @@ pub struct RoomCanvasRust {
     cache_sel: i32,
     pv: (i32, i32, i32, i32, i32), // (kind, c0, r0, c1, r1) shape-tool preview
     obj_rev: i32,
+    pal_rev: i32,
     sprite_pal: i32,
     anim_frame: u8, // sprite animation offset (0 or 4), driven by a QML timer
     sections: Vec<Section>, // sprite-sheet subsections (players / area enemies / banks)
@@ -407,6 +415,7 @@ impl Default for RoomCanvasRust {
             cache_sel: -1,
             pv: (0, 0, 0, 0, 0),
             obj_rev: 0,
+            pal_rev: 0,
             sprite_pal: 0,
             anim_frame: 0,
             sections,
@@ -865,6 +874,33 @@ impl qobject::RoomCanvas {
             format!("tile 0x{:02x}", rec[0])
         };
         QString::from(&name)
+    }
+
+    /// One byte (NES colour index 0-63) of the selected room's 32-byte palette.
+    /// Bytes 0-15 are the four BG sub-palettes, 16-31 the four sprite ones.
+    fn pal_byte(&self, i: i32) -> i32 {
+        let r = self.rust();
+        *r.rooms[r.sel()].pal.get(i.max(0) as usize).unwrap_or(&0) as i32
+    }
+
+    /// "#rrggbb" for NES colour index `c` (0-63), for QML swatches/picker.
+    fn nes_color(&self, c: i32) -> QString {
+        let (r, g, b) = lotw::render::nes_rgb((c & 0x3f) as u8);
+        QString::from(&format!("#{r:02x}{g:02x}{b:02x}"))
+    }
+
+    /// Set palette byte `i` (0-31) to NES colour `c` (0-63) in the current room.
+    fn set_pal(mut self: Pin<&mut Self>, i: i32, c: i32) {
+        if (0..32).contains(&i) {
+            let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
+            let s = rust.sel();
+            rust.rooms[s].pal[i as usize] = (c & 0x3f) as u8;
+            rust.room_cache = None;
+            rust.world_cache = None;
+        }
+        let rev = self.rust().pal_rev;
+        self.as_mut().set_pal_rev(rev + 1);
+        self.update();
     }
 
     fn bump_obj_rev(mut self: Pin<&mut Self>) {
