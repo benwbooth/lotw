@@ -291,8 +291,11 @@ ApplicationWindow {
                             ToolTip {
                                 visible: objHov.hovered
                                 padding: 7
-                                // No-wrap content so the tooltip sizes to its widest line.
+                                // Size the popup to the text so nothing clips/wraps.
+                                contentWidth: ttText.implicitWidth
+                                contentHeight: ttText.implicitHeight
                                 contentItem: Text {
+                                    id: ttText
                                     text: (roomView.obj_rev, roomView.selected,
                                           roomView.obj_name(index)) +
                                           "\nbehavior " + roomView.obj_byte(index,8) +
@@ -311,6 +314,7 @@ ApplicationWindow {
                             MouseArea {
                                 anchors.fill: parent
                                 enabled: tool === "object"
+                                preventStealing: true   // drag the object, don't pan the view
                                 onPressed: { objSel = index; roomView.begin_edit() }
                                 onPositionChanged: (m) => {
                                     if (!pressed) return
