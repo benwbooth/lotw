@@ -3,7 +3,7 @@ mod room_canvas;
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 
 extern "C" {
-    // Defined in src/icon_shim.cpp (built by build.rs); sets the app/window icon.
+    // Defined in src/icon_shim.cpp (built by build.rs).
     fn lotw_set_window_icon_rgba(data: *const u8, w: i32, h: i32);
 }
 
@@ -66,10 +66,12 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
 }
 
 fn main() {
-    // Use the native font rasteriser instead of Qt Quick's distance-field text.
-    // Distance-field glyphs are interpolated from a cached texture, so at
-    // fractional positions/scales (which vary with window size) baselines and
-    // kerning go soft; native rendering snaps crisply to the pixel grid.
+    // Crisp text on fractionally-scaled (KDE/Wayland) displays: render at the
+    // exact fractional scale rather than a rounded one (rounding then letting
+    // the compositor resample is what makes fonts soft/misaligned, and worse as
+    // the window grows), and use the native font rasteriser instead of Qt
+    // Quick's distance-field text (which interpolates from a cached texture).
+    std::env::set_var("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough");
     std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
 
     let mut app = QGuiApplication::new();
