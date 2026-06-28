@@ -66,12 +66,14 @@ fn pochi_icon() -> Option<(Vec<u8>, i32)> {
 }
 
 fn main() {
-    // Crisp text on fractionally-scaled (KDE/Wayland) displays: render at the
-    // exact fractional scale rather than a rounded one (rounding then letting
-    // the compositor resample is what makes fonts soft/misaligned, and worse as
-    // the window grows), and use the native font rasteriser instead of Qt
-    // Quick's distance-field text (which interpolates from a cached texture).
-    std::env::set_var("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough");
+    // Round the display scale factor to a whole number so the device-pixel ratio
+    // is an integer. A fractional ratio makes QQuickPaintedItem render the sprite
+    // tiles into a fractionally-scaled backing store, so nearest-neighbour rounds
+    // some source pixels to 2 device pixels and others to 1 — identical tiles end
+    // up looking different. With an integer ratio every source pixel maps to a
+    // whole number of device pixels. Native (non-distance-field) text keeps fonts
+    // crisp under this policy.
+    std::env::set_var("QT_SCALE_FACTOR_ROUNDING_POLICY", "Round");
     std::env::set_var("QML_DISABLE_DISTANCEFIELD", "1");
 
     let mut app = QGuiApplication::new();

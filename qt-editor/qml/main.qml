@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Qt.labs.settings
 import com.lotw.editor
 
@@ -27,10 +28,13 @@ ApplicationWindow {
     property int view: 0          // 0 room, 1 world, 2 title
     property string tool: "paint" // paint | pick | hand | line | rect | ellipse | object
     property real zoom: 2.0
-    // The Sprites tab (view 3) must scale by an integer factor so the pixel-art
-    // sprites stay crisp (non-integer nearest-neighbour scaling makes some pixels
-    // wider than others). Background-tile views keep the continuous zoom.
-    property real pixScale: view === 3 ? Math.max(1, Math.round(zoom)) : zoom
+    // The display's device-pixel ratio (e.g. 1.25 / 1.5 on a fractionally-scaled
+    // KDE display). The Sprites tab must scale so that one source pixel maps to a
+    // whole number of *device* pixels; otherwise nearest-neighbour rounds some
+    // pixels wider than others and identical tiles look different. Snapping the
+    // logical scale to round(zoom*dpr)/dpr makes scale*dpr an integer.
+    property real dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+    property real pixScale: view === 3 ? Math.max(1, Math.round(zoom * dpr)) / dpr : zoom
     property int dragC0: -1
     property int dragR0: -1
     property int objSel: -1
@@ -72,7 +76,7 @@ ApplicationWindow {
     }
 
     // Displayed scale for a given logical zoom (the Sprites view snaps to integer).
-    function scaleFor(z) { return view === 3 ? Math.max(1, Math.round(z)) : z }
+    function scaleFor(z) { return view === 3 ? Math.max(1, Math.round(z * dpr)) / dpr : z }
 
     // Zoom while keeping the canvas-local point (lx,ly) pinned under the cursor.
     // (lx,ly) are roomView-native pixels (handler positions are pre-scale).
