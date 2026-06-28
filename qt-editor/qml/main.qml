@@ -240,8 +240,8 @@ ApplicationWindow {
                         Item {
                             required property int index
                             visible: view === 0 && (roomView.obj_rev, roomView.selected, roomView.obj_active(index))
-                            x: (roomView.obj_rev, roomView.obj_x(index)) * 16
-                            y: (roomView.obj_rev, roomView.obj_y(index))
+                            x: (roomView.obj_rev, roomView.selected, roomView.obj_x(index)) * 16
+                            y: (roomView.obj_rev, roomView.selected, roomView.obj_y(index))
                             width: 16; height: 16
                             // thin selection outline (object tool only)
                             Rectangle {
@@ -256,7 +256,7 @@ ApplicationWindow {
                                 visible: tool === "object" || objHov.hovered
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.bottom: parent.top
-                                text: (roomView.obj_rev, roomView.obj_name(index))
+                                text: (roomView.obj_rev, roomView.selected, roomView.obj_name(index))
                                 color: objSel === index ? "#ffcc00" : "#fff"
                                 style: Text.Outline; styleColor: "#000"
                                 font.pixelSize: 8
@@ -265,7 +265,8 @@ ApplicationWindow {
                             }
                             ToolTip {
                                 visible: objHov.hovered
-                                text: roomView.obj_name(index) +
+                                text: (roomView.obj_rev, roomView.selected,
+                                      roomView.obj_name(index)) +
                                       "\nbehavior " + roomView.obj_byte(index,8) +
                                       "   HP " + roomView.obj_byte(index,4) + "   dmg " + roomView.obj_byte(index,5) +
                                       "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
