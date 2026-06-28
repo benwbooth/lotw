@@ -23,6 +23,7 @@ ApplicationWindow {
     property int objSel: -1
     property int newKind: 0x51
     property int palSel: -1        // selected room-palette byte (0-31) being edited
+    property int worldHover: -1    // room index under the cursor in the World view
 
     function modeFor(v) { return v === 1 ? 2 : v === 2 ? 3 : v === 3 ? 4 : 0 }
     property bool animate: false
@@ -193,6 +194,29 @@ ApplicationWindow {
                         enabled: view === 3
                         onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
                     }
+                    HoverHandler {
+                        enabled: view === 1
+                        onPointChanged: worldHover = roomView.world_room_at(point.position.x, point.position.y)
+                        onHoveredChanged: if (!hovered) worldHover = -1
+                    }
+                    // World view: highlight the hovered room with an inverse-style
+                    // border (overlay rectangle, so the huge world image isn't repainted).
+                    Rectangle {
+                        visible: view === 1 && worldHover >= 0
+                        x: (worldHover % 4) * 1024
+                        y: Math.floor(worldHover / 4) * 192
+                        width: 1024; height: 192
+                        color: "transparent"
+                        border.color: "#ffffff"
+                        border.width: 3 / zoom
+                        Rectangle {   // inner dark line for contrast on light tiles
+                            anchors.fill: parent
+                            anchors.margins: 3 / zoom
+                            color: "transparent"
+                            border.color: "#000000"
+                            border.width: 1 / zoom
+                        }
+                    }
 
                     MouseArea {
                         anchors.fill: parent
@@ -266,14 +290,22 @@ ApplicationWindow {
                             }
                             ToolTip {
                                 visible: objHov.hovered
-                                text: (roomView.obj_rev, roomView.selected,
-                                      roomView.obj_name(index)) +
-                                      "\nbehavior " + roomView.obj_byte(index,8) +
-                                      "   HP " + roomView.obj_byte(index,4) + "   dmg " + roomView.obj_byte(index,5) +
-                                      "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
-                                      "   palette " + (roomView.obj_byte(index,1)&3) +
-                                      "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index) +
-                                      "   (slot " + index + ")"
+                                padding: 7
+                                // No-wrap content so the tooltip sizes to its widest line.
+                                contentItem: Text {
+                                    text: (roomView.obj_rev, roomView.selected,
+                                          roomView.obj_name(index)) +
+                                          "\nbehavior " + roomView.obj_byte(index,8) +
+                                          "   HP " + roomView.obj_byte(index,4) + "   dmg " + roomView.obj_byte(index,5) +
+                                          "\nsprite tile 0x" + roomView.obj_byte(index,0).toString(16) +
+                                          "   palette " + (roomView.obj_byte(index,1)&3) +
+                                          "\npos tile " + roomView.obj_x(index) + ", y " + roomView.obj_y(index) +
+                                          "   (slot " + index + ")"
+                                    color: "#eaeaea"
+                                    font.pixelSize: 12
+                                    wrapMode: Text.NoWrap
+                                }
+                                background: Rectangle { color: "#222428"; border.color: "#666"; radius: 4 }
                             }
                             HoverHandler { id: objHov }
                             MouseArea {
