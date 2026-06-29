@@ -693,22 +693,11 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     }
     out.push_str("        _ => return None,\n    })\n}\n");
 
-    // Import only the envelope macros actually emitted (duty!/volume!/…); the
-    // matching note functions come from `note::*`.
-    let mut imports: Vec<&str> = ["duty", "env", "flags", "pitch", "sweep", "volume"]
-        .into_iter()
-        .filter(|m| out.contains(&format!("{m}!(")))
-        .chain(["line", "section", "song"])
-        .collect();
-    imports.sort_unstable();
-    imports.extend(["Song", "Tok"]);
-
     let mut head = String::new();
     head.push_str("//! Legacy of the Wizard songs + SFX as the music DSL — generated from the ROM\n");
     head.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
     head.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    head.push_str("use lotw_music::note::*;\n");
-    head.push_str(&format!("use lotw_music::{{{}}};\n\n", imports.join(", ")));
+    head.push_str("use lotw_music::music::*;\n\n");
     head.push_str(&out);
     head
 }

@@ -28,6 +28,16 @@ pub mod note;
 /// these don't clash with the `duty()`/`volume()`/… note functions).
 pub use lotw_music_macros::{duty, env, flags, pitch, sweep, volume};
 
+/// Everything a song file needs in one glob: note symbols (`a3i`, `rq`), the
+/// channel-command functions and envelope macros (`duty`/`duty!`/…), the
+/// `section`/`song`/`line` builders and the core types. Song files just write
+/// `use lotw_music::music::*;`.
+pub mod music {
+    pub use crate::note::*;
+    pub use crate::{duty, env, flags, pitch, sweep, volume};
+    pub use crate::{line, section, song, Note, Song, Tok, Val};
+}
+
 /// One decoded channel-stream token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tok {
