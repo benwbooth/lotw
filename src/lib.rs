@@ -37,6 +37,7 @@
 )]
 
 pub mod apu;
+pub mod audio;
 pub mod bits;
 pub mod engine;
 pub mod frame;
