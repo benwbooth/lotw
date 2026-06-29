@@ -456,7 +456,14 @@ pub fn sfx_streams(prg: &[u8]) -> Vec<(usize, usize)> {
 /// game.rs, else `song_NN`.
 pub fn song_name(i: usize) -> String {
     match i {
-        2 => "home_overworld".into(),
+        // Area themes, named by the world-map region whose rooms select them
+        // (room descriptor +11); see the song-per-room map.
+        0 => "area_north".into(),  // top rows
+        1 => "area_west".into(),   // left column
+        2 => "home_theme".into(),  // the Drasle family home / hub
+        3 => "area_east".into(),   // right columns
+        4 => "area_central".into(),
+        // Jingles / fixed-context cues identified in game.rs.
         8 => "death_jingle".into(),
         9 => "title_theme".into(),
         10 => "ending_theme".into(),
