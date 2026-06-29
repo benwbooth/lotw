@@ -211,6 +211,8 @@ function editorFor(doc) {
 }
 
 // Highlight the source element each channel is on (up to 4 notes at once).
+let hlLog = [-1, -1, -1, -1]; // last logged element index per channel
+const CH = ["pulse1", "pulse2", "tri", "noise"];
 function applyHighlight(tokens) {
   if (!playing) return;
   const ed = editorFor(playing.doc);
@@ -224,9 +226,16 @@ function applyHighlight(tokens) {
     // a full-song play maps the absolute index across all sections.
     const els = playing.section != null ? chans[c][playing.section] || [] : chans[c].flat();
     let cum = 0;
-    for (const el of els) {
+    for (let ei = 0; ei < els.length; ei++) {
+      const el = els[ei];
       if (t < cum + el.toks) {
         ranges.push(new vscode.Range(playing.doc.positionAt(el.a), playing.doc.positionAt(el.b)));
+        // Log when the highlighted element changes (or wraps) for this channel.
+        if (ei !== hlLog[c]) {
+          const wrapped = ei < hlLog[c] ? " (wrap)" : "";
+          out.appendLine(`hl ${CH[c]}: tok ${t} -> elem ${ei}/${els.length}${wrapped} "${playing.doc.getText(ranges[ranges.length - 1])}"`);
+          hlLog[c] = ei;
+        }
         break;
       }
       cum += el.toks;
@@ -242,6 +251,7 @@ async function play(doc, name, section) {
   const idx = await songIndex(doc, name);
   const els = await channelElements(doc, name);
   posLogged = false;
+  hlLog = [-1, -1, -1, -1];
   out.appendLine(`▶ ${name} (song ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
   playing = { doc, name, index: idx, section, channelElements: els };
   writeAndSend();
