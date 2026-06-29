@@ -47,5 +47,18 @@ pub mod render;
 pub mod scripts;
 pub mod state;
 
+/// The game's music as a `play!` DSL. The real songs live in the generated
+/// `src/music.rs` (run `cargo run --bin gen_music`); a clean checkout without
+/// that file gets an empty stub so it still builds (build.rs sets `has_music`).
+#[cfg(has_music)]
+#[path = "music.rs"]
+pub mod music;
+#[cfg(not(has_music))]
+pub mod music {
+    pub fn song(_: usize) -> Option<crate::audio::Song> {
+        None
+    }
+}
+
 pub use engine::{Engine, PPU_H, PPU_W, RoutineContext};
 pub use state::GameState;

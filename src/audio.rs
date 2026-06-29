@@ -128,7 +128,8 @@ fn parse_dur(s: &str) -> Result<u8, String> {
 }
 
 fn parse_u8_hex(s: &str) -> Result<u8, String> {
-    u8::from_str_radix(s.trim_start_matches('$'), 16).map_err(|_| format!("bad hex {s:?}"))
+    let h = s.strip_prefix('$').or_else(|| s.strip_prefix("0x")).unwrap_or(s);
+    u8::from_str_radix(h, 16).map_err(|_| format!("bad hex {s:?}"))
 }
 
 /// Parse the DSL text back into tokens.
@@ -168,27 +169,152 @@ pub fn parse(text: &str) -> Result<Vec<Tok>, String> {
     Ok(out)
 }
 
-fn parse_note(tok: &str) -> Result<Tok, String> {
+/// Split a melodic note name (`c`, `cs`, ... `b`) off the front, returning its
+/// `note_idx` and the remainder (octave [+ duration]).
+fn split_name(tok: &str) -> Result<(u8, &str), String> {
     let b = tok.as_bytes();
     if b.is_empty() || !(b[0] as char).is_ascii_alphabetic() {
         return Err(format!("bad note {tok:?}"));
     }
     // Note name = a letter, plus an optional 's' if that forms a real sharp.
-    let two = tok.get(..2).filter(|s| NOTE_NAMES.contains(s));
-    let (name, rest) = match two {
+    let (name, rest) = match tok.get(..2).filter(|s| NOTE_NAMES.contains(s)) {
         Some(n) => (n, &tok[2..]),
         None => (&tok[..1], &tok[1..]),
     };
-    let idx = NOTE_NAMES.iter().position(|n| *n == name && !n.is_empty()).ok_or_else(|| format!("unknown note {name:?}"))? as u8;
+    let idx = NOTE_NAMES.iter().position(|n| *n == name && !n.is_empty()).ok_or_else(|| format!("unknown note {name:?}"))?;
+    Ok((idx as u8, rest))
+}
+
+fn octave_to_nibble(octave: i32, tok: &str) -> Result<u8, String> {
+    let nibble = octave - BASE_OCTAVE;
+    if (0..=15).contains(&nibble) {
+        Ok(nibble as u8)
+    } else {
+        Err(format!("octave {octave} out of range in {tok:?}"))
+    }
+}
+
+fn parse_note(tok: &str) -> Result<Tok, String> {
+    let (idx, rest) = split_name(tok)?;
     // Octave = leading digits of the remainder; the rest is the duration.
     let split = rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len());
     let (oct_s, dur_s) = rest.split_at(split);
     let octave: i32 = oct_s.parse().map_err(|_| format!("bad octave in {tok:?}"))?;
-    let nibble = octave - BASE_OCTAVE;
-    if !(0..=15).contains(&nibble) {
-        return Err(format!("octave {octave} out of range in {tok:?}"));
+    Ok(Tok::Note { dur: parse_dur(dur_s)?, pitch: (octave_to_nibble(octave, tok)? << 4) | idx })
+}
+
+// --- `play!` macro support: one token (`tt`) per stream element ---
+//
+// The macro stringifies each token tree and hands it here. Forms:
+//   `c4q`, `fs5e`, `rhd`   bare idents: a clean note/rest (letter duration)
+//   `[c4:30]`, `[r:30]`    a note/rest whose duration isn't a letter (raw ticks)
+//   `[duty:0x0b]`          a command (`duty/volume/flags/pitch/sweep/cmdN`)
+//   `[~ff:e]`              a raw pitch byte
+//   `|`                    end of stream
+// Bracket contents are split on `:`/whitespace so both `[duty:0x0b]` and the
+// macro's stringified `[duty : 0x0b]` parse the same.
+
+/// Parse one `play!` token and push it onto `v`.
+pub fn push_tok(v: &mut Vec<Tok>, tok: &str) -> Result<(), String> {
+    let t = tok.trim();
+    if t == "|" {
+        v.push(Tok::End);
+        return Ok(());
     }
-    Ok(Tok::Note { dur: parse_dur(dur_s)?, pitch: ((nibble as u8) << 4) | idx })
+    if let Some(inner) = t.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+        let parts: Vec<&str> = inner.split([':', ' ', '\t']).filter(|p| !p.is_empty()).collect();
+        let [head, val] = parts.as_slice() else {
+            return Err(format!("bad token {tok:?}"));
+        };
+        // Command?
+        let cmd_id = CMD_NAMES.iter().position(|n| n == head).map(|i| i as u8).or_else(|| head.strip_prefix("cmd").and_then(|d| d.parse().ok()));
+        if let Some(id) = cmd_id {
+            v.push(Tok::Cmd { id, arg: parse_u8_hex(val)? });
+        } else if *head == "r" {
+            v.push(Tok::Rest { dur: parse_dur_value(val)? });
+        } else if let Some(hex) = head.strip_prefix('~') {
+            v.push(Tok::Note { dur: parse_dur_value(val)?, pitch: parse_u8_hex(hex)? });
+        } else {
+            // `[c4:30]` raw-duration melodic note.
+            let p = note_pitch(head)?;
+            v.push(Tok::Note { dur: parse_dur_value(val)?, pitch: p });
+        }
+        return Ok(());
+    }
+    // Bare ident: a clean note/rest (single text token).
+    v.extend(parse(t)?);
+    Ok(())
+}
+
+/// A duration value inside `[..]`: a tick count (decimal/hex) or a letter.
+fn parse_dur_value(s: &str) -> Result<u8, String> {
+    if let Some(h) = s.strip_prefix("0x") {
+        let v = u16::from_str_radix(h, 16).map_err(|_| format!("bad dur {s:?}"))?;
+        return if v <= 0x7F { Ok(v as u8) } else { Err(format!("dur {v} > 127")) };
+    }
+    if let Ok(v) = s.parse::<u16>() {
+        return if v <= 0x7F { Ok(v as u8) } else { Err(format!("dur {v} > 127")) };
+    }
+    DURS.iter().find(|(k, _)| *k == s).map(|(_, t)| *t).ok_or_else(|| format!("bad dur {s:?}"))
+}
+
+/// Pitch byte for a bare melodic note name+octave like `c4`, `fs5`, `b2`.
+fn note_pitch(s: &str) -> Result<u8, String> {
+    let (idx, oct_s) = split_name(s)?;
+    let octave: i32 = oct_s.parse().map_err(|_| format!("bad octave in {s:?}"))?;
+    Ok((octave_to_nibble(octave, s)? << 4) | idx)
+}
+
+/// Render tokens as a `play!`-compatible token sequence (idents for clean
+/// notes/rests, `[name:value]` groups for commands and raw durations).
+pub fn render_play(toks: &[Tok]) -> String {
+    toks.iter()
+        .map(|t| match *t {
+            Tok::Note { dur, pitch } => {
+                let p = pitch_str(pitch); // `c4` or `~ff`
+                match DURS.iter().find(|(_, tk)| *tk == dur) {
+                    Some((d, _)) if !p.starts_with('~') => format!("{p}{d}"),
+                    _ => format!("[{p}:{dur}]"),
+                }
+            }
+            Tok::Rest { dur } => match DURS.iter().find(|(_, tk)| *tk == dur) {
+                Some((d, _)) => format!("r{d}"),
+                None => format!("[r:{dur}]"),
+            },
+            Tok::Cmd { id, arg } => {
+                let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
+                format!("[{name}:{arg:#04x}]")
+            }
+            Tok::End => "|".to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// A song: its named channel streams, in header order (pulse1/pulse2/tri/noise).
+#[derive(Default, Clone)]
+pub struct Song {
+    pub channels: Vec<(String, Vec<Tok>)>,
+}
+
+impl Song {
+    pub fn add(&mut self, name: &str, stream: Vec<Tok>) {
+        self.channels.push((name.to_string(), stream));
+    }
+}
+
+/// `play! { pulse1 { c4q ... | } pulse2 { ... | } ... }` -> a [`Song`].
+#[macro_export]
+macro_rules! play {
+    ( $( $ch:ident { $($t:tt)* } )* ) => {{
+        let mut song = $crate::audio::Song::default();
+        $(
+            let mut stream = ::std::vec::Vec::new();
+            $( $crate::audio::push_tok(&mut stream, stringify!($t)).expect("play! token"); )*
+            song.add(stringify!($ch), stream);
+        )*
+        song
+    }};
 }
 
 // --- ROM song layout (for enumerating streams) ---
@@ -203,6 +329,60 @@ fn addr_to_off(addr: usize, base_lo: usize, base_hi: usize) -> Option<usize> {
         0xA000..0xC000 => Some(base_hi + addr - 0xA000),
         _ => None,
     }
+}
+
+/// Channel names in header order.
+pub const CHANNEL_NAMES: [&str; 4] = ["pulse1", "pulse2", "triangle", "noise"];
+
+/// Per song: its four channel stream offsets (None if the pointer is out of the
+/// mapped range). Songs are not deduplicated (each lists its own channels).
+pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
+    let mut out = Vec::new();
+    for (pi, &(table, base_lo, base_hi)) in PAIRS.iter().enumerate() {
+        for song in 0..SONGS_PER_TABLE {
+            let hdr_addr = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
+            let Some(hdr) = addr_to_off(hdr_addr, base_lo, base_hi) else { continue };
+            if hdr + 32 > prg.len() {
+                continue;
+            }
+            let mut chans = [None; 4];
+            for (ch, slot) in chans.iter_mut().enumerate() {
+                let sp = prg[hdr + ch * 8 + 2] as usize | (prg[hdr + ch * 8 + 3] as usize) << 8;
+                *slot = addr_to_off(sp, base_lo, base_hi);
+            }
+            out.push((pi * SONGS_PER_TABLE + song, chans));
+        }
+    }
+    out
+}
+
+/// Emit a `music.rs` source file: one `play!`-DSL function per song, byte-exact.
+pub fn emit_music_rs(prg: &[u8]) -> String {
+    let mut out = String::new();
+    out.push_str("//! Legacy of the Wizard music as a `play!` DSL — generated from the ROM by\n");
+    out.push_str("//! `gen_music` (deterministic, byte-exact). Each function round-trips to the\n");
+    out.push_str("//! original channel-stream bytes. Refine the notation freely; it must still\n");
+    out.push_str("//! compile to the same bytes (see `tests/audio_dsl.rs`).\n\n");
+    out.push_str("use crate::audio::Song;\nuse crate::play;\n\n");
+    let songs = song_channels(prg);
+    for (song, chans) in &songs {
+        out.push_str(&format!("pub fn song{song:02}() -> Song {{\n    play! {{\n"));
+        for (ci, off) in chans.iter().enumerate() {
+            let body = off
+                .and_then(|o| disasm(prg, o))
+                .map(|t| render_play(&t))
+                .unwrap_or_default();
+            out.push_str(&format!("        {} {{ {body} }}\n", CHANNEL_NAMES[ci]));
+        }
+        out.push_str("    }\n}\n\n");
+    }
+    // Index dispatch.
+    out.push_str("/// All songs by index (matches the ROM's song order).\npub fn song(i: usize) -> Option<Song> {\n    Some(match i {\n");
+    for (song, _) in &songs {
+        out.push_str(&format!("        {song} => song{song:02}(),\n"));
+    }
+    out.push_str("        _ => return None,\n    })\n}\n");
+    out
 }
 
 /// Every reachable channel stream: `(song_index, channel 0..3, PRG offset)`.
