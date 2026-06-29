@@ -237,8 +237,8 @@ fn dur_token(dur: u8) -> (String, bool) {
     }
 }
 
-/// Render one stream as a comma-separated list of `ser!`/channel-macro items.
-pub fn render_macro(toks: &[Tok]) -> String {
+/// Render a stream to its individual `ser!`/channel-macro item strings.
+pub fn render_items(toks: &[Tok]) -> Vec<String> {
     let mut items: Vec<String> = Vec::new();
     let mut i = 0;
     while i < toks.len() {
@@ -273,7 +273,38 @@ pub fn render_macro(toks: &[Tok]) -> String {
         }
         i += 1;
     }
-    items.join(", ")
+    items
+}
+
+/// Format a stream's items as wrapped, indented DSL lines: each `param!(..)`
+/// command starts a new line (a phrase boundary), and note runs pack up to a
+/// width. `indent` is the leading whitespace for each emitted line.
+pub fn render_body(toks: &[Tok], indent: &str) -> String {
+    const WIDTH: usize = 100;
+    let items = render_items(toks);
+    let mut out = String::new();
+    let mut line = String::new();
+    let flush = |out: &mut String, line: &mut String| {
+        if !line.is_empty() {
+            out.push_str(indent);
+            out.push_str(line.trim_end());
+            out.push('\n');
+            line.clear();
+        }
+    };
+    for it in &items {
+        let phrase = it.starts_with("param!");
+        if phrase || indent.len() + line.len() + it.len() + 2 > WIDTH {
+            flush(&mut out, &mut line);
+        }
+        line.push_str(it);
+        line.push_str(", ");
+        if phrase {
+            flush(&mut out, &mut line);
+        }
+    }
+    flush(&mut out, &mut line);
+    out
 }
 
 /// Which hardware channel a [`Channel`] targets.
@@ -425,11 +456,10 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     for (song, chans) in &songs {
         out.push_str(&format!("pub fn {}() -> Song {{\n    song! {{\n", song_name(*song)));
         for (ci, off) in chans.iter().enumerate() {
-            let body = off
-                .and_then(|o| disasm(prg, o))
-                .map(|t| render_macro(&t))
-                .unwrap_or_default();
-            out.push_str(&format!("        {}![ {body} ],\n", macros[ci]));
+            match off.and_then(|o| disasm(prg, o)) {
+                Some(t) => out.push_str(&format!("        {}![\n{}        ],\n", macros[ci], render_body(&t, "            "))),
+                None => out.push_str(&format!("        {}![],\n", macros[ci])),
+            }
         }
         out.push_str("    }\n}\n\n");
     }
@@ -442,8 +472,8 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("// ===== sound effects (one pulse2 stream each) =====\n\n");
     let sfx = sfx_streams(prg);
     for (i, off) in &sfx {
-        let body = disasm(prg, *off).map(|t| render_macro(&t)).unwrap_or_default();
-        out.push_str(&format!("pub fn {}() -> Vec<Tok> {{\n    ser![ {body} ]\n}}\n\n", sfx_name(*i)));
+        let body = disasm(prg, *off).map(|t| render_body(&t, "        ")).unwrap_or_default();
+        out.push_str(&format!("pub fn {}() -> Vec<Tok> {{\n    ser![\n{body}    ]\n}}\n\n", sfx_name(*i)));
     }
     out.push_str("/// All sound effects by ROM index.\npub fn sfx(i: usize) -> Option<Vec<Tok>> {\n    Some(match i {\n");
     for (i, _) in &sfx {
