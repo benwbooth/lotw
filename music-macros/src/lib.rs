@@ -101,18 +101,22 @@ fn emit_item(item: &[TokenTree]) -> Result<TS, String> {
             // Otherwise it's a section variable: splice its tokens.
             Ok(splice(&item.iter().cloned().collect::<TS>()))
         }
-        // `note literal` / `r literal`: explicit tick duration.
-        [TokenTree::Ident(id), TokenTree::Literal(lit)] => {
+        // `note <dur>` / `r <dur>` where <dur> is `30` (ticks), `q~i` (tied
+        // letters), or a spaced single letter. Only when the head is a note/`r`
+        // and the suffix parses as a duration; otherwise it's an expression.
+        [TokenTree::Ident(id), rest @ ..] if !rest.is_empty() && parse_dur_tokens(rest).is_some() => {
             let name = id.to_string();
-            let dur = parse_u8(&lit.to_string()).ok_or_else(|| format!("bad duration {lit}"))?;
+            let dur = parse_dur_tokens(rest).unwrap();
             if dur & 0x80 != 0 {
                 return Err(format!("duration {dur} >= 128"));
             }
             if name == "r" {
                 Ok(push_event(Event::Rest(dur)))
-            } else {
-                let pitch = pitch_byte(&name).ok_or_else(|| format!("bad note {name:?}"))?;
+            } else if let Some(pitch) = pitch_byte(&name) {
                 Ok(push_event(Event::Note(dur, pitch)))
+            } else {
+                // Head isn't a note (e.g. `intro.clone()` got here by accident) — splice.
+                Ok(splice(&item.iter().cloned().collect::<TS>()))
             }
         }
         // Anything else is an expression (param!(..), ser![..], a call) -> splice.
@@ -178,6 +182,30 @@ fn split_name(tok: &str) -> Option<(u8, &str)> {
 
 fn dur_value(s: &str) -> Option<u8> {
     DURS.iter().find(|(k, _)| *k == s).map(|(_, t)| *t)
+}
+
+/// Parse a duration written as separate tokens: `[Literal(30)]` (ticks), or a
+/// `~`-tied chain of letters (`q ~ i`), or a single spaced letter (`q`).
+fn parse_dur_tokens(toks: &[TokenTree]) -> Option<u8> {
+    if let [TokenTree::Literal(l)] = toks {
+        return parse_u8(&l.to_string());
+    }
+    let mut sum: u16 = 0;
+    let mut expect_dur = true;
+    for tt in toks {
+        match tt {
+            TokenTree::Ident(id) if expect_dur => {
+                sum += dur_value(&id.to_string())? as u16;
+                expect_dur = false;
+            }
+            TokenTree::Punct(p) if !expect_dur && p.as_char() == '~' => expect_dur = true,
+            _ => return None,
+        }
+    }
+    if expect_dur {
+        return None; // empty or trailing `~`
+    }
+    (sum <= 0xFF).then_some(sum as u8)
 }
 
 fn parse_u8(s: &str) -> Option<u8> {

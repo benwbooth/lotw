@@ -210,13 +210,30 @@ fn parse_note(tok: &str) -> Result<Tok, String> {
 // `param!(duty=0x0b, volume=0xff)` commands, `raw!(0x9f, e)` un-nameable
 // pitches, and `|` for end of stream.
 
-/// A duration as a proc-macro token: a joined letter (`q`) when it lands on the
-/// grid, else a space + tick count (`30`). `joined` controls whether a letter is
-/// appended directly to a note name (`c4q`) or needs a separator.
+/// A duration as a proc-macro token. Returns `(text, joined)` where `joined`
+/// means the text is a single letter that can be appended directly to a note
+/// name (`c4q`); otherwise it needs a separating space (`c4 q~i`, `c4 30`):
+///   * a single grid letter            -> `q`
+///   * a tie of letters summing to it  -> `q~i` (any multiple of 3)
+///   * a raw tick count                -> `30`
 fn dur_token(dur: u8) -> (String, bool) {
-    match DURS.iter().find(|(_, t)| *t == dur) {
-        Some((d, _)) => ((*d).to_string(), true),
-        None => (dur.to_string(), false),
+    if let Some((d, _)) = DURS.iter().find(|(_, t)| *t == dur) {
+        return ((*d).to_string(), true);
+    }
+    // Greedy decomposition into tied note-values (3 ticks is the smallest, so
+    // any multiple of 3 decomposes exactly; everything else falls back to ticks).
+    let mut rem = dur;
+    let mut parts = Vec::new();
+    for (name, t) in DURS {
+        while rem >= *t {
+            parts.push(*name);
+            rem -= *t;
+        }
+    }
+    if rem == 0 && parts.len() > 1 {
+        (parts.join("~"), false)
+    } else {
+        (dur.to_string(), false)
     }
 }
 
