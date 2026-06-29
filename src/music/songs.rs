@@ -2,9 +2,8 @@
 //! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it
 //! must still assemble to the same bytes (see `tests/audio_dsl.rs`).
 
-#![allow(clippy::all)]
 use lotw_music::note::*;
-use lotw_music::{duty, env, flags, line, pitch, section, song, sweep, volume, Song, Tok};
+use lotw_music::{duty, line, pitch, section, song, volume, Song, Tok};
 
 // ===== songs =====
 

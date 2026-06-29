@@ -640,17 +640,7 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
 /// Emit `src/music/songs.rs`: each song as a `song(tempo, &[section(..), ..])`
 /// using the `note` DSL, each SFX as a `line(tempo, &[..])`. Byte-exact.
 pub fn emit_music_rs(prg: &[u8]) -> String {
-    // ~2 bars per section (96 ticks ≈ a 4/4 bar at quarter = 24).
-    const SECTION_TICKS: u32 = 192;
     let mut out = String::new();
-    out.push_str("//! Legacy of the Wizard songs + SFX as the music DSL — generated from the ROM\n");
-    out.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
-    out.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    out.push_str("#![allow(clippy::all)]\n");
-    out.push_str("use lotw_music::note::*;\n");
-    out.push_str("use lotw_music::{duty, env, flags, line, pitch, section, song, sweep, volume, Song, Tok};\n\n");
-
-    let _ = SECTION_TICKS;
     out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);
     for (idx, chans) in &songs {
@@ -702,7 +692,25 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
         out.push_str(&format!("        {i} => {}(),\n", sfx_name(*i)));
     }
     out.push_str("        _ => return None,\n    })\n}\n");
-    out
+
+    // Import only the envelope macros actually emitted (duty!/volume!/…); the
+    // matching note functions come from `note::*`.
+    let mut imports: Vec<&str> = ["duty", "env", "flags", "pitch", "sweep", "volume"]
+        .into_iter()
+        .filter(|m| out.contains(&format!("{m}!(")))
+        .chain(["line", "section", "song"])
+        .collect();
+    imports.sort_unstable();
+    imports.extend(["Song", "Tok"]);
+
+    let mut head = String::new();
+    head.push_str("//! Legacy of the Wizard songs + SFX as the music DSL — generated from the ROM\n");
+    head.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
+    head.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
+    head.push_str("use lotw_music::note::*;\n");
+    head.push_str(&format!("use lotw_music::{{{}}};\n\n", imports.join(", ")));
+    head.push_str(&out);
+    head
 }
 
 /// Every reachable channel stream: `(song_index, channel 0..3, PRG offset)`.
