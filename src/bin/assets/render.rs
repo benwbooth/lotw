@@ -31,7 +31,7 @@ pub fn render_room(prg: &[u8], chr: &[u8], header: &[u8], grid: &[Vec<u8>], pal:
 
     let (w, h) = (COLS * 16, ROWS * 16);
     let mut img = vec![0u8; w * h * 3];
-    let mut put = |img: &mut [u8], px: usize, py: usize, pixel: u8, subpal: usize| {
+    let put = |img: &mut [u8], px: usize, py: usize, pixel: u8, subpal: usize| {
         let (r, g, b) = nes_rgb(pal[subpal * 4 + pixel as usize]);
         let o = (py * w + px) * 3;
         img[o] = r;
@@ -100,6 +100,8 @@ pub fn render_metatile_atlas(prg: &[u8], chr: &[u8], header: &[u8], pal: &[u8]) 
 /// Render a raw 32x30 nametable screen (960 tiles + 64 attribute bytes) to a
 /// 256x240 RGB image, given the two BG CHR banks and a 32-byte palette. Used for
 /// full-screen layouts that aren't metatile rooms (title screen, etc.).
+// Used by the `editor` bin's title view, not by `assettool`.
+#[allow(dead_code)]
 pub fn render_nametable(chr: &[u8], nt: &[u8], chr0: u8, chr1: u8, pal: &[u8]) -> Vec<u8> {
     let win = [chr0 & 0xFE, (chr0 & 0xFE) | 1, chr1 & 0xFE, (chr1 & 0xFE) | 1];
     let (w, h) = (256usize, 240usize);
