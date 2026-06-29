@@ -641,7 +641,6 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
 /// using the `note` DSL, each SFX as a `line(tempo, &[..])`. Byte-exact.
 pub fn emit_music_rs(prg: &[u8]) -> String {
     let mut out = String::new();
-    out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);
     for (idx, chans) in &songs {
         let mut streams: Vec<Vec<Tok>> = chans.iter().map(|off| off.and_then(|o| disasm(prg, o)).unwrap_or_default()).collect();

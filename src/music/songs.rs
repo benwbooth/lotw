@@ -4,8 +4,6 @@
 
 use lotw_music::music::*;
 
-// ===== songs =====
-
 pub fn area_north() -> Song {
     song(24, &[
         section(
