@@ -36,39 +36,21 @@
     unused_variables
 )]
 
-// So the music proc-macros' `::lotw::audio::...` paths resolve inside this crate.
-extern crate self as lotw;
-
-/// Music DSL proc-macros: `ser!`, `song!`, `pulse1!`/`pulse2!`/`triangle!`/
-/// `noise!`, `param!`, `raw!`.
-pub use lotw_music_macros::{noise, param, pulse1, pulse2, raw, ser, song, triangle};
-
 pub mod apu;
 pub mod audio;
 pub mod bits;
 pub mod engine;
 pub mod frame;
 pub mod game;
+/// The music DSL (`note` symbols + `song`/`section` builders) and the game's
+/// songs. The real songs live in the generated `src/music/songs.rs` (run
+/// `cargo run --bin gen_music`); a clean checkout without it gets an empty stub
+/// (build.rs sets `has_music`).
+pub mod music;
 pub mod ppu;
 pub mod render;
 pub mod scripts;
 pub mod state;
-
-/// The game's music as the `song!`/`ser!` proc-macro DSL. The real songs live in the generated
-/// `src/music.rs` (run `cargo run --bin gen_music`); a clean checkout without
-/// that file gets an empty stub so it still builds (build.rs sets `has_music`).
-#[cfg(has_music)]
-#[path = "music.rs"]
-pub mod music;
-#[cfg(not(has_music))]
-pub mod music {
-    pub fn song(_: usize) -> Option<crate::audio::Song> {
-        None
-    }
-    pub fn sfx(_: usize) -> Option<Vec<crate::audio::Tok>> {
-        None
-    }
-}
 
 pub use engine::{Engine, PPU_H, PPU_W, RoutineContext};
 pub use state::GameState;

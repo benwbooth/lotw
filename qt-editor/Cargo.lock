@@ -400,16 +400,6 @@ name = "lotw"
 version = "0.1.0"
 dependencies = [
  "corosensei",
- "lotw-music-macros",
-]
-
-[[package]]
-name = "lotw-music-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

@@ -39,4 +39,4 @@ assets/chr/
 /qt-editor/target/
 
 # Generated music DSL (ROM-derived; run `cargo run --bin gen_music`)
-/src/music.rs
+/src/music/songs.rs

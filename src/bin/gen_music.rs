@@ -6,7 +6,7 @@ use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
     let rom_path = args.next().unwrap_or_else(|| "rom/lotw.nes".into());
-    let out_path = args.next().unwrap_or_else(|| "src/music.rs".into());
+    let out_path = args.next().unwrap_or_else(|| "src/music/songs.rs".into());
     let rom = std::fs::read(&rom_path)?;
     let prg_len = rom[4] as usize * 16_384;
     let prg = &rom[16..16 + prg_len];

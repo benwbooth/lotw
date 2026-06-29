@@ -237,74 +237,61 @@ fn dur_token(dur: u8) -> (String, bool) {
     }
 }
 
-/// Render a stream to its individual `ser!`/channel-macro item strings.
-pub fn render_items(toks: &[Tok]) -> Vec<String> {
-    let mut items: Vec<String> = Vec::new();
-    let mut i = 0;
-    while i < toks.len() {
-        match toks[i] {
-            // Group a run of commands into one `param!(a=.., b=..)`.
-            Tok::Cmd { .. } => {
-                let mut parts = Vec::new();
-                while let Some(&Tok::Cmd { id, arg }) = toks.get(i) {
-                    let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
-                    parts.push(format!("{name}={arg:#04x}"));
-                    i += 1;
-                }
-                items.push(format!("param!({})", parts.join(", ")));
-                continue;
-            }
-            Tok::Note { dur, pitch } => {
-                let (d, joined) = dur_token(dur);
-                let name = pitch_str(pitch);
-                items.push(if let Some(hex) = name.strip_prefix('~') {
-                    format!("raw!(0x{hex}, {d})")
-                } else if joined {
-                    format!("{name}{d}")
-                } else {
-                    format!("{name} {d}")
-                });
-            }
-            Tok::Rest { dur } => {
-                let (d, joined) = dur_token(dur);
-                items.push(if joined { format!("r{d}") } else { format!("r {d}") });
-            }
-            Tok::End => items.push("|".to_string()),
-        }
-        i += 1;
-    }
-    items
+/// Note values (name, num/den of a quarter). Mirrors build.rs. The tick count
+/// at tempo `q` is `num*q/den` (when whole). Ordered longest-first so the
+/// generator prefers fewer, larger note values.
+const VALS: &[(&str, u32, u32)] = &[
+    ("w", 4, 1), ("hdd", 7, 2), ("hd", 3, 1), ("h", 2, 1), ("qdd", 7, 4), ("qd", 3, 2),
+    ("q", 1, 1), ("edd", 7, 8), ("ed", 3, 4), ("e", 1, 2), ("id", 3, 8), ("i", 1, 4),
+    ("td", 3, 16), ("t", 1, 8), ("x", 1, 16),
+];
+
+/// The note-value name whose tick count at tempo `q` equals `dur`, if any.
+fn val_name(dur: u8, q: u32) -> Option<&'static str> {
+    VALS.iter().find(|(_, n, d)| n * q % d == 0 && n * q / d == dur as u32).map(|(name, _, _)| *name)
 }
 
-/// Format a stream's items as wrapped, indented DSL lines: each `param!(..)`
-/// command starts a new line (a phrase boundary), and note runs pack up to a
-/// width. `indent` is the leading whitespace for each emitted line.
-pub fn render_body(toks: &[Tok], indent: &str) -> String {
-    const WIDTH: usize = 100;
-    let items = render_items(toks);
-    let mut out = String::new();
-    let mut line = String::new();
-    let flush = |out: &mut String, line: &mut String| {
-        if !line.is_empty() {
-            out.push_str(indent);
-            out.push_str(line.trim_end());
-            out.push('\n');
-            line.clear();
-        }
-    };
-    for it in &items {
-        let phrase = it.starts_with("param!");
-        if phrase || indent.len() + line.len() + it.len() + 2 > WIDTH {
-            flush(&mut out, &mut line);
-        }
-        line.push_str(it);
-        line.push_str(", ");
-        if phrase {
-            flush(&mut out, &mut line);
-        }
+/// Pick the tempo (ticks per quarter) that lets the most notes/rests in `toks`
+/// render as named note values rather than `raw`/`rest` tick counts.
+pub fn detect_tempo(channels: &[Vec<Tok>]) -> u32 {
+    let durs: Vec<u8> = channels
+        .iter()
+        .flat_map(|c| c.iter())
+        .filter_map(|t| match t {
+            Tok::Note { dur, .. } | Tok::Rest { dur } => Some(*dur),
+            _ => None,
+        })
+        .collect();
+    (1..=96)
+        .max_by_key(|&q| durs.iter().filter(|&&d| val_name(d, q).is_some()).count())
+        .unwrap_or(24)
+}
+
+/// Render one token as a `note`-module DSL element at tempo `q`.
+fn note_item(t: &Tok, q: u32) -> String {
+    match *t {
+        // Name it only when the pitch is a real chromatic note in the generated
+        // octave range (nibble 0..=9 = octaves 2..=11); else keep the raw byte.
+        Tok::Note { dur, pitch } => match (pitch_str(pitch), val_name(dur, q)) {
+            (name, Some(v)) if !name.starts_with('~') && pitch >> 4 <= 9 => format!("{name}{v}"),
+            _ => format!("raw(0x{pitch:02x}, {dur})"),
+        },
+        Tok::Rest { dur } => match val_name(dur, q) {
+            Some(v) => format!("r{v}"),
+            None => format!("rest({dur})"),
+        },
+        Tok::Cmd { id, arg } => match CMD_NAMES.get(id as usize) {
+            Some(name) => format!("{name}(0x{arg:02x})"),
+            None => format!("cmd({id}, 0x{arg:02x})"),
+        },
+        Tok::End => "bar".to_string(),
     }
-    flush(&mut out, &mut line);
-    out
+}
+
+/// Render a channel fragment as a `&[ items ]` slice literal at tempo `q`.
+fn render_channel(frag: &[Tok], q: u32) -> String {
+    let items: Vec<String> = frag.iter().map(|t| note_item(t, q)).collect();
+    format!("&[{}]", items.join(", "))
 }
 
 /// Split a channel stream into score sections aligned to a fixed tick grid:
@@ -328,21 +315,6 @@ pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
     secs
 }
 
-/// Which hardware channel a [`Channel`] targets.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ChannelId {
-    Pulse1 = 0,
-    Pulse2 = 1,
-    Triangle = 2,
-    Noise = 3,
-}
-
-/// A channel's token stream tagged with its target (produced by `pulse1!` etc.).
-pub struct Channel {
-    pub id: ChannelId,
-    pub stream: Vec<Tok>,
-}
-
 /// A song: its four channel streams in header order (pulse1/pulse2/tri/noise).
 #[derive(Default, Clone)]
 pub struct Song {
@@ -353,71 +325,6 @@ impl Song {
     pub fn add(&mut self, name: &str, stream: Vec<Tok>) {
         self.channels.push((name.to_string(), stream));
     }
-
-    /// Build a song from `pulse1!`/`pulse2!`/`triangle!`/`noise!` channels,
-    /// placing each into its header slot (any missing channel is left empty).
-    pub fn from_channels(chans: Vec<Channel>) -> Song {
-        let mut slots: [Vec<Tok>; 4] = Default::default();
-        for c in chans {
-            slots[c.id as usize] = c.stream;
-        }
-        let mut song = Song::default();
-        for (i, stream) in slots.into_iter().enumerate() {
-            song.add(CHANNEL_NAMES[i], stream);
-        }
-        song
-    }
-}
-
-/// A song assembled section-by-section, score style: each `section!` appends a
-/// fragment to each channel, so the four channels for one stretch of time sit
-/// together in the source (like the staves of one system). The concatenated
-/// fragments per channel are byte-identical to the original streams.
-#[derive(Default)]
-pub struct Score {
-    pub pulse1: Vec<Tok>,
-    pub pulse2: Vec<Tok>,
-    pub triangle: Vec<Tok>,
-    pub noise: Vec<Tok>,
-}
-
-impl Score {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn pulse1(&mut self, f: Vec<Tok>) -> &mut Self {
-        self.pulse1.extend(f);
-        self
-    }
-    pub fn pulse2(&mut self, f: Vec<Tok>) -> &mut Self {
-        self.pulse2.extend(f);
-        self
-    }
-    pub fn triangle(&mut self, f: Vec<Tok>) -> &mut Self {
-        self.triangle.extend(f);
-        self
-    }
-    pub fn noise(&mut self, f: Vec<Tok>) -> &mut Self {
-        self.noise.extend(f);
-        self
-    }
-    pub fn song(&self) -> Song {
-        let mut song = Song::default();
-        song.add("pulse1", self.pulse1.clone());
-        song.add("pulse2", self.pulse2.clone());
-        song.add("triangle", self.triangle.clone());
-        song.add("noise", self.noise.clone());
-        song
-    }
-}
-
-/// One score section: append a fragment to each named channel of a [`Score`].
-/// `section! { sc; pulse1 = [ c4q, .. ], triangle = [ .. ], .. }`.
-#[macro_export]
-macro_rules! section {
-    ($sc:ident; $($ch:ident = [ $($t:tt)* ]),* $(,)?) => {
-        $( $sc.$ch($crate::ser![ $($t)* ]); )*
-    };
 }
 
 // --- ROM song layout (for enumerating streams) ---
@@ -518,56 +425,49 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
     out
 }
 
-/// Emit a `music.rs` source file: each song as a `Score` built section by
-/// section (all channels stacked per ~2-bar section), each SFX as a `ser!`
-/// stream. Byte-exact.
+/// Emit `src/music/songs.rs`: each song as a `song(tempo, &[section(..), ..])`
+/// using the `note` DSL, each SFX as a `line(tempo, &[..])`. Byte-exact.
 pub fn emit_music_rs(prg: &[u8]) -> String {
-    let mut out = String::new();
-    out.push_str("//! Legacy of the Wizard music as a proc-macro DSL — generated from the ROM by\n");
-    out.push_str("//! `gen_music` (deterministic, byte-exact). Each function round-trips to the\n");
-    out.push_str("//! original channel-stream bytes. Refine the notation freely; it must still\n");
-    out.push_str("//! compile to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    out.push_str("use crate::audio::{Score, Song, Tok};\n");
-    out.push_str("use crate::{section, param, raw, ser};\n\n");
-
-    // ~2 bars per section (96 ticks = a 4/4 bar at quarter = 24).
+    // ~2 bars per section (96 ticks ≈ a 4/4 bar at quarter = 24).
     const SECTION_TICKS: u32 = 192;
-    out.push_str("// ===== music =====\n\n");
+    let mut out = String::new();
+    out.push_str("//! Legacy of the Wizard songs + SFX as the music DSL — generated from the ROM\n");
+    out.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
+    out.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
+    out.push_str("#![allow(clippy::all)]\n");
+    out.push_str("use super::note::*;\nuse super::{line, section, song};\nuse crate::audio::{Song, Tok};\n\n");
+
+    out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);
-    let macros = ["pulse1", "pulse2", "triangle", "noise"];
-    for (song, chans) in &songs {
-        // Disassemble each channel and split it into tick-aligned sections.
-        let secs: Vec<Vec<Vec<Tok>>> = chans
-            .iter()
-            .map(|off| off.and_then(|o| disasm(prg, o)).map(|t| split_sections(&t, SECTION_TICKS)).unwrap_or_default())
-            .collect();
-        let n_sections = secs.iter().map(Vec::len).max().unwrap_or(0);
-        out.push_str(&format!("pub fn {}() -> Song {{\n    let mut sc = Score::new();\n", song_name(*song)));
-        for k in 0..n_sections {
-            out.push_str("    section! { sc;\n");
-            for (ci, frags) in secs.iter().enumerate() {
-                match frags.get(k) {
-                    Some(frag) if !frag.is_empty() => {
-                        out.push_str(&format!("        {:8} = [ {} ],\n", macros[ci], render_items(frag).join(", ")));
-                    }
-                    _ => {}
-                }
+    for (idx, chans) in &songs {
+        let streams: Vec<Vec<Tok>> = chans.iter().map(|off| off.and_then(|o| disasm(prg, o)).unwrap_or_default()).collect();
+        let tempo = detect_tempo(&streams);
+        // Split each channel into tick-aligned sections.
+        let secs: Vec<Vec<Vec<Tok>>> = streams.iter().map(|s| split_sections(s, SECTION_TICKS)).collect();
+        let n = secs.iter().map(Vec::len).max().unwrap_or(0);
+        out.push_str(&format!("pub fn {}() -> Song {{\n    song({tempo}, &[\n", song_name(*idx)));
+        for k in 0..n {
+            out.push_str("        section(\n");
+            for frags in &secs {
+                let frag = frags.get(k).map(Vec::as_slice).unwrap_or(&[]);
+                out.push_str(&format!("            {},\n", render_channel(frag, tempo)));
             }
-            out.push_str("    }\n");
+            out.push_str("        ),\n");
         }
-        out.push_str("    sc.song()\n}\n\n");
+        out.push_str("    ])\n}\n\n");
     }
-    out.push_str("/// All songs by ROM index.\npub fn song(i: usize) -> Option<Song> {\n    Some(match i {\n");
-    for (song, _) in &songs {
-        out.push_str(&format!("        {song} => {}(),\n", song_name(*song)));
+    out.push_str("/// All songs by ROM index.\npub fn get(i: usize) -> Option<Song> {\n    Some(match i {\n");
+    for (idx, _) in &songs {
+        out.push_str(&format!("        {idx} => {}(),\n", song_name(*idx)));
     }
     out.push_str("        _ => return None,\n    })\n}\n\n");
 
     out.push_str("// ===== sound effects (one pulse2 stream each) =====\n\n");
     let sfx = sfx_streams(prg);
     for (i, off) in &sfx {
-        let body = disasm(prg, *off).map(|t| render_body(&t, "        ")).unwrap_or_default();
-        out.push_str(&format!("pub fn {}() -> Vec<Tok> {{\n    ser![\n{body}    ]\n}}\n\n", sfx_name(*i)));
+        let stream = disasm(prg, *off).unwrap_or_default();
+        let tempo = detect_tempo(std::slice::from_ref(&stream));
+        out.push_str(&format!("pub fn {}() -> Vec<Tok> {{\n    line({tempo}, {})\n}}\n\n", sfx_name(*i), render_channel(&stream, tempo)));
     }
     out.push_str("/// All sound effects by ROM index.\npub fn sfx(i: usize) -> Option<Vec<Tok>> {\n    Some(match i {\n");
     for (i, _) in &sfx {
