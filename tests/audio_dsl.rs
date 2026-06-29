@@ -51,6 +51,22 @@ fn music_rs_matches_rom() {
 }
 
 #[test]
+fn sfx_matches_rom() {
+    let Ok(rom) = std::fs::read("rom/lotw.nes") else { return };
+    if lotw::music::sfx(0).is_none() {
+        eprintln!("src/music.rs not generated — skipping");
+        return;
+    }
+    let prg_len = rom[4] as usize * 16_384;
+    let prg = &rom[16..16 + prg_len];
+    for (i, off) in audio::sfx_streams(prg) {
+        let stream = lotw::music::sfx(i).unwrap_or_else(|| panic!("music::sfx({i}) missing"));
+        let bytes = audio::assemble(&stream);
+        assert_eq!(&prg[off..off + bytes.len()], &bytes[..], "sfx{i}");
+    }
+}
+
+#[test]
 fn proc_macros_assemble_exact_bytes() {
     use lotw::audio::{Tok, assemble};
     use lotw::{noise, param, pulse1, raw, ser, song, triangle};

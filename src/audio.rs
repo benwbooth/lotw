@@ -334,6 +334,58 @@ fn addr_to_off(addr: usize, base_lo: usize, base_hi: usize) -> Option<usize> {
 /// Channel names in header order.
 pub const CHANNEL_NAMES: [&str; 4] = ["pulse1", "pulse2", "triangle", "noise"];
 
+/// SFX pointer table (PRG offset; CPU $8014 in bank 10) and entry count. Each
+/// entry points at a single pulse2 channel stream (same grammar as music).
+const SFX_POINTER_TABLE: usize = 0x14014;
+const SFX_COUNT: usize = 39;
+
+/// Each sound effect as `(index, stream PRG offset)`.
+pub fn sfx_streams(prg: &[u8]) -> Vec<(usize, usize)> {
+    (0..SFX_COUNT)
+        .filter_map(|i| {
+            let addr = prg[SFX_POINTER_TABLE + i * 2] as usize | (prg[SFX_POINTER_TABLE + i * 2 + 1] as usize) << 8;
+            addr_to_off(addr, 0x14000, 0x16000).map(|off| (i, off))
+        })
+        .collect()
+}
+
+/// A function name for a song index — descriptive where the context is known in
+/// game.rs, else `song_NN`.
+pub fn song_name(i: usize) -> String {
+    match i {
+        2 => "home_overworld".into(),
+        8 => "death_jingle".into(),
+        9 => "title_theme".into(),
+        10 => "ending_theme".into(),
+        14 => "door_unlock_jingle".into(),
+        _ => format!("song_{i:02}"),
+    }
+}
+
+/// A function name for an SFX index — descriptive where its callers in game.rs
+/// make the purpose clear, else `sfx_NN`.
+pub fn sfx_name(i: usize) -> String {
+    match i {
+        3 => "sfx_char_select_open".into(),
+        4 => "sfx_char_select_close".into(),
+        6 => "sfx_blocked".into(),
+        10 => "sfx_damage_bounce".into(),
+        12 => "sfx_cursor_select".into(),
+        17 => "sfx_magic_pickup".into(),
+        19 => "sfx_got_item".into(),
+        21 => "sfx_key_pickup".into(),
+        25 => "sfx_fire".into(),
+        26 => "sfx_low_magic".into(),
+        27 => "sfx_jump".into(),
+        28 => "sfx_password_error".into(),
+        29 => "sfx_inventory_full".into(),
+        30 => "sfx_health_pickup".into(),
+        33 => "sfx_hurt".into(),
+        34..=38 => format!("sfx_fire_char{}", i - 34),
+        _ => format!("sfx_{i:02}"),
+    }
+}
+
 /// Per song: its four channel stream offsets (None if the pointer is out of the
 /// mapped range). Songs are not deduplicated (each lists its own channels).
 pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
@@ -364,11 +416,14 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("//! `gen_music` (deterministic, byte-exact). Each function round-trips to the\n");
     out.push_str("//! original channel-stream bytes. Refine the notation freely; it must still\n");
     out.push_str("//! compile to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    out.push_str("use crate::audio::Song;\nuse crate::{song, pulse1, pulse2, triangle, noise, param, raw};\n\n");
+    out.push_str("use crate::audio::{Song, Tok};\n");
+    out.push_str("use crate::{song, pulse1, pulse2, triangle, noise, param, raw, ser};\n\n");
+
+    out.push_str("// ===== music =====\n\n");
     let songs = song_channels(prg);
     let macros = ["pulse1", "pulse2", "triangle", "noise"];
     for (song, chans) in &songs {
-        out.push_str(&format!("pub fn song{song:02}() -> Song {{\n    song! {{\n"));
+        out.push_str(&format!("pub fn {}() -> Song {{\n    song! {{\n", song_name(*song)));
         for (ci, off) in chans.iter().enumerate() {
             let body = off
                 .and_then(|o| disasm(prg, o))
@@ -378,10 +433,21 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
         }
         out.push_str("    }\n}\n\n");
     }
-    // Index dispatch.
-    out.push_str("/// All songs by index (matches the ROM's song order).\npub fn song(i: usize) -> Option<Song> {\n    Some(match i {\n");
+    out.push_str("/// All songs by ROM index.\npub fn song(i: usize) -> Option<Song> {\n    Some(match i {\n");
     for (song, _) in &songs {
-        out.push_str(&format!("        {song} => song{song:02}(),\n"));
+        out.push_str(&format!("        {song} => {}(),\n", song_name(*song)));
+    }
+    out.push_str("        _ => return None,\n    })\n}\n\n");
+
+    out.push_str("// ===== sound effects (one pulse2 stream each) =====\n\n");
+    let sfx = sfx_streams(prg);
+    for (i, off) in &sfx {
+        let body = disasm(prg, *off).map(|t| render_macro(&t)).unwrap_or_default();
+        out.push_str(&format!("pub fn {}() -> Vec<Tok> {{\n    ser![ {body} ]\n}}\n\n", sfx_name(*i)));
+    }
+    out.push_str("/// All sound effects by ROM index.\npub fn sfx(i: usize) -> Option<Vec<Tok>> {\n    Some(match i {\n");
+    for (i, _) in &sfx {
+        out.push_str(&format!("        {i} => {}(),\n", sfx_name(*i)));
     }
     out.push_str("        _ => return None,\n    })\n}\n");
     out

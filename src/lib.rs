@@ -65,6 +65,9 @@ pub mod music {
     pub fn song(_: usize) -> Option<crate::audio::Song> {
         None
     }
+    pub fn sfx(_: usize) -> Option<Vec<crate::audio::Tok>> {
+        None
+    }
 }
 
 pub use engine::{Engine, PPU_H, PPU_W, RoutineContext};
