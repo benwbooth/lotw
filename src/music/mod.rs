@@ -81,17 +81,9 @@ impl Note {
     }
 }
 
-/// A parameter envelope: a run of `param(value), carrier-note` pairs collapsed
-/// into one [`Note::Seq`]. `env!(volume, g4x 0, fs4x 252, f4x 250)` expands to
-/// `volume(0), g4x, volume(252), fs4x, volume(250), f4x`. The param is one of
-/// the command names (`duty`/`volume`/`flags`/`pitch`/`sweep`); each point is a
-/// carrier note followed by the (decimal) parameter value.
-#[macro_export]
-macro_rules! env {
-    ($param:ident, $($note:ident $val:literal),+ $(,)?) => {
-        $crate::music::Note::Seq(const { &[ $( $crate::music::note::$param($val), $note ),+ ] })
-    };
-}
+// The `env!` parameter-envelope macro lives in the `lotw-music-macros` crate
+// (it needs compile-time arithmetic for relative/increment values) and is
+// re-exported at the crate root. It builds a [`Note::Seq`].
 
 /// One score section: the four channels' fragments for a stretch of time.
 pub struct Section<'a> {

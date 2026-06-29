@@ -36,6 +36,11 @@
     unused_variables
 )]
 
+// So the `env!` proc-macro's `::lotw::music::...` paths resolve inside this crate.
+extern crate self as lotw;
+/// The `env!` parameter-envelope macro.
+pub use lotw_music_macros::env;
+
 pub mod apu;
 pub mod audio;
 pub mod bits;

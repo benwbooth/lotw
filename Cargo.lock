@@ -1275,10 +1275,19 @@ version = "0.1.0"
 dependencies = [
  "corosensei",
  "eframe",
+ "lotw-music-macros",
  "png 0.17.16",
  "sdl3",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lotw-music-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]

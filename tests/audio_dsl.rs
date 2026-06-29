@@ -94,3 +94,37 @@ fn note_dsl_assembles_exact_bytes() {
     assert_eq!(s.channels[3].1, vec![Tok::Note { dur: 24, pitch: 0x03 }, Tok::End]);
     assert!(s.channels[1].1.is_empty());
 }
+
+#[test]
+fn env_macro_expands() {
+    use lotw::audio::Tok;
+    use lotw::env;
+    use lotw::music::line;
+    use lotw::music::note::*;
+
+    // Pitch bend on e3 (64th notes): absolute 8, then +8, +8, -4, then absolute 0
+    // on f3. e3 = idx4 octave3 -> 0x14; f3 = idx6 -> 0x16; x at tempo 32 = 2 ticks.
+    let bend = line(32, &[env!(pitch, 8 e3x, +8 e3x, +8 e3x, -4 e3x, 0 f3x)]);
+    assert_eq!(
+        bend,
+        vec![
+            Tok::Cmd { id: 3, arg: 8 }, Tok::Note { dur: 2, pitch: 0x14 },
+            Tok::Cmd { id: 3, arg: 16 }, Tok::Note { dur: 2, pitch: 0x14 },
+            Tok::Cmd { id: 3, arg: 24 }, Tok::Note { dur: 2, pitch: 0x14 },
+            Tok::Cmd { id: 3, arg: 20 }, Tok::Note { dur: 2, pitch: 0x14 },
+            Tok::Cmd { id: 3, arg: 0 }, Tok::Note { dur: 2, pitch: 0x16 },
+            Tok::End,
+        ]
+    );
+
+    // A value held across several notes (coarse sweep), with a bare `+` step.
+    let sweep = line(24, &[env!(volume, 200 c4q d4q, + e4q)]);
+    assert_eq!(
+        sweep,
+        vec![
+            Tok::Cmd { id: 1, arg: 200 }, Tok::Note { dur: 24, pitch: 0x20 }, Tok::Note { dur: 24, pitch: 0x22 },
+            Tok::Cmd { id: 1, arg: 201 }, Tok::Note { dur: 24, pitch: 0x24 },
+            Tok::End,
+        ]
+    );
+}

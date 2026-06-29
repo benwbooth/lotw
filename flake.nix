@@ -132,6 +132,7 @@
               ./Cargo.toml
               ./Cargo.lock
               ./build.rs
+              ./music-macros
               ./src
               ./tests
               ./fixtures

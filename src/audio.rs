@@ -311,28 +311,39 @@ fn render_channel(frag: &[Tok], q: u32) -> String {
     format!("&[{}]", items.join(", "))
 }
 
-/// Collapse a leading run of `cmd(P), note` pairs (same named param P, >= 2,
-/// nameable carrier notes) into `env!(P, note val, ...)`. Returns the rendered
-/// envelope and how many tokens it spans.
+/// Collapse a leading run of `cmd(P), note…` segments (same named param P,
+/// >= 2 segments, each ≥1 nameable carrier note) into the value-first
+/// `env!(P, v note…, v note…, …)`. Returns the rendered envelope and the token
+/// span. Holds the param across several notes, so it folds both per-note
+/// envelopes and coarser sweeps.
 fn try_envelope(toks: &[Tok], q: u32) -> Option<(String, usize)> {
     let pid = match toks.first() {
         Some(&Tok::Cmd { id, .. }) if (id as usize) < CMD_NAMES.len() => id,
         _ => return None,
     };
-    let mut points = Vec::new();
+    let mut segs: Vec<String> = Vec::new();
     let mut j = 0;
-    while let (Some(&Tok::Cmd { id, arg }), Some(note @ &Tok::Note { .. })) = (toks.get(j), toks.get(j + 1)) {
+    while let Some(&Tok::Cmd { id, arg }) = toks.get(j) {
         if id != pid {
             break;
         }
-        let carrier = note_item(note, q);
-        if carrier.starts_with("raw") {
-            break; // env! carriers must be nameable note symbols
+        let mut notes: Vec<String> = Vec::new();
+        let mut k = j + 1;
+        while let Some(note @ &Tok::Note { .. }) = toks.get(k) {
+            let carrier = note_item(note, q);
+            if carrier.starts_with("raw") {
+                break; // env! carriers must be nameable note symbols
+            }
+            notes.push(carrier);
+            k += 1;
         }
-        points.push(format!("{carrier} {arg}"));
-        j += 2;
+        if notes.is_empty() {
+            break; // a command with no carrier note ends the run
+        }
+        segs.push(format!("{arg} {}", notes.join(" ")));
+        j = k;
     }
-    (points.len() >= 2).then(|| (format!("env!({}, {})", CMD_NAMES[pid as usize], points.join(", ")), j))
+    (segs.len() >= 2).then(|| (format!("env!({}, {})", CMD_NAMES[pid as usize], segs.join(", ")), j))
 }
 
 /// Split a channel stream into score sections aligned to a fixed tick grid:
