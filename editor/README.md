@@ -22,10 +22,12 @@ streams the buffer text to the server, which compiles and plays it.
 
 ## Setup (development install)
 
-This is an unpackaged extension. Symlink or copy this `editor/` folder into your
-VSCode extensions dir and reload:
+This is an unpackaged extension. Install its dependencies (the tree-sitter
+parser used to read the source — no regex), then symlink it into your VSCode
+extensions dir and reload:
 
 ```sh
+( cd editor && npm install )
 ln -s "$PWD/editor" ~/.vscode/extensions/lotw-music
 ```
 

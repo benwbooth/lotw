@@ -8,9 +8,14 @@
   "categories": ["Other"],
   "activationEvents": ["onLanguage:rust"],
   "main": "./extension.js",
+  "dependencies": {
+    "web-tree-sitter": "^0.25.0",
+    "tree-sitter-wasms": "^0.1.12"
+  },
   "contributes": {
     "commands": [
       { "command": "lotwMusic.play", "title": "LotW Music: Play song" },
+      { "command": "lotwMusic.playSection", "title": "LotW Music: Play section" },
       { "command": "lotwMusic.stop", "title": "LotW Music: Stop" },
       { "command": "lotwMusic.toggleLoop", "title": "LotW Music: Toggle loop" }
     ],

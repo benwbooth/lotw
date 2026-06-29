@@ -45,6 +45,56 @@ impl SongData {
         Some(SongData { channels, section_starts: s.section_starts.clone() })
     }
 
+    /// Extract a single section as a playable (looping) mini-song: each channel
+    /// is the section's tokens, prefixed with the last duty/volume/flags/pitch/
+    /// sweep command set before it (so it sounds right in isolation) and
+    /// terminated so it loops.
+    fn extract_section(&self, n: usize) -> SongData {
+        let mut channels: [Vec<u8>; 4] = Default::default();
+        for c in 0..4 {
+            let bytes = &self.channels[c];
+            let starts = &self.section_starts[c];
+            if n >= starts.len() {
+                channels[c] = vec![0x00];
+                continue;
+            }
+            let start_tok = starts[n];
+            let end_tok = starts.get(n + 1).copied().unwrap_or(usize::MAX);
+            let mut last_cmd = [None; 5];
+            let mut prefix = Vec::new();
+            let mut section = Vec::new();
+            let (mut bi, mut ti) = (0usize, 0usize);
+            while bi < bytes.len() {
+                if ti == start_tok {
+                    for (id, arg) in last_cmd.iter().enumerate() {
+                        if let Some(a) = arg {
+                            prefix.extend_from_slice(&[0xFF, id as u8, *a]);
+                        }
+                    }
+                }
+                let b = bytes[bi];
+                let size = match b {
+                    0x00 => 1,
+                    0xFF => 3,
+                    x if x & 0x80 != 0 => 1,
+                    _ => 2,
+                };
+                if ti >= start_tok && ti < end_tok && b != 0x00 {
+                    section.extend_from_slice(&bytes[bi..bi + size]);
+                }
+                if ti < start_tok && b == 0xFF && (bytes[bi + 1] as usize) < 5 {
+                    last_cmd[bytes[bi + 1] as usize] = Some(bytes[bi + 2]);
+                }
+                bi += size;
+                ti += 1;
+            }
+            prefix.extend_from_slice(&section);
+            prefix.push(0x00); // terminate / loop point
+            channels[c] = prefix;
+        }
+        SongData { channels, section_starts: Default::default() }
+    }
+
     /// Parse a `song_blob` from the JIT cdylib (see music-jit/src/lib.rs).
     fn from_blob(b: &[u8]) -> Option<SongData> {
         fn rd(b: &[u8], p: &mut usize) -> Option<usize> {
@@ -265,8 +315,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some("src") => {
                     let path = it.next().unwrap_or("");
                     let idx: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-                    let keep = player.tick;
-                    match jit_compile(path, idx).and_then(|d| player.load(idx, &d, keep)) {
+                    // Optional 4th arg = a section to play in isolation (looping).
+                    let section: Option<usize> = it.next().and_then(|s| s.parse().ok());
+                    // Whole-song reloads keep the playhead; section plays restart.
+                    let keep = if section.is_some() { 0 } else { player.tick };
+                    let res = jit_compile(path, idx).map(|d| match section {
+                        Some(n) => d.extract_section(n),
+                        None => d,
+                    });
+                    match res.and_then(|d| player.load(idx, &d, keep)) {
                         Ok(()) => {
                             player.playing = true;
                             say(&format!("loaded {idx}"));
