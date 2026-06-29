@@ -49,9 +49,11 @@ impl Val {
     }
 }
 
-/// A single DSL element: a pitched note, a rest, a raw (off-grid) note/rest, or
-/// a channel command. The end-of-stream marker is implicit — `song`/`line`
-/// terminate each non-empty channel automatically.
+/// A single DSL element: a pitched note, a rest, a raw (off-grid) note/rest, a
+/// channel command, or a `Seq` — a spliced sub-sequence (e.g. an `env!`
+/// envelope), so a multi-note run is still one `Note` and channels stay flat
+/// `&[Note]`. The end-of-stream marker is implicit — `song`/`line` terminate
+/// each non-empty channel automatically.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Note {
     Pitched { pitch: u8, val: Val },
@@ -59,18 +61,36 @@ pub enum Note {
     RawNote { pitch: u8, ticks: u8 },
     RawRest { ticks: u8 },
     Cmd { id: u8, arg: u8 },
+    Seq(&'static [Note]),
 }
 
 impl Note {
     fn emit(self, tempo: u32, out: &mut Vec<Tok>) {
-        out.push(match self {
-            Note::Pitched { pitch, val } => Tok::Note { dur: val.ticks(tempo), pitch },
-            Note::Rest { val } => Tok::Rest { dur: val.ticks(tempo) },
-            Note::RawNote { pitch, ticks } => Tok::Note { dur: ticks, pitch },
-            Note::RawRest { ticks } => Tok::Rest { dur: ticks },
-            Note::Cmd { id, arg } => Tok::Cmd { id, arg },
-        });
+        match self {
+            Note::Pitched { pitch, val } => out.push(Tok::Note { dur: val.ticks(tempo), pitch }),
+            Note::Rest { val } => out.push(Tok::Rest { dur: val.ticks(tempo) }),
+            Note::RawNote { pitch, ticks } => out.push(Tok::Note { dur: ticks, pitch }),
+            Note::RawRest { ticks } => out.push(Tok::Rest { dur: ticks }),
+            Note::Cmd { id, arg } => out.push(Tok::Cmd { id, arg }),
+            Note::Seq(notes) => {
+                for &n in notes {
+                    n.emit(tempo, out);
+                }
+            }
+        }
     }
+}
+
+/// A parameter envelope: a run of `param(value), carrier-note` pairs collapsed
+/// into one [`Note::Seq`]. `env!(volume, g4x 0, fs4x 252, f4x 250)` expands to
+/// `volume(0), g4x, volume(252), fs4x, volume(250), f4x`. The param is one of
+/// the command names (`duty`/`volume`/`flags`/`pitch`/`sweep`); each point is a
+/// carrier note followed by the (decimal) parameter value.
+#[macro_export]
+macro_rules! env {
+    ($param:ident, $($note:ident $val:literal),+ $(,)?) => {
+        $crate::music::Note::Seq(const { &[ $( $crate::music::note::$param($val), $note ),+ ] })
+    };
 }
 
 /// One score section: the four channels' fragments for a stretch of time.

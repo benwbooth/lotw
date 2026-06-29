@@ -289,11 +289,50 @@ fn note_item(t: &Tok, q: u32) -> String {
     }
 }
 
-/// Render a channel fragment as a `&[ items ]` slice literal at tempo `q`. The
-/// stream terminator is dropped — `song`/`line` re-append it.
+/// Render a channel fragment as a `&[ items ]` slice literal at tempo `q`. Runs
+/// of `param(v), note` pairs collapse into `env!(...)`; the implicit terminator
+/// is dropped (`song`/`line` re-append it).
 fn render_channel(frag: &[Tok], q: u32) -> String {
-    let items: Vec<String> = frag.iter().filter(|t| !matches!(t, Tok::End)).map(|t| note_item(t, q)).collect();
+    let toks: Vec<Tok> = frag.iter().copied().filter(|t| !matches!(t, Tok::End)).collect();
+    let mut items: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        match try_envelope(&toks[i..], q) {
+            Some((env, used)) => {
+                items.push(env);
+                i += used;
+            }
+            None => {
+                items.push(note_item(&toks[i], q));
+                i += 1;
+            }
+        }
+    }
     format!("&[{}]", items.join(", "))
+}
+
+/// Collapse a leading run of `cmd(P), note` pairs (same named param P, >= 2,
+/// nameable carrier notes) into `env!(P, note val, ...)`. Returns the rendered
+/// envelope and how many tokens it spans.
+fn try_envelope(toks: &[Tok], q: u32) -> Option<(String, usize)> {
+    let pid = match toks.first() {
+        Some(&Tok::Cmd { id, .. }) if (id as usize) < CMD_NAMES.len() => id,
+        _ => return None,
+    };
+    let mut points = Vec::new();
+    let mut j = 0;
+    while let (Some(&Tok::Cmd { id, arg }), Some(note @ &Tok::Note { .. })) = (toks.get(j), toks.get(j + 1)) {
+        if id != pid {
+            break;
+        }
+        let carrier = note_item(note, q);
+        if carrier.starts_with("raw") {
+            break; // env! carriers must be nameable note symbols
+        }
+        points.push(format!("{carrier} {arg}"));
+        j += 2;
+    }
+    (points.len() >= 2).then(|| (format!("env!({}, {})", CMD_NAMES[pid as usize], points.join(", ")), j))
 }
 
 /// Split a channel stream into score sections aligned to a fixed tick grid:
@@ -437,7 +476,7 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
     out.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
     out.push_str("#![allow(clippy::all)]\n");
-    out.push_str("use super::note::*;\nuse super::{line, section, song};\nuse crate::audio::{Song, Tok};\n\n");
+    out.push_str("use super::note::*;\nuse super::{line, section, song};\nuse crate::audio::{Song, Tok};\nuse crate::env;\n\n");
 
     out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);
