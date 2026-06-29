@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Publish the current frame for the APU trace, then latch this frame's input.
         *apu_frame.lock().unwrap() = frame;
         let buttons = input.get(frame).copied().unwrap_or(0);
-        runner.engine_mut().ppu.buttons = (buttons as u8);
+        runner.engine_mut().ppu.buttons = buttons as u8;
         if !common::step_frame(&mut runner) {
             eprintln!("game loop returned at frame {frame}");
             break;

@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Per-frame loop: feed the held input, run a full game update, render, save.
     for fr in 0..frames {
         // Hold the same controller buttons every frame and latch them.
-        engine.ppu.buttons = (btn as u8);
+        engine.ppu.buttons = btn as u8;
         engine.state.frame_counter = 1;
         game::read_controllers(&mut engine, &mut r);
         // Full game-update pipeline (player, projectiles, actors, scroll, sprites).
