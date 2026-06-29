@@ -155,7 +155,7 @@ ApplicationWindow {
                 checked: roomView.show_solid
                 onToggled: { roomView.show_solid = checked; roomView.refresh() }
                 ToolTip.visible: hovered
-                ToolTip.text: "Tint tiles by passability: red=solid wall, orange=locked door, blue=door/portal, yellow=breakable; untinted=passable background"
+                ToolTip.text: "Tint tiles by passability: red=solid, magenta=hazard, orange=locked door, purple=portal, green=shop, cyan=home, yellow=breakable; untinted=passable"
             }
             ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }
@@ -227,7 +227,7 @@ ApplicationWindow {
                         enabled: view === 3
                         onPointChanged: hoverInfo = roomView.tile_info(point.position.x, point.position.y)
                     }
-                    // World view: inverse-colour border on the hovered room. Drawn
+                    // World view: inverse-color border on the hovered room. Drawn
                     // in paint(); set_world_hover only repaints when the room changes.
                     HoverHandler {
                         enabled: view === 1
@@ -420,7 +420,7 @@ ApplicationWindow {
                     width: 16; height: 16
                     color: "transparent"; border.color: "#0f0"; border.width: 2
                 }
-                // inverse-colour border on the hovered metatile (drawn in paint())
+                // inverse-color border on the hovered metatile (drawn in paint())
                 HoverHandler {
                     onPointChanged: atlasView.set_atlas_hover(Math.floor(point.position.y / 16) * 16 + Math.floor(point.position.x / 16))
                     onHoveredChanged: if (!hovered) atlasView.set_atlas_hover(-1)
@@ -429,8 +429,8 @@ ApplicationWindow {
             }
 
             // --- Room palette editor: 8 sub-palettes (BG 0-3, Spr 0-3) of 4
-            //     NES colours. Click a slot, then pick from the 64-colour grid.
-            Label { text: "Room palette — click a slot, then a colour:"; color: "#bbb"; font.pixelSize: 11 }
+            //     NES colors. Click a slot, then pick from the 64-color grid.
+            Label { text: "Room palette — click a slot, then a color:"; color: "#bbb"; font.pixelSize: 11 }
             Column {
                 spacing: 2
                 Repeater {
@@ -459,7 +459,7 @@ ApplicationWindow {
                     }
                 }
             }
-            Label { visible: palSel >= 0; text: "Pick a colour (NES 64):"; color: "#bbb"; font.pixelSize: 11 }
+            Label { visible: palSel >= 0; text: "Pick a color (NES 64):"; color: "#bbb"; font.pixelSize: 11 }
             Grid {
                 visible: palSel >= 0
                 columns: 16; spacing: 1

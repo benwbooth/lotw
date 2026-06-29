@@ -164,7 +164,7 @@ pub fn blit_sprite(chr: &[u8], pal: &[u8], tile: u8, attr: u8, banks: &[u8; 4], 
 /// Blit a 16x16 metasprite from 4 consecutive CHR tiles directly (no bank
 /// indirection): base = top-left, +1 = bottom-left, +2 = top-right, +3 =
 /// bottom-right (8x16 sprite pairing). Pixel value 0 is transparent. `pal4` is
-/// the 4 RGB colours for pixel values 0..3 (0 unused).
+/// the 4 RGB colors for pixel values 0..3 (0 unused).
 pub fn blit_metasprite_raw(chr: &[u8], pal4: &[(u8, u8, u8); 4], base_tile: usize, dst: &mut [u8], dst_w: usize, px: usize, py: usize) {
     for (i, &(cx, cy)) in [(0usize, 0usize), (0, 8), (8, 0), (8, 8)].iter().enumerate() {
         let off = (base_tile + i) * 16;

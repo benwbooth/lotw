@@ -241,7 +241,7 @@ enum Cell {
     /// Player/family pose: 4 consecutive CHR tiles, fixed family palette, animates.
     Family { base_tile: usize, pal4: [(u8, u8, u8); 4] },
     /// Placed/area actor: spawn tile + attr, drawn with a real room palette + the
-    /// room's per-area sprite banks (so the colours match the game), animates.
+    /// room's per-area sprite banks (so the colors match the game), animates.
     Actor { tile: u8, attr: u8, room: usize },
     /// Large actor (boss): a 32x32 body assembled from four 16x16 pieces, the way
     /// `compose_large_actor_body_slots` lays them out (TL=base, TR=base|4,
@@ -389,7 +389,7 @@ fn build_sections(prg: &[u8], chr: &[u8], rooms: &[lotw::render::Room]) -> Vec<S
         }
     }
 
-    // The 4 RGB colours of a sprite sub-palette (0..3) of a 32-byte room palette.
+    // The 4 RGB colors of a sprite sub-palette (0..3) of a 32-byte room palette.
     let pal4_from = |pal: &[u8], sub: usize| -> [(u8, u8, u8); 4] {
         let b = (4 + sub) * 4;
         [(0, 0, 0), lotw::render::nes_rgb(pal[b + 1]), lotw::render::nes_rgb(pal[b + 2]), lotw::render::nes_rgb(pal[b + 3])]
@@ -605,27 +605,36 @@ fn tile_class_name(shape: u8) -> &'static str {
     match shape {
         0 => "Passable (empty)",
         2 => "Locked door — needs a key",
-        3 | 4 | 5 => "Door / portal / shop",
+        3 => "Portal (Dragon-Slayer fragment gate)",
+        4 => "Shop entrance",
+        5 => "Home / character-select",
+        48 => "Hazard — spikes / lava",
         62 => "Breakable / item-interactable",
-        s if s >= 48 => "Solid wall / hazard",
+        s if s >= 48 => "Solid wall",
         _ => "Passable (background)",
     }
 }
 
 /// Passability/collision tint for a metatile shape id (`mt & 0x3F`), per the
 /// RE'd terrain rules (probe_player_solid_tile / dispatch_room_tile_action):
-///   2  = locked door (key)        -> orange
-///   3/4/5 = door / portal / shop  -> blue
+///   2  = locked door (key)         -> orange
+///   3  = portal (fragment gate)    -> purple
+///   4  = shop entrance             -> green
+///   5  = home / character-select   -> cyan
+///   48 = hazard (spikes / lava)    -> magenta
 ///   62 = item-interactable/breakable -> yellow
-///   >=48 = solid wall / hazard    -> red
-///   else (0, 1, 6..47)            -> passable background (no tint)
+///   >=49 = solid wall              -> red
+///   else (0, 1, 6..47)             -> passable background (no tint)
 /// Returns None for passable tiles so the room art shows through unchanged.
 fn tile_class_tint(shape: u8) -> Option<(u8, u8, u8)> {
     match shape {
         2 => Some((240, 150, 30)),         // locked door
-        3 | 4 | 5 => Some((60, 120, 240)), // door / portal / shop
+        3 => Some((170, 80, 240)),         // portal
+        4 => Some((40, 200, 90)),          // shop
+        5 => Some((40, 200, 210)),         // home / character-select
+        48 => Some((240, 60, 160)),        // hazard (spikes / lava)
         62 => Some((240, 230, 40)),        // interactable / breakable
-        s if s >= 48 => Some((220, 40, 40)), // solid wall / hazard
+        s if s >= 48 => Some((220, 40, 40)), // solid wall
         _ => None,                          // passable
     }
 }
@@ -772,7 +781,7 @@ impl qobject::RoomCanvas {
                 let s = rust.sel();
                 let room = &rust.rooms[s];
                 let mut rgb = lotw::render::render_metatile_atlas(&rust.prg, &rust.chr, &room.header, &room.pal);
-                // inverse-colour border on the hovered metatile (16x16 cells, 16/row)
+                // inverse-color border on the hovered metatile (16x16 cells, 16/row)
                 if rust.atlas_hover >= 0 && rust.atlas_hover < 256 {
                     let (tx, ty) = (rust.atlas_hover as usize % 16, rust.atlas_hover as usize / 16);
                     invert_border(&mut rgb, 256, tx * 16, ty * 16, 16);
@@ -781,7 +790,7 @@ impl qobject::RoomCanvas {
             }
             WORLD => {
                 let mut rgb = rust.world_rgb().to_vec();
-                // inverse-colour border around the hovered room
+                // inverse-color border around the hovered room
                 if rust.world_hover >= 0 {
                     let idx = rust.world_hover as usize;
                     let (mx, my) = (idx % 4, idx / 4);
@@ -1039,20 +1048,20 @@ impl qobject::RoomCanvas {
         QString::from(&name)
     }
 
-    /// One byte (NES colour index 0-63) of the selected room's 32-byte palette.
+    /// One byte (NES color index 0-63) of the selected room's 32-byte palette.
     /// Bytes 0-15 are the four BG sub-palettes, 16-31 the four sprite ones.
     fn pal_byte(&self, i: i32) -> i32 {
         let r = self.rust();
         *r.rooms[r.sel()].pal.get(i.max(0) as usize).unwrap_or(&0) as i32
     }
 
-    /// "#rrggbb" for NES colour index `c` (0-63), for QML swatches/picker.
+    /// "#rrggbb" for NES color index `c` (0-63), for QML swatches/picker.
     fn nes_color(&self, c: i32) -> QString {
         let (r, g, b) = lotw::render::nes_rgb((c & 0x3f) as u8);
         QString::from(&format!("#{r:02x}{g:02x}{b:02x}"))
     }
 
-    /// Set palette byte `i` (0-31) to NES colour `c` (0-63) in the current room.
+    /// Set palette byte `i` (0-31) to NES color `c` (0-63) in the current room.
     fn set_pal(mut self: Pin<&mut Self>, i: i32, c: i32) {
         if (0..32).contains(&i) {
             let rust = unsafe { self.as_mut().rust_mut().get_unchecked_mut() };
