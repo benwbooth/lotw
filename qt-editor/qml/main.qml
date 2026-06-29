@@ -155,7 +155,7 @@ ApplicationWindow {
                 checked: roomView.show_solid
                 onToggled: { roomView.show_solid = checked; roomView.refresh() }
                 ToolTip.visible: hovered
-                ToolTip.text: "Tint tiles by passability: red=solid, magenta=hazard, orange=locked door, purple=portal, green=shop, cyan=home, yellow=breakable; untinted=passable"
+                ToolTip.text: "Tint tiles by passability: lime=ladder/standable, red=solid, magenta=hazard, orange=locked door, purple=portal, green=shop, cyan=home, yellow=breakable; untinted=passable"
             }
             ToolSeparator {}
             Button { text: "−"; ToolTip.visible: hovered; ToolTip.text: "Zoom out"; onClicked: setZoom(zoom / 1.25) }

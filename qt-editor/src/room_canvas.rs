@@ -603,7 +603,7 @@ fn invert_border(rgb: &mut [u8], w: usize, px: usize, py: usize, size: usize) {
 /// Human-readable passability/collision class for a metatile shape id.
 fn tile_class_name(shape: u8) -> &'static str {
     match shape {
-        0 => "Passable (empty)",
+        0 => "Ladder / standable (solid when tile-aligned)",
         2 => "Locked door — needs a key",
         3 => "Portal (Dragon-Slayer fragment gate)",
         4 => "Shop entrance",
@@ -617,6 +617,7 @@ fn tile_class_name(shape: u8) -> &'static str {
 
 /// Passability/collision tint for a metatile shape id (`mt & 0x3F`), per the
 /// RE'd terrain rules (probe_player_solid_tile / dispatch_room_tile_action):
+///   0  = ladder / standable (solid only when tile-aligned) -> lime
 ///   2  = locked door (key)         -> orange
 ///   3  = portal (fragment gate)    -> purple
 ///   4  = shop entrance             -> green
@@ -624,10 +625,11 @@ fn tile_class_name(shape: u8) -> &'static str {
 ///   48 = hazard (spikes / lava)    -> magenta
 ///   62 = item-interactable/breakable -> yellow
 ///   >=49 = solid wall              -> red
-///   else (0, 1, 6..47)             -> passable background (no tint)
+///   else (1, 6..47)                -> passable background (no tint)
 /// Returns None for passable tiles so the room art shows through unchanged.
 fn tile_class_tint(shape: u8) -> Option<(u8, u8, u8)> {
     match shape {
+        0 => Some((150, 220, 60)),         // ladder / standable when aligned
         2 => Some((240, 150, 30)),         // locked door
         3 => Some((170, 80, 240)),         // portal
         4 => Some((40, 200, 90)),          // shop
