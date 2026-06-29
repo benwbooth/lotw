@@ -27,20 +27,11 @@ use crate::audio::{Song, Tok, CHANNEL_NAMES};
 
 pub mod note;
 
-#[cfg(has_music)]
+// The generated songs/SFX. `src/music/songs.rs` is gitignored (ROM-derived);
+// build.rs writes a `get`/`sfx` -> None stub there when it's absent, so this
+// always compiles and rust-analyzer always sees the module.
 mod songs;
-#[cfg(has_music)]
 pub use songs::*;
-
-// Clean-checkout stub when `src/music/songs.rs` hasn't been generated.
-#[cfg(not(has_music))]
-pub fn get(_: usize) -> Option<Song> {
-    None
-}
-#[cfg(not(has_music))]
-pub fn sfx(_: usize) -> Option<Vec<Tok>> {
-    None
-}
 
 /// A note value as a fraction of a quarter note (`num/den` quarters). The tick
 /// count is `num * tempo / den`, which must come out a whole number ≤ 127.

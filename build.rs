@@ -1,9 +1,16 @@
 //! Generate the `music::note` const grid (pure note math, no ROM data) into
-//! OUT_DIR, and detect whether the ROM-derived `src/music/songs.rs` is present
-//! so the `music` module compiles to the real songs when it is and to a stub
-//! otherwise (keeping clean checkouts building).
+//! OUT_DIR, and make sure the ROM-derived `src/music/songs.rs` exists (writing a
+//! stub when it doesn't) so `mod songs;` always compiles and rust-analyzer sees
+//! it. `gen_music` overwrites the stub with the real songs.
 
 use std::io::Write;
+
+const SONGS_STUB: &str = "\
+//! Stub — run `cargo run --bin gen_music` to generate the real songs/SFX.
+use crate::audio::{Song, Tok};
+pub fn get(_: usize) -> Option<Song> { None }
+pub fn sfx(_: usize) -> Option<Vec<Tok>> { None }
+";
 
 // note_idx -> name (idx 5 is the unused gap; 0..=12 = C..B). Keep in sync with
 // audio.rs / src/music.
@@ -17,11 +24,12 @@ const VALS: &[(&str, u16, u16)] = &[
 const BASE_OCTAVE: i32 = 2;
 
 fn main() {
-    println!("cargo::rustc-check-cfg=cfg(has_music)");
     println!("cargo::rerun-if-changed=src/music/songs.rs");
     println!("cargo::rerun-if-changed=build.rs");
-    if std::path::Path::new("src/music/songs.rs").exists() {
-        println!("cargo::rustc-cfg=has_music");
+    // Ensure the module file exists (a stub until `gen_music` writes the real one).
+    let songs = std::path::Path::new("src/music/songs.rs");
+    if !songs.exists() {
+        let _ = std::fs::write(songs, SONGS_STUB);
     }
 
     let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("note_consts.rs");
