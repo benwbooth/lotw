@@ -612,7 +612,7 @@ pub fn queue_room_column_vram_upload(engine: &mut Engine, r: &mut RoutineContext
     for staging_offset in (0..=22).rev().step_by(2) {
         let metatile_id: i32 = engine
             .state
-            .byte(((source_ptr + (engine.state.scratch3 as i32)) as u16 as i32));
+            .byte((source_ptr + (engine.state.scratch3 as i32)) as u16 as i32);
         // metatile_id * 4 = byte offset of this metatile's quad in the table.
         let tile_quad_offset: i32 = (((metatile_id << 2) as u8 as i32) as u16 as i32);
         // Quad byte 0 -> first column, top tile.
@@ -678,7 +678,7 @@ pub fn queue_room_column_vram_upload(engine: &mut Engine, r: &mut RoutineContext
 
         let top_metatile_id: i32 = engine
             .state
-            .byte(((source_ptr + source_attribute_offset) as u16 as i32));
+            .byte((source_ptr + source_attribute_offset) as u16 as i32);
         source_attribute_offset += 1;
         // Top metatile palette bits (0xC0) shifted down into bits 2-3.
         let mut attribute_bits: i32 =
@@ -686,7 +686,7 @@ pub fn queue_room_column_vram_upload(engine: &mut Engine, r: &mut RoutineContext
 
         let bottom_metatile_id: i32 = engine
             .state
-            .byte(((source_ptr + source_attribute_offset) as u16 as i32));
+            .byte((source_ptr + source_attribute_offset) as u16 as i32);
         source_attribute_offset += 1;
         // OR in bottom metatile palette bits (0xC0) at bits 6-7.
         attribute_bits =
@@ -909,7 +909,7 @@ pub fn update_final_exit_projectiles(engine: &mut Engine, r: &mut RoutineContext
     loop {
         let slot_ptr = ((engine.state.obj_slot_ptr()) as u16 as i32);
         // Record byte +1 (state) nonzero -> the slot is active; tick it.
-        if (engine.state.byte(((slot_ptr + 1) as u16 as i32)) != 0) {
+        if (engine.state.byte((slot_ptr + 1) as u16 as i32) != 0) {
             update_final_exit_projectile_slot(engine, r);
         // Empty slot + fresh action-button press (bit6 held now but not in
         // the latch) -> fire a new projectile.
@@ -1080,8 +1080,8 @@ pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut Rout
     let slot_offset = engine.state.indirect_ptr_lo;
     // Inactive slot or below the visible area (>= 0xBF) -> hide both sprites
     // by parking their Y off-screen (0xEF = 239).
-    if (engine.state.object_state((slot_offset as i32)) == 0)
-        || (engine.state.object_y_pixel((slot_offset as i32)) >= 191)
+    if (engine.state.object_state(slot_offset as i32) == 0)
+        || (engine.state.object_y_pixel(slot_offset as i32) >= 191)
     {
         engine.state.set_oam_y((oam_offset as i32), 239); // 0xEF: off-screen Y
         engine.state.set_oam_y(((4 + oam_offset) as i32), 239);
@@ -1089,7 +1089,7 @@ pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut Rout
     }
 
     // Copy the object's attribute byte to both halves of the 2-sprite pair.
-    let attributes = engine.state.object_attr((slot_offset as i32));
+    let attributes = engine.state.object_attr(slot_offset as i32);
     engine.state.set_oam_attr((oam_offset as i32), attributes);
     engine
         .state
@@ -1097,7 +1097,7 @@ pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut Rout
 
     // Tiles: base and base+2. When horizontally flipped (attr bit6) the two
     // sprites swap so the pair reads correctly mirrored.
-    let tile_id = engine.state.object_tile((slot_offset as i32));
+    let tile_id = engine.state.object_tile(slot_offset as i32);
     if ((attributes & crate::bits::BIT6) != 0) {
         // Flipped: right sprite gets the base tile, left gets base+2.
         engine
@@ -1113,7 +1113,7 @@ pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut Rout
     }
 
     // X: left sprite at the projectile X, right sprite 8 pixels over.
-    let projectile_x = engine.state.object_x_sub((slot_offset as i32));
+    let projectile_x = engine.state.object_x_sub(slot_offset as i32);
     engine.state.set_oam_x((oam_offset as i32), projectile_x);
     engine
         .state
@@ -1121,7 +1121,7 @@ pub fn draw_final_exit_projectile_slot_sprites(engine: &mut Engine, r: &mut Rout
 
     // Y: object Y biased by +43 (0x2B) to convert playfield Y to screen Y,
     // applied to both sprites of the pair.
-    let projectile_y = ((engine.state.object_y_pixel((slot_offset as i32)) + 43) as u8 as i32);
+    let projectile_y = ((engine.state.object_y_pixel(slot_offset as i32) + 43) as u8 as i32);
     engine.state.set_oam_y((oam_offset as i32), projectile_y);
     engine
         .state
@@ -1151,25 +1151,25 @@ pub fn rotate_sprite_zero_from_scripted_oam(engine: &mut Engine, r: &mut Routine
         0,
         engine
             .state
-            .byte(((source_base + oam_offset) as u16 as i32)),
+            .byte((source_base + oam_offset) as u16 as i32),
     );
     engine.state.set_oam_tile(
         0,
         engine
             .state
-            .byte(((source_base + 1 + oam_offset) as u16 as i32)),
+            .byte((source_base + 1 + oam_offset) as u16 as i32),
     );
     engine.state.set_oam_attr(
         0,
         engine
             .state
-            .byte(((source_base + 2 + oam_offset) as u16 as i32)),
+            .byte((source_base + 2 + oam_offset) as u16 as i32),
     );
     engine.state.set_oam_x(
         0,
         engine
             .state
-            .byte(((source_base + 3 + oam_offset) as u16 as i32)),
+            .byte((source_base + 3 + oam_offset) as u16 as i32),
     );
     // Hide the source sprite (park its Y off-screen at 0xEF = 239) so it is not
     // drawn twice now that it lives in sprite 0.
@@ -1193,7 +1193,7 @@ pub fn build_final_exit_projectile_velocity(engine: &mut Engine, r: &mut Routine
         x_velocity = ((x_velocity
             + engine
                 .state
-                .byte(((MOVE_DELTA_X_TABLE + direction_table_offset) as u16 as i32)))
+                .byte((MOVE_DELTA_X_TABLE + direction_table_offset) as u16 as i32))
             as u8 as i32);
         remaining_steps -= 1;
         if (remaining_steps == 0) {
@@ -1209,7 +1209,7 @@ pub fn build_final_exit_projectile_velocity(engine: &mut Engine, r: &mut Routine
         y_velocity = ((y_velocity
             + engine
                 .state
-                .byte(((MOVE_DELTA_Y_TABLE + direction_table_offset) as u16 as i32)))
+                .byte((MOVE_DELTA_Y_TABLE + direction_table_offset) as u16 as i32))
             as u8 as i32);
         remaining_steps -= 1;
         if (remaining_steps == 0) {
@@ -1367,7 +1367,7 @@ pub fn tick_scripted_player_motion(engine: &mut Engine, r: &mut RoutineContext) 
                 // Damage depends on which screen half the hit occurred in:
                 // left of x=176 costs 10, right side costs 5.
                 let collision_screen_x = (((engine.state.scroll_pixel_x
-                    + ((engine.state.object_x_sub((r.index as i32))) as u8))
+                    + ((engine.state.object_x_sub(r.index as i32)) as u8))
                     as u8) as i32);
                 r.value = ((if (collision_screen_x < 176) { 10 } else { 5 }) as u8); // 176 = screen midpoint
                 subtract_scripted_player_health(engine, r);
@@ -1827,11 +1827,11 @@ pub fn build_scripted_player_input_delta(engine: &mut Engine, r: &mut RoutineCon
     r.index = (((engine.state.buttons & ((crate::bits::LOW_NIBBLE) as u8)) << 1) as u8);
     engine.state.horizontal_subtile_delta = ((engine
         .state
-        .byte(((MOVE_DELTA_X_TABLE + (r.index as i32)) as u16 as i32)))
+        .byte((MOVE_DELTA_X_TABLE + (r.index as i32)) as u16 as i32))
         as u8);
     engine.state.vertical_delta = ((engine
         .state
-        .byte(((MOVE_DELTA_Y_TABLE + (r.index as i32)) as u16 as i32)))
+        .byte((MOVE_DELTA_Y_TABLE + (r.index as i32)) as u16 as i32))
         as u8);
 }
 
@@ -1847,7 +1847,7 @@ pub fn choose_random_demo_input(engine: &mut Engine, r: &mut RoutineContext) {
     r.index = r.value;
     engine.state.buttons = ((engine
         .state
-        .byte(((DEMO_INPUT_TABLE + (r.index as i32)) as u16 as i32)))
+        .byte((DEMO_INPUT_TABLE + (r.index as i32)) as u16 as i32))
         as u8);
     // Second draw in [0,10): occasionally also press the action button (BIT6).
     r.value = 10;
@@ -1921,7 +1921,7 @@ pub fn stage_intro_text_line(engine: &mut Engine, r: &mut RoutineContext) {
     while (guard < 256) {
         let source_byte: i32 = engine
             .state
-            .byte(((source_ptr + text_offset) as u16 as i32));
+            .byte((source_ptr + text_offset) as u16 as i32);
         // NUL = end of all intro text.
         if (source_byte == 0) {
             r.carry = 1;
@@ -1967,7 +1967,7 @@ pub fn stage_scrolling_intro_text_line(engine: &mut Engine, r: &mut RoutineConte
     while (scan_guard < 256) {
         let source_byte: i32 = engine
             .state
-            .byte(((source_ptr + text_offset) as u16 as i32));
+            .byte((source_ptr + text_offset) as u16 as i32);
         // NUL = end of all intro text.
         if (source_byte == 0) {
             r.carry = 1;
@@ -2427,7 +2427,7 @@ pub fn upload_title_screen_nametables(engine: &mut Engine, r: &mut RoutineContex
         for offset in 0..256 {
             engine.device_write(
                 crate::engine::reg::PPU_DATA,
-                engine.state.byte(((source_page + offset) as u16 as i32)),
+                engine.state.byte((source_page + offset) as u16 as i32),
             );
         }
     }
@@ -2747,7 +2747,7 @@ pub fn clear_oam_with_sprite_zero_template(engine: &mut Engine, r: &mut RoutineC
             template_offset,
             engine
                 .state
-                .byte(((SPRITE_Y_TABLE_F + template_offset) as u16 as i32)),
+                .byte((SPRITE_Y_TABLE_F + template_offset) as u16 as i32),
         );
     }
     // Blank every remaining OAM byte (4..255) to the offscreen clear value.
@@ -2887,7 +2887,7 @@ pub fn upload_status_panel_template(engine: &mut Engine, r: &mut RoutineContext)
         while (i < 160) {
             engine.device_write(
                 crate::engine::reg::PPU_DATA,
-                engine.state.byte(((HUD_TEMPLATE_TABLE + i) as u16 as i32)),
+                engine.state.byte((HUD_TEMPLATE_TABLE + i) as u16 as i32),
             );
             {
                 i += 1;
@@ -3018,17 +3018,17 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
             loop {
                 let mut idx: i32 = engine
                     .state
-                    .byte(((p0C + (engine.state.scratch0 as i32)) as u16 as i32));
+                    .byte((p0C + (engine.state.scratch0 as i32)) as u16 as i32);
                 let mut y: i32 = ((idx << 2) as u8 as i32); // tile index * 4 (4 bytes/entry)
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
-                    engine.state.byte(((p79 + y) as u16 as i32)),
+                    engine.state.byte((p79 + y) as u16 as i32),
                 );
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine
                         .state
-                        .byte(((p79 + ((y + 1) as u8 as i32)) as u16 as i32)),
+                        .byte((p79 + ((y + 1) as u8 as i32)) as u16 as i32),
                 );
                 engine.state.scratch0 =
                     (engine.state.scratch0 + 1) & ((crate::bits::BYTE_MASK) as u8);
@@ -3051,17 +3051,17 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
             loop {
                 let mut idx: i32 = engine
                     .state
-                    .byte(((p0C + (engine.state.scratch0 as i32)) as u16 as i32));
+                    .byte((p0C + (engine.state.scratch0 as i32)) as u16 as i32);
                 let mut y: i32 = (((idx << 2) + 2) as u8 as i32); // tile*4 + 2 = bottom pair
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
-                    engine.state.byte(((p79 + y) as u16 as i32)),
+                    engine.state.byte((p79 + y) as u16 as i32),
                 );
                 engine.device_write(
                     crate::engine::reg::PPU_DATA,
                     engine
                         .state
-                        .byte(((p79 + ((y + 1) as u8 as i32)) as u16 as i32)),
+                        .byte((p79 + ((y + 1) as u8 as i32)) as u16 as i32),
                 );
                 engine.state.scratch0 =
                     (engine.state.scratch0 + 1) & ((crate::bits::BYTE_MASK) as u8);
@@ -3119,7 +3119,7 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
             while (x > 0) {
                 let mut a: i32 = 0;
                 // Tile at room offset +13 (lower-right of quadrant).
-                a = engine.state.byte(((p0C + 13) as u16 as i32));
+                a = engine.state.byte((p0C + 13) as u16 as i32);
                 {
                     let mut c1: i32 = (a >> 7) & 1; // shift bit 7 into scratch0
                     a = ((a << 1) as u8 as i32);
@@ -3133,7 +3133,7 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
                         ((((engine.state.scratch0 as i32) << 1) | ((c1 as u8) as i32)) as u8);
                 }
                 // Tile at room offset +1 (upper-right of quadrant).
-                a = engine.state.byte(((p0C + 1) as u16 as i32));
+                a = engine.state.byte((p0C + 1) as u16 as i32);
                 {
                     let mut c1: i32 = (a >> 7) & 1;
                     a = ((a << 1) as u8 as i32);
@@ -3147,7 +3147,7 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
                         ((((engine.state.scratch0 as i32) << 1) | ((c1 as u8) as i32)) as u8);
                 }
                 // Tile at room offset +12 (lower-left of quadrant).
-                a = engine.state.byte(((p0C + 12) as u16 as i32));
+                a = engine.state.byte((p0C + 12) as u16 as i32);
                 {
                     let mut c1: i32 = (a >> 7) & 1;
                     a = ((a << 1) as u8 as i32);
@@ -3161,7 +3161,7 @@ pub fn upload_room_view_from_tile_pointer(engine: &mut Engine, r: &mut RoutineCo
                         ((((engine.state.scratch0 as i32) << 1) | ((c1 as u8) as i32)) as u8);
                 }
                 // Tile at room offset +0 (upper-left of quadrant).
-                a = engine.state.byte(((p0C + 0) as u16 as i32));
+                a = engine.state.byte((p0C + 0) as u16 as i32);
                 {
                     let mut c1: i32 = (a >> 7) & 1;
                     a = ((a << 1) as u8 as i32);
@@ -3380,7 +3380,7 @@ pub fn copy_room_tile_pages(engine: &mut Engine, r: &mut RoutineContext) {
                 dest_base + page_offset,
                 engine
                     .state
-                    .byte(((source_ptr + page_offset) as u16 as i32)),
+                    .byte((source_ptr + page_offset) as u16 as i32),
             );
         }
         // Advance source by one page and persist the high byte.
@@ -3437,7 +3437,7 @@ pub fn build_room_palette_buffer(engine: &mut Engine, r: &mut RoutineContext) {
             64 + room_palette_offset,
             engine
                 .state
-                .byte(((room_palette_ptr + room_palette_offset) as u16 as i32)),
+                .byte((room_palette_ptr + room_palette_offset) as u16 as i32),
         );
     }
 
@@ -3703,7 +3703,7 @@ pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineCon
             ((STACK_SCRATCH + 1 + tile_slot) as u16 as i32),
             (engine
                 .state
-                .byte(((STACK_SCRATCH + 1 + tile_slot) as u16 as i32))
+                .byte((STACK_SCRATCH + 1 + tile_slot) as u16 as i32)
                 - 1)
                 & crate::bits::BYTE_MASK,
         );
@@ -3715,7 +3715,7 @@ pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineCon
             ((STACK_SCRATCH + 1 + tile_slot) as u16 as i32),
             (engine
                 .state
-                .byte(((STACK_SCRATCH + 1 + tile_slot) as u16 as i32))
+                .byte((STACK_SCRATCH + 1 + tile_slot) as u16 as i32)
                 - 1)
                 & crate::bits::BYTE_MASK,
         );
@@ -3734,7 +3734,7 @@ pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineCon
             ((STACK_SCRATCH + 33 + tile_slot) as u16 as i32),
             (engine
                 .state
-                .byte(((STACK_SCRATCH + 33 + tile_slot) as u16 as i32))
+                .byte((STACK_SCRATCH + 33 + tile_slot) as u16 as i32)
                 - 1)
                 & crate::bits::BYTE_MASK,
         );
@@ -3746,7 +3746,7 @@ pub fn build_status_resource_meter_tiles(engine: &mut Engine, r: &mut RoutineCon
             ((STACK_SCRATCH + 33 + tile_slot) as u16 as i32),
             (engine
                 .state
-                .byte(((STACK_SCRATCH + 33 + tile_slot) as u16 as i32))
+                .byte((STACK_SCRATCH + 33 + tile_slot) as u16 as i32)
                 - 1)
                 & crate::bits::BYTE_MASK,
         );
@@ -4439,7 +4439,7 @@ pub fn upload_inventory_item_count_tiles(engine: &mut Engine, r: &mut RoutineCon
         yy = (((in_ & crate::bits::LOW_3_BITS) + 1) as u8 as i32);
         v = engine
             .state
-            .byte(((MOVEMENT_PATTERN_TABLE + dx) as u16 as i32));
+            .byte((MOVEMENT_PATTERN_TABLE + dx) as u16 as i32);
         carry = 0;
         loop {
             carry = ((v >> 7) as u8 as i32); // capture top bit before shifting.
@@ -4574,7 +4574,7 @@ pub fn load_family_item_permission_bits(engine: &mut Engine, r: &mut RoutineCont
     let mut y: i32 = (((in_ & crate::bits::LOW_3_BITS) + 1) as u8 as i32);
     let mut a: i32 = engine
         .state
-        .byte(((MOVEMENT_PATTERN_TABLE + x) as u16 as i32));
+        .byte((MOVEMENT_PATTERN_TABLE + x) as u16 as i32);
     let mut carry: i32 = 0;
     loop {
         carry = ((a >> 7) as u8 as i32); // top bit becomes the shift-out carry.
@@ -5021,11 +5021,11 @@ pub fn tick_selected_item_effect(engine: &mut Engine, r: &mut RoutineContext) {
 pub fn enter_room_link_destination(engine: &mut Engine, r: &mut RoutineContext) {
     let link_ptr: i32 = ((engine.state.palette_src_ptr()) as u16 as i32);
     // +12/+13: destination map-cell coordinates.
-    engine.state.map_screen_x = ((engine.state.byte(((link_ptr + 12) as u16 as i32))) as u8);
-    engine.state.map_screen_y = ((engine.state.byte(((link_ptr + 13) as u16 as i32))) as u8);
+    engine.state.map_screen_x = ((engine.state.byte((link_ptr + 12) as u16 as i32)) as u8);
+    engine.state.map_screen_y = ((engine.state.byte((link_ptr + 13) as u16 as i32)) as u8);
 
     // +14: landing tile X; center the view ~8 tiles behind the player.
-    let player_tile_x: i32 = engine.state.byte(((link_ptr + 14) as u16 as i32));
+    let player_tile_x: i32 = engine.state.byte((link_ptr + 14) as u16 as i32);
     engine.state.player_x_tile = (player_tile_x as u8);
     let scroll_x: i32 = if (player_tile_x >= 8) {
         ((player_tile_x - 8) as u8 as i32)
@@ -5042,7 +5042,7 @@ pub fn enter_room_link_destination(engine: &mut Engine, r: &mut RoutineContext) 
     engine.state.scroll_fine_x = 0;
 
     // +15: landing Y.
-    r.value = ((engine.state.byte(((link_ptr + 15) as u16 as i32))) as u8);
+    r.value = ((engine.state.byte((link_ptr + 15) as u16 as i32)) as u8);
     engine.state.player_y = (r.value as u8);
     // Full room rebuild: fade out, reset actors, assemble/upload, redraw, fade in.
     fade_room_palette_out_reset_audio(engine, r);
@@ -6209,7 +6209,7 @@ pub fn apply_hazard_tile_contact(engine: &mut Engine, r: &mut RoutineContext) {
     // Sample the footprint tile (offset Y) and strip attribute bits.
     let tile = engine
         .state
-        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS;
     if tile != 48 {
         // 48 = 0x30, the hazard tile id
@@ -6240,7 +6240,7 @@ pub fn probe_player_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
     // Sample the footprint tile (offset Y) and strip attribute bits.
     let tile = engine
         .state
-        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS;
     if tile == 0 {
         // Empty tile: solid only when perfectly column-aligned.
@@ -6297,7 +6297,7 @@ fn dispatch_overhead_tile_at_offset(
     // Strip attribute bits and dispatch on the tile id.
     match engine
         .state
-        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS
     {
         5 => {
@@ -6329,7 +6329,7 @@ fn dispatch_overhead_tile_at_offset(
 fn dispatch_four_fragment_overhead_tile(engine: &mut Engine, r: &mut RoutineContext) -> bool {
     // The selected item must itself be a fragment (item id 14).
     let selected_slot = engine.state.selected_item_slot;
-    if engine.state.item_slot((selected_slot as i32)) != 14 {
+    if engine.state.item_slot(selected_slot as i32) != 14 {
         return false;
     }
 
@@ -6466,7 +6466,7 @@ pub fn read_room_tile_action_value(engine: &mut Engine, r: &mut RoutineContext) 
     // Assemble the 16-bit room-map pointer from its low/high bytes.
     let room_ptr: i32 = (((engine.state.tile_fetch_counter as i32)
         | ((engine.state.aux_ptr_hi as i32) << 8)) as u16 as i32);
-    let room_tile: i32 = engine.state.byte(((room_ptr + tile_offset) as u16 as i32));
+    let room_tile: i32 = engine.state.byte((room_ptr + tile_offset) as u16 as i32);
     let tile_id: i32 = room_tile & crate::bits::LOW_6_BITS; // strip attribute bits
     r.index = (tile_id as u8);
     r.offset = (tile_offset as u8);
@@ -6817,14 +6817,14 @@ fn scale_grid_coordinate(value: i32) -> (i32, i32) {
 /// the left/right and both cursor sprites share Y, with the left sprite 8 px in.
 pub fn update_inventory_grid_cursor_sprites(engine: &mut Engine, r: &mut RoutineContext) {
     // Horizontal: column index -> pixel X, plus the playfield left margin.
-    let (column_pixels, column_carry) = scale_grid_coordinate((engine.state.obj_x_vel_lo as i32));
+    let (column_pixels, column_carry) = scale_grid_coordinate(engine.state.obj_x_vel_lo as i32);
     let right_x: i32 = ((column_pixels + 54 + column_carry) as u8 as i32); // +54 = left margin
     engine.state.set_oam_x(148, right_x);
     let left_x: i32 = ((right_x - 8) as u8 as i32); // left sprite one tile earlier
     engine.state.set_oam_x(144, left_x);
 
     // Vertical: row index -> pixel Y, plus the grid top margin.
-    let (row_pixels, row_carry) = scale_grid_coordinate((engine.state.obj_y_vel as i32));
+    let (row_pixels, row_carry) = scale_grid_coordinate(engine.state.obj_y_vel as i32);
     let y: i32 = ((row_pixels + 129 + row_carry) as u8 as i32); // +129 = grid top margin
     engine.state.set_oam_y(144, y);
     engine.state.set_oam_y(148, y);
@@ -7103,7 +7103,7 @@ pub fn restore_status_sprite_template(engine: &mut Engine, r: &mut RoutineContex
         while (x >= 0) {
             engine.state.set_oam_y(
                 128 + x, // status sprites live at OAM byte 128+
-                engine.state.byte(((SPRITE_Y_TABLE_G + x) as u16 as i32)),
+                engine.state.byte((SPRITE_Y_TABLE_G + x) as u16 as i32),
             );
             {
                 let __old = x;
@@ -7442,7 +7442,7 @@ pub fn load_object_slot_scratch(engine: &mut Engine, r: &mut RoutineContext) {
         // 16 bytes per object slot.
         engine.state.set_obj_scratch_byte(
             slot_offset,
-            engine.state.byte(((slot_ptr + slot_offset) as u16 as i32)),
+            engine.state.byte((slot_ptr + slot_offset) as u16 as i32),
         );
     }
     r.offset = 255;
@@ -7483,8 +7483,8 @@ pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
     }
     let actor_timer: i32 = (engine.state.obj_timer as i32);
     let actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-    if ((engine.state.byte(((actor_data_ptr + 2) as u16 as i32))
-        | engine.state.byte(((actor_data_ptr + 3) as u16 as i32)))
+    if ((engine.state.byte((actor_data_ptr + 2) as u16 as i32)
+        | engine.state.byte((actor_data_ptr + 3) as u16 as i32))
         == 0)
     {
         // No fixed spawn position (+2/+3 both 0): pick a random one.
@@ -7496,9 +7496,9 @@ pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
         engine.state.indirect_ptr_hi = (r.value as u8);
     } else {
         // Use the fixed spawn position from the record.
-        engine.state.scratch2 = ((engine.state.byte(((actor_data_ptr + 3) as u16 as i32))) as u8);
+        engine.state.scratch2 = ((engine.state.byte((actor_data_ptr + 3) as u16 as i32)) as u8);
         engine.state.indirect_ptr_hi =
-            ((engine.state.byte(((actor_data_ptr + 2) as u16 as i32))) as u8);
+            ((engine.state.byte((actor_data_ptr + 2) as u16 as i32)) as u8);
     }
     engine.state.indirect_ptr_lo = 0; // sub-pixel X = 0
     engine.state.scratch3 = 0;
@@ -7515,8 +7515,8 @@ pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.obj_move_scratch = 0;
     engine.state.obj_move_state = 0;
     engine.state.obj_y_extra = 0;
-    engine.state.obj_health = ((engine.state.byte(((actor_data_ptr + 4) as u16 as i32))) as u8);
-    engine.state.obj_damage = ((engine.state.byte(((actor_data_ptr + 5) as u16 as i32))) as u8);
+    engine.state.obj_health = ((engine.state.byte((actor_data_ptr + 4) as u16 as i32)) as u8);
+    engine.state.obj_damage = ((engine.state.byte((actor_data_ptr + 5) as u16 as i32)) as u8);
     {
         // Build a 1-bit-per-member mask shifted to the current character's
         // position (character_index counts down to set that bit), then AND
@@ -7554,8 +7554,8 @@ pub fn tick_inactive_actor_slot(engine: &mut Engine, r: &mut RoutineContext) {
     if (actor_timer == 0) {
         // Timer expired: become active with the record's real tile/attr.
         engine.state.obj_state = 1;
-        engine.state.obj_tile = ((engine.state.byte(((actor_data_ptr + 0) as u16 as i32))) as u8);
-        engine.state.obj_attr = ((engine.state.byte(((actor_data_ptr + 1) as u16 as i32))) as u8);
+        engine.state.obj_tile = ((engine.state.byte((actor_data_ptr + 0) as u16 as i32)) as u8);
+        engine.state.obj_attr = ((engine.state.byte((actor_data_ptr + 1) as u16 as i32)) as u8);
     } else {
         // Still materializing: blink by toggling the H-flip bit every 4 frames.
         if ((engine.state.obj_timer & ((crate::bits::LOW_2_BITS) as u8)) == 0) {
@@ -7576,7 +7576,7 @@ pub fn tick_actor_materialize_delay(engine: &mut Engine, r: &mut RoutineContext)
         let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
         engine.state.obj_state = 1;
         engine.state.obj_tile = ((engine.state.byte(actor_data_ptr)) as u8);
-        engine.state.obj_attr = ((engine.state.byte(((actor_data_ptr + 1) as u16 as i32))) as u8);
+        engine.state.obj_attr = ((engine.state.byte((actor_data_ptr + 1) as u16 as i32)) as u8);
     } else if ((actor_timer & crate::bits::LOW_2_BITS) == 0) {
         // Every 4th frame: toggle the H-flip bit (bit6) to blink.
         engine.state.obj_attr = engine.state.obj_attr ^ ((crate::bits::BIT6) as u8);
@@ -7628,8 +7628,8 @@ pub fn maybe_spawn_pursuer_actor(engine: &mut Engine, r: &mut RoutineContext) {
     engine.state.obj_move_scratch = 0;
     engine.state.obj_move_state = 0;
     let actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-    engine.state.obj_health = ((engine.state.byte(((actor_data_ptr + 4) as u16 as i32))) as u8);
-    engine.state.obj_damage = ((engine.state.byte(((actor_data_ptr + 5) as u16 as i32))) as u8);
+    engine.state.obj_health = ((engine.state.byte((actor_data_ptr + 4) as u16 as i32)) as u8);
+    engine.state.obj_damage = ((engine.state.byte((actor_data_ptr + 5) as u16 as i32)) as u8);
     engine.state.obj_state = 1; // active
     engine.state.obj_tile = 129; // pursuer sprite tile
     r.value = 4; // random attribute in [0,3]
@@ -7654,7 +7654,7 @@ const ACTOR_BEHAVIOR_HANDLERS: [i32; 9] = [
 /// trace-compatible scratch.
 pub fn dispatch_actor_behavior(engine: &mut Engine, r: &mut RoutineContext) {
     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-    let mut behavior_id: i32 = engine.state.byte(((actor_data_ptr + 8) as u16 as i32)); // record +8
+    let mut behavior_id: i32 = engine.state.byte((actor_data_ptr + 8) as u16 as i32); // record +8
     if (behavior_id >= 9) {
         // Out of range: default to behavior 0.
         behavior_id = 0;
@@ -7903,7 +7903,7 @@ pub fn tick_random_floating_actor(engine: &mut Engine, r: &mut RoutineContext) {
     {
         // Build a velocity vector from direction bits + record speed (+9).
         let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-        let mut speed: i32 = engine.state.byte(((actor_data_ptr + 9) as u16 as i32));
+        let mut speed: i32 = engine.state.byte((actor_data_ptr + 9) as u16 as i32);
         r.offset = (speed as u8);
         r.value = (engine.state.obj_move_state as u8);
         build_direction_velocity(engine, r);
@@ -7946,7 +7946,7 @@ pub fn tick_ledge_walking_actor(engine: &mut Engine, r: &mut RoutineContext) {
     } else {
         // Walking: build velocity from record speed (+9) and direction.
         let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-        r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+        r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
         r.value = (engine.state.obj_move_state as u8);
         build_direction_velocity(engine, r);
         try_move_actor_with_terrain(engine, r);
@@ -8028,7 +8028,7 @@ pub fn tick_chasing_jump_actor(engine: &mut Engine, r: &mut RoutineContext) {
                             continue 'dispatch;
                         }
                     }
-                    if ((engine.state.byte(((room_tile_ptr + 1) as u16 as i32))
+                    if ((engine.state.byte((room_tile_ptr + 1) as u16 as i32)
                         & crate::bits::LOW_6_BITS)
                         == 0)
                     {
@@ -8083,7 +8083,7 @@ pub fn tick_chasing_jump_actor(engine: &mut Engine, r: &mut RoutineContext) {
                 {
                     // Build velocity from record speed (+9) and direction bits.
                     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-                    r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+                    r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
                 }
                 r.value = (engine.state.obj_move_state as u8);
                 build_direction_velocity(engine, r);
@@ -8180,7 +8180,7 @@ pub fn tick_reflecting_chase_actor(engine: &mut Engine, r: &mut RoutineContext) 
     {
         // Build velocity from record speed (+9) and direction bits.
         let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-        r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+        r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
         r.value = (engine.state.obj_move_state as u8);
         build_direction_velocity(engine, r);
     }
@@ -8265,7 +8265,7 @@ pub fn tick_overhead_probe_actor(engine: &mut Engine, r: &mut RoutineContext) {
                 {
                     // Build velocity from record speed (+9) and direction.
                     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-                    r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+                    r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
                 }
                 r.value = (engine.state.obj_move_state as u8);
                 build_direction_velocity(engine, r);
@@ -8426,7 +8426,7 @@ pub fn tick_contact_trigger_actor(engine: &mut Engine, r: &mut RoutineContext) {
                     // Untouched: refresh health from record (+4), stay dormant.
                     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
                     let mut actor_type: i32 =
-                        engine.state.byte(((actor_data_ptr + 4) as u16 as i32));
+                        engine.state.byte((actor_data_ptr + 4) as u16 as i32);
                     engine.state.obj_health = (actor_type as u8);
                     r.value = 0;
                     engine.state.obj_y_extra = 0;
@@ -8479,7 +8479,7 @@ pub fn tick_contact_recoil_actor(engine: &mut Engine, r: &mut RoutineContext) {
     {
         // Build velocity from record speed (+9) and direction bits.
         let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-        r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+        r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
         r.value = (engine.state.obj_move_state as u8);
         build_direction_velocity(engine, r);
     }
@@ -8572,7 +8572,7 @@ pub fn tick_timed_chase_actor(engine: &mut Engine, r: &mut RoutineContext) {
                 {
                     // Build velocity from record speed (+9) and direction.
                     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-                    r.offset = ((engine.state.byte(((actor_data_ptr + 9) as u16 as i32))) as u8);
+                    r.offset = ((engine.state.byte((actor_data_ptr + 9) as u16 as i32)) as u8);
                     r.value = (engine.state.obj_move_state as u8);
                     build_direction_velocity(engine, r);
                 }
@@ -8669,7 +8669,7 @@ pub fn aim_actor_toward_player(engine: &mut Engine, r: &mut RoutineContext) {
             // Actor at/above player: maybe arm a jump (vertical bias).
             let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
             let mut vertical_bias_enabled: i32 =
-                engine.state.byte(((actor_data_ptr + 9) as u16 as i32));
+                engine.state.byte((actor_data_ptr + 9) as u16 as i32);
             if (vertical_bias_enabled != 0) {
                 r.value = 3; // 1-in-3 chance
                 rng_update(engine, r);
@@ -8776,7 +8776,7 @@ pub fn choose_random_actor_direction(engine: &mut Engine, r: &mut RoutineContext
     // Look up the direction-bit pattern for that index in the ROM table.
     engine.state.obj_move_state = ((engine
         .state
-        .byte(((OBJ_MOVE_STATE_TABLE + (r.index as i32)) as u16 as i32)))
+        .byte((OBJ_MOVE_STATE_TABLE + (r.index as i32)) as u16 as i32))
         as u8);
 }
 
@@ -8925,7 +8925,7 @@ const ANIMATION_HANDLERS: [i32; 4] = [0xF03B, 0xF04B, 0xF071, 0xF0B9];
 pub fn update_actor_animation(engine: &mut Engine, r: &mut RoutineContext) {
     // Byte 7 of the actor record holds the animation mode in its low 2 bits.
     let mut actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
-    let mut animation_id: i32 = ((engine.state.byte(((actor_data_ptr + 7) as u16 as i32))
+    let mut animation_id: i32 = ((engine.state.byte((actor_data_ptr + 7) as u16 as i32)
         & crate::bits::LOW_2_BITS) as u8 as i32);
     // Reconstruct the original handler's indirect-jump pointer (lo/hi bytes).
     let mut original_handler: i32 = ANIMATION_HANDLERS[animation_id as usize];
@@ -9277,7 +9277,7 @@ pub fn update_object_terrain_probe(engine: &mut Engine, r: &mut RoutineContext) 
             object_probe_rest(engine, r); // $F1B4 BEQ $F1D3
             return;
         }
-        if ((engine.state.byte(((tile_ptr + 1) as u16 as i32)) & crate::bits::LOW_6_BITS) == 0) {
+        if ((engine.state.byte((tile_ptr + 1) as u16 as i32) & crate::bits::LOW_6_BITS) == 0) {
             object_probe_rest(engine, r); // $F1BB BEQ $F1D3
             return;
         }
@@ -9374,7 +9374,7 @@ pub fn probe_object_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
     // Tile id = low 6 bits of the map byte at data_ptr + offset.
     let tile_id: i32 = ((engine
         .state
-        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS) as u8 as i32);
     // Tile ids 0x30 (48) and above are solid terrain.
     r.carry = (((tile_id >= 48) as u8) as u8);
@@ -9513,7 +9513,7 @@ pub fn probe_projected_solid_tile(engine: &mut Engine, r: &mut RoutineContext) {
     // Tile id = low 6 bits of the map byte at data_ptr + offset.
     let tile_id: i32 = ((engine
         .state
-        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS) as u8 as i32);
     // Tile ids 0x30 (48) and above are solid terrain.
     r.carry = (((tile_id >= 48) as u8) as u8);
@@ -9678,9 +9678,9 @@ pub fn initialize_large_actor_slot(engine: &mut Engine, r: &mut RoutineContext) 
     let actor_data_ptr: i32 = ((engine.state.actor_record_ptr()) as u16 as i32);
     engine.state.set_chr_bank(4, 61); // CHR bank holding the large-actor graphics
     // Candidate spawn: record byte 3 = y pixel, byte 2 = x tile, subtile 0.
-    engine.state.scratch2 = ((engine.state.byte(((actor_data_ptr + 3) as u16 as i32))) as u8);
+    engine.state.scratch2 = ((engine.state.byte((actor_data_ptr + 3) as u16 as i32)) as u8);
     engine.state.indirect_ptr_hi =
-        ((engine.state.byte(((actor_data_ptr + 2) as u16 as i32))) as u8);
+        ((engine.state.byte((actor_data_ptr + 2) as u16 as i32)) as u8);
     engine.state.indirect_ptr_lo = 0;
     engine.state.scratch3 = 0;
     // Abort the spawn if the wide footprint would overlap solid terrain.
@@ -9698,10 +9698,10 @@ pub fn initialize_large_actor_slot(engine: &mut Engine, r: &mut RoutineContext) 
     engine.state.obj_state = 1; // active
     engine.state.obj_tile = 129; // initial body base tile id
     engine.state.obj_attr = 2; // initial sprite attribute (palette 2)
-    engine.state.obj_damage = ((engine.state.byte(((actor_data_ptr + 5) as u16 as i32))) as u8);
+    engine.state.obj_damage = ((engine.state.byte((actor_data_ptr + 5) as u16 as i32)) as u8);
     {
         // Record byte 4 = starting health, copied to anchor + 3 body pieces.
-        let actor_health: i32 = engine.state.byte(((actor_data_ptr + 4) as u16 as i32));
+        let actor_health: i32 = engine.state.byte((actor_data_ptr + 4) as u16 as i32);
         engine.state.obj_health = (actor_health as u8);
         engine.state.set_object_health(16, actor_health); // slot 0x0410
         engine.state.set_object_health(32, actor_health); // slot 0x0420
@@ -10168,7 +10168,7 @@ pub fn update_player_projectiles(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         let slot_ptr: i32 = ((engine.state.obj_slot_ptr()) as u16 as i32);
         // Byte +1 of the slot is the projectile's remaining lifetime/state.
-        let active_lifetime: i32 = engine.state.byte(((slot_ptr + 1) as u16 as i32));
+        let active_lifetime: i32 = engine.state.byte((slot_ptr + 1) as u16 as i32);
         if (active_lifetime != 0) {
             // Live shot: advance it one frame.
             r.value = (active_lifetime as u8);
@@ -11125,7 +11125,7 @@ fn deref_stream(engine: &mut Engine, r: &mut RoutineContext) -> i32 {
     // 16-bit stream pointer = byte 2 (lo) | byte 3 (hi).
     let mut lo: i32 = engine.state.sound_channel_byte(2, channel_offset);
     let mut hi: i32 = engine.state.sound_channel_byte(3, channel_offset);
-    return engine.state.byte(((lo | (hi << 8)) as u16 as i32));
+    return engine.state.byte((lo | (hi << 8)) as u16 as i32);
 }
 
 // A 0xFF stream byte is followed by command id and value bytes. The command
@@ -11215,12 +11215,12 @@ pub fn audio_cmd_set_duty_instrument(engine: &mut Engine, r: &mut RoutineContext
         channel_offset,
         engine
             .state
-            .byte(((SUSTAIN_TABLE + envelope_offset) as u16 as i32)),
+            .byte((SUSTAIN_TABLE + envelope_offset) as u16 as i32),
     );
     // Return the sustain value (A), envelope offset (Y) and lane (X).
     r.value = ((engine
         .state
-        .byte(((SUSTAIN_TABLE + envelope_offset) as u16 as i32))) as u8);
+        .byte((SUSTAIN_TABLE + envelope_offset) as u16 as i32)) as u8);
     r.offset = (envelope_offset as u8);
     r.index = (channel_offset as u8);
 }
@@ -11309,10 +11309,10 @@ pub fn load_note_period(engine: &mut Engine, r: &mut RoutineContext) {
         let mut pitch_index: i32 = (((note_byte & crate::bits::LOW_NIBBLE) << 1) as u8 as i32);
         let mut lo: i32 = engine
             .state
-            .byte(((NOTE_PERIOD_TABLE + pitch_index) as u16 as i32));
+            .byte((NOTE_PERIOD_TABLE + pitch_index) as u16 as i32);
         let mut hi: i32 = engine
             .state
-            .byte((((NOTE_PERIOD_TABLE + 1) + pitch_index) as u16 as i32));
+            .byte(((NOTE_PERIOD_TABLE + 1) + pitch_index) as u16 as i32);
         channel_offset = (engine.state.sound_channel_offset as i32);
         {
             // Subtract the fine pitch offset (byte 14) from the 16-bit period,
@@ -11389,7 +11389,7 @@ pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte(((ENVELOPE_TABLE + envelope_offset) as u16 as i32)),
+            .byte((ENVELOPE_TABLE + envelope_offset) as u16 as i32),
     );
     // Byte 10 = note-tick reload (+1 of the record).
     engine.state.set_sound_channel_byte(
@@ -11397,7 +11397,7 @@ pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 1) + envelope_offset) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 1) + envelope_offset) as u16 as i32),
     );
     // Byte 11 = phase duration (+2 of the record).
     engine.state.set_sound_channel_byte(
@@ -11405,7 +11405,7 @@ pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 2) + envelope_offset) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 2) + envelope_offset) as u16 as i32),
     );
     // Byte 12 = accumulator seed (+3 of the record).
     engine.state.set_sound_channel_byte(
@@ -11413,7 +11413,7 @@ pub fn start_note_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 3) + envelope_offset) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 3) + envelope_offset) as u16 as i32),
     );
     r.index = (channel_offset as u8);
     r.offset = (envelope_offset as u8);
@@ -11440,7 +11440,7 @@ pub fn start_rest_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte(((ENVELOPE_TABLE + rest_envelope_offset) as u16 as i32)),
+            .byte((ENVELOPE_TABLE + rest_envelope_offset) as u16 as i32),
     );
     // Byte 10 = note-tick reload (+1).
     engine.state.set_sound_channel_byte(
@@ -11448,7 +11448,7 @@ pub fn start_rest_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 1) + rest_envelope_offset) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 1) + rest_envelope_offset) as u16 as i32),
     );
     // Byte 11 = phase duration (+2).
     engine.state.set_sound_channel_byte(
@@ -11456,13 +11456,13 @@ pub fn start_rest_envelope(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 2) + rest_envelope_offset) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 2) + rest_envelope_offset) as u16 as i32),
     );
     r.index = (channel_offset as u8);
     r.offset = (rest_envelope_offset as u8);
     r.value = ((engine
         .state
-        .byte((((ENVELOPE_TABLE + 2) + rest_envelope_offset) as u16 as i32))) as u8);
+        .byte(((ENVELOPE_TABLE + 2) + rest_envelope_offset) as u16 as i32)) as u8);
 }
 
 /// Handles a 0x00 (end) stream byte: rewind to the channel's saved loop
@@ -11518,7 +11518,7 @@ pub fn next_envelope_volume(engine: &mut Engine, r: &mut RoutineContext) {
         ((157 + channel_offset) as u8 as i32), // 0x9D + lane
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 1) + envelope_phase) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 1) + envelope_phase) as u16 as i32),
     );
     {
         // Advance the accumulator by the signed phase delta (byte 9).
@@ -11598,7 +11598,7 @@ pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte(((ENVELOPE_TABLE + next_phase) as u16 as i32)),
+            .byte((ENVELOPE_TABLE + next_phase) as u16 as i32),
     );
     // Byte 10 = new note-tick reload (+1).
     engine.state.set_sound_channel_byte(
@@ -11606,7 +11606,7 @@ pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 1) + next_phase) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 1) + next_phase) as u16 as i32),
     );
     // Byte 11 = new phase duration (+2).
     engine.state.set_sound_channel_byte(
@@ -11614,7 +11614,7 @@ pub fn advance_envelope_phase(engine: &mut Engine, r: &mut RoutineContext) {
         channel_offset,
         engine
             .state
-            .byte((((ENVELOPE_TABLE + 2) + next_phase) as u16 as i32)),
+            .byte(((ENVELOPE_TABLE + 2) + next_phase) as u16 as i32),
     );
     r.index = (channel_offset as u8);
     r.offset = (next_phase as u8);
@@ -11709,14 +11709,14 @@ pub fn sfx_overlay_voice(engine: &mut Engine, r: &mut RoutineContext) {
                         64,
                         engine
                             .state
-                            .byte(((SFX_POINTER_TABLE + sfx_table_index) as u16 as i32)),
+                            .byte((SFX_POINTER_TABLE + sfx_table_index) as u16 as i32),
                     );
                     engine.state.set_sound_channel_byte(
                         3,
                         64,
                         engine
                             .state
-                            .byte((((SFX_POINTER_TABLE + 1) + sfx_table_index) as u16 as i32)),
+                            .byte(((SFX_POINTER_TABLE + 1) + sfx_table_index) as u16 as i32),
                     );
                     engine.state.sfx_voice_active = 128; // 0x80 = overlay active
                     // Claim SQ2 from the music (bit6 of channel flags).
@@ -11832,11 +11832,11 @@ pub fn song_init(engine: &mut Engine, r: &mut RoutineContext) {
         // Read the song's channel-header source pointer (lo/hi).
         engine.state.indirect_ptr_lo = ((engine
             .state
-            .byte(((SONG_POINTER_TABLE + idx) as u16 as i32)))
+            .byte((SONG_POINTER_TABLE + idx) as u16 as i32))
             as u8);
         engine.state.indirect_ptr_hi = ((engine
             .state
-            .byte((((SONG_POINTER_TABLE + 1) + idx) as u16 as i32)))
+            .byte(((SONG_POINTER_TABLE + 1) + idx) as u16 as i32))
             as u8);
     }
     // Destination = music channel lane storage at 0x0093.
@@ -11855,7 +11855,7 @@ pub fn song_init(engine: &mut Engine, r: &mut RoutineContext) {
                 while (y >= 0) {
                     engine.state.set_byte(
                         ((d + y) as u16 as i32),
-                        engine.state.byte(((s + y) as u16 as i32)),
+                        engine.state.byte((s + y) as u16 as i32),
                     );
                     {
                         let __old = y;
@@ -12106,18 +12106,18 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
     // Field +1: CHR bank slot 3.
     engine
         .state
-        .set_chr_bank(3, engine.state.byte(((p + 1) as u16 as i32)));
+        .set_chr_bank(3, engine.state.byte((p + 1) as u16 as i32));
     // Fields +2/+3: attribute-table pointer; +4: room tile action; +5/+6: CHR
     // bank slots 0/1.
-    engine.state.text_attr_ptr_lo = ((engine.state.byte(((p + 2) as u16 as i32))) as u8);
-    engine.state.text_attr_ptr_hi = ((engine.state.byte(((p + 3) as u16 as i32))) as u8);
-    engine.state.room_tile_action = ((engine.state.byte(((p + 4) as u16 as i32))) as u8);
+    engine.state.text_attr_ptr_lo = ((engine.state.byte((p + 2) as u16 as i32)) as u8);
+    engine.state.text_attr_ptr_hi = ((engine.state.byte((p + 3) as u16 as i32)) as u8);
+    engine.state.room_tile_action = ((engine.state.byte((p + 4) as u16 as i32)) as u8);
     engine
         .state
-        .set_chr_bank(0, engine.state.byte(((p + 5) as u16 as i32)));
+        .set_chr_bank(0, engine.state.byte((p + 5) as u16 as i32));
     engine
         .state
-        .set_chr_bank(1, engine.state.byte(((p + 6) as u16 as i32)));
+        .set_chr_bank(1, engine.state.byte((p + 6) as u16 as i32));
     {
         // Index the per-screen save-flag bitfield: byte = (map_screen_y>>1)
         // selected from a row of save bytes whose base index folds the y bit 0
@@ -12150,7 +12150,7 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
         let mut y: i32 = 7; // descriptor field index +7
         let mut a: i32 = 0;
         if ((r.carry) != 0) {
-            a = engine.state.byte(((p + y) as u16 as i32));
+            a = engine.state.byte((p + y) as u16 as i32);
         } else {
             a = 0;
         }
@@ -12166,7 +12166,7 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
             };
             engine
                 .state
-                .set_object_x_tile(160, engine.state.byte(((p + y) as u16 as i32)));
+                .set_object_x_tile(160, engine.state.byte((p + y) as u16 as i32));
             engine.state.set_object_x_sub(160, 0);
             {
                 let __old = y;
@@ -12175,13 +12175,13 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
             };
             engine
                 .state
-                .set_object_y_pixel(160, engine.state.byte(((p + y) as u16 as i32)));
+                .set_object_y_pixel(160, engine.state.byte((p + y) as u16 as i32));
             {
                 let __old = y;
                 y += 1;
                 __old
             };
-            b = engine.state.byte(((p + y) as u16 as i32));
+            b = engine.state.byte((p + y) as u16 as i32);
             if (b == 23) {
                 // Type 23: stair/door special -> state 25, tile 0xDD.
                 engine.state.set_object_state(160, 25);
@@ -12214,14 +12214,14 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
                     break;
                 }
             }
-            a = ((a & engine.state.byte(((p + 21) as u16 as i32))) as u8 as i32);
+            a = ((a & engine.state.byte((p + 21) as u16 as i32)) as u8 as i32);
             if (a != 0) {
                 do_d02e = 0;
             }
         }
         if ((do_d02e) != 0) {
             // Field +11 holds the room's song id.
-            r.value = ((engine.state.byte(((p + 11) as u16 as i32))) as u8);
+            r.value = ((engine.state.byte((p + 11) as u16 as i32)) as u8);
             switch_song_if_needed(engine, r);
         }
     }
@@ -12229,17 +12229,17 @@ pub fn text_attr_build(engine: &mut Engine, r: &mut RoutineContext) {
     // (which of the five family members may enter this room).
     engine
         .state
-        .set_temp_save(0, engine.state.byte(((p + 16) as u16 as i32)));
+        .set_temp_save(0, engine.state.byte((p + 16) as u16 as i32));
     engine
         .state
-        .set_temp_save(1, engine.state.byte(((p + 17) as u16 as i32)));
+        .set_temp_save(1, engine.state.byte((p + 17) as u16 as i32));
     engine
         .state
-        .set_temp_save(2, engine.state.byte(((p + 18) as u16 as i32)));
+        .set_temp_save(2, engine.state.byte((p + 18) as u16 as i32));
     engine
         .state
-        .set_temp_save(3, engine.state.byte(((p + 19) as u16 as i32)));
-    engine.state.family_member_mask = ((engine.state.byte(((p + 20) as u16 as i32))) as u8);
+        .set_temp_save(3, engine.state.byte((p + 19) as u16 as i32));
+    engine.state.family_member_mask = ((engine.state.byte((p + 20) as u16 as i32)) as u8);
 }
 
 /// The NMI (vertical-blank) handler. Latches PPU status, runs the OAM DMA, and
@@ -12253,7 +12253,7 @@ pub fn vblank_commit(engine: &mut Engine, r: &mut RoutineContext) {
         // Model the PPU side-effects this handler relies on: set the vblank flag,
         // set sprite-0 (only meaningful when sprites+background are enabled, i.e.
         // mask bits 3,4), and evaluate sprite overflow.
-        engine.ppu.set_vblank(((1) != 0));
+        engine.ppu.set_vblank((1) != 0);
         engine.ppu.set_sprite0(
             ((if ((engine.state.ppu_mask_shadow & ((crate::bits::BITS_3_4) as u8)) != 0) {
                 1
@@ -12397,7 +12397,7 @@ pub fn vram_copy_indirect(engine: &mut Engine, r: &mut RoutineContext) {
     loop {
         engine.device_write(
             crate::engine::reg::PPU_DATA,
-            engine.state.byte(((src + y) as u16 as i32)),
+            engine.state.byte((src + y) as u16 as i32),
         );
         {
             let __old = y;
@@ -13649,7 +13649,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             if t == (engine.state.text_attr_ptr_lo as i32) {
                 continue; // reject the room's special tile
             }
-            t = engine.state.byte(((p + 1) as u16 as i32)) & crate::bits::LOW_6_BITS; // tile below
+            t = engine.state.byte((p + 1) as u16 as i32) & crate::bits::LOW_6_BITS; // tile below
             if t < 48 {
                 continue; // floor must be solid (>=48)
             }
@@ -13697,7 +13697,7 @@ pub fn run_title_screen_loop(engine: &mut Engine, r: &mut RoutineContext) {
             0,
             engine
                 .state
-                .byte(((START_ITEM_TABLE + (chr as i32)) as u16 as i32)),
+                .byte((START_ITEM_TABLE + (chr as i32)) as u16 as i32),
         );
         engine.state.selected_item_slot = 0;
         engine.state.character_index = (chr as u8);
@@ -13885,7 +13885,7 @@ pub fn run_player_death_or_continue_flow(engine: &mut Engine, r: &mut RoutineCon
             // An extra-life token (item id 12) in the selected slot lets the player
             // resume; consume it. Otherwise go to game over.
             let x = engine.state.selected_item_slot;
-            if engine.state.item_slot((x as i32)) == 12 {
+            if engine.state.item_slot(x as i32) == 12 {
                 engine.state.set_item_slot((x as i32), 255); // remove extra life
                 draw_status_item_sprites(engine, r);
             } else {
@@ -14081,7 +14081,7 @@ pub fn fade_room_palette_row_in(engine: &mut Engine, r: &mut RoutineContext) {
         for y in 224..228 {
             engine
                 .state
-                .set_inventory_item(64 + y, engine.state.byte(((ptr + y) as u16 as i32)));
+                .set_inventory_item(64 + y, engine.state.byte((ptr + y) as u16 as i32));
         }
         r.index = 0; // palette index 0
         r.offset = 4; // 4 entries (one row)
@@ -14109,12 +14109,12 @@ pub fn fade_two_room_palette_rows_in(engine: &mut Engine, r: &mut RoutineContext
         for y in 224..228 {
             engine
                 .state
-                .set_inventory_item(64 + y, engine.state.byte(((ptr + y) as u16 as i32)));
+                .set_inventory_item(64 + y, engine.state.byte((ptr + y) as u16 as i32));
         }
         for y in 240..244 {
             engine
                 .state
-                .set_inventory_item(64 + y, engine.state.byte(((ptr + y) as u16 as i32)));
+                .set_inventory_item(64 + y, engine.state.byte((ptr + y) as u16 as i32));
         }
         // Dim both rows (palette index 0 and 16) by the current step.
         r.index = 0; // first row
@@ -14395,7 +14395,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
         // A floor tile (low-6 collision bits == 0 means solid floor here).
         if (engine
             .state
-            .byte(((tile_ptr + (r.offset as i32)) as u16 as i32))
+            .byte((tile_ptr + (r.offset as i32)) as u16 as i32)
             & crate::bits::LOW_6_BITS)
             == 0
         {
@@ -14419,7 +14419,7 @@ pub fn update_player_terrain_contact(engine: &mut Engine, r: &mut RoutineContext
             return resolve_player_landing_or_hazard_contact(engine, r);
         }
         let selected_slot = engine.state.selected_item_slot;
-        let selected_item = engine.state.item_slot((selected_slot as i32));
+        let selected_item = engine.state.item_slot(selected_slot as i32);
         // Item 5 (the stomp/jump item) while falling kills the actor instead of
         // standing on it; any other case lands normally.
         if selected_item != 5 || engine.state.fall_frames == 0 {
@@ -14516,7 +14516,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
     let tile_offset = r.offset;
     let tile = engine
         .state
-        .byte(((tile_ptr + (tile_offset as i32)) as u16 as i32))
+        .byte((tile_ptr + (tile_offset as i32)) as u16 as i32)
         & crate::bits::LOW_6_BITS;
     // Scriptable "secret" tile whose id is stored in text_attr_ptr_lo.
     if tile == (engine.state.text_attr_ptr_lo as i32) {
@@ -14543,7 +14543,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
         if engine.state.object_state(144) == 0 {
             engine.state.scratch3 = (tile_offset as u8);
             r.index = (engine.state.selected_item_slot as u8);
-            let item = engine.state.item_slot((r.index as i32));
+            let item = engine.state.item_slot(r.index as i32);
             r.value = (item as u8);
             // Item 7 (lockpick) tries magic first and unlocks without a key on
             // success. On magic failure the ROM falls through ($DDF2 BCC not
@@ -14586,7 +14586,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
             engine.state.scratch3 = (tile_offset as u8);
             engine.state.obj_move_state = 1;
             r.offset = (engine.state.selected_item_slot as u8);
-            r.index = ((engine.state.item_slot((r.offset as i32))) as u8);
+            r.index = ((engine.state.item_slot(r.offset as i32)) as u8);
             let idx = r.index; // selected carried-item id
             // Item 2: the light spell / lamp that converts a tile in place
             // ($DE2D DEX;DEX; $DE2F BEQ $DE3F).
@@ -14606,7 +14606,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         let lo = ((engine.state.player_x_tile
                             + ((engine
                                 .state
-                                .byte(((SPAWN_OFFSET_X_TABLE + x2) as u16 as i32)))
+                                .byte((SPAWN_OFFSET_X_TABLE + x2) as u16 as i32))
                                 as u8)) as u8 as i32);
                         engine.state.set_object_x_tile(144, lo);
                         engine.state.data_ptr_lo = (lo as u8);
@@ -14615,7 +14615,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         let hi = ((engine.state.player_y
                             + ((engine
                                 .state
-                                .byte(((SPAWN_OFFSET_Y_TABLE + x2) as u16 as i32)))
+                                .byte((SPAWN_OFFSET_Y_TABLE + x2) as u16 as i32))
                                 as u8)) as u8 as i32);
                         engine.state.set_object_y_pixel(144, hi);
                         engine.state.data_ptr_hi = (hi as u8);
@@ -14651,7 +14651,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     // Projectile sprite tile from the tile table at index 248,
                     // forced even (CLEAR_BIT0) for the 2-tile sprite pair.
                     let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
-                    engine.state.obj_tile = ((engine.state.byte(((p79 + 248) as u16 as i32))
+                    engine.state.obj_tile = ((engine.state.byte((p79 + 248) as u16 as i32)
                         & crate::bits::CLEAR_BIT0)
                         as u8);
                     engine.state.obj_state = 1;
@@ -14660,7 +14660,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                     r.offset = (engine.state.scratch3 as u8);
                     let b = engine
                         .state
-                        .byte(((tile_ptr + (r.offset as i32)) as u16 as i32));
+                        .byte((tile_ptr + (r.offset as i32)) as u16 as i32);
                     engine.state.obj_move_scratch = (b as u8);
                     engine.state.obj_timer = 16; // projectile lifetime
                     read_room_tile_action_value(engine, r);
@@ -14691,7 +14691,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         build_direction_velocity(engine, r);
                         r.offset = 248; // projectile sprite tile index
                         let p79 = ((engine.state.tile_table_ptr()) as u16 as i32);
-                        engine.state.obj_tile = ((engine.state.byte(((p79 + 248) as u16 as i32))
+                        engine.state.obj_tile = ((engine.state.byte((p79 + 248) as u16 as i32)
                             & crate::bits::CLEAR_BIT0)
                             as u8);
                         engine.state.obj_state = 1;
@@ -14700,7 +14700,7 @@ pub fn dispatch_room_tile_action(engine: &mut Engine, r: &mut RoutineContext) {
                         r.offset = (engine.state.scratch3 as u8);
                         let b = engine
                             .state
-                            .byte(((tile_ptr + (r.offset as i32)) as u16 as i32));
+                            .byte((tile_ptr + (r.offset as i32)) as u16 as i32);
                         engine.state.obj_move_scratch = (b as u8);
                         engine.state.obj_timer = 0; // unlimited lifetime for the blast
                         read_room_tile_action_value(engine, r);
@@ -14956,7 +14956,7 @@ pub fn unlock_door_with_key(engine: &mut Engine, r: &mut RoutineContext) {
     // Read the door type id from room metadata (offset 10) and configure the
     // door object in slot 160.
     let ptr = ((engine.state.palette_src_ptr()) as u16 as i32);
-    let door = engine.state.byte(((ptr + 10) as u16 as i32));
+    let door = engine.state.byte((ptr + 10) as u16 as i32);
     if door < 8 {
         engine.state.set_object_attr(160, 0); // low door ids use palette 0
     }
@@ -15362,7 +15362,7 @@ pub fn run_character_select_room_flow(engine: &mut Engine, r: &mut RoutineContex
                 11 + xi, // slots 11..=14
                 engine
                     .state
-                    .byte(((CHARACTER_STATS_TABLE + (r.offset as i32)) as u16 as i32)),
+                    .byte((CHARACTER_STATS_TABLE + (r.offset as i32)) as u16 as i32),
             );
             r.offset = ((r.offset - 1) as u8);
         }
@@ -15750,7 +15750,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             // On exit, if the equipped slot points at the empty marker (13),
             // reset the selection to the default slot 3.
             let e = engine.state.selected_item_slot;
-            if engine.state.item_slot((e as i32)) == 13 {
+            if engine.state.item_slot(e as i32) == 13 {
                 engine.state.selected_item_slot = 3;
                 draw_status_item_sprites(engine, r);
             }
@@ -15769,7 +15769,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
             x = if py < 56 { 0 } else { 8 }; // page base by row
             engine.state.scratch0 = x;
             x = (((engine.state.player_x_tile >> 1) | engine.state.scratch0) as u8); // item index
-            if engine.state.inventory_item((x as i32)) != 0 {
+            if engine.state.inventory_item(x as i32) != 0 {
                 // Item available: verify the active family member may carry it.
                 r.value = (x as u8);
                 load_family_item_permission_bits(engine, r);
@@ -15777,7 +15777,7 @@ pub fn run_carried_item_loadout_flow(engine: &mut Engine, r: &mut RoutineContext
                     // Permitted: spend one from inventory.
                     engine.state.set_inventory_item(
                         (x as i32),
-                        (engine.state.inventory_item((x as i32)) - 1) & crate::bits::BYTE_MASK,
+                        (engine.state.inventory_item(x as i32) - 1) & crate::bits::BYTE_MASK,
                     );
                     true
                 } else {
@@ -15874,7 +15874,7 @@ pub fn tick_defeated_actor_reward_drop(engine: &mut Engine, r: &mut RoutineConte
         // Read the death sprite tile from the actor record (offset 6).
         let ptr = (((engine.state.actor_record_ptr_lo as i32)
             | ((engine.state.actor_record_ptr_hi as i32) << 8)) as u16 as i32);
-        engine.state.obj_tile = ((engine.state.byte(((ptr + 6) as u16 as i32))) as u8);
+        engine.state.obj_tile = ((engine.state.byte((ptr + 6) as u16 as i32)) as u8);
         engine.state.obj_attr = engine.state.obj_attr & ((crate::bits::LOW_2_BITS) as u8); // keep only palette bits
     }
     // Rising phase: the corpse pops upward, decelerating.
