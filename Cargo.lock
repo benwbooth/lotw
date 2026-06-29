@@ -1275,11 +1275,18 @@ version = "0.1.0"
 dependencies = [
  "corosensei",
  "eframe",
- "lotw-music-macros",
+ "lotw-music",
  "png 0.17.16",
  "sdl3",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lotw-music"
+version = "0.1.0"
+dependencies = [
+ "lotw-music-macros",
 ]
 
 [[package]]
@@ -1356,6 +1363,13 @@ checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
 dependencies = [
  "num-traits",
  "pxfm",
+]
+
+[[package]]
+name = "music-jit"
+version = "0.1.0"
+dependencies = [
+ "lotw-music",
 ]
 
 [[package]]

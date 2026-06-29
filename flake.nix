@@ -54,6 +54,8 @@
             rustc
             rustfmt
             python3
+            # Fast linker for the live-edit music JIT rebuild (see music-jit/bench.sh)
+            mold
             # Utilities
             p7zip
             xxd
@@ -133,6 +135,8 @@
               ./Cargo.lock
               ./build.rs
               ./music-macros
+              ./lotw-music
+              ./music-jit
               ./src
               ./tests
               ./fixtures

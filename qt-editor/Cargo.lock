@@ -400,6 +400,13 @@ name = "lotw"
 version = "0.1.0"
 dependencies = [
  "corosensei",
+ "lotw-music",
+]
+
+[[package]]
+name = "lotw-music"
+version = "0.1.0"
+dependencies = [
  "lotw-music-macros",
 ]
 

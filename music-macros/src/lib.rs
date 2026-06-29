@@ -46,7 +46,7 @@ fn build(input: TS) -> Result<TS, String> {
         any = true;
         let (val, notes) = parse_segment(&seg, &mut running)?;
         let vlit = Literal::u8_unsuffixed(val);
-        elems.push(quote! { ::lotw::music::note::#pident(#vlit) });
+        elems.push(quote! { ::lotw_music::note::#pident(#vlit) });
         for n in notes {
             let nid = format_ident!("{}", n);
             elems.push(quote! { #nid });
@@ -55,7 +55,7 @@ fn build(input: TS) -> Result<TS, String> {
     if !any {
         return Err("env! needs at least one segment".into());
     }
-    Ok(quote! { ::lotw::music::Note::Seq(const { &[ #(#elems),* ] }) })
+    Ok(quote! { ::lotw_music::Note::Seq(const { &[ #(#elems),* ] }) })
 }
 
 /// Parse a `<value> <note>…` segment, advancing the running parameter value.

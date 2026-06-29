@@ -40,3 +40,4 @@ assets/chr/
 
 # Generated music DSL (ROM-derived; run `cargo run --bin gen_music`)
 /src/music/songs.rs
+/music-jit/src/songs.rs

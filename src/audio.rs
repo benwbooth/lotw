@@ -30,14 +30,10 @@ const DURS: &[(&str, u8)] = &[
     ("q", 24), ("edd", 21), ("ed", 18), ("e", 12), ("id", 9), ("i", 6), ("t", 3),
 ];
 
-/// One decoded stream token.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Tok {
-    Note { dur: u8, pitch: u8 }, // dur has bit7 clear
-    Rest { dur: u8 },            // 0..=127 (the stored byte was dur | 0x80)
-    Cmd { id: u8, arg: u8 },
-    End,
-}
+// The `Tok`/`Song` stream model + `assemble` + the music DSL live in the small
+// `lotw_music` crate (so it compiles fast on its own for live-edit playback);
+// re-export them so `lotw::audio::Tok` etc. keep working.
+pub use lotw_music::{CHANNEL_NAMES, Song, Tok, assemble};
 
 /// Disassemble one channel stream starting at PRG offset `off`, up to and
 /// including the terminating `end`. Returns None on a truncated/runaway stream.
@@ -60,23 +56,6 @@ pub fn disasm(prg: &[u8], mut off: usize) -> Option<Vec<Tok>> {
         }
     }
     None
-}
-
-/// Re-emit the exact bytes for a token list (inverse of `disasm`).
-pub fn assemble(toks: &[Tok]) -> Vec<u8> {
-    let mut out = Vec::new();
-    for t in toks {
-        match *t {
-            Tok::Note { dur, pitch } => {
-                out.push(dur & 0x7F);
-                out.push(pitch);
-            }
-            Tok::Rest { dur } => out.push((dur & 0x7F) | 0x80),
-            Tok::Cmd { id, arg } => out.extend_from_slice(&[0xFF, id, arg]),
-            Tok::End => out.push(0x00),
-        }
-    }
-    out
 }
 
 fn dur_str(d: u8) -> String {
@@ -367,18 +346,6 @@ pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
     secs
 }
 
-/// A song: its four channel streams in header order (pulse1/pulse2/tri/noise).
-#[derive(Default, Clone)]
-pub struct Song {
-    pub channels: Vec<(String, Vec<Tok>)>,
-}
-
-impl Song {
-    pub fn add(&mut self, name: &str, stream: Vec<Tok>) {
-        self.channels.push((name.to_string(), stream));
-    }
-}
-
 // --- ROM song layout (for enumerating streams) ---
 
 const SONGS_PER_TABLE: usize = 10;
@@ -392,9 +359,6 @@ fn addr_to_off(addr: usize, base_lo: usize, base_hi: usize) -> Option<usize> {
         _ => None,
     }
 }
-
-/// Channel names in header order.
-pub const CHANNEL_NAMES: [&str; 4] = ["pulse1", "pulse2", "triangle", "noise"];
 
 /// SFX pointer table (PRG offset; CPU $8014 in bank 10) and entry count. Each
 /// entry points at a single pulse2 channel stream (same grammar as music).
@@ -487,7 +451,7 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
     out.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
     out.push_str("#![allow(clippy::all)]\n");
-    out.push_str("use super::note::*;\nuse super::{line, section, song};\nuse crate::audio::{Song, Tok};\nuse crate::env;\n\n");
+    out.push_str("use lotw_music::note::*;\nuse lotw_music::{env, line, section, song, Song, Tok};\n\n");
 
     out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);

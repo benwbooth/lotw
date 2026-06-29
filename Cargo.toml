@@ -1,3 +1,7 @@
+[workspace]
+members = ["lotw-music", "music-macros", "music-jit"]
+exclude = ["qt-editor"]
+
 [package]
 name = "lotw"
 version = "0.1.0"
@@ -6,7 +10,7 @@ rust-version = "1.94"
 
 [dependencies]
 corosensei = "0.3.4"
-lotw-music-macros = { path = "music-macros" }
+lotw-music = { path = "lotw-music" }
 sdl3 = { version = "0.18.4", optional = true }
 png = { version = "0.17", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
