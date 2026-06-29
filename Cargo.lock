@@ -1275,6 +1275,7 @@ version = "0.1.0"
 dependencies = [
  "corosensei",
  "eframe",
+ "libloading",
  "lotw-music",
  "png 0.17.16",
  "sdl3",

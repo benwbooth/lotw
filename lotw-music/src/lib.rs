@@ -52,10 +52,13 @@ pub fn assemble(toks: &[Tok]) -> Vec<u8> {
     out
 }
 
-/// A song: its four channel streams in header order (pulse1/pulse2/tri/noise).
+/// A song: its four channel streams in header order (pulse1/pulse2/tri/noise),
+/// plus, per channel, the token index where each score section begins (so a
+/// player can map the playhead back to a source section for highlighting).
 #[derive(Default, Clone)]
 pub struct Song {
     pub channels: Vec<(String, Vec<Tok>)>,
+    pub section_starts: [Vec<usize>; 4],
 }
 
 impl Song {
@@ -127,14 +130,17 @@ pub fn section<'a>(pulse1: &'a [Note], pulse2: &'a [Note], triangle: &'a [Note],
 /// terminated with the implicit 0x00.
 pub fn song(tempo: u32, sections: &[Section]) -> Song {
     let mut chans: [Vec<Tok>; 4] = Default::default();
+    let mut starts: [Vec<usize>; 4] = Default::default();
     for sec in sections {
         for (ci, frag) in sec.channels.iter().enumerate() {
+            starts[ci].push(chans[ci].len()); // this section begins at this token
             for n in *frag {
                 n.emit(tempo, &mut chans[ci]);
             }
         }
     }
     let mut s = Song::default();
+    s.section_starts = starts;
     for (i, mut c) in chans.into_iter().enumerate() {
         if !c.is_empty() {
             c.push(Tok::End);

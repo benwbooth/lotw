@@ -1,0 +1,33 @@
+{
+  "name": "lotw-music",
+  "displayName": "LotW Music",
+  "description": "Play and live-edit Legacy of the Wizard songs: CodeLens transport buttons above each song() and live highlighting of the playing section.",
+  "version": "0.1.0",
+  "publisher": "lotw",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onLanguage:rust"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "lotwMusic.play", "title": "LotW Music: Play song" },
+      { "command": "lotwMusic.stop", "title": "LotW Music: Stop" },
+      { "command": "lotwMusic.toggleLoop", "title": "LotW Music: Toggle loop" }
+    ],
+    "configuration": {
+      "title": "LotW Music",
+      "properties": {
+        "lotwMusic.rom": {
+          "type": "string",
+          "default": "rom/lotw.nes",
+          "description": "ROM path (relative to the workspace) for the sound engine."
+        },
+        "lotwMusic.debounceMs": {
+          "type": "number",
+          "default": 300,
+          "description": "Delay after you stop typing before re-compiling and reloading the playing song."
+        }
+      }
+    }
+  }
+}

@@ -24,3 +24,32 @@ pub extern "C" fn render_total_bytes() -> u64 {
     }
     total
 }
+
+/// Serialize song `idx` into `out` (capacity `cap` bytes) for the player.
+/// Layout (little-endian): `u32 n_channels=4`, then per channel
+/// `u32 byte_len, bytes…, u32 n_sections, u32 section_start_token…`.
+/// Returns bytes written, or 0 if the song is missing or the buffer is too small.
+///
+/// # Safety
+/// `out` must be valid for `cap` bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn song_blob(idx: u32, out: *mut u8, cap: usize) -> usize {
+    let Some(song) = songs::get(idx as usize) else { return 0 };
+    let mut buf = Vec::new();
+    buf.extend_from_slice(&4u32.to_le_bytes());
+    for ci in 0..4 {
+        let bytes = lotw_music::assemble(&song.channels[ci].1);
+        buf.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&bytes);
+        let starts = &song.section_starts[ci];
+        buf.extend_from_slice(&(starts.len() as u32).to_le_bytes());
+        for &s in starts {
+            buf.extend_from_slice(&(s as u32).to_le_bytes());
+        }
+    }
+    if buf.len() > cap {
+        return 0;
+    }
+    unsafe { std::ptr::copy_nonoverlapping(buf.as_ptr(), out, buf.len()) };
+    buf.len()
+}
