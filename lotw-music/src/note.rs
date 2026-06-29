@@ -25,9 +25,10 @@ pub const fn pitch(arg: u8) -> Note {
 pub const fn sweep(arg: u8) -> Note {
     Note::Cmd { id: 4, arg }
 }
-/// A command by raw id (for ids outside the named five).
-pub const fn cmd(id: u8, arg: u8) -> Note {
-    Note::Cmd { id, arg }
+/// A command by raw id (for ids outside the named five). (`n` not `id`: `id`
+/// is a note-value const — a dotted sixteenth.)
+pub const fn cmd(n: u8, arg: u8) -> Note {
+    Note::Cmd { id: n, arg }
 }
 
 /// An off-grid note: explicit pitch byte + tick count.

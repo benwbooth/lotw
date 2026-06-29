@@ -35,8 +35,8 @@ pub fn area_north() -> Song {
             &[volume(254), duty(2), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, volume(0), duty(3), g11e, volume!(0 g11e, 0 g11e), duty(2), volume(254), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, g11e, g11e, g11e],
         ),
         section(
-            &[ds4e, c4e, as4e, f4e, d4e, f4e, d4e, as3e, c5e, gs4e, ds4e, gs4e, ds4e, c4e, as3e, d4e, f4e, d4e, f4e, as4e, c5e, g4e, f4e, raw(36, 108)],
-            &[ds4e, c4e, as4e, f4e, d4e, f4e, d4e, as3e, c5e, gs4e, ds4e, gs4e, ds4e, c4e, as3e, d4e, f4e, d4e, f4e, as4e, c5e, g4e, f4e, raw(36, 108)],
+            &[ds4e, c4e, as4e, f4e, d4e, f4e, d4e, as3e, c5e, gs4e, ds4e, gs4e, ds4e, c4e, as3e, d4e, f4e, d4e, f4e, as4e, c5e, g4e, f4e, e4w + e4e],
+            &[ds4e, c4e, as4e, f4e, d4e, f4e, d4e, as3e, c5e, gs4e, ds4e, gs4e, ds4e, c4e, as3e, d4e, f4e, d4e, f4e, as4e, c5e, g4e, f4e, e4w + e4e],
             &[f4i, gs3i, gs4i, gs3i, as3i, as3i, as4i, as3i, ds4i, as3i, f4i, as3i, gs4i, as3i, as4i, as3i, gs3i, gs3i, gs4i, gs3i, cs4i, gs3i, ds4i, gs3i, f4i, gs3i, gs4i, gs3i, as3i, as3i, as4i, as3i, ds4i, as3i, f4i, as3i, gs4i, as3i, as4i, as3i, c4i, c4i, c5i, c4i, f4i, c4i, g4i, c4i, as4i, c4i, c5i, c4i, c4i, c4i, c5i, c4i, f4i, c4i, g4i, c4i, as4i, c4i, c5i, c4i],
             &[g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, g11e, g11e, g11e, g11e, g11e, g11e, volume(0), duty(3), g11e, volume(254), duty(2), g11e, volume(0), duty(3), g11e, volume!(0 g11e, 0 g11e)],
         ),
@@ -47,7 +47,7 @@ pub fn area_west() -> Song {
     song(24, &[
         section(
             &[duty(27), volume(0), c4qd, c5qd, d5e, ds5e, d5qd, as4qd, g4q, c5w, c5qd, b4qd, g4q],
-            &[duty(27), volume(0), pitch!(8 c4qd, 0 ds4qd f4e g4e f4qd d4qd as3q g4w d4qd), raw(34, 60)],
+            &[duty(27), volume(0), pitch!(8 c4qd, 0 ds4qd f4e g4e f4qd d4qd as3q g4w d4qd), d4h + d4e],
             &[c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, as3i, ri, as3i, ri, as4i, ri, as3i, ri, as3i, ri, as3i, ri, as4i, ri, as3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, g3i, ri, g3i, ri, g4i, ri, g3i, ri, g3i, ri, g3i, ri, g4i, ri, g3i, ri],
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
         ),
@@ -58,7 +58,7 @@ pub fn area_west() -> Song {
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
         ),
         section(
-            &[f5e, ds5e, d5e, ds5q, raw(48, 60), c6q, g5q, ds5q, f5e, ds5e, d5e, ds5q, raw(48, 60), c6q, g5q, ds5q],
+            &[f5e, ds5e, d5e, ds5q, c5h + c5e, c6q, g5q, ds5q, f5e, ds5e, d5e, ds5q, c5h + c5e, c6q, g5q, ds5q],
             &[f5e, ds5e, d5e, ds5q, c5hd, volume!(251 c6q g5q ds5e, 254 f5e ds5e d5e ds5q c5hd, 251 c6q g5q ds5e)],
             &[c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri],
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
@@ -70,14 +70,14 @@ pub fn area_west() -> Song {
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
         ),
         section(
-            &[f5e, ds5e, d5e, ds5q, raw(48, 60), c6q, g5q, ds5q, f5e, ds5e, d5e, ds5q, raw(48, 60), c6q, g5q, ds5q],
+            &[f5e, ds5e, d5e, ds5q, c5h + c5e, c6q, g5q, ds5q, f5e, ds5e, d5e, ds5q, c5h + c5e, c6q, g5q, ds5q],
             &[f5e, ds5e, d5e, ds5q, c5hd, volume!(251 c6q g5q ds5e, 254 f5e ds5e d5e ds5q c5hd, 251 c6q g5q ds5e)],
             &[c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri, gs3i, ri, gs3i, ri, gs4i, ri, gs3i, ri],
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
         ),
         section(
-            &[volume(0), d5hd, d5e, ds5e, f5h, raw(51, 16), raw(50, 16), raw(43, 16), c5hdd, raw(64, 108)],
-            &[pitch(0), volume(255), f4w, g4w, g4hdd, raw(56, 108)],
+            &[volume(0), d5hd, d5e, ds5e, f5h, ds5q3, d5q3, as4q3, c5hdd, c6w + c6e],
+            &[pitch(0), volume(255), f4w, g4w, g4hdd, g5w + g5e],
             &[as3i, ri, as3i, ri, as4i, ri, as3i, ri, as3i, ri, as3i, ri, as4i, ri, as3i, ri, g3i, ri, g3i, ri, g4i, ri, g3i, ri, g3i, ri, g3i, ri, g4i, ri, g3i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri, c4i, ri, c4i, ri, c5i, ri, c4i, ri],
             &[duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12), duty(34), volume(254), b2e, duty(35), raw(255, 12)],
         ),
@@ -111,13 +111,13 @@ pub fn home_theme() -> Song {
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[duty(32), volume(0), raw(56, 64), f5w, as5w],
+            &[duty(32), volume(0), g5w + g5w, f5w, as5w],
             &[volume(253), g5q, ds5q, as4q, g5q, ds5q, as4q, g5q, ds5q, as4q, f5q, d5q, as4q, f5q, d5q, as4q, f5q],
             &[ds4q, ds4q, ds5q, ds4q, rq, ds4q, rq, ds5q, d4q, d4q, rq, d4q, rq, d4q, rq, d5q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[raw(51, 64), d5w, as4w],
+            &[ds5w + ds5w, d5w, as4w],
             &[ds5q, as4q, g4q, ds5q, as4q, g4q, ds5q, as4q, g4q, d5q, as4q, f4q, d5q, as4q, f4q, d5q],
             &[c4q, c4q, c5q, c4q, rq, c4q, rq, c5q, as3q, as3q, as4q, as3q, rq, as3q, as4q, as3q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
@@ -129,19 +129,19 @@ pub fn home_theme() -> Song {
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[g5hd, raw(54, 56), as4h, ds5h, f5h],
+            &[g5hd, f5w + f5hd, as4h, ds5h, f5h],
             &[as4q, f4q, d4q, as4q, f4q, d4q, as4q, f4q, d4q, as4q, f4q, d4q, as4q, f4q, as4q, f4q],
             &[as3q, as3q, as4q, as3q, rq, as3q, rq, as4q, as3q, as3q, as4q, as3q, rq, c4q, rq, d4q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[duty(32), volume(0), raw(56, 64), f5w, as5w],
+            &[duty(32), volume(0), g5w + g5w, f5w, as5w],
             &[g5q, ds5q, as4q, g5q, ds5q, as4q, g5q, ds5q, as4q, f5q, d5q, as4q, f5q, d5q, as4q, f5q],
             &[ds4q, ds4q, ds5q, ds4q, rq, ds4q, rq, ds5q, d4q, d4q, rq, d4q, rq, d4q, rq, d5q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[raw(51, 64), d5w, g5w],
+            &[ds5w + ds5w, d5w, g5w],
             &[ds5q, as4q, g4q, ds5q, as4q, g4q, ds5q, as4q, g4q, d5q, as4q, f4q, d5q, as4q, f4q, d5q],
             &[c4q, c4q, c5q, c4q, rq, c4q, rq, c5q, as3q, as3q, as4q, as3q, rq, as3q, as4q, as3q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
@@ -153,7 +153,7 @@ pub fn home_theme() -> Song {
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
         ),
         section(
-            &[raw(50, 48), c5h, raw(44, 40), duty(32), g4q, a4q, b4q],
+            &[d5w + d5h, c5h, b4w + b4q, duty(32), g4q, a4q, b4q],
             &[b4q, g4q, d4q, b4q, g4q, d4q, b4q, g4q, d4q, b4q, g4q, d4q, volume!(0 g4i, 252 fs4i, 0 g4i, 252 fs4i, 0 ds4i, 252 d4i, 250 cs4i, 248 cs4i, 0 ds4i, 252 d4i, 0 ds4i, 252 d4i, 0 cs4i, 252 c4i, 250 b3i, 248 as3i)],
             &[g3q, g3q, g4q, g3q, rq, g3q, rq, g4q, g3q, g3q, g4q, g3q, rq, g3q, a3q, b3q],
             &[volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8), volume(254), duty(34), g2q, duty(35), raw(255, 8)],
@@ -162,77 +162,143 @@ pub fn home_theme() -> Song {
 }
 
 pub fn area_east() -> Song {
-    song(12, &[
+    song(6, &[
         section(
-            &[duty(37), volume(0), d5e, re, d5e, re, g5q, d5e, f5hd, re, volume(253), duty(32), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1), volume(0), duty(37), d5e, re, d5e, re, g5q, d5e, f5hd, re, volume(255), duty(32), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1)],
-            &[duty(37), volume(253), g3e, re, g3e, re, g4e, re, g3e, g3e, re, c4e, cs4e, d4e, re, f4e, fs4e, g4e, g3e, re, g3e, re, g4e, re, g3e, g3e, re, c4e, cs4e, d4e, re, f4e, fs4e, g4e],
-            &[g3e, re, g3e, re, g4e, re, g3e, g3e, re, c4e, cs4e, d4e, re, f4e, fs4e, g4e, g3e, re, g3e, re, g4e, re, g3e, g3e, re, c4e, cs4e, d4e, re, f4e, fs4e, g4e],
-            &[duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e],
+            &[duty(37), volume(0), d5q, rq, d5q, rq, g5h, d5q, f5w + f5h, rq, volume(253), duty(32), d7i3, e7i3, d7i3, e7i3, ri3, ri3, d7i3, e7i3, d7i3, e7i3, ri3, ri3],
+            &[duty(37), volume(253), g3q, rq, g3q, rq, g4q, rq, g3q, g3q, rq, c4q, cs4q, d4q, rq, f4q, fs4q, g4q],
+            &[g3q, rq, g3q, rq, g4q, rq, g3q, g3q, rq, c4q, cs4q, d4q, rq, f4q, fs4q, g4q],
+            &[duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q],
         ),
         section(
-            &[volume(0), duty(37), g5qd, d5qd, g5q, f5qd, c5qd, f5q, ds5qd, as4qd, ds5q, f5qd, c5qd, volume(253), duty(32), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(1), rest(1)],
-            &[d5qd, g4qd, d5q, c5qd, f4qd, c5q, as4qd, ds4qd, as4q, c5qd, f4h, re],
-            &[g3e, re, g3e, re, g4e, g3e, re, re, f3e, re, f3e, re, f4e, f3e, re, re, ds3e, re, ds3e, re, ds4e, ds3e, re, re, f3e, re, f3e, re, f4e, f3e, re, re],
-            &[f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e],
+            &[volume(0), duty(37), d5q, rq, d5q, rq, g5h, d5q, f5w + f5h, rq, volume(255), duty(32), d7i3, e7i3, d7i3, e7i3, ri3, ri3, d7i3, e7i3, d7i3, e7i3, ri3, ri3],
+            &[g3q, rq, g3q, rq, g4q, rq, g3q, g3q, rq, c4q, cs4q, d4q, rq, f4q, fs4q, g4q],
+            &[g3q, rq, g3q, rq, g4q, rq, g3q, g3q, rq, c4q, cs4q, d4q, rq, f4q, fs4q, g4q],
+            &[f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q],
         ),
         section(
-            &[volume(0), duty(37), g5qd, d5qd, g5q, f5qd, c5qd, f5q, ds5qd, as4qd, ds5q, d5qd, a4qd, f4q],
-            &[pitch(0), d5qd, g4qd, d5q, c5qd, f4qd, c5q, as4qd, ds4qd, as4q, a4qd, d4qd, a3q],
-            &[g3e, re, g3e, re, g4e, g3e, re, re, f3e, re, f3e, re, f4e, f3e, re, re, ds3e, re, ds3e, re, ds4e, ds3e, re, re, f3e, re, f3e, re, f4e, f3e, f3e, f4e],
-            &[f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e],
+            &[volume(0), duty(37), g5hd, d5hd, g5h, f5hd, c5hd, f5h],
+            &[d5hd, g4hd, d5h, c5hd, f4hd, c5h],
+            &[g3q, rq, g3q, rq, g4q, g3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, rq, rq],
+            &[f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q],
         ),
         section(
-            &[duty(43), raw(40, 72), d4q, g4q, a4w, f4h, c4h],
-            &[duty(43), raw(27, 72), as3q, as3q, c4w, a3h, f3h],
-            &[g3e, re, g3e, g3e, g3e, re, g3e, g3e, g3e, re, g3e, g3e, g3e, re, g3e, g3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e],
-            &[f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e],
+            &[ds5hd, as4hd, ds5h, f5hd, c5hd, volume(253), duty(32), d7i3, e7i3, d7i3, e7i3, ri3, ri3, d7i3, e7i3, d7i3, e7i3, ri3, ri3],
+            &[as4hd, ds4hd, as4h, c5hd, f4w, rq],
+            &[ds3q, rq, ds3q, rq, ds4q, ds3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, rq, rq],
+            &[raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q],
         ),
         section(
-            &[raw(34, 84), raw(34, 60), d5w],
-            &[raw(24, 84), raw(23, 60), fs4w],
-            &[ds3e, re, ds3e, ds3e, ds3e, re, ds3e, ds3e, ds3e, re, ds3e, ds3e, ds3e, re, ds3e, ds3e, d3e, re, d3e, d3e, d3e, re, d3e, d3e, d3e, re, d3e, d3e, d3e, re, d3e, d3e],
-            &[f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e],
+            &[volume(0), duty(37), g5hd, d5hd, g5h, f5hd, c5hd, f5h],
+            &[pitch(0), d5hd, g4hd, d5h, c5hd, f4hd, c5h],
+            &[g3q, rq, g3q, rq, g4q, g3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, rq, rq],
+            &[f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q],
         ),
         section(
-            &[raw(56, 72), a5q, as5q, c6w, as5h, c6h],
-            &[raw(43, 72), f4q, g4q, a4w, f4h, a4h],
-            &[g3e, re, g3e, g3e, g3e, re, g3e, g3e, g3e, re, g3e, g3e, g3e, re, g3e, g3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e, f3e, re, f3e, f3e],
-            &[raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e],
+            &[ds5hd, as4hd, ds5h, d5hd, a4hd, f4h],
+            &[as4hd, ds4hd, as4h, a4hd, d4hd, a3h],
+            &[ds3q, rq, ds3q, rq, ds4q, ds3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, f3q, f4q],
+            &[f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q],
         ),
         section(
-            &[raw(66, 96), d6w, d5w],
-            &[raw(43, 96), volume(254), b2e, d3e, g3e, d3e, g3e, b3e, d4e, b3e, d4e, g4e, b4e, g4e, b4e, d5e, g5e, b5e],
-            &[as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, b3e, re, b3e, b3e, b3e, re, b3e, b3e, b3e, re, b3e, b3e, b3e, re, b3e, b3e],
-            &[f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6)],
+            &[duty(43), g4w + g4w + g4w, d4h, g4h],
+            &[duty(43), as3w + as3w + as3w, as3h, as3h],
+            &[g3q, rq, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, g3q, g3q],
+            &[f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6)],
         ),
         section(
-            &[duty(37), ds5h, c5q, g4h, ds5q, f5q, ds5q, d5h, as4q, g4w, rq],
-            &[g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e],
-            &[c4e, re, c4e, c4e, c4e, re, c4e, c4e, c4e, re, c4e, c4e, c4e, re, c4e, c4e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e],
-            &[duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e],
+            &[a4w + a4w, f4w, c4w],
+            &[c4w + c4w, a3w, f3w],
+            &[f3q, rq, f3q, f3q, f3q, rq, f3q, f3q, f3q, rq, f3q, f3q, f3q, rq, f3q, f3q],
+            &[duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q],
         ),
         section(
-            &[a4h, fs4q, d4h, a4q, g4q, a4q, as4h, c5q, raw(50, 60)],
-            &[fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e, g4e, b4e, d5e, b4e, g4e, b4e, d5e, b4e],
-            &[a3e, re, a3e, a3e, a3e, re, a3e, a3e, a3e, re, a3e, a3e, a3e, re, a3e, a3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, b3e, re, b3e, b3e, b3e, re, b3e, b3e],
-            &[f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e],
+            &[d4w + d4w + d4w + d4h],
+            &[g3w + g3w + g3w + g3h],
+            &[ds3q, rq, ds3q, ds3q, ds3q, rq, ds3q, ds3q, ds3q, rq, ds3q, ds3q, ds3q, rq],
+            &[f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q],
         ),
         section(
-            &[ds5h, c5q, g4h, ds5q, f5q, ds5q, d5h, as4q, g4w, rq],
-            &[g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, c5e, ds5e, c5e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e, g4e, as4e, d5e, as4e],
-            &[c4e, re, c4e, c4e, c4e, re, c4e, c4e, c4e, re, c4e, c4e, c4e, re, c4e, c4e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e, as3e, re, as3e, as3e],
-            &[f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e],
+            &[d4w + d4w + d4h, d5w + d5w],
+            &[fs3w + fs3w + fs3h, fs4w + fs4w],
+            &[ds3q, ds3q, d3q, rq, d3q, d3q, d3q, rq, d3q, d3q, d3q, rq, d3q, d3q, d3q, rq, d3q, d3q],
+            &[f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q],
         ),
         section(
-            &[a4h, fs4q, d4h, a4q, as4q, c5q, a4qd, raw(40, 30), rh, volume(253), duty(32), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1)],
-            &[fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, fs4e, a4e, d5e, a4e, g4e, d4e, as3e, g3e, rh, re, pitch(10), d2i, ri, f2i, ri, g2i, ri, a2i, ri, c3i, ri],
-            &[a3e, re, a3e, a3e, a3e, re, a3e, a3e, a3e, re, a3e, a3e, a3e, re, a3e, a3e, g3e, g3e, g3e, g3e, re, g3e, g3e, g3e, re, d3e, f3e, g3e, a3e, c4e],
-            &[f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6), duty(34), volume(254), f2e, f2e, f2e, f2e, f2e, f2e, raw(255, 6)],
+            &[g5w + g5w + g5w, a5h, as5h],
+            &[as4w + as4w + as4w, f4h, g4h],
+            &[g3q, rq, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, g3q, g3q],
+            &[raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q],
         ),
         section(
-            &[raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1)],
-            &[f3i, ri, a3i, ri],
-            &[f4e, a4e],
+            &[c6w + c6w, as5w, c6w],
+            &[a4w + a4w, f4w, a4w],
+            &[f3q, rq, f3q, f3q, f3q, rq, f3q, f3q, f3q, rq, f3q, f3q, f3q, rq, f3q, f3q],
+            &[f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q],
+        ),
+        section(
+            &[d6w + d6w + d6w + d6w],
+            &[as4w + as4w + as4w + as4w],
+            &[as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q],
+            &[f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q],
+        ),
+        section(
+            &[d6w + d6w, d5w + d5w],
+            &[volume(254), b2q, d3q, g3q, d3q, g3q, b3q, d4q, b3q, d4q, g4q, b4q, g4q, b4q, d5q, g5q, b5q],
+            &[b3q, rq, b3q, b3q, b3q, rq, b3q, b3q, b3q, rq, b3q, b3q, b3q, rq, b3q, b3q],
+            &[f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6)],
+        ),
+        section(
+            &[duty(37), ds5w, c5h, g4w, ds5h, f5h, ds5h],
+            &[g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q],
+            &[c4q, rq, c4q, c4q, c4q, rq, c4q, c4q, c4q, rq, c4q, c4q, c4q, rq, c4q, c4q],
+            &[duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q],
+        ),
+        section(
+            &[d5w, as4h, g4w + g4w, rh],
+            &[g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q],
+            &[as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q],
+            &[f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q],
+        ),
+        section(
+            &[a4w, fs4h, d4w, a4h, g4h, a4h],
+            &[fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q],
+            &[a3q, rq, a3q, a3q, a3q, rq, a3q, a3q, a3q, rq, a3q, a3q, a3q, rq, a3q, a3q],
+            &[f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q],
+        ),
+        section(
+            &[as4w, c5h, d5w + d5w + d5h],
+            &[g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q, g4q, b4q, d5q, b4q, g4q, b4q, d5q, b4q],
+            &[as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, b3q, rq, b3q, b3q, b3q, rq, b3q, b3q],
+            &[raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q],
+        ),
+        section(
+            &[ds5w, c5h, g4w, ds5h, f5h, ds5h],
+            &[g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q, g4q, c5q, ds5q, c5q],
+            &[c4q, rq, c4q, c4q, c4q, rq, c4q, c4q, c4q, rq, c4q, c4q, c4q, rq, c4q, c4q],
+            &[f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q],
+        ),
+        section(
+            &[d5w, as4h, g4w + g4w, rh],
+            &[g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q, g4q, as4q, d5q, as4q],
+            &[as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q, as3q, rq, as3q, as3q],
+            &[f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q],
+        ),
+        section(
+            &[a4w, fs4h, d4w, a4h, as4h, c5h],
+            &[fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q, fs4q, a4q, d5q, a4q],
+            &[a3q, rq, a3q, a3q, a3q, rq, a3q, a3q, a3q, rq, a3q, a3q, a3q, rq, a3q, a3q],
+            &[f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6)],
+        ),
+        section(
+            &[a4hd, g4w + g4q, rw, volume(253), duty(32), d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3],
+            &[g4q, d4q, as3q, g3q, rw, rq, pitch(10), d2e, re, f2e, re, g2e, re, a2e, re, c3e, re],
+            &[g3q, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, d3q, f3q, g3q, a3q, c4q],
+            &[duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6), duty(34), volume(254), f2q, f2q, f2q, f2q, f2q, f2q, raw(255, 6)],
+        ),
+        section(
+            &[d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3, d7i3, e7i3],
+            &[f3e, re, a3e, re],
+            &[f4q, a4q],
             &[],
         ),
     ])
@@ -282,8 +348,8 @@ pub fn song_05() -> Song {
             &[volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty(34), f2i],
         ),
         section(
-            &[as4q, fs4q, g4q, duty(37), volume(0), raw(35, 60), fs4q, g4e, a4qd, as4qd, fs4q, g4qd, ds4qd, fs4q],
-            &[rq, a3e, as3e, rq, c4w, fs4qd, g4qd, d4q, ds4qd, raw(32, 60)],
+            &[as4q, fs4q, g4q, duty(37), volume(0), ds4h + ds4e, fs4q, g4e, a4qd, as4qd, fs4q, g4qd, ds4qd, fs4q],
+            &[rq, a3e, as3e, rq, c4w, fs4qd, g4qd, d4q, ds4qd, c4h + c4e],
             &[rq, a3e, as3e, rq, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i],
             &[f2i, f2i, f2i, duty!(35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e, 34 f2i), duty(35), raw(255, 12), volume(0), duty!(34 f2i f2i f2i f2i, 35 b2e, 34 f2i f2i, 35 b2e)],
         ),
@@ -329,14 +395,14 @@ pub fn song_05() -> Song {
 pub fn song_06() -> Song {
     song(24, &[
         section(
-            &[duty(32), volume(0), e4e, re, g4e, ri, c5e, ri, as4e, f4e, raw(40, 54), ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, raw(56, 54), ri, f5ed, ri, d5ed, ri],
-            &[volume(255), pitch(8), duty(32), e4e, re, g4e, ri, c5e, ri, as4e, f4e, raw(40, 54), ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, raw(56, 54), ri, f5ed, ri, d5ed, ri],
+            &[duty(32), volume(0), e4e, re, g4e, ri, c5e, ri, as4e, f4e, g4h + g4i, ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, g5h + g5i, ri, f5ed, ri, d5ed, ri],
+            &[volume(255), pitch(8), duty(32), e4e, re, g4e, ri, c5e, ri, as4e, f4e, g4h + g4i, ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, g5h + g5i, ri, f5ed, ri, d5ed, ri],
             &[c4e, c4e, c5e, c4e, re, c4e, c5e, c4e, as3e, as3e, as4e, as3e, re, as3e, as4e, as3e, c4e, c4e, c5e, c4e, re, c4e, c5e, c4e, gs3e, gs3e, gs4e, gs3e, re, as3e, as4e, as3e],
             &[volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12)],
         ),
         section(
-            &[e4e, re, g4e, ri, c5e, ri, as4e, f4e, raw(40, 54), ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, raw(56, 54), ri, c5ed, ri, d5ed, ri],
-            &[e4e, re, g4e, ri, c5e, ri, as4e, f4e, raw(40, 54), ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, raw(56, 54), ri, c5ed, ri, d5ed, ri],
+            &[e4e, re, g4e, ri, c5e, ri, as4e, f4e, g4h + g4i, ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, g5h + g5i, ri, c5ed, ri, d5ed, ri],
+            &[e4e, re, g4e, ri, c5e, ri, as4e, f4e, g4h + g4i, ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, g5h + g5i, ri, c5ed, ri, d5ed, ri],
             &[c4e, c4e, c5e, c4e, re, c4e, c5e, c4e, as3e, as3e, as4e, as3e, re, as3e, as4e, as3e, c4e, c4e, c5e, c4e, re, c4e, c5e, c4e, gs3e, gs3e, gs4e, gs3e, re, as3e, as4e, as3e],
             &[volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12)],
         ),
@@ -347,8 +413,8 @@ pub fn song_06() -> Song {
             &[volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12)],
         ),
         section(
-            &[ds5w, d5h, f5h, f5e, c5e, d5e, raw(52, 108), rh],
-            &[ds5w, d5h, f5h, f5e, c5e, d5e, raw(52, 108), rh],
+            &[ds5w, d5h, f5h, f5e, c5e, d5e, e5w + e5e, rh],
+            &[ds5w, d5h, f5h, f5e, c5e, d5e, e5w + e5e, rh],
             &[gs3e, gs3e, gs4e, gs3e, re, gs3e, gs4e, gs3e, as3e, as3e, as4e, as3e, re, as3e, as4e, as3e, c4e, c4e, c5e, c4e, re, c4e, c5e, c4e, c4e, c4e, c5e, c4e, re, c4e, c5e, c4e],
             &[volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12), volume(254), duty(34), b2e, duty(35), raw(255, 12)],
         ),
@@ -358,20 +424,20 @@ pub fn song_06() -> Song {
 pub fn song_07() -> Song {
     song(24, &[
         section(
-            &[rh, volume(0), duty(40), b4h, c5ed, b4ed, g4e, a4h, b4ed, raw(42, 30), a4h, b4ed, a4ed, fs4e, g4h, a4ed],
-            &[rh, volume(252), duty(40), pitch(8), red, b4h, c5ed, b4ed, g4e, a4h, b4ed, raw(42, 30), a4h, b4ed, a4ed, fs4e, g4h],
+            &[rh, volume(0), duty(40), b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h, a4ed],
+            &[rh, volume(252), duty(40), pitch(8), red, b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h],
             &[rh, g3i, ri, g3i, ri, g4e, ri, g3e, ri, g3i, ri, g4e, ri, g3i, fs3i, ri, fs3i, ri, fs4e, ri, fs3e, ri, fs3i, ri, fs4e, ri, fs3i, f3i, ri, f3i, ri, f4e, ri, f3e, ri, f3i, ri, f4e, ri, f3i, e3i, ri, e3i, ri, e4e, ri, e3e, ri, e3i],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
         section(
-            &[raw(40, 30), g4h, a4ed, g4ed, a4e, b4qd, d4qd, b4q, a4qd, e4qd, g4q, g4e, fs4e, e4e, d4q, d5qd, b4h, c5ed],
-            &[a4ed, raw(40, 30), g4h, a4ed, g4ed, a4e, b4qd, d4qd, b4q, a4qd, e4qd, g4q, g4e, fs4e, e4e, d4q, d5qd, b4h],
+            &[g4q + g4i, g4h, a4ed, g4ed, a4e, b4qd, d4qd, b4q, a4qd, e4qd, g4q, g4e, fs4e, e4e, d4q, d5qd, b4h, c5ed],
+            &[a4ed, g4q + g4i, g4h, a4ed, g4ed, a4e, b4qd, d4qd, b4q, a4qd, e4qd, g4q, g4e, fs4e, e4e, d4q, d5qd, b4h],
             &[ri, e4e, ri, e3i, ds3i, ri, ds3i, ri, ds4e, ri, ds3e, ri, ds3i, ri, ds4e, ri, ds3i, d3i, ri, d3i, ri, d4e, ri, d3e, ri, d3i, ri, d4e, ri, d3i, cs3i, ri, cs3i, ri, cs4e, ri, cs3e, ri, cs3i, ri, cs4e, ri, cs3i, d3i, ri, d3i, ri, d4e, ri, d3e, ri, d3i, d4i, e3i, e4i, fs3i, fs4i, g3i, ri, g3i, ri, g4e, ri, g3e, ri, g3i],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
         section(
-            &[b4ed, c5e, d5h, e5ed, raw(55, 30), g5h, a5ed, raw(56, 30), g5qd, raw(52, 60), g5e, fs5e, e5e, d5e, re],
-            &[c5ed, b4ed, c5e, d5h, e5ed, raw(55, 30), g5h, a5ed, raw(56, 30), g5qd, e5qdd, pitch(0), volume(254), e5e, d5e, c5e, b4e, re],
+            &[b4ed, c5e, d5h, e5ed, fs5q + fs5i, g5h, a5ed, g5q + g5i, g5qd, e5h + e5e, g5e, fs5e, e5e, d5e, re],
+            &[c5ed, b4ed, c5e, d5h, e5ed, fs5q + fs5i, g5h, a5ed, g5q + g5i, g5qd, e5qdd, pitch(0), volume(254), e5e, d5e, c5e, b4e, re],
             &[ri, g4e, ri, g3i, fs3i, ri, fs3i, ri, fs4e, ri, fs3e, ri, fs3i, ri, fs4e, ri, fs3i, f3i, ri, f3i, ri, f4e, ri, f3e, ri, f3i, ri, f4e, ri, f3i, e3i, ri, e3i, ri, e4e, ri, e3e, ri, e3i, ri, e4e, ri, e3i, c3i, ri, c3i, ri, c4e, ri, c3e, ri],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
@@ -382,20 +448,20 @@ pub fn song_07() -> Song {
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
         section(
-            &[re, g5e, re, g5e, fs5e, e5e, fs5e, raw(56, 60), b4e, a4e, g4e, raw(42, 60), d5h, g4w],
-            &[re, pitch(8), g5e, re, g5e, fs5e, e5e, fs5e, g5w, pitch(0), raw(39, 60), b4h, pitch(8), g4w],
+            &[re, g5e, re, g5e, fs5e, e5e, fs5e, g5h + g5e, b4e, a4e, g4e, a4h + a4e, d5h, g4w],
+            &[re, pitch(8), g5e, re, g5e, fs5e, e5e, fs5e, g5w, pitch(0), fs4h + fs4e, b4h, pitch(8), g4w],
             &[c3i, ri, c3i, ri, c4e, ri, c3i, d3i, ri, d3i, ri, d4e, ri, d3i, g3i, ri, g3i, ri, g4e, ri, g3e, ri, g3i, ri, g4e, ri, g3i, fs3i, ri, fs3i, ri, fs4e, ri, fs3e, ri, fs3i, ri, fs4e, ri, fs3i, e3i, ri, e3i, ri, e4e, ri, e3e, ri, e3i, ri, e4e, ri, e3i],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
         section(
-            &[re, g5e, re, g5e, fs5e, e5e, fs5e, g5w, duty(36), volume(254), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2), volume(0), duty(40), re, c6i, ri, c6i, b5ed, c6i, ri, c6i, raw(60, 30), re, c5i, ri, c5i, b4ed, c5i, ri, c5i, raw(44, 30)],
-            &[re, g5e, re, g5e, fs5e, e5e, fs5e, g5q, pitch(0), c5i, ri, c5i, b4ed, c5i, ri, c5i, raw(44, 30), re, g5i, ri, g5i, g5ed, g5i, ri, g5i, g5ed, duty(36), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rest(2), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rest(2), duty(40), re, g5i, ri, g5i, g5ed, g5i, ri, g5i, g5ed, duty(36), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2)],
+            &[re, g5e, re, g5e, fs5e, e5e, fs5e, g5w, duty(36), volume(254), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3, raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3, volume(0), duty(40), re, c6i, ri, c6i, b5ed, c6i, ri, c6i, b5q + b5i, re, c5i, ri, c5i, b4ed, c5i, ri, c5i, b4q + b4i],
+            &[re, g5e, re, g5e, fs5e, e5e, fs5e, g5q, pitch(0), c5i, ri, c5i, b4ed, c5i, ri, c5i, b4q + b4i, re, g5i, ri, g5i, g5ed, g5i, ri, g5i, g5ed, duty(36), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rt3, raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rt3, duty(40), re, g5i, ri, g5i, g5ed, g5i, ri, g5i, g5ed, duty(36), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3, raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3],
             &[c3i, ri, c3i, ri, c4e, ri, c3i, d3i, ri, d3i, ri, d4e, ri, d3i, g3i, d4i, b4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i, g3i, d4i, g4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i, g3i, d4i, b4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i, c5i, g4i, d4i, b4i, g4i, d4i],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
         section(
             &[re, c6i, ri, c6i, b5ed, volume(254), d5i, fs5i, a5i, fs5i, a5i, d6i, fs6i, a6i],
-            &[duty(40), re, g5i, ri, g5i, g5ed, duty(36), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rest(2), ri, raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rest(2)],
+            &[duty(40), re, g5i, ri, g5i, g5ed, duty(36), raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3, raw(82, 1), raw(84, 1), raw(82, 1), raw(84, 1), rt3, ri, raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), raw(74, 1), raw(76, 1), rt3],
             &[g3i, d4i, g4i, d4i, c5i, g4i, d4i, b4i, d4i, a4i, d5i, d4i, a4i, d5i, d4i, a4i],
             &[volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6), volume(0), duty(34), raw(255, 6)],
         ),
@@ -422,20 +488,20 @@ pub fn death_jingle() -> Song {
 pub fn title_theme() -> Song {
     song(24, &[
         section(
-            &[duty(37), pitch(1), volume(254), a3h, e4hd, cs4q, d4q, e4q, d4h, d5hd, a4q, raw(38, 16), raw(32, 16), raw(34, 16)],
-            &[duty(37), pitch(8), volume(254), a3h, e4hd, cs4q, d4q, e4q, d4h, d5hd, a4q, raw(38, 16), raw(32, 16), raw(34, 16)],
+            &[duty(37), pitch(1), volume(254), a3h, e4hd, cs4q, d4q, e4q, d4h, d5hd, a4q, f4q3, c4q3, d4q3],
+            &[duty(37), pitch(8), volume(254), a3h, e4hd, cs4q, d4q, e4q, d4h, d5hd, a4q, f4q3, c4q3, d4q3],
             &[sweep(255), a4w, g4w, fs4w, f4w],
             &[rw, rw, rw, rw],
         ),
         section(
             &[e4w, e5w, duty(32), volume(0), a4h, e4hd, cs4q, a3ed, cs4ed, e4e, fs4h, d4hd, a4q],
-            &[e4w, volume(253), e4i, gs4i, b4i, e5i, gs4i, b4i, e5i, gs5i, b4i, e5i, gs5i, b5i, e5i, gs5i, b5i, e6i, duty(32), pitch(8), volume(254), a4h, e4q, a6q, e6q, raw(42, 8), raw(36, 8), raw(33, 8), e4ed, a4ed, cs5e, d5h, fs4q, a6q, d6q, raw(42, 8), raw(38, 8), raw(34, 8)],
+            &[e4w, volume(253), e4i, gs4i, b4i, e5i, gs4i, b4i, e5i, gs5i, b4i, e5i, gs5i, b5i, e5i, gs5i, b5i, e6i, duty(32), pitch(8), volume(254), a4h, e4q, a6q, e6q, a4e3, e4e3, cs4e3, e4ed, a4ed, cs5e, d5h, fs4q, a6q, d6q, a4e3, f4e3, d4e3],
             &[sweep(19), e4e, e4e, e4e, e4e, e4e, e4e, e4e, e4e, e3e, e3e, e3e, e3e, e3e, e3e, e3e, e3e, a3e, a3e, a4e, a3e, a3e, a3e, a4e, a3e, g3e, g3e, g4e, g3e, g3e, g3e, g4e, g3e, fs3e, fs3e, fs4e, fs3e, fs3e, fs3e, fs4e, fs3e, f3e, f3e, f4e, f3e],
             &[volume(254), duty(34), b10e, b10e, b10e, b10e, b2e, f2i, duty(35), raw(255, 12), rw, rw, rw, rw, volume(254), duty(34), b10e, b10e, b10e, b10e, b2e, f2i],
         ),
         section(
             &[d5ed, e5ed, d5e, duty(32), cs5h, a4h, b4q, e4q, b4q, cs5q, d5h, fs4h, gs4h, e4h],
-            &[f4ed, g4ed, f4e, volume(253), raw(49, 8), raw(42, 8), raw(36, 8), raw(42, 8), raw(36, 8), raw(33, 8), raw(36, 8), raw(33, 8), raw(26, 8), raw(33, 8), raw(36, 8), raw(42, 8), raw(52, 8), raw(44, 8), raw(41, 8), raw(44, 8), raw(41, 8), raw(36, 8), raw(41, 8), raw(36, 8), raw(28, 8), raw(36, 8), raw(41, 8), raw(44, 8), raw(55, 8), raw(50, 8), raw(42, 8), raw(50, 8), raw(42, 8), raw(39, 8), raw(42, 8), raw(39, 8), raw(34, 8), raw(26, 8), raw(34, 8), raw(39, 8), raw(36, 8), raw(41, 8), raw(44, 8), raw(41, 8), raw(44, 8), raw(52, 8), raw(44, 8), raw(52, 8), raw(57, 8), e5i, gs5i, b5i, e6i],
+            &[f4ed, g4ed, f4e, volume(253), cs5e3, a4e3, e4e3, a4e3, e4e3, cs4e3, e4e3, cs4e3, a3e3, cs4e3, e4e3, a4e3, e5e3, b4e3, gs4e3, b4e3, gs4e3, e4e3, gs4e3, e4e3, b3e3, e4e3, gs4e3, b4e3, fs5e3, d5e3, a4e3, d5e3, a4e3, fs4e3, a4e3, fs4e3, d4e3, a3e3, d4e3, fs4e3, e4e3, gs4e3, b4e3, gs4e3, b4e3, e5e3, b4e3, e5e3, gs5e3, e5i, gs5i, b5i, e6i],
             &[f3e, f3e, f4e, f3e, e3e, e3e, e4e, e3e, e3e, e3e, e4e, e3e, e3e, e3e, e4e, e3e, e3e, e3e, e4e, e3e, d3e, d3e, d4e, d3e, d3e, d3e, d4e, d3e, e3e, e3e, e4e, e3e, e3e, e3e, e4e, e3e],
             &[duty(35), raw(255, 12)],
         ),
@@ -458,7 +524,7 @@ pub fn ending_theme() -> Song {
         ),
         section(
             &[as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hdd, re],
-            &[as5i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), re, g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, raw(56, 78)],
+            &[as5i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), re, g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hd + g5i],
             &[d3e, ri, d3e, ri, d3ed, ri, a3i, ri, d4i, ri, a3i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, g3e, ri, g3e, ri, g3ed, ri, b3i, ri, g4i, ri, b3i, ri, c4e, ri, c4e, ri, c4ed, ri, g4i, ri, c5i, ri, g4i, ri, c4e, ri, c4e, ri, c4ed, ri, g4i, ri, c5i, ri, g4i, ri, d4e, ri, d4e, ri, d4ed, ri, a4i, ri, d5i, ri, a4i, ri, d4e, ri, d4e, ri, d4ed, ri, a4i, ri, d5i, ri, a4i, ri, g3e, ri, g3e, ri, g3ed, ri, d3i, ri, f3i, ri, fs3i, ri, g3e],
             &[volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i],
         ),
@@ -469,26 +535,26 @@ pub fn ending_theme() -> Song {
             &[duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12)],
         ),
         section(
-            &[as5qd, c6i, as5i, raw(58, 16), raw(56, 16), raw(54, 16), d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e],
-            &[c6e, as5qd, c6i, as5i, raw(58, 16), raw(56, 16), raw(54, 16), d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e],
+            &[as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e],
+            &[c6e, as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e],
             &[ds3e, ri, ds4e, ri, ds3i, ri, f3e, ri, f4e, ri, f3i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, e3e, ri, e3e, ri, e3ed, ri, c4i, ri, e4i, ri, c4i, ri],
             &[volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12)],
         ),
         section(
-            &[as5qd, c6i, as5i, raw(58, 16), raw(59, 16), raw(64, 16), duty(40), raw(66, 60), as5e, d6e, raw(64, 60), a5q, c6q, raw(66, 60), as5e, d6e],
-            &[c6e, as5qd, c6i, as5i, raw(58, 16), raw(59, 16), raw(64, 16), volume(0), pitch(0), duty(40), re, g5qd, g5e, g5e, raw(58, 60), f5q, a5q, rq, g5qd, g5e, g5e],
+            &[as5qd, c6i, as5i, a5q3, as5q3, c6q3, duty(40), d6h + d6e, as5e, d6e, c6h + c6e, a5q, c6q, d6h + d6e, as5e, d6e],
+            &[c6e, as5qd, c6i, as5i, a5q3, as5q3, c6q3, volume(0), pitch(0), duty(40), re, g5qd, g5e, g5e, a5h + a5e, f5q, a5q, rq, g5qd, g5e, g5e],
             &[ds3e, ri, ds4e, ri, ds3i, ri, f3e, ri, f4e, ri, f3i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri],
             &[volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i],
         ),
         section(
-            &[raw(64, 60), raw(58, 16), raw(59, 16), raw(64, 16), as5i, a5i, g5hdd, re, duty(41), volume(253), d4e, g4e, a4e, as4e, c5e, d5e, f5e, g5qd, raw(40, 60)],
-            &[raw(58, 60), raw(54, 16), raw(56, 16), raw(58, 16), pitch(5), g5h, volume(252), as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i],
+            &[c6h + c6e, a5q3, as5q3, c6q3, as5i, a5i, g5hdd, re, duty(41), volume(253), d4e, g4e, a4e, as4e, c5e, d5e, f5e, g5qd, g4h + g4e],
+            &[a5h + a5e, f5q3, g5q3, a5q3, pitch(5), g5h, volume(252), as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i],
             &[as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, g3e, re, g3e, re, g3e, re, g3e, re, f3e, re, f3e, re, f3e, re, f3e, re, ds3e, re, ds3e, re, ds3e, re, ds3e, re],
             &[duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12)],
         ),
         section(
-            &[volume(0), duty(32), g5q, fs5q, e5q, fs5q, g5h, as4e, ds5e, f5e, g5e, a5h, raw(54, 16), raw(56, 16), raw(58, 16), b5w],
-            &[pitch(0), volume(0), d5q, d5q, d5q, d5q, ds5h, pitch(5), g4e, as4e, as4e, as4e, c5h, raw(48, 16), raw(48, 16), raw(48, 16), d5w],
+            &[volume(0), duty(32), g5q, fs5q, e5q, fs5q, g5h, as4e, ds5e, f5e, g5e, a5h, f5q3, g5q3, a5q3, b5w],
+            &[pitch(0), volume(0), d5q, d5q, d5q, d5q, ds5h, pitch(5), g4e, as4e, as4e, as4e, c5h, c5q3, c5q3, c5q3, d5w],
             &[d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri],
             &[volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12), volume(0), duty(34), f10i, f2i, duty(35), raw(255, 12)],
         ),
@@ -541,7 +607,7 @@ pub fn song_12() -> Song {
         section(
             &[duty(41), volume!(250 a5e fs5e, 251 d5e b5e, 252 g5e d5e, 253 a5e fs5e d5e b5e g5e d5e a5e fs5e, 254 d5e b5e g5e d5e a5e fs5e d5e b5e g5e d5e a5e fs5e d5e b5e g5e d5e a5e fs5e d5e b5e g5e)],
             &[duty(41), pitch(8), re, a5e, fs5e, volume!(248 d5e b5e, 249 g5e d5e, 250 a5e fs5e d5e b5e g5e d5e, 251 a5e fs5e d5e b5e g5e, 252 d5e a5e fs5e d5e b5e g5e d5e a5e fs5e d5e b5e g5e d5e a5e fs5e d5e b5e)],
-            &[sweep(255), raw(34, 96), raw(32, 96), raw(28, 80), g3e],
+            &[sweep(255), d4w + d4h, c4w + c4h, b3w + b3q, g3e],
             &[volume(0), duty(34), raw(192, 8), re, g2e, raw(192, 8), re, g2e, raw(192, 8), re, e2i, e2i, g10e, g2e, re, e2e, g2i, e2e, e2i, e2i, g2i, rq, c11e, c11e, g10e, e2i, c11e, c11e, c11e, g10e, e2i, c11e, c11e, c11e, g10e, e2i, c11e, c11e, c11e, g10e, e2i],
         ),
         section(
@@ -557,20 +623,20 @@ pub fn song_12() -> Song {
             &[volume(0), duty(40), a4h, e5q, d5h, g5hd, f5hd, c5h, d5hd, a4h, e5q, d5h, g5hd, f5hd],
         ),
         section(
-            &[raw(43, 40), ds5h, as5hd, g5qd, gs5qd, as5qd],
-            &[raw(35, 40), ds5h, as5hd, g5qd, gs5qd, as5qd],
+            &[as4h + as4e, ds5h, as5hd, g5qd, gs5qd, as5qd],
+            &[ds4h + ds4e, ds5h, as5hd, g5qd, gs5qd, as5qd],
             &[ds4e, rq, ds4e, rq, ds4e, ds4e, ds4e, ds4e, rq, cs4e, rq, cs4e, rq, cs4e, cs4e, cs4e, cs4e, rq],
             &[as5h, d6hd, duty(0), b7q, g7q, a7q, e7q, g7q, d7q, e7q],
         ),
         section(
-            &[raw(51, 40), ds5h, ds5q, ds5hd, ds5hdd, raw(51, 40), ds5hdd],
-            &[raw(51, 40), as4h, ds5q, as5hd, gs5hd, re, raw(57, 40), g5hdd],
+            &[ds5h + ds5e, ds5h, ds5q, ds5hd, ds5hdd, ds5h + ds5e, ds5hdd],
+            &[ds5h + ds5e, as4h, ds5q, as5hd, gs5hd, re, gs5h + gs5e, g5hdd],
             &[c4e, rq, c4e, rq, c4e, c4e, c4e, c4e, rq, b3e, rq, b3e, rq, b3e, b3e, b3e, b3e, rq, as3e, rq, as3e, rq, as3e, as3e, as3e, as3e, rq],
             &[b6q, b7q, g7q, a7q, e7q, g7q, d7q, e7q, b6q, b7q, g7q, a7q, e7q, g7q, d7q, e7q, b6q, b7q],
         ),
         section(
-            &[raw(48, 40), c5q, c5e, a4e, f4e, c4e, f4e, g4hd, d5hd, raw(56, 80)],
-            &[raw(56, 40), f5qd, c5e, a4e, f4e, c4e, f4e, g4hd, g4hd, g5hdd, d4q],
+            &[c5h + c5e, c5q, c5e, a4e, f4e, c4e, f4e, g4hd, d5hd, g5w + g5q],
+            &[g5h + g5e, f5qd, c5e, a4e, f4e, c4e, f4e, g4hd, g4hd, g5hdd, d4q],
             &[gs3e, rq, gs3e, rq, gs3e, gs3e, gs3e, gs3e, rq, g3e, rq, g3e, rq, g3e, g3e, g3e, g3e, rq, g3e, rq, g3e, rq, g3e, g3e, g3e, g3e],
             &[g7q, a7q, e7q, g7q, d7q, e7q, b6q, duty(40), e5q, d5q, a4q, e5q, d5q, a4hd, e5q, d5q],
         ),
@@ -608,8 +674,8 @@ pub fn door_unlock_jingle() -> Song {
 pub fn song_15() -> Song {
     song(12, &[
         section(
-            &[duty(32), volume(0), a4qd, raw(40, 30), a4qd, c5qd, g4q, a4qd, raw(40, 30), a4qd, c5qd, d5q],
-            &[duty(32), pitch(8), volume(255), e4qd, raw(34, 30), e4qd, g4qd, d4q, e4qd, raw(34, 30), e4qd, g4qd, a4q],
+            &[duty(32), volume(0), a4qd, g4h + g4e, a4qd, c5qd, g4q, a4qd, g4h + g4e, a4qd, c5qd, d5q],
+            &[duty(32), pitch(8), volume(255), e4qd, d4h + d4e, e4qd, g4qd, d4q, e4qd, d4h + d4e, e4qd, g4qd, a4q],
             &[a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e],
             &[volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6)],
         ),
@@ -620,8 +686,8 @@ pub fn song_15() -> Song {
             &[volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6)],
         ),
         section(
-            &[a4qd, raw(40, 30), a4qd, c5qd, g4q, a4qd, raw(40, 30), a4qd, c5qd, d5q],
-            &[e4qd, raw(34, 30), e4qd, g4qd, d4q, e4qd, raw(34, 30), e4qd, g4qd, a4q],
+            &[a4qd, g4h + g4e, a4qd, c5qd, g4q, a4qd, g4h + g4e, a4qd, c5qd, d5q],
+            &[e4qd, d4h + d4e, e4qd, g4qd, d4q, e4qd, d4h + d4e, e4qd, g4qd, a4q],
             &[a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e, a3e, re, a4e, a4e],
             &[volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6), volume(254), duty(34), f2e, duty(35), raw(255, 6)],
         ),
@@ -661,7 +727,7 @@ pub fn song_15() -> Song {
 pub fn song_16() -> Song {
     song(24, &[
         section(
-            &[raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117)],
+            &[c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd],
             &[duty(32), volume(0), as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5e, a5i, g5i, a5e, g5i, fs5i, a5ed, d5ed, c6e, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i],
             &[pitch(5), duty(32), volume(252), re, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, as5e, a5i, g5i, a5e, g5i, fs5i, a5ed, d5ed, c6e, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i],
             &[g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, d3e, ri, d3e, ri, d3ed, ri, a3i, ri, d4i, ri, a3i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, ds3e],
@@ -673,21 +739,21 @@ pub fn song_16() -> Song {
             &[ri, ds3e],
         ),
         section(
-            &[rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58)],
-            &[ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hdd, re, duty(32), d4i, d4i, d4i, d4i, re, d4ed, f4ed, fs4e, duty(42), d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, raw(58, 16), raw(56, 16), raw(54, 16), d6h, g5e, a5e],
-            &[as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), re, g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, raw(56, 78), duty(32), a3i, a3i, a3i, a3i, re, a3ed, d4ed, d4e, duty(42), volume(253), re, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, raw(58, 16), raw(56, 16), raw(54, 16), d6h, g5e],
+            &[rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58)],
+            &[ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hdd, re, duty(32), d4i, d4i, d4i, d4i, re, d4ed, f4ed, fs4e, duty(42), d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e, a5e],
+            &[as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), re, g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hd + g5i, duty(32), a3i, a3i, a3i, a3i, re, a3ed, d4ed, d4e, duty(42), volume(253), re, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e],
             &[ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, d3e, ri, d3e, ri, d3ed, ri, a3i, ri, d4i, ri, a3i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, g3e, ri, g3e, ri, g3ed, ri, b3i, ri, g4i, ri, b3i, ri, c4e, ri, c4e, ri, c4ed, ri, g4i, ri, c5i, ri, g4i, ri, c4e, ri, c4e, ri, c4ed, ri, g4i, ri, c5i, ri, g4i, ri, d4e, ri, d4e, ri, d4ed, ri, a4i, ri, d5i, ri, a4i, ri, d4e, ri, d4e, ri, d4ed, ri, a4i, ri, d5i, ri, a4i, ri, g3e, ri, g3e, ri, g3ed, ri, d3i, ri, f3i, ri, fs3i, ri, g3e, d4t, rt, d4t, rt, d4t, rt, d4t, rt, re, d4e, ri, f4e, ri, fs4e, volume(0), g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, e3e, ri, e3e, ri, e3ed, ri, c4i, ri, e4i, ri, c4i, ri, ds3e, ri, ds4e, ri, ds3i, ri, f3e, ri, f4e, ri, f3i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri],
         ),
         section(
-            &[raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117)],
-            &[as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, raw(58, 16), raw(59, 16), raw(64, 16), duty(40), raw(66, 60), as5e, d6e, raw(64, 60), a5q, c6q, raw(66, 60), as5e, d6e],
-            &[a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, raw(58, 16), raw(59, 16), raw(64, 16), volume(0), pitch(0), duty(40), re, g5qd, g5e, g5e, raw(58, 60), f5q, a5q, rq, g5qd, g5e, g5e],
+            &[c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd],
+            &[as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, as5q3, c6q3, duty(40), d6h + d6e, as5e, d6e, c6h + c6e, a5q, c6q, d6h + d6e, as5e, d6e],
+            &[a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, as5q3, c6q3, volume(0), pitch(0), duty(40), re, g5qd, g5e, g5e, a5h + a5e, f5q, a5q, rq, g5qd, g5e, g5e],
             &[g4i, ri, d4i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, e3e, ri, e3e, ri, e3ed, ri, c4i, ri, e4i, ri, c4i, ri, ds3e, ri, ds4e, ri, ds3i, ri, f3e, ri, f4e, ri, f3i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri],
         ),
         section(
-            &[red, rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58), raw(128, 4), rest(117), red, rest(117), red, rest(58)],
-            &[raw(64, 60), raw(58, 16), raw(59, 16), raw(64, 16), as5i, a5i, g5hdd, re, duty(41), volume(253), d4e, g4e, a4e, as4e, c5e, d5e, f5e, g5qd, raw(40, 60), volume(0), duty(32), g5q, fs5q, e5q, fs5q, g5h, as4e, ds5e, f5e, g5e, a5h, raw(54, 16), raw(56, 16), raw(58, 16), b5w, d3e, ri, e3e, ri, f3i, ri, g3e, ri, a3e, ri, c4i, ri],
-            &[raw(58, 60), raw(54, 16), raw(56, 16), raw(58, 16), pitch(5), g5h, volume(252), as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, pitch(0), volume(0), d5q, d5q, d5q, d5q, ds5h, pitch(5), g4e, as4e, as4e, as4e, c5h, raw(48, 16), raw(48, 16), raw(48, 16), d5w, g3e, ri, a3e, ri, as3i, ri, c4e, ri, d4e, ri, f4i, ri],
+            &[red, rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58), c10i3, rw + redd, red, rw + redd, red, rest(58)],
+            &[c6h + c6e, a5q3, as5q3, c6q3, as5i, a5i, g5hdd, re, duty(41), volume(253), d4e, g4e, a4e, as4e, c5e, d5e, f5e, g5qd, g4h + g4e, volume(0), duty(32), g5q, fs5q, e5q, fs5q, g5h, as4e, ds5e, f5e, g5e, a5h, f5q3, g5q3, a5q3, b5w, d3e, ri, e3e, ri, f3i, ri, g3e, ri, a3e, ri, c4i, ri],
+            &[a5h + a5e, f5q3, g5q3, a5q3, pitch(5), g5h, volume(252), as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, pitch(0), volume(0), d5q, d5q, d5q, d5q, ds5h, pitch(5), g4e, as4e, as4e, as4e, c5h, c5q3, c5q3, c5q3, d5w, g3e, ri, a3e, ri, as3i, ri, c4e, ri, d4e, ri, f4i, ri],
             &[as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, g3e, re, g3e, re, g3e, re, g3e, re, f3e, re, f3e, re, f3e, re, f3e, re, ds3e, re, ds3e, re, ds3e, re, ds3e, re, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, d3i, ri, ds3e, ri, ds3e, ri, ds3ed, ri, as3i, ri, ds4i, ri, as3i, ri, f3e, ri, f3e, ri, f3ed, ri, c4i, ri, f4i, ri, c4i, ri, g3e, ri, g3e, ri, g3ed, ri, d4i, ri, g4i, ri, d4i, ri, g3e, ri, a3e, ri, as3i, ri, c4e, ri, d4e, ri, f4i, ri],
         ),
     ])
@@ -808,7 +874,7 @@ pub fn sfx_15() -> Vec<Tok> {
 }
 
 pub fn sfx_16() -> Vec<Tok> {
-    line(4, &[duty(37), volume(0), g4i, e5i, c6i, c5i, c7hd, rest(24)])
+    line(4, &[duty(37), volume(0), g4i, e5i, c6i, c5i, c7hd, rw + rh])
 }
 
 pub fn sfx_magic_pickup() -> Vec<Tok> {

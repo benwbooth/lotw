@@ -223,11 +223,41 @@ const VALS: &[(&str, u32, u32)] = &[
     ("w", 4, 1), ("hdd", 7, 2), ("hd", 3, 1), ("h", 2, 1), ("qdd", 7, 4), ("qd", 3, 2),
     ("q", 1, 1), ("edd", 7, 8), ("ed", 3, 4), ("e", 1, 2), ("id", 3, 8), ("i", 1, 4),
     ("td", 3, 16), ("t", 1, 8), ("x", 1, 16),
+    ("h3", 4, 3), ("q3", 2, 3), ("e3", 1, 3), ("i3", 1, 6), ("t3", 1, 12),
 ];
 
 /// The note-value name whose tick count at tempo `q` equals `dur`, if any.
 fn val_name(dur: u8, q: u32) -> Option<&'static str> {
     VALS.iter().find(|(_, n, d)| n * q % d == 0 && n * q / d == dur as u32).map(|(name, _, _)| *name)
+}
+
+/// Express an off-grid duration as a tie — a sum of 2..=4 note values
+/// (`30 ticks @24 = q + i`). Greedy largest-first; `None` if it doesn't resolve.
+fn decompose(dur: u8, q: u32) -> Option<Vec<&'static str>> {
+    let mut avail: Vec<(&str, u32)> = VALS
+        .iter()
+        .filter_map(|(n, num, den)| ((num * q) % den == 0).then_some((*n, num * q / den)))
+        .filter(|&(_, t)| (1..=127).contains(&t))
+        .collect();
+    avail.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut rem = dur as u32;
+    let mut out = Vec::new();
+    for &(name, t) in &avail {
+        while rem >= t && out.len() < 4 {
+            out.push(name);
+            rem -= t;
+        }
+        if rem == 0 {
+            break;
+        }
+    }
+    (rem == 0 && (2..=4).contains(&out.len())).then_some(out)
+}
+
+/// Join tied note values onto a pitch/rest prefix: `tie("a2", ["q","i"])` ->
+/// `"a2q + a2i"` (note + note ties, same pitch, summed durations).
+fn tie(prefix: &str, vs: &[&str]) -> String {
+    vs.iter().map(|v| format!("{prefix}{v}")).collect::<Vec<_>>().join(" + ")
 }
 
 /// Total tick duration of a token stream.
@@ -291,9 +321,10 @@ fn comfort(val: Option<&str>) -> i32 {
     match val {
         Some("i" | "e" | "q") => 3,
         Some("id" | "ed" | "qd" | "h") => 1,
-        Some("t" | "td" | "x") => -3, // 32nd/64th — sparingly
-        None => -2,                   // off-grid raw()
-        _ => 0,                       // edd/qdd/hd/w/hdd — fine but not preferred
+        Some("h3" | "q3" | "e3" | "i3") => 1, // triplets — fine where the rhythm calls for them
+        Some("t" | "td" | "x" | "t3") => -3,  // 32nd/64th — sparingly
+        None => -2,                           // off-grid raw()
+        _ => 0,                               // edd/qdd/hd/w/hdd — fine but not preferred
     }
 }
 
@@ -319,13 +350,24 @@ fn note_item(t: &Tok, q: u32) -> String {
     match *t {
         // Name it only when the pitch is a real chromatic note in the generated
         // octave range (nibble 0..=9 = octaves 2..=11); else keep the raw byte.
-        Tok::Note { dur, pitch } => match (pitch_str(pitch), val_name(dur, q)) {
-            (name, Some(v)) if !name.starts_with('~') && pitch >> 4 <= 9 => format!("{name}{v}"),
-            _ => format!("raw({pitch}, {dur})"),
-        },
+        Tok::Note { dur, pitch } => {
+            let name = pitch_str(pitch);
+            if name.starts_with('~') || pitch >> 4 > 9 {
+                format!("raw({pitch}, {dur})")
+            } else if let Some(v) = val_name(dur, q) {
+                format!("{name}{v}")
+            } else if let Some(vs) = decompose(dur, q) {
+                tie(&name, &vs)
+            } else {
+                format!("raw({pitch}, {dur})")
+            }
+        }
         Tok::Rest { dur } => match val_name(dur, q) {
             Some(v) => format!("r{v}"),
-            None => format!("rest({dur})"),
+            None => match decompose(dur, q) {
+                Some(vs) => tie("r", &vs),
+                None => format!("rest({dur})"),
+            },
         },
         Tok::Cmd { id, arg } => match CMD_NAMES.get(id as usize) {
             Some(name) => format!("{name}({arg})"),
@@ -378,8 +420,8 @@ fn try_envelope(toks: &[Tok], q: u32) -> Option<(String, usize)> {
         let mut k = j + 1;
         while let Some(note @ &Tok::Note { .. }) = toks.get(k) {
             let carrier = note_item(note, q);
-            if carrier.starts_with("raw") {
-                break; // env! carriers must be nameable note symbols
+            if carrier.starts_with("raw") || carrier.contains(" + ") {
+                break; // env! carriers must be single nameable note symbols (const)
             }
             notes.push(carrier);
             k += 1;

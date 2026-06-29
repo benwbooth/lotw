@@ -5,11 +5,13 @@ use std::io::Write;
 
 // note_idx -> name (idx 5 is the unused gap; 0..=12 = C..B).
 const NOTE_NAMES: [&str; 13] = ["c", "cs", "d", "ds", "e", "", "f", "fs", "g", "gs", "a", "as", "b"];
-// (name, num, den): a note value is num/den of a quarter note.
+// (name, num, den): a note value is num/den of a quarter note. The `N3` names
+// are triplets (e3 = an eighth-note triplet = 1/3 of a quarter).
 const VALS: &[(&str, u16, u16)] = &[
     ("w", 4, 1), ("hdd", 7, 2), ("hd", 3, 1), ("h", 2, 1), ("qdd", 7, 4), ("qd", 3, 2),
     ("q", 1, 1), ("edd", 7, 8), ("ed", 3, 4), ("e", 1, 2), ("id", 3, 8), ("i", 1, 4),
     ("td", 3, 16), ("t", 1, 8), ("x", 1, 16),
+    ("h3", 4, 3), ("q3", 2, 3), ("e3", 1, 3), ("i3", 1, 6), ("t3", 1, 12),
 ];
 const BASE_OCTAVE: i32 = 2;
 

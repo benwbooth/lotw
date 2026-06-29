@@ -85,6 +85,38 @@ impl Val {
     }
 }
 
+fn gcd(a: u32, b: u32) -> u32 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
+
+/// Sum two note values (`q + i` = a quarter plus a sixteenth = 5/4 of a quarter).
+impl std::ops::Add for Val {
+    type Output = Val;
+    fn add(self, rhs: Val) -> Val {
+        let num = self.num as u32 * rhs.den as u32 + rhs.num as u32 * self.den as u32;
+        let den = self.den as u32 * rhs.den as u32;
+        let g = gcd(num, den).max(1);
+        Val { num: (num / g) as u16, den: (den / g) as u16 }
+    }
+}
+
+/// Tie notes of the same pitch: `a2q + a2i` holds `a2` for a quarter plus a
+/// sixteenth (the left note's pitch is kept; the right's duration is added).
+impl std::ops::Add for Note {
+    type Output = Note;
+    fn add(self, rhs: Note) -> Note {
+        let rv = match rhs {
+            Note::Pitched { val, .. } | Note::Rest { val } => val,
+            _ => return self,
+        };
+        match self {
+            Note::Pitched { pitch, val } => Note::Pitched { pitch, val: val + rv },
+            Note::Rest { val } => Note::Rest { val: val + rv },
+            other => other,
+        }
+    }
+}
+
 /// A single DSL element: a pitched note, a rest, a raw (off-grid) note/rest, a
 /// channel command, or a `Seq` — a spliced sub-sequence (e.g. an `env!`
 /// envelope), so a multi-note run is still one `Note` and channels stay flat
