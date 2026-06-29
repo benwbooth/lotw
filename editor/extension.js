@@ -154,6 +154,14 @@ async function play(doc, name, section) {
   const idx = await songIndex(doc, name);
   playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name) };
   writeAndSend();
+  // Playing one section in isolation: highlight it statically (it loops, so the
+  // server doesn't stream section changes to drive the highlight).
+  if (section != null) {
+    const ed = vscode.window.activeTextEditor;
+    if (ed && ed.document === doc && playing.sectionRanges[section]) {
+      ed.setDecorations(highlight, [playing.sectionRanges[section]]);
+    }
+  }
 }
 
 function writeAndSend() {
