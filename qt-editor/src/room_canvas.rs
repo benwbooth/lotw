@@ -126,10 +126,6 @@ pub mod qobject {
 
         #[inherit]
         fn update(self: Pin<&mut RoomCanvas>);
-        #[inherit]
-        fn width(self: &RoomCanvas) -> f64;
-        #[inherit]
-        fn height(self: &RoomCanvas) -> f64;
 
         #[qinvokable]
         fn refresh(self: Pin<&mut RoomCanvas>);
