@@ -8,5 +8,9 @@
   "rust-analyzer.cargo.targetDir": false,
   "rust-analyzer.cargo.sysroot": "${userHome}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu",
   "rust-analyzer.cargo.sysrootSrc": "${userHome}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library",
+  "rust-analyzer.cargo.extraEnv": {
+    "RUSTC": "${userHome}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+    "CARGO_TARGET_DIR": "${workspaceFolder}/target/rust-analyzer"
+  },
   "rust-analyzer.cargo.buildScripts.enable": true
 }
