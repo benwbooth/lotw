@@ -89,14 +89,7 @@ async function songIndex(doc, name) {
   return i < 0 ? 0 : i;
 }
 
-async function sectionRanges(doc, name) {
-  const fns = await structure(doc);
-  const fn = fns.find((f) => f.name === name);
-  if (!fn) return [];
-  return fn.sections.map((off) => new vscode.Range(doc.positionAt(off), doc.positionAt(off + 7)));
-}
-
-// Per channel [0..3], the ordered source elements of song `name` across all
+// Per channel [0..3], the source elements grouped by section of song `name` across all
 // sections, each with its byte span and how many Tok it assembles to (1, except
 // env! which expands to one cmd + its carrier notes per segment). Lets us map
 // the server's per-channel token index back to the exact note being played.
@@ -121,12 +114,14 @@ async function channelElements(doc, name) {
     for (const sec of sectionsArr ? sectionsArr.namedChildren : []) {
       if (sec.type !== "call_expression") continue;
       const cargs = sec.childForFieldName("arguments");
-      cargs.namedChildren.forEach((ref, c) => {
-        if (c > 3) return;
-        const arr = arrayOf(ref);
-        if (!arr) return;
-        for (const el of arr.namedChildren) chans[c].push({ a: el.startIndex, b: el.endIndex, toks: tokCount(el) });
-      });
+      // One element group per section, per channel (so a section play can map
+      // its section-relative token index into just that section's notes).
+      for (let c = 0; c < 4; c++) {
+        const arr = arrayOf(cargs.namedChildren[c]);
+        const group = [];
+        if (arr) for (const el of arr.namedChildren) group.push({ a: el.startIndex, b: el.endIndex, toks: tokCount(el) });
+        chans[c].push(group);
+      }
     }
   }
   elemCache.set(key, chans);
@@ -217,7 +212,7 @@ function editorFor(doc) {
 
 // Highlight the source element each channel is on (up to 4 notes at once).
 function applyHighlight(tokens) {
-  if (!playing || playing.section != null) return; // isolated section keeps its static highlight
+  if (!playing) return;
   const ed = editorFor(playing.doc);
   const chans = playing.channelElements;
   if (!ed || !chans) return;
@@ -225,8 +220,11 @@ function applyHighlight(tokens) {
   for (let c = 0; c < 4; c++) {
     const t = tokens[c];
     if (t == null || t < 0) continue;
+    // A section play maps its section-relative index into that section's notes;
+    // a full-song play maps the absolute index across all sections.
+    const els = playing.section != null ? chans[c][playing.section] || [] : chans[c].flat();
     let cum = 0;
-    for (const el of chans[c]) {
+    for (const el of els) {
       if (t < cum + el.toks) {
         ranges.push(new vscode.Range(playing.doc.positionAt(el.a), playing.doc.positionAt(el.b)));
         break;
@@ -245,16 +243,8 @@ async function play(doc, name, section) {
   const els = await channelElements(doc, name);
   posLogged = false;
   out.appendLine(`▶ ${name} (song ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
-  playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name), channelElements: els };
+  playing = { doc, name, index: idx, section, channelElements: els };
   writeAndSend();
-  // Playing one section in isolation: highlight it statically (it loops, so the
-  // server doesn't stream section changes to drive the highlight).
-  if (section != null) {
-    const ed = vscode.window.activeTextEditor;
-    if (ed && ed.document === doc && playing.sectionRanges[section]) {
-      ed.setDecorations(highlight, [playing.sectionRanges[section]]);
-    }
-  }
 }
 
 function writeAndSend() {
@@ -266,7 +256,6 @@ function writeAndSend() {
 
 async function reloadIfPlaying() {
   if (!playing) return;
-  playing.sectionRanges = await sectionRanges(playing.doc, playing.name);
   playing.channelElements = await channelElements(playing.doc, playing.name);
   writeAndSend();
 }

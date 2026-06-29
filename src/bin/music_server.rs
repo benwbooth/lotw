@@ -31,10 +31,13 @@ fn cpu_to_prg(cpu: usize, song: usize) -> Option<usize> {
     }
 }
 
-/// The four channel byte streams + per-channel section-start token indices.
+/// The four channel byte streams + per-channel section-start token indices, and
+/// (for an extracted section) how many leading tokens are the prepended
+/// parameter state — so the player can report section-relative positions.
 struct SongData {
     channels: [Vec<u8>; 4],
     section_starts: [Vec<usize>; 4],
+    prefix_toks: [usize; 4],
 }
 
 impl SongData {
@@ -42,7 +45,7 @@ impl SongData {
     fn from_dsl(idx: usize) -> Option<SongData> {
         let s = music::get(idx)?;
         let channels = std::array::from_fn(|c| audio::assemble(&s.channels[c].1));
-        Some(SongData { channels, section_starts: s.section_starts.clone() })
+        Some(SongData { channels, section_starts: s.section_starts.clone(), prefix_toks: [0; 4] })
     }
 
     /// Extract a single section as a playable (looping) mini-song: each channel
@@ -51,6 +54,7 @@ impl SongData {
     /// terminated so it loops.
     fn extract_section(&self, n: usize) -> SongData {
         let mut channels: [Vec<u8>; 4] = Default::default();
+        let mut prefix_toks = [0usize; 4];
         for c in 0..4 {
             let bytes = &self.channels[c];
             let starts = &self.section_starts[c];
@@ -88,11 +92,12 @@ impl SongData {
                 bi += size;
                 ti += 1;
             }
+            prefix_toks[c] = prefix.len() / 3; // each prepended command is 3 bytes / 1 token
             prefix.extend_from_slice(&section);
             prefix.push(0x00); // terminate / loop point
             channels[c] = prefix;
         }
-        SongData { channels, section_starts: Default::default() }
+        SongData { channels, section_starts: Default::default(), prefix_toks }
     }
 
     /// Parse a `song_blob` from the JIT cdylib (see music-jit/src/lib.rs).
@@ -117,7 +122,7 @@ impl SongData {
                 starts[c].push(rd(b, &mut p)?);
             }
         }
-        Some(SongData { channels, section_starts: starts })
+        Some(SongData { channels, section_starts: starts, prefix_toks: [0; 4] })
     }
 }
 
@@ -134,6 +139,7 @@ struct Player {
     // Per channel: (prg_offset, token_index) for the loaded streams + section starts.
     tok_at: [Vec<(usize, usize)>; 4],
     section_starts: [Vec<usize>; 4],
+    prefix_toks: [usize; 4],
     last_pos: [i64; 4],
 }
 
@@ -150,6 +156,7 @@ impl Player {
             tick: 0,
             playing: false,
             looping: true,
+            prefix_toks: [0; 4],
             tok_at: Default::default(),
             section_starts: Default::default(),
             last_pos: [-1; 4],
@@ -190,6 +197,7 @@ impl Player {
             }
         }
         self.section_starts = data.section_starts.clone();
+        self.prefix_toks = data.prefix_toks;
 
         // Rebuild the engine from the patched ROM.
         let tmp = "/tmp/ben/scratch/music_server.nes";
@@ -222,7 +230,10 @@ impl Player {
     fn tokens(&self) -> [i64; 4] {
         std::array::from_fn(|c| {
             let Some(po) = cpu_to_prg(self.live_cpu(c), self.idx) else { return -1 };
-            self.tok_at[c].iter().take_while(|t| t.0 <= po).last().map(|t| t.1 as i64).unwrap_or(-1)
+            let Some(ti) = self.tok_at[c].iter().take_while(|t| t.0 <= po).last().map(|t| t.1) else { return -1 };
+            // For an isolated section, subtract the prepended parameter tokens so
+            // the index is relative to the section's source notes.
+            ti as i64 - self.prefix_toks[c] as i64
         })
     }
 }
