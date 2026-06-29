@@ -307,6 +307,27 @@ pub fn render_body(toks: &[Tok], indent: &str) -> String {
     out
 }
 
+/// Split a channel stream into score sections aligned to a fixed tick grid:
+/// each token goes in the section of its start tick (commands/end inherit the
+/// current position), so notes are never split and concatenating the fragments
+/// reproduces the stream exactly. A note longer than a section simply leaves the
+/// spanned later sections empty for that channel (it's being held).
+pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
+    let mut secs: Vec<Vec<Tok>> = vec![Vec::new()];
+    let mut cum = 0u32;
+    for &t in toks {
+        let si = (cum / section_ticks) as usize;
+        while secs.len() <= si {
+            secs.push(Vec::new());
+        }
+        secs[si].push(t);
+        if let Tok::Note { dur, .. } | Tok::Rest { dur } = t {
+            cum += dur as u32;
+        }
+    }
+    secs
+}
+
 /// Which hardware channel a [`Channel`] targets.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChannelId {
@@ -346,6 +367,57 @@ impl Song {
         }
         song
     }
+}
+
+/// A song assembled section-by-section, score style: each `section!` appends a
+/// fragment to each channel, so the four channels for one stretch of time sit
+/// together in the source (like the staves of one system). The concatenated
+/// fragments per channel are byte-identical to the original streams.
+#[derive(Default)]
+pub struct Score {
+    pub pulse1: Vec<Tok>,
+    pub pulse2: Vec<Tok>,
+    pub triangle: Vec<Tok>,
+    pub noise: Vec<Tok>,
+}
+
+impl Score {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn pulse1(&mut self, f: Vec<Tok>) -> &mut Self {
+        self.pulse1.extend(f);
+        self
+    }
+    pub fn pulse2(&mut self, f: Vec<Tok>) -> &mut Self {
+        self.pulse2.extend(f);
+        self
+    }
+    pub fn triangle(&mut self, f: Vec<Tok>) -> &mut Self {
+        self.triangle.extend(f);
+        self
+    }
+    pub fn noise(&mut self, f: Vec<Tok>) -> &mut Self {
+        self.noise.extend(f);
+        self
+    }
+    pub fn song(&self) -> Song {
+        let mut song = Song::default();
+        song.add("pulse1", self.pulse1.clone());
+        song.add("pulse2", self.pulse2.clone());
+        song.add("triangle", self.triangle.clone());
+        song.add("noise", self.noise.clone());
+        song
+    }
+}
+
+/// One score section: append a fragment to each named channel of a [`Score`].
+/// `section! { sc; pulse1 = [ c4q, .. ], triangle = [ .. ], .. }`.
+#[macro_export]
+macro_rules! section {
+    ($sc:ident; $($ch:ident = [ $($t:tt)* ]),* $(,)?) => {
+        $( $sc.$ch($crate::ser![ $($t)* ]); )*
+    };
 }
 
 // --- ROM song layout (for enumerating streams) ---
@@ -439,29 +511,44 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
     out
 }
 
-/// Emit a `music.rs` source file: one song per function, built from the
-/// `song!`/`pulse1!`/... proc-macro DSL, byte-exact.
+/// Emit a `music.rs` source file: each song as a `Score` built section by
+/// section (all channels stacked per ~2-bar section), each SFX as a `ser!`
+/// stream. Byte-exact.
 pub fn emit_music_rs(prg: &[u8]) -> String {
     let mut out = String::new();
     out.push_str("//! Legacy of the Wizard music as a proc-macro DSL — generated from the ROM by\n");
     out.push_str("//! `gen_music` (deterministic, byte-exact). Each function round-trips to the\n");
     out.push_str("//! original channel-stream bytes. Refine the notation freely; it must still\n");
     out.push_str("//! compile to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    out.push_str("use crate::audio::{Song, Tok};\n");
-    out.push_str("use crate::{song, pulse1, pulse2, triangle, noise, param, raw, ser};\n\n");
+    out.push_str("use crate::audio::{Score, Song, Tok};\n");
+    out.push_str("use crate::{section, param, raw, ser};\n\n");
 
+    // ~2 bars per section (96 ticks = a 4/4 bar at quarter = 24).
+    const SECTION_TICKS: u32 = 192;
     out.push_str("// ===== music =====\n\n");
     let songs = song_channels(prg);
     let macros = ["pulse1", "pulse2", "triangle", "noise"];
     for (song, chans) in &songs {
-        out.push_str(&format!("pub fn {}() -> Song {{\n    song! {{\n", song_name(*song)));
-        for (ci, off) in chans.iter().enumerate() {
-            match off.and_then(|o| disasm(prg, o)) {
-                Some(t) => out.push_str(&format!("        {}![\n{}        ],\n", macros[ci], render_body(&t, "            "))),
-                None => out.push_str(&format!("        {}![],\n", macros[ci])),
+        // Disassemble each channel and split it into tick-aligned sections.
+        let secs: Vec<Vec<Vec<Tok>>> = chans
+            .iter()
+            .map(|off| off.and_then(|o| disasm(prg, o)).map(|t| split_sections(&t, SECTION_TICKS)).unwrap_or_default())
+            .collect();
+        let n_sections = secs.iter().map(Vec::len).max().unwrap_or(0);
+        out.push_str(&format!("pub fn {}() -> Song {{\n    let mut sc = Score::new();\n", song_name(*song)));
+        for k in 0..n_sections {
+            out.push_str("    section! { sc;\n");
+            for (ci, frags) in secs.iter().enumerate() {
+                match frags.get(k) {
+                    Some(frag) if !frag.is_empty() => {
+                        out.push_str(&format!("        {:8} = [ {} ],\n", macros[ci], render_items(frag).join(", ")));
+                    }
+                    _ => {}
+                }
             }
+            out.push_str("    }\n");
         }
-        out.push_str("    }\n}\n\n");
+        out.push_str("    sc.song()\n}\n\n");
     }
     out.push_str("/// All songs by ROM index.\npub fn song(i: usize) -> Option<Song> {\n    Some(match i {\n");
     for (song, _) in &songs {
