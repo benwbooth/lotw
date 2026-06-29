@@ -28,16 +28,19 @@ const QUERY = `
 `;
 
 let ts = null; // Promise<{ parser, query }>
-let server = null; // { proc, out }
-let playing = null; // { doc, name, index, section, sectionRanges }
+let server = null; // { proc }
+let out = null; // shared output channel
+let playing = null; // { doc, name, index, section, sectionRanges, channelElements }
 let debounce = null;
 let lensChanged = new vscode.EventEmitter();
 const cache = new Map(); // doc uri -> { version, fns }
 
 const highlight = vscode.window.createTextEditorDecorationType({
-  backgroundColor: "rgba(120,200,80,0.18)",
-  overviewRulerColor: "rgba(120,200,80,0.8)",
-  overviewRulerLane: vscode.OverviewRulerLane.Center,
+  backgroundColor: "rgba(120,220,90,0.40)",
+  border: "1px solid rgba(120,220,90,0.95)",
+  borderRadius: "2px",
+  overviewRulerColor: "rgba(120,220,90,1.0)",
+  overviewRulerLane: vscode.OverviewRulerLane.Full,
 });
 
 // --- tree-sitter parsing (cached per document version) ---
@@ -136,23 +139,26 @@ function arrayOf(node) {
   return node.descendantsOfType("array_expression")[0] || null;
 }
 
+const PARAM_MACROS = ["duty", "volume", "flags", "pitch", "sweep"];
 function tokCount(el) {
   if (el.type === "macro_invocation") {
-    const m = el.childForFieldName("macro");
-    if (m && m.text === "env") return envTokCount(el);
+    const name = (el.childForFieldName("macro") || {}).text;
+    if (name === "env") return envTokCount(el, 1); // env!(param, segs…): skip the param group
+    if (PARAM_MACROS.includes(name)) return envTokCount(el, 0); // volume!(segs…): param is the name
   }
   return 1; // notes, rests, duty()/raw()/... each assemble to one Tok
 }
 
-// env!(param, <value> <note>…, …) -> sum over segments of 1 (the cmd) + #notes.
-function envTokCount(el) {
+// Envelope tokens = sum over segments of 1 (the command) + the carrier notes.
+// `skip` drops the leading parameter group (1 for env!, 0 for volume!/…).
+function envTokCount(el, skip) {
   const tt = el.descendantsOfType("token_tree")[0];
   if (!tt) return 1;
   const toks = tt.children.filter((c) => c.type !== "(" && c.type !== ")");
   const segs = [[]];
   for (const c of toks) (c.type === "," ? segs.push([]) : segs[segs.length - 1].push(c));
   let n = 0;
-  for (const seg of segs.slice(1)) n += 1 + seg.filter((c) => c.type === "identifier").length;
+  for (const seg of segs.slice(skip)) n += 1 + seg.filter((c) => c.type === "identifier").length;
   return n || 1;
 }
 
@@ -171,20 +177,19 @@ function ensureServer(doc) {
     ["run", "--quiet", "--bin", "music-server", "--features", "server", "--", cfg.get("rom", "rom/lotw.nes")],
     { cwd: workspaceDir(doc), env: { ...process.env, NIX_LDFLAGS: "" } }
   );
-  const out = vscode.window.createOutputChannel("LotW Music");
   proc.stdout.setEncoding("utf8");
   let buf = "";
   proc.stdout.on("data", (d) => {
     buf += d;
     let nl;
     while ((nl = buf.indexOf("\n")) >= 0) {
-      handleEvent(buf.slice(0, nl).trim(), out);
+      handleEvent(buf.slice(0, nl).trim());
       buf = buf.slice(nl + 1);
     }
   });
   proc.stderr.on("data", (d) => out.append(String(d)));
   proc.on("exit", (c) => { out.appendLine(`server exited (${c})`); server = null; });
-  server = { proc, out };
+  server = { proc };
   return server;
 }
 
@@ -192,9 +197,11 @@ function send(cmd) {
   if (server && server.proc.stdin.writable) server.proc.stdin.write(cmd + "\n");
 }
 
-function handleEvent(line, out) {
+let posLogged = false;
+function handleEvent(line) {
   if (!line) return;
   if (line.startsWith("pos ")) {
+    if (!posLogged) { out.appendLine("first pos event: " + line); posLogged = true; }
     applyHighlight(line.split(/\s+/).slice(2).map(Number)); // [t0,t1,t2,t3] token indices
     return;
   }
@@ -202,13 +209,18 @@ function handleEvent(line, out) {
   if (line.startsWith("err ")) vscode.window.showWarningMessage("LotW Music: " + line.slice(4));
 }
 
+// The visible editor showing a document (not necessarily the active one).
+function editorFor(doc) {
+  const uri = doc.uri.toString();
+  return vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === uri);
+}
+
 // Highlight the source element each channel is on (up to 4 notes at once).
 function applyHighlight(tokens) {
-  const ed = vscode.window.activeTextEditor;
-  if (!ed || !playing || ed.document !== playing.doc) return;
-  if (playing.section != null) return; // isolated section keeps its static highlight
+  if (!playing || playing.section != null) return; // isolated section keeps its static highlight
+  const ed = editorFor(playing.doc);
   const chans = playing.channelElements;
-  if (!chans) return;
+  if (!ed || !chans) return;
   const ranges = [];
   for (let c = 0; c < 4; c++) {
     const t = tokens[c];
@@ -230,7 +242,10 @@ function applyHighlight(tokens) {
 async function play(doc, name, section) {
   ensureServer(doc);
   const idx = await songIndex(doc, name);
-  playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name), channelElements: await channelElements(doc, name) };
+  const els = await channelElements(doc, name);
+  posLogged = false;
+  out.appendLine(`▶ ${name} (song ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
+  playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name), channelElements: els };
   writeAndSend();
   // Playing one section in isolation: highlight it statically (it loops, so the
   // server doesn't stream section changes to drive the highlight).
@@ -288,6 +303,8 @@ class Lenses {
 }
 
 function activate(ctx) {
+  out = vscode.window.createOutputChannel("LotW Music");
+  out.appendLine("LotW Music activated");
   initTreeSitter(ctx);
   ctx.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: "rust" }, new Lenses()));
 

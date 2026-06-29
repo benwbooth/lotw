@@ -18,21 +18,53 @@ use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenStream as TS, TokenTree};
 use quote::{format_ident, quote};
 
+// `env!(param, <seg>, …)` — the parameter is the first argument.
 #[proc_macro]
 pub fn env(input: TokenStream) -> TokenStream {
-    match build(input.into()) {
+    emit(build(input.into(), None))
+}
+
+// `duty!(<seg>, …)` / `volume!(…)` / … — the parameter is the macro name. These
+// don't clash with the `duty(arg)`/`volume(arg)` note functions (macro vs value
+// namespace).
+macro_rules! param_macro {
+    ($name:ident) => {
+        #[proc_macro]
+        pub fn $name(input: TokenStream) -> TokenStream {
+            emit(build(input.into(), Some(stringify!($name))))
+        }
+    };
+}
+param_macro!(duty);
+param_macro!(volume);
+param_macro!(flags);
+param_macro!(pitch);
+param_macro!(sweep);
+
+fn emit(r: Result<TS, String>) -> TokenStream {
+    match r {
         Ok(ts) => ts.into(),
         Err(e) => quote! { compile_error!(#e) }.into(),
     }
 }
 
-fn build(input: TS) -> Result<TS, String> {
+/// Build the envelope `Note::Seq`. `fixed` = the parameter when it's the macro
+/// name (`volume!`…); `None` means the first argument is the parameter (`env!`).
+fn build(input: TS, fixed: Option<&str>) -> Result<TS, String> {
     let toks: Vec<TokenTree> = input.into_iter().collect();
-    let mut groups = split_commas(&toks).into_iter();
+    let mut groups = split_commas(&toks);
 
-    let param = match groups.next().and_then(|g| g.into_iter().next()) {
-        Some(TokenTree::Ident(id)) => id.to_string(),
-        _ => return Err("env! expects a parameter name first".into()),
+    let param = match fixed {
+        Some(p) => p.to_string(),
+        None => {
+            if groups.is_empty() {
+                return Err("env! expects a parameter name first".into());
+            }
+            match groups.remove(0).into_iter().next() {
+                Some(TokenTree::Ident(id)) => id.to_string(),
+                _ => return Err("env! expects a parameter name first".into()),
+            }
+        }
     };
     let pident = format_ident!("{}", param);
 
@@ -53,7 +85,7 @@ fn build(input: TS) -> Result<TS, String> {
         }
     }
     if !any {
-        return Err("env! needs at least one segment".into());
+        return Err("envelope needs at least one segment".into());
     }
     Ok(quote! { ::lotw_music::Note::Seq(const { &[ #(#elems),* ] }) })
 }

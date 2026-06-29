@@ -322,7 +322,8 @@ fn try_envelope(toks: &[Tok], q: u32) -> Option<(String, usize)> {
         segs.push(format!("{arg} {}", notes.join(" ")));
         j = k;
     }
-    (segs.len() >= 2).then(|| (format!("env!({}, {})", CMD_NAMES[pid as usize], segs.join(", ")), j))
+    // Emit the per-parameter macro form: `volume!(0 g4x, 252 fs4x)`.
+    (segs.len() >= 2).then(|| (format!("{}!({})", CMD_NAMES[pid as usize], segs.join(", ")), j))
 }
 
 /// Split a channel stream into score sections aligned to a fixed tick grid:
@@ -451,7 +452,8 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("//! by `gen_music` (deterministic, byte-exact). Refine the notation freely; it\n");
     out.push_str("//! must still assemble to the same bytes (see `tests/audio_dsl.rs`).\n\n");
     out.push_str("#![allow(clippy::all)]\n");
-    out.push_str("use lotw_music::note::*;\nuse lotw_music::{env, line, section, song, Song, Tok};\n\n");
+    out.push_str("use lotw_music::note::*;\n");
+    out.push_str("use lotw_music::{duty, env, flags, line, pitch, section, song, sweep, volume, Song, Tok};\n\n");
 
     out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);

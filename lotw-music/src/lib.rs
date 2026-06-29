@@ -23,8 +23,10 @@ pub const CHANNEL_NAMES: [&str; 4] = ["pulse1", "pulse2", "triangle", "noise"];
 
 pub mod note;
 
-/// The `env!` parameter-envelope macro.
-pub use lotw_music_macros::env;
+/// The `env!` parameter-envelope macro, plus `duty!`/`volume!`/`flags!`/
+/// `pitch!`/`sweep!` (same thing with the parameter baked into the macro name;
+/// these don't clash with the `duty()`/`volume()`/… note functions).
+pub use lotw_music_macros::{duty, env, flags, pitch, sweep, volume};
 
 /// One decoded channel-stream token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
