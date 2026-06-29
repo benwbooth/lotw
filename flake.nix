@@ -101,6 +101,7 @@
               pkgs.qt6.qtbase
               pkgs.qt6.qtdeclarative
             ]}:''${LD_LIBRARY_PATH:-}"
+            export RUST_SRC_PATH="${pkgs.rustPlatform.rustLibSrc}/lib/rustlib/src/rust/library"
             export QMAKE="${qmakeWrapperFor pkgs}/bin/qmake"
             export QT_QPA_PLATFORM=wayland
             # QML import + plugin paths. Include qqc2-desktop-style (org.kde.desktop

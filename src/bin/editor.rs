@@ -12,7 +12,10 @@ use std::collections::HashSet;
 
 use eframe::egui;
 
+// This bin only uses `assets::render`; the rest of the module is the
+// assettool extract/serve/build code, which reads as dead code here.
 #[path = "assets/mod.rs"]
+#[allow(dead_code)]
 mod assets;
 use assets::render;
 
