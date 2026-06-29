@@ -40,7 +40,10 @@ fn songs_match_rom() {
         let song = lotw::music::get(idx).unwrap_or_else(|| panic!("music::get({idx}) missing"));
         for (ci, off) in chans.iter().enumerate() {
             let Some(off) = off else { continue };
-            let bytes = audio::assemble(&song.channels[ci].1);
+            // The source unrolls short looping channels so sections line up;
+            // collapsing back to the minimal loop must reproduce the ROM bytes
+            // exactly (unroll/collapse is audio-identical).
+            let bytes = audio::assemble(&audio::collapse(&song.channels[ci].1));
             assert_eq!(&prg[*off..*off + bytes.len()], &bytes[..], "song{idx} {}", audio::CHANNEL_NAMES[ci]);
         }
     }

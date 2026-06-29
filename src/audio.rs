@@ -230,8 +230,76 @@ fn val_name(dur: u8, q: u32) -> Option<&'static str> {
     VALS.iter().find(|(_, n, d)| n * q % d == 0 && n * q / d == dur as u32).map(|(name, _, _)| *name)
 }
 
-/// Pick the tempo (ticks per quarter) that lets the most notes/rests in `toks`
-/// render as named note values rather than `raw`/`rest` tick counts.
+/// Total tick duration of a token stream.
+pub fn channel_ticks(toks: &[Tok]) -> u32 {
+    toks.iter().map(|t| match t { Tok::Note { dur, .. } | Tok::Rest { dur } => *dur as u32, _ => 0 }).sum()
+}
+
+fn gcd(a: u32, b: u32) -> u32 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
+fn lcm(a: u32, b: u32) -> u32 {
+    if a == 0 || b == 0 { a.max(b) } else { a / gcd(a, b) * b }
+}
+
+/// The song length to unroll short looping channels up to: the longest channel.
+/// (LCM would line every channel up perfectly but can explode for near-coprime
+/// lengths; the longest channel keeps it bounded — a short channel like noise
+/// fills the whole song by repeating a whole number of times.)
+pub fn common_length(channels: &[Vec<Tok>]) -> u32 {
+    let _ = lcm;
+    channels.iter().map(|c| channel_ticks(c)).max().unwrap_or(0)
+}
+
+/// Repeat a (looping) channel to `target` ticks, which must be a multiple of its
+/// own length. A channel loops on its `0x00`, so this is audio-identical.
+pub fn unroll(toks: &[Tok], target: u32) -> Vec<Tok> {
+    let body: Vec<Tok> = toks.iter().copied().filter(|t| !matches!(t, Tok::End)).collect();
+    let period = channel_ticks(&body);
+    if period == 0 || period >= target {
+        return toks.to_vec();
+    }
+    let mut out = Vec::new();
+    for _ in 0..target / period {
+        out.extend_from_slice(&body);
+    }
+    out.push(Tok::End);
+    out
+}
+
+/// Collapse a channel to its shortest repeating period (the inverse of `unroll`;
+/// audio-identical since the channel loops). Used to write playback bytes back
+/// at the ROM's minimal length.
+pub fn collapse(toks: &[Tok]) -> Vec<Tok> {
+    let body: Vec<Tok> = toks.iter().copied().filter(|t| !matches!(t, Tok::End)).collect();
+    let n = body.len();
+    for p in 1..=n {
+        if n % p == 0 && (0..n).all(|i| body[i] == body[i % p]) {
+            let mut out = body[..p].to_vec();
+            out.push(Tok::End);
+            return out;
+        }
+    }
+    toks.to_vec()
+}
+
+/// How "comfortable" a note value is to read. Sixteenth/eighth/quarter are the
+/// target and score highest; 32nd/64th are actively penalised so the tempo only
+/// resorts to them when a duration genuinely demands it. A duration that matches
+/// no value (rendered as `raw`) is penalised too.
+fn comfort(val: Option<&str>) -> i32 {
+    match val {
+        Some("i" | "e" | "q") => 3,
+        Some("id" | "ed" | "qd" | "h") => 1,
+        Some("t" | "td" | "x") => -3, // 32nd/64th — sparingly
+        None => -2,                   // off-grid raw()
+        _ => 0,                       // edd/qdd/hd/w/hdd — fine but not preferred
+    }
+}
+
+/// Pick the tempo (ticks per quarter) that makes the notes read as comfortably
+/// as possible — mostly sixteenth/eighth/quarter, with 32nd/64th and `raw`
+/// minimised — breaking ties toward the smaller tempo (longer note values).
 pub fn detect_tempo(channels: &[Vec<Tok>]) -> u32 {
     let durs: Vec<u8> = channels
         .iter()
@@ -242,7 +310,7 @@ pub fn detect_tempo(channels: &[Vec<Tok>]) -> u32 {
         })
         .collect();
     (1..=96)
-        .max_by_key(|&q| durs.iter().filter(|&&d| val_name(d, q).is_some()).count())
+        .max_by_key(|&q| (durs.iter().map(|&d| comfort(val_name(d, q))).sum::<i32>(), std::cmp::Reverse(q)))
         .unwrap_or(24)
 }
 
@@ -343,6 +411,91 @@ pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
         if let Tok::Note { dur, .. } | Tok::Rest { dur } = t {
             cum += dur as u32;
         }
+    }
+    secs
+}
+
+fn tick_of(t: &Tok) -> u32 {
+    match t { Tok::Note { dur, .. } | Tok::Rest { dur } => *dur as u32, _ => 0 }
+}
+
+/// The tick positions (0..=total) where this channel has a token boundary.
+fn boundary_ticks(toks: &[Tok]) -> Vec<u32> {
+    let mut v = vec![0u32];
+    let mut cum = 0u32;
+    for t in toks {
+        if matches!(t, Tok::End) {
+            break;
+        }
+        cum += tick_of(t);
+        v.push(cum);
+    }
+    v
+}
+
+/// Section split points (ticks) where *every* non-empty channel has a token
+/// boundary, spaced about `target` apart. Splitting all channels here keeps
+/// their sections aligned in time (no note is cut at a boundary), at the cost of
+/// irregular section sizes.
+pub fn section_points(channels: &[Vec<Tok>], target: u32) -> Vec<u32> {
+    use std::collections::BTreeSet;
+    let mut common: Option<BTreeSet<u32>> = None;
+    for c in channels {
+        if channel_ticks(c) == 0 {
+            continue;
+        }
+        let set: BTreeSet<u32> = boundary_ticks(c).into_iter().collect();
+        common = Some(match common {
+            None => set,
+            Some(p) => p.intersection(&set).copied().collect(),
+        });
+    }
+    let common: Vec<u32> = common.unwrap_or_default().into_iter().collect();
+    let total = channels.iter().map(|c| channel_ticks(c)).max().unwrap_or(0);
+
+    let mut pts = vec![0u32];
+    while *pts.last().unwrap() < total {
+        let cur = *pts.last().unwrap();
+        let want = cur + target;
+        // The common boundary after `cur` closest to the ~target spacing.
+        let next = common
+            .iter()
+            .copied()
+            .filter(|&b| b > cur)
+            .min_by_key(|&b| (b as i64 - want as i64).abs())
+            .unwrap_or(total);
+        if next <= cur {
+            break;
+        }
+        pts.push(next);
+    }
+    if *pts.last().unwrap() != total {
+        pts.push(total);
+    }
+    pts
+}
+
+/// Split one channel at the given tick boundaries (from [`section_points`]).
+/// Each split tick is a token boundary in this channel, so no token is cut.
+pub fn split_at(toks: &[Tok], pts: &[u32]) -> Vec<Vec<Tok>> {
+    let mut secs: Vec<Vec<Tok>> = Vec::new();
+    let mut cur = Vec::new();
+    let mut cum = 0u32;
+    let mut idx = 1usize; // next boundary in pts
+    for &t in toks {
+        if matches!(t, Tok::End) {
+            break;
+        }
+        while idx < pts.len() && cum >= pts[idx] {
+            secs.push(std::mem::take(&mut cur));
+            idx += 1;
+        }
+        cur.push(t);
+        cum += tick_of(&t);
+    }
+    secs.push(cur);
+    while secs.len() < pts.len().saturating_sub(1) {
+        secs.push(Vec::new());
     }
     secs
 }
@@ -455,13 +608,28 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     out.push_str("use lotw_music::note::*;\n");
     out.push_str("use lotw_music::{duty, env, flags, line, pitch, section, song, sweep, volume, Song, Tok};\n\n");
 
+    let _ = SECTION_TICKS;
     out.push_str("// ===== songs =====\n\n");
     let songs = song_channels(prg);
     for (idx, chans) in &songs {
-        let streams: Vec<Vec<Tok>> = chans.iter().map(|off| off.and_then(|o| disasm(prg, o)).unwrap_or_default()).collect();
+        let mut streams: Vec<Vec<Tok>> = chans.iter().map(|off| off.and_then(|o| disasm(prg, o)).unwrap_or_default()).collect();
         let tempo = detect_tempo(&streams);
-        // Split each channel into tick-aligned sections.
-        let secs: Vec<Vec<Vec<Tok>>> = streams.iter().map(|s| split_sections(s, SECTION_TICKS)).collect();
+        // Channels loop at different lengths (e.g. a short noise track repeating
+        // under a longer melody). Unroll each to their common multiple so every
+        // channel spans the whole song and their sections line up. This is
+        // audio-identical (channels loop) and collapses back for byte-exact
+        // playback; see `unroll`/`collapse`.
+        let len = common_length(&streams);
+        for s in &mut streams {
+            if channel_ticks(s) > 0 {
+                *s = unroll(s, len);
+            }
+        }
+        // ~4 bars per section at the detected tempo (4/4), snapped to boundaries
+        // every channel shares so the sections line up in time.
+        let section_ticks = (16 * tempo).max(1);
+        let pts = section_points(&streams, section_ticks);
+        let secs: Vec<Vec<Vec<Tok>>> = streams.iter().map(|s| split_at(s, &pts)).collect();
         let n = secs.iter().map(Vec::len).max().unwrap_or(0);
         out.push_str(&format!("pub fn {}() -> Song {{\n    song({tempo}, &[\n", song_name(*idx)));
         for k in 0..n {

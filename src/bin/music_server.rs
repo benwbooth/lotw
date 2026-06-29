@@ -100,6 +100,17 @@ impl SongData {
         SongData { channels, section_starts: Default::default(), prefix_toks }
     }
 
+    /// Collapse every channel to its minimal loop, so whole-song playback fits
+    /// the ROM slots (the source unrolls short looping channels for readable
+    /// sections, but the bytes patched back are the ROM's loop length).
+    fn collapsed(&self) -> SongData {
+        let channels = std::array::from_fn(|c| match audio::disasm(&self.channels[c], 0) {
+            Some(toks) => audio::assemble(&audio::collapse(&toks)),
+            None => self.channels[c].clone(),
+        });
+        SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4] }
+    }
+
     /// Parse a `song_blob` from the JIT cdylib (see music-jit/src/lib.rs).
     fn from_blob(b: &[u8]) -> Option<SongData> {
         fn rd(b: &[u8], p: &mut usize) -> Option<usize> {
@@ -230,7 +241,9 @@ impl Player {
     fn tokens(&self) -> [i64; 4] {
         std::array::from_fn(|c| {
             let Some(po) = cpu_to_prg(self.live_cpu(c), self.idx) else { return -1 };
-            let Some(ti) = self.tok_at[c].iter().take_while(|t| t.0 <= po).last().map(|t| t.1) else { return -1 };
+            // The stream pointer sits at the *next* token while the current note
+            // sounds, so the playing token is the one strictly before it.
+            let Some(ti) = self.tok_at[c].iter().take_while(|t| t.0 < po).last().map(|t| t.1) else { return -1 };
             // For an isolated section, subtract the prepended parameter tokens so
             // the index is relative to the section's source notes.
             ti as i64 - self.prefix_toks[c] as i64
@@ -309,12 +322,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some("rewind") => {
                     let (i, d) = (player.idx, SongData::from_dsl(player.idx));
                     if let Some(d) = d {
-                        let _ = player.load(i, &d, 0);
+                        let _ = player.load(i, &d.collapsed(), 0);
                     }
                 }
                 Some("loop") => player.looping = it.next() != Some("off"),
                 Some("rom") => match it.next().and_then(|s| s.parse().ok()).and_then(|i: usize| SongData::from_dsl(i).map(|d| (i, d))) {
-                    Some((i, d)) => match player.load(i, &d, 0) {
+                    Some((i, d)) => match player.load(i, &d.collapsed(), 0) {
                         Ok(()) => {
                             player.playing = true;
                             say(&format!("loaded {i}"));
@@ -332,7 +345,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let keep = if section.is_some() { 0 } else { player.tick };
                     let res = jit_compile(path, idx).map(|d| match section {
                         Some(n) => d.extract_section(n),
-                        None => d,
+                        None => d.collapsed(),
                     });
                     match res.and_then(|d| player.load(idx, &d, keep)) {
                         Ok(()) => {
