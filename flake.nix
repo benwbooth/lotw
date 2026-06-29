@@ -131,6 +131,8 @@
             fileset = nixpkgs.lib.fileset.unions [
               ./Cargo.toml
               ./Cargo.lock
+              ./build.rs
+              ./music-macros
               ./src
               ./tests
               ./fixtures

@@ -1,5 +1,6 @@
 //! Verify the music DSL round-trips every reachable channel stream in the ROM
-//! byte-exactly: bytes -> tokens -> DSL text -> tokens -> bytes.
+//! byte-exactly, and that the generated `music.rs` proc-macro DSL assembles to
+//! the exact ROM bytes.
 
 use lotw::audio;
 
@@ -27,44 +28,7 @@ fn rom_streams_round_trip() {
         let toks2 = audio::parse(&text).unwrap_or_else(|e| panic!("{where_}: parse {e}\n{text}"));
         assert_eq!(toks, toks2, "{where_}: token round-trip\n{text}");
         assert_eq!(bytes, audio::assemble(&toks2), "{where_}: byte round-trip");
-
-        // play! DSL: render_play -> push_tok per token -> assemble matches.
-        let play = audio::render_play(&toks);
-        let mut toks3 = Vec::new();
-        for ptok in play_tokens(&play) {
-            audio::push_tok(&mut toks3, &ptok).unwrap_or_else(|e| panic!("{where_}: push {e}\n{play}"));
-        }
-        assert_eq!(toks, toks3, "{where_}: play round-trip\n{play}");
     }
-}
-
-/// Split a `render_play` string into tokens, keeping `[..]` groups whole.
-fn play_tokens(s: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut buf = String::new();
-    let mut depth = 0;
-    for c in s.chars() {
-        match c {
-            '[' => {
-                depth += 1;
-                buf.push(c);
-            }
-            ']' => {
-                depth -= 1;
-                buf.push(c);
-            }
-            c if c.is_whitespace() && depth == 0 => {
-                if !buf.is_empty() {
-                    out.push(std::mem::take(&mut buf));
-                }
-            }
-            c => buf.push(c),
-        }
-    }
-    if !buf.is_empty() {
-        out.push(buf);
-    }
-    out
 }
 
 #[test]
@@ -87,13 +51,26 @@ fn music_rs_matches_rom() {
 }
 
 #[test]
-fn play_macro_assembles_exact_bytes() {
-    let song = lotw::play! {
-        pulse1 { [duty:0x0b] c2hd b2q [b4:30] rh [~ff:e] | }
+fn proc_macros_assemble_exact_bytes() {
+    use lotw::audio::{Tok, assemble};
+    use lotw::{noise, param, pulse1, raw, ser, song, triangle};
+
+    // A reusable section spliced into a channel.
+    let lick = ser![c2hd, b2q];
+
+    let s = song! {
+        pulse1![ param!(duty=0x0b, volume=0xff), lick, raw!(0x9f, e), b4 30, rh, | ],
+        triangle![ c4i, c4i, c5i ],
+        noise![ ds2q ],
     };
-    let (_, stream) = &song.channels[0];
+
+    // pulse1: duty cmd, vol cmd, c2(hd), b2(q), raw 0x9f(e), b4(30), rest(h), end
     assert_eq!(
-        lotw::audio::assemble(stream),
-        vec![0xff, 0, 0x0b, 72, 0x00, 24, 0x0c, 30, 0x2c, 0x80 | 48, 12, 0xff, 0x00]
+        assemble(&s.channels[0].1),
+        vec![0xff, 0, 0x0b, 0xff, 1, 0xff, 72, 0x00, 24, 0x0c, 12, 0x9f, 30, 0x2c, 0x80 | 48, 0x00]
     );
+    // triangle arpeggio: c4 c4 c5 as sixteenths (c2 = nibble 0, so c4 = 0x20)
+    assert_eq!(s.channels[2].1, vec![Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x30 }]);
+    // noise channel parses melodically for now: ds2 quarter -> pitch idx 3
+    assert_eq!(s.channels[3].1, vec![Tok::Note { dur: 24, pitch: 0x03 }]);
 }

@@ -203,95 +203,78 @@ fn parse_note(tok: &str) -> Result<Tok, String> {
     Ok(Tok::Note { dur: parse_dur(dur_s)?, pitch: (octave_to_nibble(octave, tok)? << 4) | idx })
 }
 
-// --- `play!` macro support: one token (`tt`) per stream element ---
+// --- proc-macro DSL generation (the `ser!`/`song!`/`param!`/... forms) ---
 //
-// The macro stringifies each token tree and hands it here. Forms:
-//   `c4q`, `fs5e`, `rhd`   bare idents: a clean note/rest (letter duration)
-//   `[c4:30]`, `[r:30]`    a note/rest whose duration isn't a letter (raw ticks)
-//   `[duty:0x0b]`          a command (`duty/volume/flags/pitch/sweep/cmdN`)
-//   `[~ff:e]`              a raw pitch byte
-//   `|`                    end of stream
-// Bracket contents are split on `:`/whitespace so both `[duty:0x0b]` and the
-// macro's stringified `[duty : 0x0b]` parse the same.
+// `render_macro` emits the item syntax the proc macros in `lotw-music-macros`
+// parse: `c4q` clean notes, `c4 30` raw-tick notes, `rq`/`r 30` rests,
+// `param!(duty=0x0b, volume=0xff)` commands, `raw!(0x9f, e)` un-nameable
+// pitches, and `|` for end of stream.
 
-/// Parse one `play!` token and push it onto `v`.
-pub fn push_tok(v: &mut Vec<Tok>, tok: &str) -> Result<(), String> {
-    let t = tok.trim();
-    if t == "|" {
-        v.push(Tok::End);
-        return Ok(());
+/// A duration as a proc-macro token: a joined letter (`q`) when it lands on the
+/// grid, else a space + tick count (`30`). `joined` controls whether a letter is
+/// appended directly to a note name (`c4q`) or needs a separator.
+fn dur_token(dur: u8) -> (String, bool) {
+    match DURS.iter().find(|(_, t)| *t == dur) {
+        Some((d, _)) => ((*d).to_string(), true),
+        None => (dur.to_string(), false),
     }
-    if let Some(inner) = t.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
-        let parts: Vec<&str> = inner.split([':', ' ', '\t']).filter(|p| !p.is_empty()).collect();
-        let [head, val] = parts.as_slice() else {
-            return Err(format!("bad token {tok:?}"));
-        };
-        // Command?
-        let cmd_id = CMD_NAMES.iter().position(|n| n == head).map(|i| i as u8).or_else(|| head.strip_prefix("cmd").and_then(|d| d.parse().ok()));
-        if let Some(id) = cmd_id {
-            v.push(Tok::Cmd { id, arg: parse_u8_hex(val)? });
-        } else if *head == "r" {
-            v.push(Tok::Rest { dur: parse_dur_value(val)? });
-        } else if let Some(hex) = head.strip_prefix('~') {
-            v.push(Tok::Note { dur: parse_dur_value(val)?, pitch: parse_u8_hex(hex)? });
-        } else {
-            // `[c4:30]` raw-duration melodic note.
-            let p = note_pitch(head)?;
-            v.push(Tok::Note { dur: parse_dur_value(val)?, pitch: p });
-        }
-        return Ok(());
-    }
-    // Bare ident: a clean note/rest (single text token).
-    v.extend(parse(t)?);
-    Ok(())
 }
 
-/// A duration value inside `[..]`: a tick count (decimal/hex) or a letter.
-fn parse_dur_value(s: &str) -> Result<u8, String> {
-    if let Some(h) = s.strip_prefix("0x") {
-        let v = u16::from_str_radix(h, 16).map_err(|_| format!("bad dur {s:?}"))?;
-        return if v <= 0x7F { Ok(v as u8) } else { Err(format!("dur {v} > 127")) };
-    }
-    if let Ok(v) = s.parse::<u16>() {
-        return if v <= 0x7F { Ok(v as u8) } else { Err(format!("dur {v} > 127")) };
-    }
-    DURS.iter().find(|(k, _)| *k == s).map(|(_, t)| *t).ok_or_else(|| format!("bad dur {s:?}"))
-}
-
-/// Pitch byte for a bare melodic note name+octave like `c4`, `fs5`, `b2`.
-fn note_pitch(s: &str) -> Result<u8, String> {
-    let (idx, oct_s) = split_name(s)?;
-    let octave: i32 = oct_s.parse().map_err(|_| format!("bad octave in {s:?}"))?;
-    Ok((octave_to_nibble(octave, s)? << 4) | idx)
-}
-
-/// Render tokens as a `play!`-compatible token sequence (idents for clean
-/// notes/rests, `[name:value]` groups for commands and raw durations).
-pub fn render_play(toks: &[Tok]) -> String {
-    toks.iter()
-        .map(|t| match *t {
-            Tok::Note { dur, pitch } => {
-                let p = pitch_str(pitch); // `c4` or `~ff`
-                match DURS.iter().find(|(_, tk)| *tk == dur) {
-                    Some((d, _)) if !p.starts_with('~') => format!("{p}{d}"),
-                    _ => format!("[{p}:{dur}]"),
+/// Render one stream as a comma-separated list of `ser!`/channel-macro items.
+pub fn render_macro(toks: &[Tok]) -> String {
+    let mut items: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        match toks[i] {
+            // Group a run of commands into one `param!(a=.., b=..)`.
+            Tok::Cmd { .. } => {
+                let mut parts = Vec::new();
+                while let Some(&Tok::Cmd { id, arg }) = toks.get(i) {
+                    let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
+                    parts.push(format!("{name}={arg:#04x}"));
+                    i += 1;
                 }
+                items.push(format!("param!({})", parts.join(", ")));
+                continue;
             }
-            Tok::Rest { dur } => match DURS.iter().find(|(_, tk)| *tk == dur) {
-                Some((d, _)) => format!("r{d}"),
-                None => format!("[r:{dur}]"),
-            },
-            Tok::Cmd { id, arg } => {
-                let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
-                format!("[{name}:{arg:#04x}]")
+            Tok::Note { dur, pitch } => {
+                let (d, joined) = dur_token(dur);
+                let name = pitch_str(pitch);
+                items.push(if let Some(hex) = name.strip_prefix('~') {
+                    format!("raw!(0x{hex}, {d})")
+                } else if joined {
+                    format!("{name}{d}")
+                } else {
+                    format!("{name} {d}")
+                });
             }
-            Tok::End => "|".to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+            Tok::Rest { dur } => {
+                let (d, joined) = dur_token(dur);
+                items.push(if joined { format!("r{d}") } else { format!("r {d}") });
+            }
+            Tok::End => items.push("|".to_string()),
+        }
+        i += 1;
+    }
+    items.join(", ")
 }
 
-/// A song: its named channel streams, in header order (pulse1/pulse2/tri/noise).
+/// Which hardware channel a [`Channel`] targets.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ChannelId {
+    Pulse1 = 0,
+    Pulse2 = 1,
+    Triangle = 2,
+    Noise = 3,
+}
+
+/// A channel's token stream tagged with its target (produced by `pulse1!` etc.).
+pub struct Channel {
+    pub id: ChannelId,
+    pub stream: Vec<Tok>,
+}
+
+/// A song: its four channel streams in header order (pulse1/pulse2/tri/noise).
 #[derive(Default, Clone)]
 pub struct Song {
     pub channels: Vec<(String, Vec<Tok>)>,
@@ -301,20 +284,20 @@ impl Song {
     pub fn add(&mut self, name: &str, stream: Vec<Tok>) {
         self.channels.push((name.to_string(), stream));
     }
-}
 
-/// `play! { pulse1 { c4q ... | } pulse2 { ... | } ... }` -> a [`Song`].
-#[macro_export]
-macro_rules! play {
-    ( $( $ch:ident { $($t:tt)* } )* ) => {{
-        let mut song = $crate::audio::Song::default();
-        $(
-            let mut stream = ::std::vec::Vec::new();
-            $( $crate::audio::push_tok(&mut stream, stringify!($t)).expect("play! token"); )*
-            song.add(stringify!($ch), stream);
-        )*
+    /// Build a song from `pulse1!`/`pulse2!`/`triangle!`/`noise!` channels,
+    /// placing each into its header slot (any missing channel is left empty).
+    pub fn from_channels(chans: Vec<Channel>) -> Song {
+        let mut slots: [Vec<Tok>; 4] = Default::default();
+        for c in chans {
+            slots[c.id as usize] = c.stream;
+        }
+        let mut song = Song::default();
+        for (i, stream) in slots.into_iter().enumerate() {
+            song.add(CHANNEL_NAMES[i], stream);
+        }
         song
-    }};
+    }
 }
 
 // --- ROM song layout (for enumerating streams) ---
@@ -356,23 +339,25 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
     out
 }
 
-/// Emit a `music.rs` source file: one `play!`-DSL function per song, byte-exact.
+/// Emit a `music.rs` source file: one song per function, built from the
+/// `song!`/`pulse1!`/... proc-macro DSL, byte-exact.
 pub fn emit_music_rs(prg: &[u8]) -> String {
     let mut out = String::new();
-    out.push_str("//! Legacy of the Wizard music as a `play!` DSL — generated from the ROM by\n");
+    out.push_str("//! Legacy of the Wizard music as a proc-macro DSL — generated from the ROM by\n");
     out.push_str("//! `gen_music` (deterministic, byte-exact). Each function round-trips to the\n");
     out.push_str("//! original channel-stream bytes. Refine the notation freely; it must still\n");
     out.push_str("//! compile to the same bytes (see `tests/audio_dsl.rs`).\n\n");
-    out.push_str("use crate::audio::Song;\nuse crate::play;\n\n");
+    out.push_str("use crate::audio::Song;\nuse crate::{song, pulse1, pulse2, triangle, noise, param, raw};\n\n");
     let songs = song_channels(prg);
+    let macros = ["pulse1", "pulse2", "triangle", "noise"];
     for (song, chans) in &songs {
-        out.push_str(&format!("pub fn song{song:02}() -> Song {{\n    play! {{\n"));
+        out.push_str(&format!("pub fn song{song:02}() -> Song {{\n    song! {{\n"));
         for (ci, off) in chans.iter().enumerate() {
             let body = off
                 .and_then(|o| disasm(prg, o))
-                .map(|t| render_play(&t))
+                .map(|t| render_macro(&t))
                 .unwrap_or_default();
-            out.push_str(&format!("        {} {{ {body} }}\n", CHANNEL_NAMES[ci]));
+            out.push_str(&format!("        {}![ {body} ],\n", macros[ci]));
         }
         out.push_str("    }\n}\n\n");
     }
