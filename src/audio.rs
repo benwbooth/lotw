@@ -274,23 +274,25 @@ fn note_item(t: &Tok, q: u32) -> String {
         // octave range (nibble 0..=9 = octaves 2..=11); else keep the raw byte.
         Tok::Note { dur, pitch } => match (pitch_str(pitch), val_name(dur, q)) {
             (name, Some(v)) if !name.starts_with('~') && pitch >> 4 <= 9 => format!("{name}{v}"),
-            _ => format!("raw(0x{pitch:02x}, {dur})"),
+            _ => format!("raw({pitch}, {dur})"),
         },
         Tok::Rest { dur } => match val_name(dur, q) {
             Some(v) => format!("r{v}"),
             None => format!("rest({dur})"),
         },
         Tok::Cmd { id, arg } => match CMD_NAMES.get(id as usize) {
-            Some(name) => format!("{name}(0x{arg:02x})"),
-            None => format!("cmd({id}, 0x{arg:02x})"),
+            Some(name) => format!("{name}({arg})"),
+            None => format!("cmd({id}, {arg})"),
         },
-        Tok::End => "bar".to_string(),
+        // The terminator is implicit (the builder appends it); it never reaches here.
+        Tok::End => String::new(),
     }
 }
 
-/// Render a channel fragment as a `&[ items ]` slice literal at tempo `q`.
+/// Render a channel fragment as a `&[ items ]` slice literal at tempo `q`. The
+/// stream terminator is dropped — `song`/`line` re-append it.
 fn render_channel(frag: &[Tok], q: u32) -> String {
-    let items: Vec<String> = frag.iter().map(|t| note_item(t, q)).collect();
+    let items: Vec<String> = frag.iter().filter(|t| !matches!(t, Tok::End)).map(|t| note_item(t, q)).collect();
     format!("&[{}]", items.join(", "))
 }
 

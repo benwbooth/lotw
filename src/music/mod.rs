@@ -49,8 +49,9 @@ impl Val {
     }
 }
 
-/// A single DSL element: a pitched note, a rest, a raw (off-grid) note/rest, a
-/// channel command, or the end/loop marker.
+/// A single DSL element: a pitched note, a rest, a raw (off-grid) note/rest, or
+/// a channel command. The end-of-stream marker is implicit — `song`/`line`
+/// terminate each non-empty channel automatically.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Note {
     Pitched { pitch: u8, val: Val },
@@ -58,7 +59,6 @@ pub enum Note {
     RawNote { pitch: u8, ticks: u8 },
     RawRest { ticks: u8 },
     Cmd { id: u8, arg: u8 },
-    End,
 }
 
 impl Note {
@@ -69,7 +69,6 @@ impl Note {
             Note::RawNote { pitch, ticks } => Tok::Note { dur: ticks, pitch },
             Note::RawRest { ticks } => Tok::Rest { dur: ticks },
             Note::Cmd { id, arg } => Tok::Cmd { id, arg },
-            Note::End => Tok::End,
         });
     }
 }
@@ -96,17 +95,23 @@ pub fn song(tempo: u32, sections: &[Section]) -> Song {
         }
     }
     let mut s = Song::default();
-    for (i, c) in chans.into_iter().enumerate() {
+    for (i, mut c) in chans.into_iter().enumerate() {
+        if !c.is_empty() {
+            c.push(Tok::End); // every present channel ends with the 0x00 terminator
+        }
         s.add(CHANNEL_NAMES[i], c);
     }
     s
 }
 
-/// Assemble a single-channel stream (used for SFX) at `tempo`.
+/// Assemble a single-channel stream (used for SFX) at `tempo`, terminated.
 pub fn line(tempo: u32, notes: &[Note]) -> Vec<Tok> {
     let mut out = Vec::new();
     for n in notes {
         n.emit(tempo, &mut out);
+    }
+    if !out.is_empty() {
+        out.push(Tok::End);
     }
     out
 }

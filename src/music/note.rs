@@ -40,6 +40,3 @@ pub const fn raw(pitch: u8, ticks: u8) -> Note {
 pub const fn rest(ticks: u8) -> Note {
     Note::RawRest { ticks }
 }
-
-/// End of stream (the loop / stop point).
-pub const bar: Note = Note::End;

@@ -71,24 +71,26 @@ fn note_dsl_assembles_exact_bytes() {
     let arp: &[lotw::music::Note] = &[c4i, c4i, c5i];
 
     let s = song(24, &[
-        // tempo 24: i=6, e=12, q=24
+        // tempo 24: i=6, e=12, q=24. No terminator written — it's implicit.
         section(
-            &[duty(0x0b), volume(0xff), c2q, b2e, raw(0x9f, 30), bar],
+            &[duty(11), volume(255), c2q, b2e, raw(159, 30)],
             &[],
             arp,
             &[ds2q],
         ),
     ]);
 
+    // The builder appends the 0x00 terminator to each non-empty channel.
     assert_eq!(
         assemble(&s.channels[0].1),
-        vec![0xff, 0, 0x0b, 0xff, 1, 0xff, 24, 0x00, 12, 0x0c, 30, 0x9f, 0x00]
+        vec![0xff, 0, 11, 0xff, 1, 255, 24, 0x00, 12, 0x0c, 30, 159, 0x00]
     );
-    // c4 = octave nibble 2 -> 0x20; c5 -> 0x30; i = 6 ticks at tempo 24.
+    // c4 = octave nibble 2 -> 0x20; c5 -> 0x30; i = 6 ticks at tempo 24; + End.
     assert_eq!(
         s.channels[2].1,
-        vec![Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x30 }]
+        vec![Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x20 }, Tok::Note { dur: 6, pitch: 0x30 }, Tok::End]
     );
-    // noise ds2 quarter -> idx 3, 24 ticks.
-    assert_eq!(s.channels[3].1, vec![Tok::Note { dur: 24, pitch: 0x03 }]);
+    // noise ds2 quarter -> idx 3, 24 ticks; + End. Empty channel 1 stays empty.
+    assert_eq!(s.channels[3].1, vec![Tok::Note { dur: 24, pitch: 0x03 }, Tok::End]);
+    assert!(s.channels[1].1.is_empty());
 }
