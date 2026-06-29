@@ -93,6 +93,69 @@ async function sectionRanges(doc, name) {
   return fn.sections.map((off) => new vscode.Range(doc.positionAt(off), doc.positionAt(off + 7)));
 }
 
+// Per channel [0..3], the ordered source elements of song `name` across all
+// sections, each with its byte span and how many Tok it assembles to (1, except
+// env! which expands to one cmd + its carrier notes per segment). Lets us map
+// the server's per-channel token index back to the exact note being played.
+const elemCache = new Map();
+async function channelElements(doc, name) {
+  const key = `${doc.uri}#${name}#${doc.version}`;
+  if (elemCache.has(key)) return elemCache.get(key);
+  const { parser } = await ts;
+  const tree = parser.parse(doc.getText());
+  const fn = tree.rootNode.descendantsOfType("function_item").find((f) => {
+    const n = f.childForFieldName("name");
+    return n && n.text === name;
+  });
+  const chans = [[], [], [], []];
+  const songCall = fn && fn.descendantsOfType("call_expression").find((c) => {
+    const g = c.childForFieldName("function");
+    return g && g.text === "song";
+  });
+  if (songCall) {
+    const args = songCall.childForFieldName("arguments");
+    const sectionsArr = args && arrayOf(args.namedChildren[1]);
+    for (const sec of sectionsArr ? sectionsArr.namedChildren : []) {
+      if (sec.type !== "call_expression") continue;
+      const cargs = sec.childForFieldName("arguments");
+      cargs.namedChildren.forEach((ref, c) => {
+        if (c > 3) return;
+        const arr = arrayOf(ref);
+        if (!arr) return;
+        for (const el of arr.namedChildren) chans[c].push({ a: el.startIndex, b: el.endIndex, toks: tokCount(el) });
+      });
+    }
+  }
+  elemCache.set(key, chans);
+  return chans;
+}
+
+function arrayOf(node) {
+  if (!node) return null;
+  if (node.type === "array_expression") return node;
+  return node.descendantsOfType("array_expression")[0] || null;
+}
+
+function tokCount(el) {
+  if (el.type === "macro_invocation") {
+    const m = el.childForFieldName("macro");
+    if (m && m.text === "env") return envTokCount(el);
+  }
+  return 1; // notes, rests, duty()/raw()/... each assemble to one Tok
+}
+
+// env!(param, <value> <note>…, …) -> sum over segments of 1 (the cmd) + #notes.
+function envTokCount(el) {
+  const tt = el.descendantsOfType("token_tree")[0];
+  if (!tt) return 1;
+  const toks = tt.children.filter((c) => c.type !== "(" && c.type !== ")");
+  const segs = [[]];
+  for (const c of toks) (c.type === "," ? segs.push([]) : segs[segs.length - 1].push(c));
+  let n = 0;
+  for (const seg of segs.slice(1)) n += 1 + seg.filter((c) => c.type === "identifier").length;
+  return n || 1;
+}
+
 // --- server process ---
 
 function workspaceDir(doc) {
@@ -132,19 +195,34 @@ function send(cmd) {
 function handleEvent(line, out) {
   if (!line) return;
   if (line.startsWith("pos ")) {
-    const secs = line.split(/\s+/).slice(2).map(Number).filter((n) => n >= 0);
-    if (secs.length) applyHighlight(Math.max(...secs));
+    applyHighlight(line.split(/\s+/).slice(2).map(Number)); // [t0,t1,t2,t3] token indices
     return;
   }
   out.appendLine(line);
   if (line.startsWith("err ")) vscode.window.showWarningMessage("LotW Music: " + line.slice(4));
 }
 
-function applyHighlight(sectionIdx) {
+// Highlight the source element each channel is on (up to 4 notes at once).
+function applyHighlight(tokens) {
   const ed = vscode.window.activeTextEditor;
   if (!ed || !playing || ed.document !== playing.doc) return;
-  const ranges = playing.sectionRanges || [];
-  ed.setDecorations(highlight, sectionIdx < ranges.length ? [ranges[sectionIdx]] : []);
+  if (playing.section != null) return; // isolated section keeps its static highlight
+  const chans = playing.channelElements;
+  if (!chans) return;
+  const ranges = [];
+  for (let c = 0; c < 4; c++) {
+    const t = tokens[c];
+    if (t == null || t < 0) continue;
+    let cum = 0;
+    for (const el of chans[c]) {
+      if (t < cum + el.toks) {
+        ranges.push(new vscode.Range(playing.doc.positionAt(el.a), playing.doc.positionAt(el.b)));
+        break;
+      }
+      cum += el.toks;
+    }
+  }
+  ed.setDecorations(highlight, ranges);
 }
 
 // --- transport ---
@@ -152,7 +230,7 @@ function applyHighlight(sectionIdx) {
 async function play(doc, name, section) {
   ensureServer(doc);
   const idx = await songIndex(doc, name);
-  playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name) };
+  playing = { doc, name, index: idx, section, sectionRanges: await sectionRanges(doc, name), channelElements: await channelElements(doc, name) };
   writeAndSend();
   // Playing one section in isolation: highlight it statically (it loops, so the
   // server doesn't stream section changes to drive the highlight).
@@ -174,6 +252,7 @@ function writeAndSend() {
 async function reloadIfPlaying() {
   if (!playing) return;
   playing.sectionRanges = await sectionRanges(playing.doc, playing.name);
+  playing.channelElements = await channelElements(playing.doc, playing.name);
   writeAndSend();
 }
 

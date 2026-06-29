@@ -216,13 +216,13 @@ impl Player {
         (self.engine.state.sound_channel_byte(2, (c * 16) as i32) | self.engine.state.sound_channel_byte(3, (c * 16) as i32) << 8) as usize
     }
 
-    /// Current section index per channel (-1 if unknown), from each channel's
-    /// live stream pointer -> token index -> enclosing section.
-    fn sections(&self) -> [i64; 4] {
+    /// Current token index per channel (-1 if unknown), from each channel's live
+    /// stream pointer -> PRG offset -> token index. The editor maps this to the
+    /// source element being played.
+    fn tokens(&self) -> [i64; 4] {
         std::array::from_fn(|c| {
             let Some(po) = cpu_to_prg(self.live_cpu(c), self.idx) else { return -1 };
-            let Some(ti) = self.tok_at[c].iter().take_while(|t| t.0 <= po).last().map(|t| t.1) else { return -1 };
-            self.section_starts[c].iter().take_while(|&&s| s <= ti).count() as i64 - 1
+            self.tok_at[c].iter().take_while(|t| t.0 <= po).last().map(|t| t.1 as i64).unwrap_or(-1)
         })
     }
 }
@@ -347,10 +347,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             player.tick += 1;
-            let secs = player.sections();
-            if secs != player.last_pos {
-                player.last_pos = secs;
-                say(&format!("pos {} {} {} {} {}", player.tick, secs[0], secs[1], secs[2], secs[3]));
+            let toks = player.tokens();
+            if toks != player.last_pos {
+                player.last_pos = toks;
+                say(&format!("pos {} {} {} {} {}", player.tick, toks[0], toks[1], toks[2], toks[3]));
             }
         }
 
