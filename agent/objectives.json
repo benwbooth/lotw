@@ -1,60 +1,63 @@
 {
   "game": "Legacy of the Wizard (NES / Dragon Slayer IV)",
-  "note": "Machine-readable objective DAG for the agent's frontier planner. Structure + dependencies + boss order are accurate from the walkthroughs; exact in-game item LOCATIONS are placeholders (`location: TBD`) to be grounded later from the room map / playthrough mosaic. The shared world is one big interconnected labyrinth; the family house is the hub the 4 family members enter from.",
-  "sources": [
-    "https://strategywiki.org/wiki/Legacy_of_the_Wizard/Walkthrough",
-    "http://shrines.rpgclassics.com/nes/lotw/walkthroughs.shtml",
-    "https://en.wikipedia.org/wiki/Legacy_of_the_Wizard"
-  ],
+  "note": "Structured objective DAG mirroring agent/route.md (distilled from the U Can Beat narrated walkthrough). Phases are the top-level DAG; each phase's step-by-step detail (exact locations, block placements, boss strategies) is in route.md. This is the OPTIMIZED route: crowns are collected Xemn-area -> Lyll -> Meyna -> Pochi-area so boss difficulty (fixed by crown COUNT) ramps with the growing item kit. Pochi only does the opening item run (he can't equip the Power Fist that every boss needs).",
+  "route_doc": "agent/route.md",
+  "transcript": "agent/walkthrough_transcript.txt",
+  "video": "https://www.youtube.com/watch?v=V9R8SGS5-LM",
 
   "characters": {
-    "Xemn":  { "role": "father",   "abilities": ["strongest melee", "only one who can use the Glove to push/move blocks"], "best_for": "the strongest crown boss" },
-    "Meyna": { "role": "mother",   "abilities": ["fly freely with Wings", "unlock magic doors with the Key Stick", "Hit Rod sends blocks flying"] },
-    "Lyll":  { "role": "daughter", "abilities": ["jumps highest", "only one who can use the Mattock to destroy special blocks"] },
-    "Pochi": { "role": "pet",      "abilities": ["immune to monster contact damage", "can stand on enemies as stepping stones", "poor jump"], "best_for": "the weakest crown boss" },
-    "Roas":  { "role": "son",      "abilities": ["teleport at fixed nodes", "the only one who wields the Dragon Slayer"], "endgame_only": true }
+    "Xemn":  { "abilities": ["strongest attack (3)", "only one who can use the Gloves to push/slide/ride blocks"], "with_armor": "becomes invulnerable like Pochi (but drains magic)" },
+    "Meyna": { "abilities": ["flies with the Wings", "Key Stick opens doors using magic not keys", "Rod knocks blocks around"] },
+    "Lyll":  { "abilities": ["highest jump", "weakest attack (1)", "only one who can use the Mattock to destroy rocks (costs magic)"] },
+    "Pochi": { "abilities": ["immune to enemy contact damage", "stands on enemies", "poor jump", "CANNOT equip the Power Fist"], "used_for": "opening item run only" },
+    "Roas":  { "abilities": ["wields the Dragon Slayer", "warps via portraits once all 4 crowns are held"], "used_for": "endgame only" }
+  },
+
+  "key_mechanics": {
+    "keys": "kill enemies while holding <2 keys -> they tend to drop keys",
+    "inn": "10 gold -> near-full refill of life+magic; use freely",
+    "crystal": "consumable: warp to the house",
+    "blocks_reset": "leaving a screen resets glove blocks (recover from puzzle mistakes)",
+    "pause_jump": "pause then jump to escape spike pits / cancel fall damage",
+    "death": "dying in the labyrinth loses everything since the last house visit (keep a password)",
+    "hub": "the 'dragon room' / crossroads — every character run starts here; Keela sleeps here"
   },
 
   "items": {
-    "glove":         { "collector": "Pochi", "location": "TBD", "unlocks": "lets Xemn push/move blocks" },
-    "power_knuckle": { "collector": "Pochi", "location": "TBD", "unlocks": "stronger melee attack" },
-    "hit_rod":       { "collector": "Xemn",  "location": "TBD", "unlocks": "lets Meyna shove blocks aside" },
-    "powered_boots": { "collector": "Xemn",  "location": "TBD", "unlocks": "higher jump" },
-    "mattock":       { "collector": "Xemn",  "location": "TBD", "unlocks": "lets Lyll destroy special blocks" },
-    "shield":        { "collector": "Lyll",  "location": "TBD (bought)", "unlocks": "reduces damage" },
-    "fire_rod":      { "collector": "Lyll",  "location": "TBD", "unlocks": "ranged fire attack" },
-    "wings":         { "collector": "Lyll",  "location": "TBD", "unlocks": "lets Meyna fly" },
-    "key_stick":     { "collector": "Meyna", "location": "TBD", "unlocks": "open magic-locked doors" },
-    "armor":         { "collector": "Meyna", "location": "TBD", "unlocks": "reduces damage" },
-    "jump_shoes":    { "collector": "Meyna", "location": "TBD", "unlocks": "higher jump" },
-    "dragon_slayer": { "collector": "Roas",  "location": "revealed by the 4 crowns", "unlocks": "the only weapon that defeats Keela" }
+    "gloves":        { "collector": "Pochi", "phase": "P0", "location": "right of the start, past a couple breakable blocks (only Xemn can use them)" },
+    "crystal_1":     { "collector": "Pochi", "phase": "P0", "location": "down the left ladder near the start" },
+    "power_fist":    { "collector": "Pochi", "phase": "P1", "location": "Pochi's section: ride the Brandy enemy, push through the top false wall (4x dmg, 2x magic; Pochi can't equip it)" },
+    "rod":           { "collector": "Xemn",  "phase": "P2", "location": "hub area, up-right chest (Meyna's block tool)" },
+    "power_boots":   { "collector": "Xemn",  "phase": "P2", "location": "Xemn's area: real chest under a fake-chest enemy (stomp enemies, no magic)" },
+    "mattock":       { "collector": "Xemn",  "phase": "P2", "location": "Xemn's area: right above the shop, behind a false block (Lyll destroys rocks)" },
+    "elixir":        { "collector": "Xemn",  "phase": "P2", "location": "Xemn's area, optional (auto-revive on death)" },
+    "wings":         { "collector": "Lyll",  "phase": "P3", "location": "Lyll's area: volcano room, drop through the floor hole (Meyna flies)" },
+    "fire_rod":      { "collector": "Lyll",  "phase": "P3", "location": "Lyll's area: boost off a slime left (optional; only Pochi can equip)" },
+    "shield":        { "collector": "Lyll",  "phase": "P4", "location": "BOUGHT for 95 gold at a hidden shop in Meyna's area (break a hidden block -> attack the inn sign); blocks boss projectiles" },
+    "key_stick":     { "collector": "Lyll",  "phase": "P4", "location": "Meyna's area, far left: next-to-last block is a secret hole" },
+    "armor":         { "collector": "Meyna", "phase": "P5", "location": "Meyna's blue cave: fly far left (invulnerability, drains magic)" },
+    "jump_shoes":    { "collector": "Meyna", "phase": "P5", "location": "Meyna's area: end of a moo-guarded door corridor; Crystal out immediately" },
+    "dragon_slayer": { "collector": "Roas",  "phase": "P9", "location": "Lyll's area, bottom/volcano: jump off a slime into the painting, hold left onto the green platform (only weapon vs Keela)" }
   },
 
-  "boss_order_rule": "The boss guarding a crown is decided by HOW MANY crowns you've already collected, not which crown or who collects it. So the difficulty sequence is fixed; you control it only by choosing the order you go for crowns. Canonical plan: collect in an order that pairs the weakest family member with the weakest boss.",
-  "bosses": [
-    { "crown_index": 1, "boss": "Tarantunes", "type": "spider",      "difficulty": "weakest",   "recommended_collector": "Pochi" },
-    { "crown_index": 2, "boss": "Erebone",    "type": "lich",        "difficulty": "easy",      "recommended_collector": "Lyll" },
-    { "crown_index": 3, "boss": "Archwinger", "type": "wyvern",      "difficulty": "hard",      "recommended_collector": "Meyna" },
-    { "crown_index": 4, "boss": "Rockgaea",   "type": "golem",       "difficulty": "strongest", "recommended_collector": "Xemn" },
-    { "crown_index": 5, "boss": "Keela",      "type": "king dragon", "final": true,             "collector": "Roas" }
+  "bosses_fixed_order": [
+    { "crown": 1, "boss": "Tarantunes", "type": "spider",      "collector": "Xemn (own area)",   "strategy": "close in, Power Fist, a few hits" },
+    { "crown": 2, "boss": "Erebone",    "type": "lich",        "collector": "Lyll",              "strategy": "close in, Power Fist mash; little contact damage" },
+    { "crown": 3, "boss": "Archwinger", "type": "wyvern",      "collector": "Meyna",             "strategy": "Shield ON (attacks before visible); Power Fist when close; re-equip Shield after the kill" },
+    { "crown": 4, "boss": "Rockgaea",   "type": "golem",       "collector": "Xemn (Pochi's area, via Armor)", "strategy": "Shield ON, corner, Power Fist; re-equip Shield after; never touch the body" },
+    { "crown": 5, "boss": "Keela",      "type": "king dragon", "collector": "Roas",              "final": true, "strategy": "infinite magic; wait for it to land at the back, jump-attack the FACE at max range, back away; never hit it airborne; don't touch the flaming bones after death" }
   ],
 
   "objectives": [
-    { "id": "start",        "desc": "Boot, choose a family member at the house, enter the labyrinth", "character": "any", "deps": [], "success": "in-game, controllable, outside the house" },
-
-    { "id": "gather_pochi", "desc": "As Pochi: collect Glove + Power Knuckle", "character": "Pochi", "deps": ["start"], "items": ["glove", "power_knuckle"], "success": "both items in inventory" },
-    { "id": "gather_xemn",  "desc": "As Xemn (needs Glove): collect Hit Rod + Powered Boots + Mattock", "character": "Xemn", "deps": ["gather_pochi"], "items": ["hit_rod", "powered_boots", "mattock"], "success": "all three items" },
-    { "id": "gather_lyll",  "desc": "As Lyll (needs Mattock): buy Shield, collect Fire Rod + Wings", "character": "Lyll", "deps": ["gather_xemn"], "items": ["shield", "fire_rod", "wings"], "success": "all three items" },
-    { "id": "gather_meyna", "desc": "As Meyna (needs Wings + Hit Rod): collect Key Stick + Armor + Jump Shoes", "character": "Meyna", "deps": ["gather_lyll"], "items": ["key_stick", "armor", "jump_shoes"], "success": "all three items" },
-
-    { "id": "crown_1", "desc": "Pochi reaches Crown 1 and defeats Tarantunes (boss #1, weakest)", "character": "Pochi", "deps": ["gather_pochi"], "boss": "Tarantunes", "success": "crown count == 1" },
-    { "id": "crown_2", "desc": "Lyll reaches Crown 2 and defeats Erebone (boss #2)", "character": "Lyll", "deps": ["gather_lyll", "crown_1"], "boss": "Erebone", "success": "crown count == 2" },
-    { "id": "crown_3", "desc": "Meyna reaches Crown 3 and defeats Archwinger (boss #3)", "character": "Meyna", "deps": ["gather_meyna", "crown_2"], "boss": "Archwinger", "success": "crown count == 3" },
-    { "id": "crown_4", "desc": "Xemn reaches Crown 4 and defeats Rockgaea (boss #4, strongest)", "character": "Xemn", "deps": ["gather_xemn", "crown_3"], "boss": "Rockgaea", "success": "crown count == 4" },
-
-    { "id": "dragon_slayer", "desc": "Roas uses the 4 crowns to reveal and retrieve the Dragon Slayer", "character": "Roas", "deps": ["crown_1", "crown_2", "crown_3", "crown_4"], "items": ["dragon_slayer"], "success": "dragon_slayer in inventory" },
-    { "id": "defeat_keela",  "desc": "Roas defeats Keela the king dragon — game complete", "character": "Roas", "deps": ["dragon_slayer"], "boss": "Keela", "success": "game cleared" }
-  ],
-
-  "ordering_constraint": "crown_1..crown_4 must be collected in that sequence so the fixed boss-difficulty progression (Tarantunes < Erebone < Archwinger < Rockgaea) lines up with character strength (Pochi weakest, Xemn strongest). Gathering objectives are chained because each character's access depends on items the previous one collected (Pochi->Glove->Xemn->Mattock->Lyll->Wings->Meyna)."
+    { "id": "P0", "phase": "Pochi: opening item run", "character": "Pochi", "deps": [],                 "items": ["gloves", "crystal_1"],            "route": "route.md#phase-0" },
+    { "id": "P1", "phase": "Pochi: get Power Fist",   "character": "Pochi", "deps": ["P0"],             "items": ["power_fist"],                     "route": "route.md#phase-1" },
+    { "id": "P2", "phase": "Xemn area -> Crown 1",    "character": "Xemn",  "deps": ["P1"],             "items": ["rod", "power_boots", "mattock"], "boss": "Tarantunes", "success": "crown count == 1", "route": "route.md#phase-2" },
+    { "id": "P3", "phase": "Lyll: Wings + Fire Rod",  "character": "Lyll",  "deps": ["P2"],             "items": ["wings", "fire_rod"],              "route": "route.md#phase-3" },
+    { "id": "P4", "phase": "Buy Shield + Key Stick",  "character": "Lyll",  "deps": ["P3"],             "items": ["shield", "key_stick"],            "route": "route.md#phase-4" },
+    { "id": "P5", "phase": "Meyna: Armor + Jump Shoes","character": "Meyna","deps": ["P4"],             "items": ["armor", "jump_shoes"],            "route": "route.md#phase-5" },
+    { "id": "P6", "phase": "Lyll -> Crown 2",         "character": "Lyll",  "deps": ["P5"],             "boss": "Erebone",    "success": "crown count == 2", "route": "route.md#phase-6" },
+    { "id": "P7", "phase": "Meyna -> Crown 3",        "character": "Meyna", "deps": ["P6"],             "boss": "Archwinger", "success": "crown count == 3", "route": "route.md#phase-7" },
+    { "id": "P8", "phase": "Xemn -> Crown 4 (Pochi's area)", "character": "Xemn", "deps": ["P7"],      "boss": "Rockgaea",   "success": "crown count == 4", "route": "route.md#phase-8" },
+    { "id": "P9", "phase": "Roas: Dragon Slayer -> beat Keela", "character": "Roas", "deps": ["P8"],   "items": ["dragon_slayer"], "boss": "Keela", "success": "game cleared", "route": "route.md#phase-9" }
+  ]
 }

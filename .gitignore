@@ -40,3 +40,7 @@ assets/chr/
 
 # cxx-qt editor build output
 /qt-editor/target/
+
+# Agent: raw video captions/transcript (copyright-adjacent, regenerable via yt-dlp)
+/agent/video_raw.*
+/agent/walkthrough_transcript.txt
