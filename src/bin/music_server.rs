@@ -142,8 +142,9 @@ struct Player {
     section_starts: [Vec<usize>; 4],
     prefix_toks: [usize; 4],
     last_pos: [i64; 4],
-    peak: [i64; 4], // highest token index reached this pass (for loop-off end detection)
-    tmp: &'static str, // temp .nes path this player rebuilds from (distinct per voice)
+    peak: [i64; 4],      // highest token index reached this pass (loop-off end detection)
+    wrapped: [bool; 4],  // whether each channel has looped back this pass
+    tmp: &'static str,   // temp .nes path this player rebuilds from (distinct per voice)
 }
 
 impl Player {
@@ -164,6 +165,7 @@ impl Player {
             section_starts: Default::default(),
             last_pos: [-1; 4],
             peak: [-1; 4],
+            wrapped: [false; 4],
             tmp,
         })
     }
@@ -232,6 +234,7 @@ impl Player {
         self.tick = 0;
         self.last_pos = [-1; 4];
         self.peak = [-1; 4];
+        self.wrapped = [false; 4];
     }
 
     fn live_cpu(&self, c: usize) -> usize {
@@ -458,12 +461,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Advance one frame of audio while the main voice plays and/or a note
-        // preview is ringing (the preview is mixed on top, never disturbing the
-        // main playhead).
+        // Advance the main voice and detect a loop-off end BEFORE rendering audio,
+        // so the first note of the loop the engine just wrapped into is never heard.
+        if player.playing {
+            game::sound_tick(&mut player.engine, &mut player.r);
+            player.tick += 1;
+            let toks = player.tokens();
+            for c in 0..4 {
+                if toks[c] > player.peak[c] {
+                    player.peak[c] = toks[c]; // (toks[c] == -1 never beats peak >= 1)
+                } else if player.peak[c] >= 1 && toks[c] < player.peak[c] {
+                    // The index only decreases when the stream loops back (a real
+                    // drop, or the transient -1 as the pointer hits the loop point).
+                    player.wrapped[c] = true;
+                }
+            }
+            // One full pass = every channel that ever played has wrapped (so the
+            // longest channel has completed, not just the shortest).
+            let active = (0..4).any(|c| player.peak[c] >= 1);
+            let all_wrapped = active && (0..4).all(|c| player.peak[c] < 1 || player.wrapped[c]);
+            if !player.looping && all_wrapped {
+                player.restart(); // rewind to the start; the next play replays from the beginning
+                player.playing = false;
+                say("ended");
+            } else if toks != player.last_pos {
+                player.last_pos = toks;
+                say(&format!("pos {} {} {} {} {}", player.tick, toks[0], toks[1], toks[2], toks[3]));
+            }
+        }
+
+        // Render audio: the main voice (silent once stopped, so the wrapped frame
+        // makes no sound) plus any note preview mixed on top.
         if player.playing || preview_frames > 0 {
             if player.playing {
-                game::sound_tick(&mut player.engine, &mut player.r);
                 player.engine.apu.frame();
                 player.engine.apu.generate(&mut audio_buf);
             } else {
@@ -485,32 +515,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if s.queued_bytes().unwrap_or(0) < (audio_buf.len() * 2 * 4) as i32 {
                     let _ = s.put_data_i16(&audio_buf);
                 }
-            }
-        }
-        if player.playing {
-            player.tick += 1;
-            let toks = player.tokens();
-            // Loop off: stop once the playhead wraps back (the engine always loops
-            // on the stream's 0x00, so we end playback ourselves). Track each
-            // channel's peak; dropping well below it (even via a transient -1) is a
-            // wrap.
-            let mut wrapped = false;
-            for c in 0..4 {
-                if toks[c] < 0 {
-                    continue;
-                }
-                if toks[c] > player.peak[c] {
-                    player.peak[c] = toks[c];
-                } else if player.peak[c] >= 4 && toks[c] + 4 < player.peak[c] {
-                    wrapped = true;
-                }
-            }
-            if !player.looping && wrapped {
-                player.playing = false;
-                say("ended");
-            } else if toks != player.last_pos {
-                player.last_pos = toks;
-                say(&format!("pos {} {} {} {} {}", player.tick, toks[0], toks[1], toks[2], toks[3]));
             }
         }
 
