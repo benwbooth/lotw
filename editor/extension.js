@@ -312,25 +312,27 @@ function isCurrent(doc, name, section) {
   );
 }
 
-// The Play/§N button: a play/pause toggle for the song/section it's on.
-async function playToggle(doc, name, section) {
+// The Play/§N button: a play/pause toggle for the song/section/SFX it's on.
+// `sfxIndex` non-null means this is a sound effect (played on the pulse2 channel).
+async function playToggle(doc, name, section, sfxIndex) {
   if (isCurrent(doc, name, section)) {
     playing.paused = !playing.paused;
     send(playing.paused ? "stop" : "play");
     lensChanged.fire();
   } else {
-    await play(doc, name, section);
+    await play(doc, name, section, sfxIndex);
   }
 }
 
-async function play(doc, name, section) {
+async function play(doc, name, section, sfxIndex) {
   ensureServer(doc);
-  const idx = await songIndex(doc, name);
-  const els = await channelElements(doc, name);
+  const sfx = sfxIndex != null;
+  const idx = sfx ? sfxIndex : await songIndex(doc, name);
+  const els = sfx ? await sfxElements(doc, name) : await channelElements(doc, name);
   posLogged = false;
   hlLog = [-1, -1, -1, -1];
-  out.appendLine(`▶ ${name} (song ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
-  playing = { doc, name, index: idx, section, channelElements: els, paused: false };
+  out.appendLine(`▶ ${name} (${sfx ? "sfx" : "song"} ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
+  playing = { doc, name, index: idx, section, channelElements: els, paused: false, sfx };
   send(`loop ${looping ? "on" : "off"}`);
   writeAndSend();
   lensChanged.fire();
@@ -340,13 +342,31 @@ function writeAndSend() {
   if (!playing) return;
   const tmp = path.join(os.tmpdir(), `lotw_music_${process.pid}.rs`);
   fs.writeFileSync(tmp, playing.doc.getText());
-  send(`src ${tmp} ${playing.index}${playing.section != null ? " " + playing.section : ""}`);
+  if (playing.sfx) send(`sfxsrc ${tmp} ${playing.index}`);
+  else send(`src ${tmp} ${playing.index}${playing.section != null ? " " + playing.section : ""}`);
 }
 
 async function reloadIfPlaying() {
   if (!playing) return;
-  playing.channelElements = await channelElements(playing.doc, playing.name);
+  playing.channelElements = playing.sfx ? await sfxElements(playing.doc, playing.name) : await channelElements(playing.doc, playing.name);
   writeAndSend();
+}
+
+// A sound-effect function (`line(tempo, &[…])`) as channelElements: its elements
+// on channel 1 (pulse2), the others empty — so the song highlight path applies.
+async function sfxElements(doc, name) {
+  const { parser } = await ts;
+  const tree = parser.parse(doc.getText());
+  const fn = tree.rootNode.descendantsOfType("function_item").find((f) => (f.childForFieldName("name") || {}).text === name);
+  const chans = [[], [], [], []];
+  const lineCall = fn && fn.descendantsOfType("call_expression").find((c) => (c.childForFieldName("function") || {}).text === "line");
+  if (lineCall) {
+    const arr = arrayOf(lineCall.childForFieldName("arguments").namedChildren[1]);
+    const els = [];
+    if (arr) for (const el of arr.namedChildren) els.push(...elemsOf(el));
+    chans[1] = [els]; // pulse2, single section
+  }
+  return chans;
 }
 
 async function functionAt(doc, line) {
@@ -380,9 +400,13 @@ class Lenses {
         lenses.push(new vscode.CodeLens(sr, { title: loopTitle(true), command: "lotwMusic.toggleLoop" }));
       });
     }
-    // Sound effects: a single ▶ Play (each is a one-shot, no loop/sections).
+    // Sound effects get the same transport as songs (no sections).
     for (const s of sfx) {
-      lenses.push(new vscode.CodeLens(at(s.nameAt), { title: "▶ Play SFX", command: "lotwMusic.playSfx", arguments: [doc, s.index] }));
+      const r = at(s.nameAt);
+      const cur = isCurrent(doc, s.name, null);
+      lenses.push(new vscode.CodeLens(r, { title: playIcon(cur), command: "lotwMusic.playSfx", arguments: [doc, s.name, s.index] }));
+      lenses.push(new vscode.CodeLens(r, { title: "⏹ Stop", command: "lotwMusic.stop" }));
+      lenses.push(new vscode.CodeLens(r, { title: loopTitle(false), command: "lotwMusic.toggleLoop" }));
     }
     return lenses;
   }
@@ -407,12 +431,7 @@ function activate(ctx) {
       playToggle(doc, name);
     }),
     vscode.commands.registerCommand("lotwMusic.playSection", (doc, name, section) => playToggle(doc, name, section)),
-    vscode.commands.registerCommand("lotwMusic.playSfx", (doc, index) => {
-      ensureServer(doc);
-      const tmp = path.join(os.tmpdir(), `lotw_music_${process.pid}.rs`);
-      fs.writeFileSync(tmp, doc.getText());
-      send(`sfxsrc ${tmp} ${index}`); // compile + play the (possibly edited) SFX
-    }),
+    vscode.commands.registerCommand("lotwMusic.playSfx", (doc, name, index) => playToggle(doc, name, undefined, index)),
     vscode.commands.registerCommand("lotwMusic.stop", () => {
       send("reset"); // stop + return to the start of the song/section
       const ed = playing ? editorFor(playing.doc) : vscode.window.activeTextEditor;

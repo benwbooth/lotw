@@ -13,9 +13,10 @@ While a song plays, your edits are debounced, recompiled (the `music-server`'s
 JIT recompiles the `music-jit` cdylib in ~130–200 ms), and reloaded **in place** —
 playback keeps its position.
 
-Each sound-effect function (`fn … -> Vec<Tok>`) gets a **▶ Play SFX** button that
-compiles and plays the effect on its own (the music bed muted), so the whole SFX
-library is auditionable too.
+Each sound-effect function (`fn … -> Vec<Tok>`) gets the **same transport**
+(Play/Pause, Stop, Loop) and per-note highlighting as songs — it's played as a
+one-channel (pulse2) song, so the whole SFX library is auditionable and editable
+the same way.
 
 **Type-to-play**: as you type a note (`c4e`, `hite`, …), it's played immediately
 on a separate preview voice so you hear what you're writing — even without

@@ -231,31 +231,6 @@ impl Player {
         self.last_pos = [-1; 4];
     }
 
-    /// Patch an edited SFX stream into its ROM slot and arm the overlay to play
-    /// it alone: song 0 maps the bank, the music bed is muted (the sfx overlay is
-    /// serviced before the pause check, so it still sounds).
-    fn load_sfx(&mut self, idx: usize, bytes: &[u8]) -> Result<(), String> {
-        let prg = &self.rom[self.prg0..self.prg0 + self.rom[4] as usize * 16_384];
-        let off = audio::sfx_streams(prg)
-            .into_iter()
-            .find(|(i, _)| *i == idx)
-            .map(|(_, o)| o)
-            .ok_or("sfx index has no ROM slot")?;
-        let end = self.prg0 + off + bytes.len();
-        if end > self.rom.len() {
-            return Err("sfx stream too long to patch".into());
-        }
-        self.rom[self.prg0 + off..end].copy_from_slice(bytes);
-        std::fs::write(self.tmp, &self.rom).map_err(|e| e.to_string())?;
-        self.engine = common::load_rom(self.tmp, false).map_err(|e| e.to_string())?;
-        self.idx = 0;
-        self.restart();
-        self.engine.state.sound_paused = 1; // mute the music bed
-        self.engine.state.prompt_state = idx as u8;
-        self.engine.state.prompt_argument = 0xFF; // max priority
-        Ok(())
-    }
-
     fn live_cpu(&self, c: usize) -> usize {
         (self.engine.state.sound_channel_byte(2, (c * 16) as i32) | self.engine.state.sound_channel_byte(3, (c * 16) as i32) << 8) as usize
     }
@@ -425,18 +400,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Some("sfxsrc") => {
-                    // sfxsrc <path> <idx> — compile + play the *edited* sound effect.
+                    // sfxsrc <path> <idx> — compile + play the *edited* sound effect as
+                    // a one-channel song (pulse2 = the SFX, others silent) so it reuses
+                    // the whole song path: play/pause, loop, pos events, highlighting.
                     let path = it.next().unwrap_or("");
                     let idx: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
                     let res = jit_sfx(path, idx).and_then(|bytes| {
-                        let dur = audio::channel_ticks(&audio::disasm(&bytes, 0).unwrap_or_default());
-                        preview.load_sfx(idx, &bytes).map(|_| dur)
+                        let mut channels: [Vec<u8>; 4] = std::array::from_fn(|_| vec![0x00]);
+                        channels[1] = bytes; // pulse2
+                        let mut section_starts: [Vec<usize>; 4] = Default::default();
+                        section_starts[1] = vec![0];
+                        let data = SongData { channels, section_starts, prefix_toks: [0; 4] };
+                        player.load(0, &data, 0)
                     });
                     match res {
-                        Ok(dur) => {
-                            preview.playing = true;
-                            preview_frames = (dur as usize).max(20) + 8;
-                            say(&format!("loaded sfx {idx}"));
+                        Ok(()) => {
+                            player.playing = true;
+                            say(&format!("loaded {idx}"));
                         }
                         Err(e) => say(&format!("err {e}")),
                     }
