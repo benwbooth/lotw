@@ -1,0 +1,13 @@
+[package]
+name = "lotw-env"
+version = "0.1.0"
+edition = "2021"
+description = "Python bindings (PyO3) for the headless agent environment over the LotW port"
+
+[lib]
+name = "lotw_env" # the importable Python module name
+crate-type = ["cdylib"]
+
+[dependencies]
+lotw = { path = ".." }
+pyo3 = { version = "0.24", features = ["extension-module"] }

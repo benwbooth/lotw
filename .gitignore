@@ -44,3 +44,6 @@ assets/chr/
 # Agent: raw video captions/transcript (copyright-adjacent, regenerable via yt-dlp)
 /agent/video_raw.*
 /agent/walkthrough_transcript.txt
+
+# Python venv for the agent env (maturin develop)
+/.venv/

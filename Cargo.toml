@@ -1,5 +1,5 @@
 [workspace]
-members = ["lotw-music", "music-macros", "music-jit"]
+members = ["lotw-music", "music-macros", "music-jit", "lotw-env"]
 exclude = ["qt-editor"]
 
 [package]
