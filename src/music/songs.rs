@@ -80,7 +80,7 @@ pub fn area_west() -> Song {
     ])
 }
 
-pub fn home_theme() -> Song {
+pub fn song_02() -> Song {
     song(8, &[
         section(
             &[duty(32), volume(255), c5w, d5h, ds5h, d5w, as4w],
@@ -370,7 +370,7 @@ pub fn song_05() -> Song {
     ])
 }
 
-pub fn song_06() -> Song {
+pub fn home_theme() -> Song {
     song(24, &[
         section(
             &[duty(32), volume(0), e4e, re, g4e, ri, c5e, ri, as4e, f4e, g4h + g4i, ri, f4ed, ri, d4ed, ri, e4e, re, g4e, ri, c5e, ri, e5e, f5e, g5h + g5i, ri, f5ed, ri, d5ed, ri],
@@ -752,11 +752,11 @@ pub fn get(i: usize) -> Option<Song> {
     Some(match i {
         0 => area_north(),
         1 => area_west(),
-        2 => home_theme(),
+        2 => song_02(),
         3 => area_east(),
         4 => area_central(),
         5 => song_05(),
-        6 => song_06(),
+        6 => home_theme(),
         7 => song_07(),
         8 => death_jingle(),
         9 => title_theme(),
