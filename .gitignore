@@ -15,6 +15,9 @@ compile_commands.json
 __pycache__/
 .venv/
 
+# direnv / nix-direnv local state
+/.direnv/
+
 # exploratory recon image scratch (canonical assets produced in P4)
 assets/chr/
 
