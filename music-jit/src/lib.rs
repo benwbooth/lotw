@@ -53,3 +53,19 @@ pub unsafe extern "C" fn song_blob(idx: u32, out: *mut u8, cap: usize) -> usize 
     unsafe { std::ptr::copy_nonoverlapping(buf.as_ptr(), out, buf.len()) };
     buf.len()
 }
+
+/// Serialize SFX `idx` (a single pulse2 stream) into `out` as raw assembled
+/// bytes. Returns bytes written, or 0 if missing / the buffer is too small.
+///
+/// # Safety
+/// `out` must be valid for `cap` bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfx_blob(idx: u32, out: *mut u8, cap: usize) -> usize {
+    let Some(sfx) = songs::sfx(idx as usize) else { return 0 };
+    let bytes = lotw_music::assemble(&sfx);
+    if bytes.len() > cap {
+        return 0;
+    }
+    unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), out, bytes.len()) };
+    bytes.len()
+}

@@ -22,6 +22,10 @@ const QUERY = `
   return_type: (type_identifier) @ret
   body: (block) @body
   (#eq? @ret "Song"))
+(function_item
+  name: (identifier) @sfxname
+  return_type: (generic_type) @sfxret
+  (#eq? @sfxret "Vec<Tok>"))
 (call_expression
   function: (identifier) @sec
   (#eq? @sec "section"))
@@ -57,15 +61,17 @@ function initTreeSitter(ctx) {
   })();
 }
 
-// Song functions in document order, each with its section() byte offsets.
+// Song functions (with their section() offsets) and SFX functions (fn -> Vec<Tok>),
+// both in document order, so a function's position is its ROM index.
 async function structure(doc) {
   const key = doc.uri.toString();
   const hit = cache.get(key);
-  if (hit && hit.version === doc.version) return hit.fns;
+  if (hit && hit.version === doc.version) return hit.val;
 
   const { parser, query } = await ts;
   const tree = parser.parse(doc.getText());
   const fns = [];
+  const sfx = [];
   const sections = [];
   for (const m of query.matches(tree.rootNode)) {
     const cap = {};
@@ -73,21 +79,24 @@ async function structure(doc) {
     if (cap.name && cap.body) {
       fns.push({ name: cap.name.text, nameAt: cap.name.startIndex, bodyA: cap.body.startIndex, bodyB: cap.body.endIndex, sections: [] });
     }
+    if (cap.sfxname) sfx.push({ name: cap.sfxname.text, nameAt: cap.sfxname.startIndex });
     if (cap.sec) sections.push(cap.sec.startIndex);
   }
   fns.sort((a, b) => a.nameAt - b.nameAt);
+  sfx.sort((a, b) => a.nameAt - b.nameAt);
+  sfx.forEach((s, i) => (s.index = i)); // contiguous in the generated dispatch
   for (const s of sections) {
     const f = fns.find((f) => s >= f.bodyA && s < f.bodyB);
     if (f) f.sections.push(s);
   }
   for (const f of fns) f.sections.sort((a, b) => a - b);
-  cache.set(key, { version: doc.version, fns });
-  return fns;
+  const val = { fns, sfx };
+  cache.set(key, { version: doc.version, val });
+  return val;
 }
 
 async function songIndex(doc, name) {
-  const fns = await structure(doc);
-  const i = fns.findIndex((f) => f.name === name);
+  const i = (await structure(doc)).fns.findIndex((f) => f.name === name);
   return i < 0 ? 0 : i;
 }
 
@@ -341,7 +350,7 @@ async function reloadIfPlaying() {
 }
 
 async function functionAt(doc, line) {
-  const fns = await structure(doc);
+  const { fns } = await structure(doc);
   let best = null;
   for (const f of fns) if (doc.positionAt(f.nameAt).line <= line) best = f;
   return best;
@@ -352,7 +361,7 @@ async function functionAt(doc, line) {
 class Lenses {
   get onDidChangeCodeLenses() { return lensChanged.event; }
   async provideCodeLenses(doc) {
-    const fns = await structure(doc);
+    const { fns, sfx } = await structure(doc);
     const lenses = [];
     const at = (off) => { const p = doc.positionAt(off); return new vscode.Range(p, p); };
     const playIcon = (cur) => (cur && !playing.paused ? "⏸ Pause" : "▶ Play");
@@ -370,6 +379,10 @@ class Lenses {
         lenses.push(new vscode.CodeLens(sr, { title: "⏹", command: "lotwMusic.stop" }));
         lenses.push(new vscode.CodeLens(sr, { title: loopTitle(true), command: "lotwMusic.toggleLoop" }));
       });
+    }
+    // Sound effects: a single ▶ Play (each is a one-shot, no loop/sections).
+    for (const s of sfx) {
+      lenses.push(new vscode.CodeLens(at(s.nameAt), { title: "▶ Play SFX", command: "lotwMusic.playSfx", arguments: [doc, s.index] }));
     }
     return lenses;
   }
@@ -394,6 +407,12 @@ function activate(ctx) {
       playToggle(doc, name);
     }),
     vscode.commands.registerCommand("lotwMusic.playSection", (doc, name, section) => playToggle(doc, name, section)),
+    vscode.commands.registerCommand("lotwMusic.playSfx", (doc, index) => {
+      ensureServer(doc);
+      const tmp = path.join(os.tmpdir(), `lotw_music_${process.pid}.rs`);
+      fs.writeFileSync(tmp, doc.getText());
+      send(`sfxsrc ${tmp} ${index}`); // compile + play the (possibly edited) SFX
+    }),
     vscode.commands.registerCommand("lotwMusic.stop", () => {
       send("reset"); // stop + return to the start of the song/section
       const ed = playing ? editorFor(playing.doc) : vscode.window.activeTextEditor;

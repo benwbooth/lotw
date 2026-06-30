@@ -231,6 +231,31 @@ impl Player {
         self.last_pos = [-1; 4];
     }
 
+    /// Patch an edited SFX stream into its ROM slot and arm the overlay to play
+    /// it alone: song 0 maps the bank, the music bed is muted (the sfx overlay is
+    /// serviced before the pause check, so it still sounds).
+    fn load_sfx(&mut self, idx: usize, bytes: &[u8]) -> Result<(), String> {
+        let prg = &self.rom[self.prg0..self.prg0 + self.rom[4] as usize * 16_384];
+        let off = audio::sfx_streams(prg)
+            .into_iter()
+            .find(|(i, _)| *i == idx)
+            .map(|(_, o)| o)
+            .ok_or("sfx index has no ROM slot")?;
+        let end = self.prg0 + off + bytes.len();
+        if end > self.rom.len() {
+            return Err("sfx stream too long to patch".into());
+        }
+        self.rom[self.prg0 + off..end].copy_from_slice(bytes);
+        std::fs::write(self.tmp, &self.rom).map_err(|e| e.to_string())?;
+        self.engine = common::load_rom(self.tmp, false).map_err(|e| e.to_string())?;
+        self.idx = 0;
+        self.restart();
+        self.engine.state.sound_paused = 1; // mute the music bed
+        self.engine.state.prompt_state = idx as u8;
+        self.engine.state.prompt_argument = 0xFF; // max priority
+        Ok(())
+    }
+
     fn live_cpu(&self, c: usize) -> usize {
         (self.engine.state.sound_channel_byte(2, (c * 16) as i32) | self.engine.state.sound_channel_byte(3, (c * 16) as i32) << 8) as usize
     }
@@ -253,7 +278,9 @@ impl Player {
 
 /// Compile the song source at `path` via the music-jit cdylib and read song
 /// `idx`'s data out through the C-ABI.
-fn jit_compile(path: &str, idx: usize) -> Result<SongData, String> {
+/// Compile the song source at `path` via the `music-jit` cdylib and read one of
+/// its blob exports (`song_blob` / `sfx_blob`) for `idx`. Returns the raw blob.
+fn jit_blob(path: &str, symbol: &[u8], idx: usize) -> Result<Vec<u8>, String> {
     std::fs::copy(path, "music-jit/src/songs.rs").map_err(|e| e.to_string())?;
     let out = std::process::Command::new("cargo")
         .args(["build", "-p", "music-jit"])
@@ -270,13 +297,24 @@ fn jit_compile(path: &str, idx: usize) -> Result<SongData, String> {
     let mut buf = vec![0u8; 1 << 20];
     let len = unsafe {
         let lib = libloading::Library::new(&so).map_err(|e| e.to_string())?;
-        let f: libloading::Symbol<unsafe extern "C" fn(u32, *mut u8, usize) -> usize> = lib.get(b"song_blob").map_err(|e| e.to_string())?;
+        let f: libloading::Symbol<unsafe extern "C" fn(u32, *mut u8, usize) -> usize> = lib.get(symbol).map_err(|e| e.to_string())?;
         f(idx as u32, buf.as_mut_ptr(), buf.len())
     };
     if len == 0 {
-        return Err("song_blob returned 0 (missing song / buffer too small)".into());
+        return Err("blob returned 0 (missing entry / buffer too small)".into());
     }
-    SongData::from_blob(&buf[..len]).ok_or_else(|| "bad song blob".into())
+    buf.truncate(len);
+    Ok(buf)
+}
+
+fn jit_compile(path: &str, idx: usize) -> Result<SongData, String> {
+    let buf = jit_blob(path, b"song_blob", idx)?;
+    SongData::from_blob(&buf).ok_or_else(|| "bad song blob".into())
+}
+
+/// Compile and return the assembled bytes of SFX `idx` from the source at `path`.
+fn jit_sfx(path: &str, idx: usize) -> Result<Vec<u8>, String> {
+    jit_blob(path, b"sfx_blob", idx)
 }
 
 /// Build a one-note song for the preview voice: the parsed note `token` on
@@ -370,7 +408,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Some("sfx") => {
-                    // sfx <idx> — play sound effect `idx` alone on the preview voice.
+                    // sfx <idx> — play ROM sound effect `idx` alone on the preview voice.
                     let idx = it.next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
                     let dur = music::sfx(idx).map(|s| audio::channel_ticks(&s)).unwrap_or(60);
                     // Load any song to map the SFX bank, then mute the music bed and
@@ -384,6 +422,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             preview_frames = (dur as usize).max(20) + 8;
                             say(&format!("loaded sfx {idx}"));
                         }
+                    }
+                }
+                Some("sfxsrc") => {
+                    // sfxsrc <path> <idx> — compile + play the *edited* sound effect.
+                    let path = it.next().unwrap_or("");
+                    let idx: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                    let res = jit_sfx(path, idx).and_then(|bytes| {
+                        let dur = audio::channel_ticks(&audio::disasm(&bytes, 0).unwrap_or_default());
+                        preview.load_sfx(idx, &bytes).map(|_| dur)
+                    });
+                    match res {
+                        Ok(dur) => {
+                            preview.playing = true;
+                            preview_frames = (dur as usize).max(20) + 8;
+                            say(&format!("loaded sfx {idx}"));
+                        }
+                        Err(e) => say(&format!("err {e}")),
                     }
                 }
                 Some("rom") => match it.next().and_then(|s| s.parse().ok()).and_then(|i: usize| SongData::from_dsl(i).map(|d| (i, d))) {

@@ -16,6 +16,7 @@
     "commands": [
       { "command": "lotwMusic.play", "title": "LotW Music: Play song" },
       { "command": "lotwMusic.playSection", "title": "LotW Music: Play section" },
+      { "command": "lotwMusic.playSfx", "title": "LotW Music: Play sound effect" },
       { "command": "lotwMusic.stop", "title": "LotW Music: Stop" },
       { "command": "lotwMusic.toggleLoop", "title": "LotW Music: Toggle loop" }
     ],
