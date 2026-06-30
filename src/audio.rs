@@ -281,54 +281,6 @@ pub fn channel_ticks(toks: &[Tok]) -> u32 {
     toks.iter().map(|t| match t { Tok::Note { dur, .. } | Tok::Hit { dur } | Tok::Rest { dur } => *dur as u32, _ => 0 }).sum()
 }
 
-fn gcd(a: u32, b: u32) -> u32 {
-    if b == 0 { a } else { gcd(b, a % b) }
-}
-fn lcm(a: u32, b: u32) -> u32 {
-    if a == 0 || b == 0 { a.max(b) } else { a / gcd(a, b) * b }
-}
-
-/// The song length to unroll short looping channels up to: the longest channel.
-/// (LCM would line every channel up perfectly but can explode for near-coprime
-/// lengths; the longest channel keeps it bounded — a short channel like noise
-/// fills the whole song by repeating a whole number of times.)
-pub fn common_length(channels: &[Vec<Tok>]) -> u32 {
-    let _ = lcm;
-    channels.iter().map(|c| channel_ticks(c)).max().unwrap_or(0)
-}
-
-/// Repeat a (looping) channel to `target` ticks, which must be a multiple of its
-/// own length. A channel loops on its `0x00`, so this is audio-identical.
-pub fn unroll(toks: &[Tok], target: u32) -> Vec<Tok> {
-    let body: Vec<Tok> = toks.iter().copied().filter(|t| !matches!(t, Tok::End)).collect();
-    let period = channel_ticks(&body);
-    if period == 0 || period >= target {
-        return toks.to_vec();
-    }
-    let mut out = Vec::new();
-    for _ in 0..target / period {
-        out.extend_from_slice(&body);
-    }
-    out.push(Tok::End);
-    out
-}
-
-/// Collapse a channel to its shortest repeating period (the inverse of `unroll`;
-/// audio-identical since the channel loops). Used to write playback bytes back
-/// at the ROM's minimal length.
-pub fn collapse(toks: &[Tok]) -> Vec<Tok> {
-    let body: Vec<Tok> = toks.iter().copied().filter(|t| !matches!(t, Tok::End)).collect();
-    let n = body.len();
-    for p in 1..=n {
-        if n % p == 0 && (0..n).all(|i| body[i] == body[i % p]) {
-            let mut out = body[..p].to_vec();
-            out.push(Tok::End);
-            return out;
-        }
-    }
-    toks.to_vec()
-}
-
 /// How "comfortable" a note value is to read. Sixteenth/eighth/quarter are the
 /// target and score highest; 32nd/64th are actively penalised so the tempo only
 /// resorts to them when a duration genuinely demands it. A duration that matches
