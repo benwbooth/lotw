@@ -172,10 +172,10 @@ pub fn area_east() -> Song {
             &[duty(34), hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, hitq, duty(35), hitq, hitq, hitq],
         ),
         section(
-            &[loop_start, volume(0), duty(37), g5hd, d5hd, g5h, f5hd, c5hd, f5h],
-            &[loop_start, d5hd, g4hd, d5h, c5hd, f4hd, c5h],
-            &[loop_start, g3q, rq, g3q, rq, g4q, g3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, rq, rq],
-            &[loop_start, duty(34), hitq, hitq, hitq, hitq, duty(35), hitq, duty(34), hitq, hitq, hitq, hitq, hitq, hitq, hitq, duty(35), hitq, duty(34), hitq, hitq, hitq],
+            &[volume(0), duty(37), g5hd, d5hd, g5h, f5hd, c5hd, f5h],
+            &[d5hd, g4hd, d5h, c5hd, f4hd, c5h],
+            &[g3q, rq, g3q, rq, g4q, g3q, rq, rq, f3q, rq, f3q, rq, f4q, f3q, rq, rq],
+            &[duty(34), hitq, hitq, hitq, hitq, duty(35), hitq, duty(34), hitq, hitq, hitq, hitq, hitq, hitq, hitq, duty(35), hitq, duty(34), hitq, hitq, hitq],
         ),
         section(
             &[ds5hd, as4hd, ds5h, f5hd, c5hd, volume(253), duty(32), d7i3, e7i3, d7i3, e7i3, ri3, ri3, d7i3, e7i3, d7i3, e7i3, ri3, ri3],
@@ -291,7 +291,7 @@ pub fn area_east() -> Song {
             &[g3q, g3q, g3q, g3q, rq, g3q, g3q, g3q, rq, d3q, f3q, g3q, a3q, c4q, f4q, a4q],
             &[duty(35), hitq, hitq, hitq, hitq, rq, hitq, hitq, hitq, rw, duty(34), hitq, rhd],
         ),
-    ])
+    ]).loop_from(2)
 }
 
 pub fn area_central() -> Song {
@@ -338,10 +338,10 @@ pub fn song_05() -> Song {
             &[volume(0), duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hite, hite, duty(34), hiti, hiti, hiti, hiti, duty(35), hite, hite, duty(34), hiti, hiti, hiti, hiti, duty(35), hite, hite, duty(34), hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hite, hite, duty(34), hiti, hiti, hiti, hiti, duty(35), hite, hite, duty(34), hiti, hiti, hiti, hiti, duty(35), hite, hite, hiti, hiti, hiti, hiti],
         ),
         section(
-            &[loop_start, duty(37), volume(0), ds4h + ds4e, fs4q, g4e, a4qd, as4qd, fs4q, g4qd, ds4qd, fs4q, a4qd, as4qd, c5q],
-            &[loop_start, c4w, fs4qd, g4qd, d4q, ds4qd, c4h + c4e, fs4qd, g4qd, a4q],
-            &[loop_start, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i],
-            &[loop_start, duty(34), hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, duty(34), hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti],
+            &[duty(37), volume(0), ds4h + ds4e, fs4q, g4e, a4qd, as4qd, fs4q, g4qd, ds4qd, fs4q, a4qd, as4qd, c5q],
+            &[c4w, fs4qd, g4qd, d4q, ds4qd, c4h + c4e, fs4qd, g4qd, a4q],
+            &[c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i, c4i, ri, c4i, c5i],
+            &[duty(34), hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, duty(34), hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti, hiti, ri, hiti, hiti, duty(35), hite, duty(34), hiti, hiti],
         ),
         section(
             &[cs5qd, as4qd, f4h, volume(253), pitch(8), cs4q, ds4q, f4q, volume(0), pitch(0), cs4qd, ds4qd, f4h, volume(253), pitch(8), cs5q, f5q, as5q],
@@ -367,7 +367,7 @@ pub fn song_05() -> Song {
             &[],
             &[],
         ),
-    ])
+    ]).loop_from(1)
 }
 
 pub fn home_theme() -> Song {
@@ -402,10 +402,16 @@ pub fn home_theme() -> Song {
 pub fn song_07() -> Song {
     song(24, &[
         section(
-            &[rh, loop_start, volume(0), duty(40), b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h, a4ed],
-            &[rh, loop_start, volume(252), duty(40), pitch(8), red, b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h],
-            &[rh, loop_start, g3i, ri, g3i, ri, g4e, ri, g3e, ri, g3i, ri, g4e, ri, g3i, fs3i, ri, fs3i, ri, fs4e, ri, fs3e, ri, fs3i, ri, fs4e, ri, fs3i, f3i, ri, f3i, ri, f4e, ri, f3e, ri, f3i, ri, f4e, ri, f3i, e3i, ri, e3i, ri, e4e, ri, e3e, ri, e3i],
-            &[volume(0), duty(34), hiti, duty(35), hite, duty(34), hiti, duty(35), hite, duty(35), hiti, hiti, loop_start, duty(34), hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, duty(34), hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti],
+            &[rh],
+            &[rh],
+            &[rh],
+            &[volume(0), duty(34), hiti, duty(35), hite, duty(34), hiti, duty(35), hite, duty(35), hiti, hiti],
+        ),
+        section(
+            &[volume(0), duty(40), b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h, a4ed],
+            &[volume(252), duty(40), pitch(8), red, b4h, c5ed, b4ed, g4e, a4h, b4ed, a4q + a4i, a4h, b4ed, a4ed, fs4e, g4h],
+            &[g3i, ri, g3i, ri, g4e, ri, g3e, ri, g3i, ri, g4e, ri, g3i, fs3i, ri, fs3i, ri, fs4e, ri, fs3e, ri, fs3i, ri, fs4e, ri, fs3i, f3i, ri, f3i, ri, f4e, ri, f3e, ri, f3i, ri, f4e, ri, f3i, e3i, ri, e3i, ri, e4e, ri, e3e, ri, e3i],
+            &[duty(34), hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, duty(34), hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti, hiti, duty(35), hiti, duty(34), hiti, hiti, hiti, hiti, hiti, hiti],
         ),
         section(
             &[g4q + g4i, g4h, a4ed, g4ed, a4e, b4qd, d4qd, b4q, a4qd, e4qd, g4q, g4e, fs4e, e4e, d4q, d5qd, b4h, c5ed],
@@ -443,7 +449,7 @@ pub fn song_07() -> Song {
             &[g3i, d4i, g4i, d4i, c5i, g4i, d4i, b4i, d4i, a4i, d5i, d4i, a4i, d5i, d4i, a4i],
             &[duty(35), hitq, duty(34), hite, re, hiti, duty(35), hite, duty(34), hiti, duty(35), hite, hiti, hiti],
         ),
-    ])
+    ]).loop_from(1)
 }
 
 pub fn death_jingle() -> Song {
@@ -472,10 +478,16 @@ pub fn title_theme() -> Song {
             &[rw, rw, rw, rw],
         ),
         section(
-            &[e4w, e5w, loop_start, duty(32), volume(0), a4h, e4hd, cs4q, a3ed, cs4ed, e4e],
-            &[e4w, volume(253), e4i, gs4i, b4i, e5i, gs4i, b4i, e5i, gs5i, b4i, e5i, gs5i, b5i, e5i, gs5i, b5i, e6i, loop_start, duty(32), pitch(8), volume(254), a4h, e4q, a6q, e6q, a4e3, e4e3, cs4e3, e4ed, a4ed, cs5e],
-            &[sweep(19), e4e, e4e, e4e, e4e, e4e, e4e, e4e, e4e, e3e, e3e, e3e, e3e, e3e, e3e, e3e, e3e, loop_start, a3e, a3e, a4e, a3e, a3e, a3e, a4e, a3e, g3e, g3e, g4e, g3e, g3e, g3e, g4e, g3e],
-            &[volume(254), duty(34), hite, re, hite, re, hite, re, hite, re, hite, hite, hiti, hiti, duty(35), hite, duty(34), hite, hite, hiti, hiti, hiti, hiti, loop_start, volume(254), duty(34), hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite],
+            &[e4w, e5w],
+            &[e4w, volume(253), e4i, gs4i, b4i, e5i, gs4i, b4i, e5i, gs5i, b4i, e5i, gs5i, b5i, e5i, gs5i, b5i, e6i],
+            &[sweep(19), e4e, e4e, e4e, e4e, e4e, e4e, e4e, e4e, e3e, e3e, e3e, e3e, e3e, e3e, e3e, e3e],
+            &[volume(254), duty(34), hite, re, hite, re, hite, re, hite, re, hite, hite, hiti, hiti, duty(35), hite, duty(34), hite, hite, hiti, hiti, hiti, hiti],
+        ),
+        section(
+            &[duty(32), volume(0), a4h, e4hd, cs4q, a3ed, cs4ed, e4e],
+            &[duty(32), pitch(8), volume(254), a4h, e4q, a6q, e6q, a4e3, e4e3, cs4e3, e4ed, a4ed, cs5e],
+            &[a3e, a3e, a4e, a3e, a3e, a3e, a4e, a3e, g3e, g3e, g4e, g3e, g3e, g3e, g4e, g3e],
+            &[volume(254), duty(34), hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite],
         ),
         section(
             &[fs4h, d4hd, a4q, d5ed, e5ed, d5e, duty(32), cs5h, a4h, b4q, e4q, b4q, cs5q],
@@ -489,7 +501,7 @@ pub fn title_theme() -> Song {
             &[d3e, d3e, d4e, d3e, d3e, d3e, d4e, d3e, e3e, e3e, e4e, e3e, e3e, e3e, e4e, e3e],
             &[duty(34), hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite, hite, hite, duty(35), hite, duty(34), hite],
         ),
-    ])
+    ]).loop_from(2)
 }
 
 pub fn ending_theme() -> Song {
@@ -656,15 +668,9 @@ pub fn door_unlock_jingle() -> Song {
             &[duty(41), volume!(0 a3i e4i a4i b4i cs5i e5i, 254 a4i e5i a5i b5i cs6i e6i, 252 a3i e4i a4i b4i cs5i e5i, 250 a4i e5i a5i b5i cs6i e6i)],
             &[duty(41), volume(254), ri, a3i, e4i, a4i, b4i, cs5i, e5i, volume!(252 a4i e5i a5i b5i cs6i e6i, 250 a3i e4i a4i b4i cs5i e5i, 249 a4i e5i a5i b5i cs6i)],
             &[a3hd, rhd],
-            &[no_loop],
-        ),
-        section(
-            &[no_loop],
-            &[no_loop],
-            &[no_loop],
             &[],
         ),
-    ])
+    ]).no_loop()
 }
 
 pub fn song_15() -> Song {

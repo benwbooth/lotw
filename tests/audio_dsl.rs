@@ -59,7 +59,7 @@ fn loops_match_rom() {
     for (idx, loops) in audio::song_loops(prg) {
         let song = lotw::music::get(idx).unwrap_or_else(|| panic!("music::get({idx}) missing"));
         for (ci, want) in loops.iter().enumerate() {
-            let got = lotw_music::loop_of(&song.channels[ci].1);
+            let got = lotw_music::channel_loop(&song, ci);
             assert_eq!(got, *want, "song{idx} {} loop", audio::CHANNEL_NAMES[ci]);
         }
     }

@@ -97,6 +97,17 @@ pub fn loop_of(toks: &[Tok]) -> Loop {
     Loop::To(0)
 }
 
+/// Where a whole song loops back to when it reaches the end. Channels can still
+/// override this individually with an inline `loop_start`/`no_loop` marker (used
+/// only where a channel's loop doesn't line up on the shared section boundary).
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SongLoop {
+    #[default]
+    Start, // loop from the beginning (the common case)
+    From(usize), // loop from the start of this section (every channel)
+    NoLoop,      // one-shot — don't loop
+}
+
 /// A song: its four channel streams in header order (pulse1/pulse2/tri/noise),
 /// plus, per channel, the token index where each score section begins (so a
 /// player can map the playhead back to a source section for highlighting).
@@ -104,11 +115,43 @@ pub fn loop_of(toks: &[Tok]) -> Loop {
 pub struct Song {
     pub channels: Vec<(String, Vec<Tok>)>,
     pub section_starts: [Vec<usize>; 4],
+    pub song_loop: SongLoop,
 }
 
 impl Song {
     pub fn add(&mut self, name: &str, stream: Vec<Tok>) {
         self.channels.push((name.to_string(), stream));
+    }
+
+    /// Loop the whole song from the start of section `n` (an intro before it
+    /// plays once). Builder: `song(tempo, &[…]).loop_from(3)`.
+    pub fn loop_from(mut self, n: usize) -> Self {
+        self.song_loop = SongLoop::From(n);
+        self
+    }
+
+    /// One-shot: the song plays once and stops. `song(tempo, &[…]).no_loop()`.
+    pub fn no_loop(mut self) -> Self {
+        self.song_loop = SongLoop::NoLoop;
+        self
+    }
+}
+
+/// Resolve channel `ch`'s loop target: an inline `LoopStart`/`NoLoop` marker wins
+/// (a per-channel override), else the song-level [`SongLoop`] — `From(n)` becomes
+/// the byte offset where section `n` starts in this channel.
+pub fn channel_loop(song: &Song, ch: usize) -> Loop {
+    let toks = &song.channels[ch].1;
+    if toks.iter().any(|t| matches!(t, Tok::LoopStart | Tok::NoLoop)) {
+        return loop_of(toks);
+    }
+    match song.song_loop {
+        SongLoop::Start => Loop::To(0),
+        SongLoop::NoLoop => Loop::None,
+        SongLoop::From(n) => {
+            let tok = song.section_starts[ch].get(n).copied().unwrap_or(0);
+            Loop::To(assemble(&toks[..tok.min(toks.len())]).len())
+        }
     }
 }
 

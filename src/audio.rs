@@ -33,7 +33,7 @@ const DURS: &[(&str, u8)] = &[
 // The `Tok`/`Song` stream model + `assemble` + the music DSL live in the small
 // `lotw_music` crate (so it compiles fast on its own for live-edit playback);
 // re-export them so `lotw::audio::Tok` etc. keep working.
-pub use lotw_music::{CHANNEL_NAMES, Loop, Song, Tok, assemble, loop_of};
+pub use lotw_music::{CHANNEL_NAMES, Loop, Song, Tok, assemble, channel_loop, loop_of};
 
 /// Disassemble one channel stream starting at PRG offset `off`, up to and
 /// including the terminating `end`. Returns None on a truncated/runaway stream.
@@ -646,18 +646,43 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
         // Channel 3 (noise) stores 1-byte drum hits, not 2-byte pitched notes.
         let mut streams: Vec<Vec<Tok>> =
             chans.iter().enumerate().map(|(c, off)| off.and_then(|o| disasm_channel(prg, o, c == 3)).unwrap_or_default()).collect();
-        // Record each channel's loop target (LoopStart/NoLoop markers) before
-        // sectioning — markers are 0-tick/0-byte, so they don't shift anything.
-        if let Some(ls) = loops.get(idx) {
+        let chan_loops = loops.get(idx).copied().unwrap_or([Loop::To(0); 4]);
+        let tempo = detect_tempo(&streams);
+        let section_ticks = (16 * tempo).max(1);
+        let mut pts = section_points(&streams, section_ticks);
+
+        // Decide how to record the loop. If every channel loops to the same tick
+        // we say it once on the song (loop_from / no_loop / default-from-start);
+        // otherwise it's genuinely per-channel (song 12) and we fall back to inline
+        // LoopStart/NoLoop markers, which override the song-level setting.
+        let ticks: Vec<Option<u32>> = (0..4)
+            .map(|c| match chan_loops[c] {
+                Loop::None => None,
+                Loop::To(b) => loop_tick(&streams[c], b),
+            })
+            .collect();
+        let all_none = chan_loops.iter().all(|l| *l == Loop::None);
+        let all_to = chan_loops.iter().all(|l| matches!(l, Loop::To(_)));
+        let same = all_to && ticks.iter().all(|t| t.is_some() && *t == ticks[0]);
+        let mut loop_call = String::new();
+        if all_none {
+            loop_call = ".no_loop()".to_string();
+        } else if same {
+            let t = ticks[0].unwrap();
+            if t > 0 {
+                if !pts.contains(&t) {
+                    pts.push(t);
+                    pts.sort_unstable();
+                }
+                let n = pts.iter().position(|&p| p == t).unwrap();
+                loop_call = format!(".loop_from({n})");
+            }
+        } else {
             for (c, s) in streams.iter_mut().enumerate() {
-                apply_loop(s, ls[c]);
+                apply_loop(s, chan_loops[c]); // per-channel markers (0-tick/0-byte)
             }
         }
-        let tempo = detect_tempo(&streams);
-        // ~4 bars per section at the detected tempo (4/4), snapped to boundaries
-        // every channel shares so the sections line up in time.
-        let section_ticks = (16 * tempo).max(1);
-        let pts = section_points(&streams, section_ticks);
+
         let secs: Vec<Vec<Vec<Tok>>> = streams.iter().map(|s| split_at(s, &pts)).collect();
         let n = secs.iter().map(Vec::len).max().unwrap_or(0);
         out.push_str(&format!("pub fn {}() -> Song {{\n    song({tempo}, &[\n", song_name(*idx)));
@@ -669,7 +694,7 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
             }
             out.push_str("        ),\n");
         }
-        out.push_str("    ])\n}\n\n");
+        out.push_str(&format!("    ]){loop_call}\n}}\n\n"));
     }
     out.push_str("/// All songs by ROM index.\npub fn get(i: usize) -> Option<Song> {\n    Some(match i {\n");
     for (idx, _) in &songs {
@@ -743,6 +768,20 @@ pub fn song_header_offset(prg: &[u8], idx: usize) -> Option<usize> {
         }
     }
     None
+}
+
+/// The tick position of byte offset `byte_off` in a stream, or None if it doesn't
+/// land on a token boundary.
+fn loop_tick(toks: &[Tok], byte_off: usize) -> Option<u32> {
+    let (mut b, mut t) = (0usize, 0u32);
+    for tok in toks {
+        if b == byte_off {
+            return Some(t);
+        }
+        b += tok_bytes(tok);
+        t += tick_of(tok);
+    }
+    (b == byte_off).then_some(t)
 }
 
 /// Byte size of a token in the assembled stream (loop markers are zero).

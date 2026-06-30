@@ -51,7 +51,7 @@ impl SongData {
     fn from_dsl(idx: usize) -> Option<SongData> {
         let s = music::get(idx)?;
         let channels = std::array::from_fn(|c| audio::assemble(&s.channels[c].1));
-        let loops = std::array::from_fn(|c| match audio::loop_of(&s.channels[c].1) {
+        let loops = std::array::from_fn(|c| match audio::channel_loop(&s, c) {
             audio::Loop::To(n) => Some(n),
             audio::Loop::None => None,
         });

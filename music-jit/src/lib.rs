@@ -46,8 +46,9 @@ pub unsafe extern "C" fn song_blob(idx: u32, out: *mut u8, cap: usize) -> usize 
         for &s in starts {
             buf.extend_from_slice(&(s as u32).to_le_bytes());
         }
-        // Loop target byte offset, or 0xFFFFFFFF for "no loop" (see loop_of).
-        let code: u32 = match lotw_music::loop_of(&song.channels[ci].1) {
+        // Loop target byte offset, or 0xFFFFFFFF for "no loop" (resolves the
+        // song-level loop + any per-channel marker override).
+        let code: u32 = match lotw_music::channel_loop(&song, ci) {
             lotw_music::Loop::To(n) => n as u32,
             lotw_music::Loop::None => u32::MAX,
         };
