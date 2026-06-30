@@ -504,15 +504,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // longest channel has completed, not just the shortest).
             let active = (0..4).any(|c| player.peak[c] >= 1);
             let all_wrapped = active && (0..4).all(|c| player.peak[c] < 1 || player.wrapped[c]);
-            // A non-looping song/jingle parks every channel on its End marker (-1)
-            // instead of looping back; count consecutive such frames so the brief
-            // -1 a looping song shows at its loop point doesn't count as the end.
+            // A one-shot jingle doesn't loop in the engine: it parks every channel
+            // on its End marker (-1) forever. Count consecutive such frames so the
+            // brief -1 a looping song shows at its loop point doesn't count.
             let at_end = active && (0..4).all(|c| player.peak[c] < 1 || toks[c] < 0);
             player.parked = if at_end { player.parked + 1 } else { 0 };
-            if (!player.looping && all_wrapped) || player.parked >= 3 {
+            if !player.looping && (all_wrapped || player.parked >= 3) {
+                // Loop off: stop after one full pass (a looping song wraps; a jingle parks).
                 player.restart(); // rewind to the start; the next play replays from the beginning
                 player.playing = false;
                 say("ended");
+            } else if player.looping && player.parked >= 3 {
+                // Loop on, but the engine won't loop this jingle — re-trigger it so
+                // it actually repeats (a song that loops in-engine never parks here).
+                player.restart();
             } else if toks != player.last_pos {
                 player.last_pos = toks;
                 say(&format!("pos {} {} {} {} {}", player.tick, toks[0], toks[1], toks[2], toks[3]));
