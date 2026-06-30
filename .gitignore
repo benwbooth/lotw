@@ -40,5 +40,3 @@ assets/chr/
 
 # cxx-qt editor build output
 /qt-editor/target/
-
-/music-jit/src/songs.rs
