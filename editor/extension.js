@@ -221,6 +221,11 @@ function elemsOf(el) {
     if (name === "env") return envElements(el, 1); // env!(param, segs…): skip the param group
     if (PARAM_MACROS.includes(name)) return envElements(el, 0); // volume!(segs…): param is the name
   }
+  // Loop markers assemble to zero bytes — 0 tokens, so they don't shift the
+  // playhead-to-element mapping for everything after them.
+  if (el.type === "identifier" && (el.text === "loop_start" || el.text === "no_loop")) {
+    return [{ a: el.startIndex, b: el.endIndex, toks: 0 }];
+  }
   return [{ a: el.startIndex, b: el.endIndex, toks: 1 }];
 }
 
