@@ -197,13 +197,15 @@ async function previewAtCursor(doc) {
   if (!ctx) return;
   ensureServer(doc); // start the server on first note so type-to-play works before Play
   send(`preview ${ctx.channel} ${ctx.tempo} ${m[0]}`);
-  // Highlight the typed note while the preview rings (skip if a song is playing —
-  // its own pos-driven highlight owns the decoration).
-  if (!playing) {
+  // Highlight the typed note while the preview rings. Skip only while a song is
+  // *actively* playing (its pos-driven highlight owns the decoration); a paused/
+  // ended `playing` still allows the preview highlight.
+  const idle = () => !playing || playing.paused;
+  if (idle()) {
     const range = new vscode.Range(pos.line, pos.character - m[0].length, pos.line, pos.character);
     ed.setDecorations(highlight, [range]);
     clearTimeout(previewHlTimer);
-    previewHlTimer = setTimeout(() => { if (!playing) ed.setDecorations(highlight, []); }, 400);
+    previewHlTimer = setTimeout(() => { if (idle()) ed.setDecorations(highlight, []); }, 400);
   }
 }
 
