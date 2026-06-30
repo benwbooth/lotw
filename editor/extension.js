@@ -121,7 +121,7 @@ async function channelElements(doc, name) {
       for (let c = 0; c < 4; c++) {
         const arr = arrayOf(cargs.namedChildren[c]);
         const group = [];
-        if (arr) for (const el of arr.namedChildren) group.push({ a: el.startIndex, b: el.endIndex, toks: tokCount(el) });
+        if (arr) for (const el of arr.namedChildren) group.push(...elemsOf(el));
         chans[c].push(group);
       }
     }
@@ -171,26 +171,38 @@ async function previewAtCursor(doc) {
 }
 
 const PARAM_MACROS = ["duty", "volume", "flags", "pitch", "sweep"];
-function tokCount(el) {
+
+// A source element -> the list of {a, b, toks:1} it assembles to. Most elements
+// are one token; an envelope macro (env!/duty!/volume!/…) expands to one element
+// per emitted token — the command (spanning its value) and each carrier note —
+// so the playhead highlights the individual value/note inside it, not the block.
+function elemsOf(el) {
   if (el.type === "macro_invocation") {
     const name = (el.childForFieldName("macro") || {}).text;
-    if (name === "env") return envTokCount(el, 1); // env!(param, segs…): skip the param group
-    if (PARAM_MACROS.includes(name)) return envTokCount(el, 0); // volume!(segs…): param is the name
+    if (name === "env") return envElements(el, 1); // env!(param, segs…): skip the param group
+    if (PARAM_MACROS.includes(name)) return envElements(el, 0); // volume!(segs…): param is the name
   }
-  return 1; // notes, rests, duty()/raw()/... each assemble to one Tok
+  return [{ a: el.startIndex, b: el.endIndex, toks: 1 }];
 }
 
-// Envelope tokens = sum over segments of 1 (the command) + the carrier notes.
-// `skip` drops the leading parameter group (1 for env!, 0 for volume!/…).
-function envTokCount(el, skip) {
+// Each segment `<value> <note>…` -> a command element (spanning the value) then
+// one element per carrier note. `skip` drops the leading parameter group.
+function envElements(el, skip) {
   const tt = el.descendantsOfType("token_tree")[0];
-  if (!tt) return 1;
+  if (!tt) return [{ a: el.startIndex, b: el.endIndex, toks: 1 }];
   const toks = tt.children.filter((c) => c.type !== "(" && c.type !== ")");
   const segs = [[]];
   for (const c of toks) (c.type === "," ? segs.push([]) : segs[segs.length - 1].push(c));
-  let n = 0;
-  for (const seg of segs.slice(skip)) n += 1 + seg.filter((c) => c.type === "identifier").length;
-  return n || 1;
+  const out = [];
+  for (const seg of segs.slice(skip)) {
+    if (!seg.length) continue;
+    const val = seg.filter((c) => c.type !== "identifier"); // the number / +N value
+    const v0 = val[0] || seg[0];
+    const v1 = val[val.length - 1] || seg[0];
+    out.push({ a: v0.startIndex, b: v1.endIndex, toks: 1 }); // the param command
+    for (const n of seg.filter((c) => c.type === "identifier")) out.push({ a: n.startIndex, b: n.endIndex, toks: 1 });
+  }
+  return out.length ? out : [{ a: el.startIndex, b: el.endIndex, toks: 1 }];
 }
 
 // --- server process ---
