@@ -4,17 +4,19 @@ PyO3/maturin wrapper over `lotw::env::Env`: drive the real game one frame at a t
 from Python, observe RGB frames, read privileged RAM/state, and load deterministic
 replay-checkpoint save-states.
 
-## Build / install (in the nix dev shell)
+## Build / install
+
+Deps are managed by **uv** from the repo-root `pyproject.toml`; direnv auto-runs
+`uv sync` and activates `.venv` on entry (see `.envrc`). Manually:
 
 ```sh
-nix develop
-python -m venv .venv --system-site-packages   # --system-site-packages -> nix numpy
-source .venv/bin/activate
-( cd lotw-env && maturin develop )             # builds + installs editable `lotw_env`
+nix develop          # rust toolchain, python, uv, maturin
+uv sync              # builds .venv: numpy + gymnasium + this extension (editable)
 ```
 
-Re-run `maturin develop` after changing the Rust. Use `maturin develop --release`
-for a fast env (RL throughput); debug is fine for plumbing.
+After changing the Rust here, rebuild the extension:
+`uv sync --reinstall-package lotw-env` (or `maturin develop` inside the venv).
+For a fast env (RL throughput) build release: `maturin develop --release`.
 
 ## Use
 

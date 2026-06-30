@@ -53,11 +53,13 @@
             clippy
             rustc
             rustfmt
-            # Python + numpy for the agent RL env (PyO3/maturin wrapper over
-            # lotw::env::Env returns numpy frames). maturin builds the bindings;
-            # use a venv for `maturin develop` (see below). Torch (ROCm) is
-            # separate — run it from the rocm/pytorch container, not nix.
-            (python3.withPackages (ps: with ps; [ numpy ]))
+            # Python toolchain for the agent RL env. uv manages the Python deps
+            # (numpy, gymnasium, …) via the top-level pyproject.toml + .venv; the
+            # flake just provides the interpreter, uv, and maturin (which builds
+            # the lotw-env PyO3 module). Torch (ROCm) runs from the rocm/pytorch
+            # container, not here.
+            python3
+            uv
             maturin
             # Fast linker for the live-edit music JIT rebuild (see music-jit/bench.sh)
             mold
@@ -107,7 +109,13 @@
               pkgs.libxrandr
               pkgs.qt6.qtbase
               pkgs.qt6.qtdeclarative
+              # so uv-installed manylinux wheels (numpy, later torch) load on NixOS
+              pkgs.stdenv.cc.cc.lib
+              pkgs.zlib
             ]}:''${LD_LIBRARY_PATH:-}"
+            # uv: use the nix python, never download a standalone interpreter.
+            export UV_PYTHON_DOWNLOADS=never
+            export UV_PYTHON="${pkgs.python3}/bin/python3"
             export RUST_SRC_PATH="${pkgs.rustPlatform.rustLibSrc}/lib/rustlib/src/rust/library"
             export QMAKE="${qmakeWrapperFor pkgs}/bin/qmake"
             export QT_QPA_PLATFORM=wayland

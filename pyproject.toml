@@ -1,0 +1,20 @@
+[project]
+name = "lotw-agent"
+version = "0.1.0"
+description = "RL / search agent for Legacy of the Wizard over the deterministic Rust port env"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "gymnasium>=1.0",
+    "lotw-env",            # the local PyO3 extension (built by maturin)
+]
+
+[dependency-groups]
+dev = ["maturin>=1.0"]
+
+[tool.uv]
+# This root is an application, not a distributable package — don't build it.
+package = false
+
+[tool.uv.sources]
+lotw-env = { path = "lotw-env", editable = true }
