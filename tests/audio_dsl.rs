@@ -16,7 +16,7 @@ fn rom_streams_round_trip() {
     assert!(!streams.is_empty(), "no song streams found");
     for (song, ch, off) in streams {
         let where_ = format!("song{song} ch{ch} @{off:#x}");
-        let toks = audio::disasm(prg, off).unwrap_or_else(|| panic!("{where_}: disasm failed"));
+        let toks = audio::disasm_channel(prg, off, ch == 3).unwrap_or_else(|| panic!("{where_}: disasm failed"));
         let bytes = audio::assemble(&toks);
         assert_eq!(&prg[off..off + bytes.len()], &bytes[..], "{where_}: assemble");
 
@@ -40,10 +40,7 @@ fn songs_match_rom() {
         let song = lotw::music::get(idx).unwrap_or_else(|| panic!("music::get({idx}) missing"));
         for (ci, off) in chans.iter().enumerate() {
             let Some(off) = off else { continue };
-            // The source unrolls short looping channels so sections line up;
-            // collapsing back to the minimal loop must reproduce the ROM bytes
-            // exactly (unroll/collapse is audio-identical).
-            let bytes = audio::assemble(&audio::collapse(&song.channels[ci].1));
+            let bytes = audio::assemble(&song.channels[ci].1);
             assert_eq!(&prg[*off..*off + bytes.len()], &bytes[..], "song{idx} {}", audio::CHANNEL_NAMES[ci]);
         }
     }

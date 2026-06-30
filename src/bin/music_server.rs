@@ -81,6 +81,7 @@ impl SongData {
                     0x00 => 1,
                     0xFF => 3,
                     x if x & 0x80 != 0 => 1,
+                    _ if c == 3 => 1, // noise hit = 1 byte
                     _ => 2,
                 };
                 if ti >= start_tok && ti < end_tok && b != 0x00 {
@@ -98,17 +99,6 @@ impl SongData {
             channels[c] = prefix;
         }
         SongData { channels, section_starts: Default::default(), prefix_toks }
-    }
-
-    /// Collapse every channel to its minimal loop, so whole-song playback fits
-    /// the ROM slots (the source unrolls short looping channels for readable
-    /// sections, but the bytes patched back are the ROM's loop length).
-    fn collapsed(&self) -> SongData {
-        let channels = std::array::from_fn(|c| match audio::disasm(&self.channels[c], 0) {
-            Some(toks) => audio::assemble(&audio::collapse(&toks)),
-            None => self.channels[c].clone(),
-        });
-        SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4] }
     }
 
     /// Parse a `song_blob` from the JIT cdylib (see music-jit/src/lib.rs).
@@ -201,6 +191,7 @@ impl Player {
                     0x00 => 1,
                     0xFF => 3,
                     b if b & 0x80 != 0 => 1,
+                    _ if ci == 3 => 1, // noise hit = 1 byte
                     _ => 2,
                 };
                 o = *off + bi;
@@ -322,12 +313,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some("rewind") => {
                     let (i, d) = (player.idx, SongData::from_dsl(player.idx));
                     if let Some(d) = d {
-                        let _ = player.load(i, &d.collapsed(), 0);
+                        let _ = player.load(i, &d, 0);
                     }
                 }
                 Some("loop") => player.looping = it.next() != Some("off"),
                 Some("rom") => match it.next().and_then(|s| s.parse().ok()).and_then(|i: usize| SongData::from_dsl(i).map(|d| (i, d))) {
-                    Some((i, d)) => match player.load(i, &d.collapsed(), 0) {
+                    Some((i, d)) => match player.load(i, &d, 0) {
                         Ok(()) => {
                             player.playing = true;
                             say(&format!("loaded {i}"));
@@ -345,7 +336,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let keep = if section.is_some() { 0 } else { player.tick };
                     let res = jit_compile(path, idx).map(|d| match section {
                         Some(n) => d.extract_section(n),
-                        None => d.collapsed(),
+                        None => d,
                     });
                     match res.and_then(|d| player.load(idx, &d, keep)) {
                         Ok(()) => {

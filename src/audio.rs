@@ -37,7 +37,14 @@ pub use lotw_music::{CHANNEL_NAMES, Song, Tok, assemble};
 
 /// Disassemble one channel stream starting at PRG offset `off`, up to and
 /// including the terminating `end`. Returns None on a truncated/runaway stream.
-pub fn disasm(prg: &[u8], mut off: usize) -> Option<Vec<Tok>> {
+pub fn disasm(prg: &[u8], off: usize) -> Option<Vec<Tok>> {
+    disasm_channel(prg, off, false)
+}
+
+/// Disassemble a channel stream. The noise channel (`is_noise`) stores a note as
+/// a single duration byte — the drum period comes from a command — whereas the
+/// pitched channels store `(dur, pitch)` pairs.
+pub fn disasm_channel(prg: &[u8], mut off: usize, is_noise: bool) -> Option<Vec<Tok>> {
     let mut out = Vec::new();
     for _ in 0..8192 {
         let b = *prg.get(off)?;
@@ -49,6 +56,9 @@ pub fn disasm(prg: &[u8], mut off: usize) -> Option<Vec<Tok>> {
             off += 3;
         } else if b & 0x80 != 0 {
             out.push(Tok::Rest { dur: b & 0x7F });
+            off += 1;
+        } else if is_noise {
+            out.push(Tok::Hit { dur: b });
             off += 1;
         } else {
             out.push(Tok::Note { dur: b, pitch: *prg.get(off + 1)? });
@@ -82,6 +92,7 @@ pub fn render(toks: &[Tok]) -> String {
     toks.iter()
         .map(|t| match *t {
             Tok::Note { dur, pitch } => format!("{}{}", pitch_str(pitch), dur_str(dur)),
+            Tok::Hit { dur } => format!("hit{}", dur_str(dur)),
             Tok::Rest { dur } => format!("r{}", dur_str(dur)),
             Tok::Cmd { id, arg } => {
                 let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
@@ -126,6 +137,11 @@ pub fn parse(text: &str) -> Result<Vec<Tok>, String> {
                 out.push(Tok::Cmd { id, arg: parse_u8_hex(arg)? });
                 continue;
             }
+        }
+        // Noise hit: `hit<dur>` (no note name starts with 'h').
+        if let Some(rest) = tok.strip_prefix("hit") {
+            out.push(Tok::Hit { dur: parse_dur(rest)? });
+            continue;
         }
         // Rest: `r<dur>`.
         if let Some(rest) = tok.strip_prefix('r') {
@@ -262,7 +278,7 @@ fn tie(prefix: &str, vs: &[&str]) -> String {
 
 /// Total tick duration of a token stream.
 pub fn channel_ticks(toks: &[Tok]) -> u32 {
-    toks.iter().map(|t| match t { Tok::Note { dur, .. } | Tok::Rest { dur } => *dur as u32, _ => 0 }).sum()
+    toks.iter().map(|t| match t { Tok::Note { dur, .. } | Tok::Hit { dur } | Tok::Rest { dur } => *dur as u32, _ => 0 }).sum()
 }
 
 fn gcd(a: u32, b: u32) -> u32 {
@@ -336,7 +352,7 @@ pub fn detect_tempo(channels: &[Vec<Tok>]) -> u32 {
         .iter()
         .flat_map(|c| c.iter())
         .filter_map(|t| match t {
-            Tok::Note { dur, .. } | Tok::Rest { dur } => Some(*dur),
+            Tok::Note { dur, .. } | Tok::Hit { dur } | Tok::Rest { dur } => Some(*dur),
             _ => None,
         })
         .collect();
@@ -362,6 +378,13 @@ fn note_item(t: &Tok, q: u32) -> String {
                 format!("raw({pitch}, {dur})")
             }
         }
+        Tok::Hit { dur } => match val_name(dur, q) {
+            Some(v) => format!("hit{v}"),
+            None => match decompose(dur, q) {
+                Some(vs) => tie("hit", &vs),
+                None => format!("hit({dur})"),
+            },
+        },
         Tok::Rest { dur } => match val_name(dur, q) {
             Some(v) => format!("r{v}"),
             None => match decompose(dur, q) {
@@ -450,7 +473,7 @@ pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
             secs.push(Vec::new());
         }
         secs[si].push(t);
-        if let Tok::Note { dur, .. } | Tok::Rest { dur } = t {
+        if let Tok::Note { dur, .. } | Tok::Hit { dur } | Tok::Rest { dur } = t {
             cum += dur as u32;
         }
     }
@@ -458,7 +481,7 @@ pub fn split_sections(toks: &[Tok], section_ticks: u32) -> Vec<Vec<Tok>> {
 }
 
 fn tick_of(t: &Tok) -> u32 {
-    match t { Tok::Note { dur, .. } | Tok::Rest { dur } => *dur as u32, _ => 0 }
+    match t { Tok::Note { dur, .. } | Tok::Hit { dur } | Tok::Rest { dur } => *dur as u32, _ => 0 }
 }
 
 /// The tick positions (0..=total) where this channel has a token boundary.
@@ -643,19 +666,10 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     let mut out = String::new();
     let songs = song_channels(prg);
     for (idx, chans) in &songs {
-        let mut streams: Vec<Vec<Tok>> = chans.iter().map(|off| off.and_then(|o| disasm(prg, o)).unwrap_or_default()).collect();
+        // Channel 3 (noise) stores 1-byte drum hits, not 2-byte pitched notes.
+        let streams: Vec<Vec<Tok>> =
+            chans.iter().enumerate().map(|(c, off)| off.and_then(|o| disasm_channel(prg, o, c == 3)).unwrap_or_default()).collect();
         let tempo = detect_tempo(&streams);
-        // Channels loop at different lengths (e.g. a short noise track repeating
-        // under a longer melody). Unroll each to their common multiple so every
-        // channel spans the whole song and their sections line up. This is
-        // audio-identical (channels loop) and collapses back for byte-exact
-        // playback; see `unroll`/`collapse`.
-        let len = common_length(&streams);
-        for s in &mut streams {
-            if channel_ticks(s) > 0 {
-                *s = unroll(s, len);
-            }
-        }
         // ~4 bars per section at the detected tempo (4/4), snapped to boundaries
         // every channel shares so the sections line up in time.
         let section_ticks = (16 * tempo).max(1);

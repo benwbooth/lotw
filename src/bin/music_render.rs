@@ -49,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             tok_at[ci].push((o, ti));
             o += match t {
                 audio::Tok::Note { .. } => 2,
+                audio::Tok::Hit { .. } => 1,
                 audio::Tok::Rest { .. } => 1,
                 audio::Tok::Cmd { .. } => 3,
                 audio::Tok::End => 1,

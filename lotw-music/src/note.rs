@@ -39,3 +39,7 @@ pub const fn raw(pitch: u8, ticks: u8) -> Note {
 pub const fn rest(ticks: u8) -> Note {
     Note::RawRest { ticks }
 }
+/// An off-grid noise drum hit of `ticks` frames (no pitch).
+pub const fn hit(ticks: u8) -> Note {
+    Note::RawHit { ticks }
+}

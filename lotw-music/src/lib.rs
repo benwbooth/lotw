@@ -41,7 +41,8 @@ pub mod music {
 /// One decoded channel-stream token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tok {
-    Note { dur: u8, pitch: u8 }, // dur has bit7 clear
+    Note { dur: u8, pitch: u8 }, // pitched note (pulse/triangle): 2 bytes (dur, pitch)
+    Hit { dur: u8 },             // noise hit: 1 byte (dur only; the drum period is a command)
     Rest { dur: u8 },            // 0..=127 (the stored byte was dur | 0x80)
     Cmd { id: u8, arg: u8 },
     End,
@@ -52,6 +53,7 @@ pub fn assemble(toks: &[Tok]) -> Vec<u8> {
     let mut out = Vec::new();
     for t in toks {
         match *t {
+            Tok::Hit { dur } => out.push(dur & 0x7F),
             Tok::Note { dur, pitch } => {
                 out.push(dur & 0x7F);
                 out.push(pitch);
@@ -116,12 +118,13 @@ impl std::ops::Add for Note {
     type Output = Note;
     fn add(self, rhs: Note) -> Note {
         let rv = match rhs {
-            Note::Pitched { val, .. } | Note::Rest { val } => val,
+            Note::Pitched { val, .. } | Note::Rest { val } | Note::Hit { val } => val,
             _ => return self,
         };
         match self {
             Note::Pitched { pitch, val } => Note::Pitched { pitch, val: val + rv },
             Note::Rest { val } => Note::Rest { val: val + rv },
+            Note::Hit { val } => Note::Hit { val: val + rv },
             other => other,
         }
     }
@@ -136,8 +139,10 @@ impl std::ops::Add for Note {
 pub enum Note {
     Pitched { pitch: u8, val: Val },
     Rest { val: Val },
+    Hit { val: Val },     // noise drum hit (no pitch; the period is a command)
     RawNote { pitch: u8, ticks: u8 },
     RawRest { ticks: u8 },
+    RawHit { ticks: u8 }, // off-grid noise hit
     Cmd { id: u8, arg: u8 },
     Seq(&'static [Note]),
 }
@@ -147,8 +152,10 @@ impl Note {
         match self {
             Note::Pitched { pitch, val } => out.push(Tok::Note { dur: val.ticks(tempo), pitch }),
             Note::Rest { val } => out.push(Tok::Rest { dur: val.ticks(tempo) }),
+            Note::Hit { val } => out.push(Tok::Hit { dur: val.ticks(tempo) }),
             Note::RawNote { pitch, ticks } => out.push(Tok::Note { dur: ticks, pitch }),
             Note::RawRest { ticks } => out.push(Tok::Rest { dur: ticks }),
+            Note::RawHit { ticks } => out.push(Tok::Hit { dur: ticks }),
             Note::Cmd { id, arg } => out.push(Tok::Cmd { id, arg }),
             Note::Seq(notes) => {
                 for &n in notes {

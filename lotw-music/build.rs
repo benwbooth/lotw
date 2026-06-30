@@ -34,4 +34,8 @@ fn main() {
     for (vn, num, den) in VALS {
         writeln!(f, "pub const r{vn}: Note = Note::Rest {{ val: Val {{ num: {num}, den: {den} }} }};").unwrap();
     }
+    // Noise drum hits `hit<value>` (no pitch; the drum sound is set by a command).
+    for (vn, num, den) in VALS {
+        writeln!(f, "pub const hit{vn}: Note = Note::Hit {{ val: Val {{ num: {num}, den: {den} }} }};").unwrap();
+    }
 }
