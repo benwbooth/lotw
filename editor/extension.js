@@ -35,7 +35,11 @@ let ts = null; // Promise<{ parser, query }>
 let server = null; // { proc }
 let out = null; // shared output channel
 let playing = null; // { doc, name, index, section, channelElements, paused }
-let looping = true; // loop toggle (🔁), mirrored to the server
+const loopState = new Map(); // "uri#name" -> bool (per song/SFX; songs default on, SFX off)
+function loopOf(doc, name, sfx) {
+  const k = `${doc.uri}#${name}`;
+  return loopState.has(k) ? loopState.get(k) : !sfx;
+}
 let debounce = null;
 let previewDebounce = null;
 let previewHlTimer = null;
@@ -369,7 +373,7 @@ async function play(doc, name, section, sfxIndex) {
   hlLog = [-1, -1, -1, -1];
   out.appendLine(`▶ ${name} (${sfx ? "sfx" : "song"} ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
   playing = { doc, name, index: idx, section, channelElements: els, paused: false, sfx };
-  send(`loop ${looping ? "on" : "off"}`);
+  send(`loop ${loopOf(doc, name, sfx) ? "on" : "off"}`);
   writeAndSend();
   lensChanged.fire();
 }
@@ -423,28 +427,29 @@ class Lenses {
     const lenses = [];
     const at = (off) => { const p = doc.positionAt(off); return new vscode.Range(p, p); };
     const playIcon = (cur) => (cur && !playing.paused ? "⏸ Pause" : "▶ Play");
-    const loopTitle = (short) => (short ? (looping ? "🔁" : "🔁̶") : `🔁 Loop ${looping ? "on" : "off"}`);
+    const loopTitle = (on, short) => (short ? (on ? "🔁" : "🔁̶") : `🔁 Loop ${on ? "on" : "off"}`);
     for (const fn of fns) {
       const r = at(fn.nameAt);
       const cur = isCurrent(doc, fn.name, null);
+      const lon = loopOf(doc, fn.name, false);
       lenses.push(new vscode.CodeLens(r, { title: playIcon(cur), command: "lotwMusic.play", arguments: [doc, fn.name] }));
       lenses.push(new vscode.CodeLens(r, { title: "⏹ Stop", command: "lotwMusic.stop" }));
-      lenses.push(new vscode.CodeLens(r, { title: loopTitle(false), command: "lotwMusic.toggleLoop" }));
+      lenses.push(new vscode.CodeLens(r, { title: loopTitle(lon, false), command: "lotwMusic.toggleLoop", arguments: [doc, fn.name, false] }));
       fn.sections.forEach((off, k) => {
         const sr = at(off);
         const scur = isCurrent(doc, fn.name, k);
         lenses.push(new vscode.CodeLens(sr, { title: scur && !playing.paused ? `⏸ §${k + 1}` : `▶ §${k + 1}`, command: "lotwMusic.playSection", arguments: [doc, fn.name, k] }));
         lenses.push(new vscode.CodeLens(sr, { title: "⏹", command: "lotwMusic.stop" }));
-        lenses.push(new vscode.CodeLens(sr, { title: loopTitle(true), command: "lotwMusic.toggleLoop" }));
+        lenses.push(new vscode.CodeLens(sr, { title: loopTitle(lon, true), command: "lotwMusic.toggleLoop", arguments: [doc, fn.name, false] }));
       });
     }
-    // Sound effects get the same transport as songs (no sections).
+    // Sound effects get the same transport as songs (no sections; loop off by default).
     for (const s of sfx) {
       const r = at(s.nameAt);
       const cur = isCurrent(doc, s.name, null);
       lenses.push(new vscode.CodeLens(r, { title: playIcon(cur), command: "lotwMusic.playSfx", arguments: [doc, s.name, s.index] }));
       lenses.push(new vscode.CodeLens(r, { title: "⏹ Stop", command: "lotwMusic.stop" }));
-      lenses.push(new vscode.CodeLens(r, { title: loopTitle(false), command: "lotwMusic.toggleLoop" }));
+      lenses.push(new vscode.CodeLens(r, { title: loopTitle(loopOf(doc, s.name, true), false), command: "lotwMusic.toggleLoop", arguments: [doc, s.name, true] }));
     }
     return lenses;
   }
@@ -477,9 +482,10 @@ function activate(ctx) {
       playing = null;
       lensChanged.fire();
     }),
-    vscode.commands.registerCommand("lotwMusic.toggleLoop", () => {
-      looping = !looping;
-      send(`loop ${looping ? "on" : "off"}`);
+    vscode.commands.registerCommand("lotwMusic.toggleLoop", (doc, name, sfx) => {
+      const on = !loopOf(doc, name, sfx);
+      loopState.set(`${doc.uri}#${name}`, on);
+      if (isCurrent(doc, name, null) || (playing && playing.name === name)) send(`loop ${on ? "on" : "off"}`);
       lensChanged.fire();
     })
   );

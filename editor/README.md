@@ -7,7 +7,8 @@ CodeLens transport buttons:
 - **▶ Play / ⏸ Pause** — a toggle; plays the song/section through the real ported
   sound engine and highlights the **note currently playing in each channel**.
 - **⏹ Stop** — stop and return to the start.
-- **🔁 Loop on/off** — toggle looping.
+- **🔁 Loop on/off** — toggle looping. Per-track: songs default to looping on,
+  sound effects default to off (they're one-shots).
 
 While a song plays, your edits are debounced, recompiled (the `music-server`'s
 JIT recompiles the `music-jit` cdylib in ~130–200 ms), and reloaded **in place** —
