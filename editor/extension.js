@@ -257,6 +257,14 @@ function handleEvent(line) {
     applyHighlight(line.split(/\s+/).slice(2).map(Number)); // [t0,t1,t2,t3] token indices
     return;
   }
+  if (line === "ended") {
+    // Loop-off finished one pass: it's stopped at the start, ready to replay.
+    if (playing) playing.paused = true;
+    const ed = playing && editorFor(playing.doc);
+    if (ed) ed.setDecorations(highlight, []);
+    lensChanged.fire();
+    return;
+  }
   out.appendLine(line);
   if (line.startsWith("err ")) vscode.window.showWarningMessage("LotW Music: " + line.slice(4));
 }

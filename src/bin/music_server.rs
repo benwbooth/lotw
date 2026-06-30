@@ -142,6 +142,7 @@ struct Player {
     section_starts: [Vec<usize>; 4],
     prefix_toks: [usize; 4],
     last_pos: [i64; 4],
+    peak: [i64; 4], // highest token index reached this pass (for loop-off end detection)
     tmp: &'static str, // temp .nes path this player rebuilds from (distinct per voice)
 }
 
@@ -162,6 +163,7 @@ impl Player {
             tok_at: Default::default(),
             section_starts: Default::default(),
             last_pos: [-1; 4],
+            peak: [-1; 4],
             tmp,
         })
     }
@@ -229,6 +231,7 @@ impl Player {
         self.engine.device_write(lotw::engine::reg::APU_STATUS, 0x0F);
         self.tick = 0;
         self.last_pos = [-1; 4];
+        self.peak = [-1; 4];
     }
 
     fn live_cpu(&self, c: usize) -> usize {
@@ -487,7 +490,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if player.playing {
             player.tick += 1;
             let toks = player.tokens();
-            if toks != player.last_pos {
+            // Loop off: stop once the playhead wraps back (the engine always loops
+            // on the stream's 0x00, so we end playback ourselves). Track each
+            // channel's peak; dropping well below it (even via a transient -1) is a
+            // wrap.
+            let mut wrapped = false;
+            for c in 0..4 {
+                if toks[c] < 0 {
+                    continue;
+                }
+                if toks[c] > player.peak[c] {
+                    player.peak[c] = toks[c];
+                } else if player.peak[c] >= 4 && toks[c] + 4 < player.peak[c] {
+                    wrapped = true;
+                }
+            }
+            if !player.looping && wrapped {
+                player.playing = false;
+                say("ended");
+            } else if toks != player.last_pos {
                 player.last_pos = toks;
                 say(&format!("pos {} {} {} {} {}", player.tick, toks[0], toks[1], toks[2], toks[3]));
             }
