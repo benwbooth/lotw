@@ -38,6 +38,7 @@ let playing = null; // { doc, name, index, section, channelElements, paused }
 let looping = true; // loop toggle (🔁), mirrored to the server
 let debounce = null;
 let previewDebounce = null;
+let previewHlTimer = null;
 let lensChanged = new vscode.EventEmitter();
 const cache = new Map(); // doc uri -> { version, fns }
 
@@ -152,23 +153,33 @@ const NOTE_RE = new RegExp(`^(?:[a-g]s?\\d+|hit)${VAL}$`);
 
 // Which channel (0..3 = pulse1/pulse2/tri/noise) the byte `offset` is inside,
 // i.e. which of a section()'s four array args contains it (null if none).
-async function channelAt(doc, offset) {
+// The { channel, tempo } the byte `offset` is in: which section()/line() array
+// (0..3, pulse2=1 for SFX) and the enclosing song()/line() tempo. null if none.
+async function contextAt(doc, offset) {
   const { parser } = await ts;
   const tree = parser.parse(doc.getText());
+  let channel = null;
+  let tempo = 24;
   for (const call of tree.rootNode.descendantsOfType("call_expression")) {
     const fn = call.childForFieldName("function");
-    if (fn && fn.text === "section") {
+    if (!fn) continue;
+    const inside = offset >= call.startIndex && offset <= call.endIndex;
+    if ((fn.text === "song" || fn.text === "line") && inside) {
+      const a0 = call.childForFieldName("arguments").namedChildren[0];
+      const t = a0 && parseInt(a0.text, 10);
+      if (t) tempo = t;
+    }
+    if (fn.text === "section") {
       const refs = call.childForFieldName("arguments").namedChildren;
       for (let c = 0; c < Math.min(4, refs.length); c++) {
-        if (offset >= refs[c].startIndex && offset <= refs[c].endIndex) return c;
+        if (offset >= refs[c].startIndex && offset <= refs[c].endIndex) channel = c;
       }
-    } else if (fn && fn.text === "line") {
-      // SFX: the line(tempo, &[…]) array plays on pulse2 (channel 1).
-      const arr = call.childForFieldName("arguments").namedChildren[1];
-      if (arr && offset >= arr.startIndex && offset <= arr.endIndex) return 1;
+    } else if (fn.text === "line") {
+      const arr = call.childForFieldName("arguments").namedChildren[1]; // SFX -> pulse2
+      if (arr && offset >= arr.startIndex && offset <= arr.endIndex) channel = 1;
     }
   }
-  return null;
+  return channel == null ? null : { channel, tempo };
 }
 
 // Type-to-play: if the token just typed at the cursor is a complete note, hear it.
@@ -178,10 +189,18 @@ async function previewAtCursor(doc) {
   const pos = ed.selection.active;
   const m = doc.lineAt(pos.line).text.slice(0, pos.character).match(/[a-z0-9]+$/);
   if (!m || !NOTE_RE.test(m[0])) return;
-  const chan = await channelAt(doc, doc.offsetAt(pos));
-  if (chan == null) return;
+  const ctx = await contextAt(doc, doc.offsetAt(pos));
+  if (!ctx) return;
   ensureServer(doc); // start the server on first note so type-to-play works before Play
-  send(`preview ${chan} ${m[0]}`);
+  send(`preview ${ctx.channel} ${ctx.tempo} ${m[0]}`);
+  // Highlight the typed note while the preview rings (skip if a song is playing —
+  // its own pos-driven highlight owns the decoration).
+  if (!playing) {
+    const range = new vscode.Range(pos.line, pos.character - m[0].length, pos.line, pos.character);
+    ed.setDecorations(highlight, [range]);
+    clearTimeout(previewHlTimer);
+    previewHlTimer = setTimeout(() => { if (!playing) ed.setDecorations(highlight, []); }, 400);
+  }
 }
 
 const PARAM_MACROS = ["duty", "volume", "flags", "pitch", "sweep"];

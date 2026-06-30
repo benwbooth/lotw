@@ -309,11 +309,20 @@ fn jit_sfx(path: &str, idx: usize) -> Result<Vec<u8>, String> {
 }
 
 /// Build a one-note song for the preview voice: the parsed note `token` on
-/// channel `chan` with default timbre commands, other channels silent. Returns
+/// channel `chan` with default timbre commands, other channels silent. The token
+/// parses at the DSL's reference tempo (quarter = 24 ticks); rescale its duration
+/// to `tempo` so the note rings for as long as it would in the song/SFX. Returns
 /// the song and the note's tick duration.
-fn preview_song(chan: usize, token: &str) -> Option<(SongData, u8)> {
+fn preview_song(chan: usize, tempo: u32, token: &str) -> Option<(SongData, u8)> {
     let toks = audio::parse(token).ok()?;
     let note = toks.iter().copied().find(|t| matches!(t, audio::Tok::Note { .. } | audio::Tok::Hit { .. } | audio::Tok::Rest { .. }))?;
+    let rescale = |d: u8| -> u8 { ((d as u32 * tempo + 12) / 24).clamp(1, 127) as u8 };
+    let note = match note {
+        audio::Tok::Note { dur, pitch } => audio::Tok::Note { dur: rescale(dur), pitch },
+        audio::Tok::Hit { dur } => audio::Tok::Hit { dur: rescale(dur) },
+        audio::Tok::Rest { dur } => audio::Tok::Rest { dur: rescale(dur) },
+        t => t,
+    };
     let dur = match note {
         audio::Tok::Note { dur, .. } | audio::Tok::Hit { dur } | audio::Tok::Rest { dur } => dur,
         _ => 12,
@@ -325,6 +334,7 @@ fn preview_song(chan: usize, token: &str) -> Option<(SongData, u8)> {
         vec![0xFF, 0, 32, 0xFF, 1, 255] // pulse/triangle: duty, volume
     };
     s.extend_from_slice(&audio::assemble(std::slice::from_ref(&note)));
+    s.push(0xF8); // a long rest so a short note doesn't re-trigger within the preview window
     s.push(0x00);
     channels[chan] = s;
     Some((SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4] }, dur))
@@ -389,9 +399,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Some("loop") => player.looping = it.next() != Some("off"),
                 Some("preview") => {
-                    // preview <chan 0..3> <note token, e.g. c4e / hite> — hear a note.
+                    // preview <chan 0..3> <tempo> <note token, e.g. c4e / hite> — hear a note.
                     let chan = it.next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0).min(3);
-                    if let Some((data, dur)) = it.next().and_then(|tok| preview_song(chan, tok)) {
+                    let tempo = it.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(24).max(1);
+                    if let Some((data, dur)) = it.next().and_then(|tok| preview_song(chan, tempo, tok)) {
                         if preview.load(0, &data, 0).is_ok() {
                             preview.playing = true;
                             preview_frames = (dur as usize).max(16) + 6;
