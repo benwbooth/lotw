@@ -136,6 +136,40 @@ function arrayOf(node) {
   return node.descendantsOfType("array_expression")[0] || null;
 }
 
+// A complete note token: a pitched note (c4e, as3q3), a noise hit (hite), or a
+// rest (rq). Used for type-to-play.
+const VAL = "(?:hdd|hd|qdd|qd|edd|ed|id|td|h3|q3|e3|i3|t3|w|h|q|e|i|t|x)";
+const NOTE_RE = new RegExp(`^(?:[a-g]s?\\d+|hit)${VAL}$`);
+
+// Which channel (0..3 = pulse1/pulse2/tri/noise) the byte `offset` is inside,
+// i.e. which of a section()'s four array args contains it (null if none).
+async function channelAt(doc, offset) {
+  const { parser } = await ts;
+  const tree = parser.parse(doc.getText());
+  for (const call of tree.rootNode.descendantsOfType("call_expression")) {
+    const fn = call.childForFieldName("function");
+    if (!fn || fn.text !== "section") continue;
+    const refs = call.childForFieldName("arguments").namedChildren;
+    for (let c = 0; c < Math.min(4, refs.length); c++) {
+      if (offset >= refs[c].startIndex && offset <= refs[c].endIndex) return c;
+    }
+  }
+  return null;
+}
+
+// Type-to-play: if the token just typed at the cursor is a complete note, hear it.
+async function previewAtCursor(doc) {
+  const ed = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === doc.uri.toString());
+  if (!ed) return;
+  const pos = ed.selection.active;
+  const m = doc.lineAt(pos.line).text.slice(0, pos.character).match(/[a-z0-9]+$/);
+  if (!m || !NOTE_RE.test(m[0])) return;
+  const chan = await channelAt(doc, doc.offsetAt(pos));
+  if (chan == null) return;
+  ensureServer(doc); // start the server on first note so type-to-play works before Play
+  send(`preview ${chan} ${m[0]}`);
+}
+
 const PARAM_MACROS = ["duty", "volume", "flags", "pitch", "sweep"];
 function tokCount(el) {
   if (el.type === "macro_invocation") {
@@ -366,6 +400,9 @@ function activate(ctx) {
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.languageId !== "rust") return;
       lensChanged.fire(); // refresh CodeLens (structure may have changed)
+      // Type-to-play: preview the note token at the cursor (separate voice).
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(() => previewAtCursor(e.document), 120);
       if (!playing || e.document !== playing.doc) return;
       clearTimeout(debounce);
       const ms = vscode.workspace.getConfiguration("lotwMusic").get("debounceMs", 300);

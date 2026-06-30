@@ -1,12 +1,21 @@
 # LotW Music — VSCode extension
 
 Live-edit playback for Legacy of the Wizard songs written in the `lotw_music`
-DSL. Above each `pub fn name() -> Song` it shows **▶ Play / ⏹ Stop / 🔁 Loop**
-CodeLens buttons; pressing Play compiles and plays the song through the real
-ported sound engine, and highlights the section that's currently sounding. While
-a song plays, your edits are debounced, recompiled (the `music-server`'s JIT
-recompiles the `music-jit` cdylib in ~130–200 ms), and reloaded **in place** —
+DSL. Above each `pub fn name() -> Song` (and each `section(...)`) it shows
+CodeLens transport buttons:
+
+- **▶ Play / ⏸ Pause** — a toggle; plays the song/section through the real ported
+  sound engine and highlights the **note currently playing in each channel**.
+- **⏹ Stop** — stop and return to the start.
+- **🔁 Loop on/off** — toggle looping.
+
+While a song plays, your edits are debounced, recompiled (the `music-server`'s
+JIT recompiles the `music-jit` cdylib in ~130–200 ms), and reloaded **in place** —
 playback keeps its position.
+
+**Type-to-play**: as you type a note (`c4e`, `hite`, …), it's played immediately
+on a separate preview voice so you hear what you're writing — even without
+pressing Play, and without disturbing any ongoing playback.
 
 ## How it works
 
@@ -40,12 +49,11 @@ music-server --features server` from the workspace root, so it needs the
 - `lotwMusic.rom` — ROM path (relative to the workspace), default `rom/lotw.nes`.
 - `lotwMusic.debounceMs` — delay after you stop typing before reloading, default `300`.
 
-## Limitations (v1)
+## Limitations
 
-- Highlighting is **section-granular** (the `section(...)` block playing), not
-  per-note — reliable across `env!` expansion. Per-note needs compile-time span
-  instrumentation.
 - The edited song's channel streams are patched over the ROM song's slot, so a
   song that grows much longer than the original may not fit yet.
 - Position is preserved by re-ticking to the same tick on reload; a structural
   diff to remap across big edits is future work.
+- The type-to-play preview uses a fixed default timbre (duty/volume), not the
+  channel's surrounding commands.

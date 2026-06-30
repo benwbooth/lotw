@@ -142,10 +142,11 @@ struct Player {
     section_starts: [Vec<usize>; 4],
     prefix_toks: [usize; 4],
     last_pos: [i64; 4],
+    tmp: &'static str, // temp .nes path this player rebuilds from (distinct per voice)
 }
 
 impl Player {
-    fn new(rom_path: &str) -> Result<Player, Box<dyn std::error::Error>> {
+    fn new(rom_path: &str, tmp: &'static str) -> Result<Player, Box<dyn std::error::Error>> {
         let rom = std::fs::read(rom_path)?;
         let engine = common::load_rom(rom_path, false)?;
         Ok(Player {
@@ -161,6 +162,7 @@ impl Player {
             tok_at: Default::default(),
             section_starts: Default::default(),
             last_pos: [-1; 4],
+            tmp,
         })
     }
 
@@ -202,7 +204,7 @@ impl Player {
         self.prefix_toks = data.prefix_toks;
 
         // Rebuild the engine from the patched ROM.
-        let tmp = "/tmp/ben/scratch/music_server.nes";
+        let tmp = self.tmp;
         std::fs::write(tmp, &self.rom).map_err(|e| e.to_string())?;
         self.engine = common::load_rom(tmp, false).map_err(|e| e.to_string())?;
         self.idx = idx;
@@ -277,10 +279,37 @@ fn jit_compile(path: &str, idx: usize) -> Result<SongData, String> {
     SongData::from_blob(&buf[..len]).ok_or_else(|| "bad song blob".into())
 }
 
+/// Build a one-note song for the preview voice: the parsed note `token` on
+/// channel `chan` with default timbre commands, other channels silent. Returns
+/// the song and the note's tick duration.
+fn preview_song(chan: usize, token: &str) -> Option<(SongData, u8)> {
+    let toks = audio::parse(token).ok()?;
+    let note = toks.iter().copied().find(|t| matches!(t, audio::Tok::Note { .. } | audio::Tok::Hit { .. } | audio::Tok::Rest { .. }))?;
+    let dur = match note {
+        audio::Tok::Note { dur, .. } | audio::Tok::Hit { dur } | audio::Tok::Rest { dur } => dur,
+        _ => 12,
+    };
+    let mut channels: [Vec<u8>; 4] = std::array::from_fn(|_| vec![0x00]);
+    let mut s = if chan == 3 {
+        vec![0xFF, 4, 0x0c, 0xFF, 1, 254, 0xFF, 0, 2] // noise: sweep(period), volume, duty
+    } else {
+        vec![0xFF, 0, 32, 0xFF, 1, 255] // pulse/triangle: duty, volume
+    };
+    s.extend_from_slice(&audio::assemble(std::slice::from_ref(&note)));
+    s.push(0x00);
+    channels[chan] = s;
+    Some((SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4] }, dur))
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let rom = args.get(1).map(String::as_str).unwrap_or("rom/lotw.nes");
-    let mut player = Player::new(rom)?;
+    let mut player = Player::new(rom, "/tmp/ben/scratch/music_server.nes")?;
+    // A dedicated voice for note previews (type-to-hear) so it never disturbs
+    // the main playback; its audio is mixed in for the previewed note's length.
+    let mut preview = Player::new(rom, "/tmp/ben/scratch/music_preview.nes")?;
+    let mut preview_frames = 0usize;
+    let mut preview_buf = vec![0i16; common::SPF];
 
     // SDL3 mono 16-bit playback stream at the APU sample rate.
     let sdl = sdl3::init()?;
@@ -330,6 +359,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Some("loop") => player.looping = it.next() != Some("off"),
+                Some("preview") => {
+                    // preview <chan 0..3> <note token, e.g. c4e / hite> — hear a note.
+                    let chan = it.next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0).min(3);
+                    if let Some((data, dur)) = it.next().and_then(|tok| preview_song(chan, tok)) {
+                        if preview.load(0, &data, 0).is_ok() {
+                            preview.playing = true;
+                            preview_frames = (dur as usize).max(16) + 6;
+                        }
+                    }
+                }
                 Some("rom") => match it.next().and_then(|s| s.parse().ok()).and_then(|i: usize| SongData::from_dsl(i).map(|d| (i, d))) {
                     Some((i, d)) => match player.load(i, &d, 0) {
                         Ok(()) => {
@@ -364,16 +403,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Advance one frame of audio while playing.
-        if player.playing {
-            game::sound_tick(&mut player.engine, &mut player.r);
-            player.engine.apu.frame();
-            player.engine.apu.generate(&mut audio_buf);
+        // Advance one frame of audio while the main voice plays and/or a note
+        // preview is ringing (the preview is mixed on top, never disturbing the
+        // main playhead).
+        if player.playing || preview_frames > 0 {
+            if player.playing {
+                game::sound_tick(&mut player.engine, &mut player.r);
+                player.engine.apu.frame();
+                player.engine.apu.generate(&mut audio_buf);
+            } else {
+                audio_buf.iter_mut().for_each(|s| *s = 0);
+            }
+            if preview_frames > 0 {
+                game::sound_tick(&mut preview.engine, &mut preview.r);
+                preview.engine.apu.frame();
+                preview.engine.apu.generate(&mut preview_buf);
+                for (a, p) in audio_buf.iter_mut().zip(&preview_buf) {
+                    *a = (*a as i32 + *p as i32).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                }
+                preview_frames -= 1;
+                if preview_frames == 0 {
+                    preview.playing = false;
+                }
+            }
             if let Some(s) = &stream {
                 if s.queued_bytes().unwrap_or(0) < (audio_buf.len() * 2 * 4) as i32 {
                     let _ = s.put_data_i16(&audio_buf);
                 }
             }
+        }
+        if player.playing {
             player.tick += 1;
             let toks = player.tokens();
             if toks != player.last_pos {
