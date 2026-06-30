@@ -300,9 +300,12 @@ impl Player {
 /// Compile the song source at `path` via the `music-jit` cdylib and read one of
 /// its blob exports (`song_blob` / `sfx_blob`) for `idx`. Returns the raw blob.
 fn jit_blob(path: &str, symbol: &[u8], idx: usize) -> Result<Vec<u8>, String> {
-    std::fs::copy(path, "music-jit/src/songs.rs").map_err(|e| e.to_string())?;
+    // Compile the live buffer via LOTW_JIT_SONGS — never overwrite the tracked
+    // music-jit/src/songs.rs (it only changes when gen_music is rerun).
+    let songs = std::fs::canonicalize(path).map_err(|e| e.to_string())?;
     let out = std::process::Command::new("cargo")
         .args(["build", "-p", "music-jit"])
+        .env("LOTW_JIT_SONGS", &songs)
         .env("NIX_LDFLAGS", "")
         .env("RUSTFLAGS", "-C debuginfo=0 -C link-arg=-fuse-ld=mold")
         .output()

@@ -3,7 +3,11 @@
 //! assembled channel bytes. Recompiling this tiny crate against a prebuilt
 //! `lotw-music` is the per-edit reload cost the spike measures.
 
-mod songs;
+mod songs {
+    // The source is chosen by build.rs (the tracked src/songs.rs by default, or the
+    // live editor buffer via LOTW_JIT_SONGS) and copied to OUT_DIR.
+    include!(concat!(::core::env!("OUT_DIR"), "/songs.rs"));
+}
 
 /// Render all songs + SFX and return the total number of assembled channel
 /// bytes — a cheap proof we actually ran the compiled song code.
