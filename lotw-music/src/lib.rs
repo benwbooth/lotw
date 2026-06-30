@@ -46,6 +46,10 @@ pub enum Tok {
     Rest { dur: u8 },            // 0..=127 (the stored byte was dur | 0x80)
     Cmd { id: u8, arg: u8 },
     End,
+    // Zero-byte markers (not emitted) recording the channel's loop behaviour for
+    // the song header's per-channel loop pointer (bytes 4/5). See `loop_of`.
+    LoopStart, // the byte the loop pointer should target (intros loop past their head)
+    NoLoop,    // the channel doesn't loop — disable it on End (header loop-hi = 0)
 }
 
 /// Re-emit the exact channel bytes for a token list.
@@ -61,9 +65,36 @@ pub fn assemble(toks: &[Tok]) -> Vec<u8> {
             Tok::Rest { dur } => out.push((dur & 0x7F) | 0x80),
             Tok::Cmd { id, arg } => out.extend_from_slice(&[0xFF, id, arg]),
             Tok::End => out.push(0x00),
+            Tok::LoopStart | Tok::NoLoop => {} // markers: no bytes
         }
     }
     out
+}
+
+/// Where a channel jumps when it hits End, recorded by the `LoopStart`/`NoLoop`
+/// markers in its token stream (the song header's per-channel loop pointer).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Loop {
+    To(usize), // loop back to this byte offset (0 = stream start, the default)
+    None,      // don't loop — disable the channel on End
+}
+
+/// Resolve a token stream's loop target. A `NoLoop` marker → `None`; the first
+/// `LoopStart` marker → `To(its byte offset)`; neither → `To(0)` (loop to start).
+/// The byte offset matches `assemble`'s layout so it can be turned into the
+/// header's absolute loop pointer.
+pub fn loop_of(toks: &[Tok]) -> Loop {
+    let mut off = 0usize;
+    for t in toks {
+        match t {
+            Tok::NoLoop => return Loop::None,
+            Tok::LoopStart => return Loop::To(off),
+            Tok::Hit { .. } | Tok::Rest { .. } | Tok::End => off += 1,
+            Tok::Note { .. } => off += 2,
+            Tok::Cmd { .. } => off += 3,
+        }
+    }
+    Loop::To(0)
 }
 
 /// A song: its four channel streams in header order (pulse1/pulse2/tri/noise),
@@ -145,6 +176,8 @@ pub enum Note {
     RawHit { ticks: u8 }, // off-grid noise hit
     Cmd { id: u8, arg: u8 },
     Seq(&'static [Note]),
+    LoopStart, // marks the channel's loop target (see Tok::LoopStart)
+    NoLoop,    // the channel doesn't loop (see Tok::NoLoop)
 }
 
 impl Note {
@@ -162,6 +195,8 @@ impl Note {
                     n.emit(tempo, out);
                 }
             }
+            Note::LoopStart => out.push(Tok::LoopStart),
+            Note::NoLoop => out.push(Tok::NoLoop),
         }
     }
 }

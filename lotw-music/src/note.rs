@@ -64,3 +64,12 @@ pub const fn rest(ticks: u8) -> Note {
 pub const fn hit(ticks: u8) -> Note {
     Note::RawHit { ticks }
 }
+
+/// Loop marker: when this channel reaches its end it jumps back **here** (rather
+/// than to the very start), so anything before it is an intro played once. Emits
+/// no bytes; it sets the song header's per-channel loop pointer. Omit it to loop
+/// from the start (the default).
+pub const loop_start: Note = Note::LoopStart;
+/// Marks a channel that does **not** loop — it plays once and goes silent (a
+/// one-shot, e.g. a jingle). Emits no bytes; it clears the header loop pointer.
+pub const no_loop: Note = Note::NoLoop;

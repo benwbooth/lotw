@@ -61,6 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 audio::Tok::Rest { .. } => 1,
                 audio::Tok::Cmd { .. } => 3,
                 audio::Tok::End => 1,
+                audio::Tok::LoopStart | audio::Tok::NoLoop => 0,
             };
         }
     }

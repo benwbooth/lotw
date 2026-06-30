@@ -33,7 +33,7 @@ const DURS: &[(&str, u8)] = &[
 // The `Tok`/`Song` stream model + `assemble` + the music DSL live in the small
 // `lotw_music` crate (so it compiles fast on its own for live-edit playback);
 // re-export them so `lotw::audio::Tok` etc. keep working.
-pub use lotw_music::{CHANNEL_NAMES, Song, Tok, assemble};
+pub use lotw_music::{CHANNEL_NAMES, Loop, Song, Tok, assemble};
 
 /// Disassemble one channel stream starting at PRG offset `off`, up to and
 /// including the terminating `end`. Returns None on a truncated/runaway stream.
@@ -98,6 +98,8 @@ pub fn render(toks: &[Tok]) -> String {
                 let name = CMD_NAMES.get(id as usize).map(|s| s.to_string()).unwrap_or_else(|| format!("cmd{id}"));
                 format!("{name}=${arg:02x}")
             }
+            Tok::LoopStart => "loop_start".to_string(),
+            Tok::NoLoop => "no_loop".to_string(),
             Tok::End => "|".to_string(),
         })
         .collect::<Vec<_>>()
@@ -348,6 +350,8 @@ fn note_item(t: &Tok, q: u32) -> String {
             Some(name) => format!("{name}({arg})"),
             None => format!("cmd({id}, {arg})"),
         },
+        Tok::LoopStart => "loop_start".to_string(),
+        Tok::NoLoop => "no_loop".to_string(),
         // The terminator is implicit (the builder appends it); it never reaches here.
         Tok::End => String::new(),
     }
@@ -637,10 +641,18 @@ pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
 pub fn emit_music_rs(prg: &[u8]) -> String {
     let mut out = String::new();
     let songs = song_channels(prg);
+    let loops: std::collections::HashMap<usize, [Loop; 4]> = song_loops(prg).into_iter().collect();
     for (idx, chans) in &songs {
         // Channel 3 (noise) stores 1-byte drum hits, not 2-byte pitched notes.
-        let streams: Vec<Vec<Tok>> =
+        let mut streams: Vec<Vec<Tok>> =
             chans.iter().enumerate().map(|(c, off)| off.and_then(|o| disasm_channel(prg, o, c == 3)).unwrap_or_default()).collect();
+        // Record each channel's loop target (LoopStart/NoLoop markers) before
+        // sectioning — markers are 0-tick/0-byte, so they don't shift anything.
+        if let Some(ls) = loops.get(idx) {
+            for (c, s) in streams.iter_mut().enumerate() {
+                apply_loop(s, ls[c]);
+            }
+        }
         let tempo = detect_tempo(&streams);
         // ~4 bars per section at the detected tempo (4/4), snapped to boundaries
         // every channel shares so the sections line up in time.
@@ -685,6 +697,72 @@ pub fn emit_music_rs(prg: &[u8]) -> String {
     head.push_str("use lotw_music::music::*;\n\n");
     head.push_str(&out);
     head
+}
+
+/// Per-song per-channel loop target, read from the header (bytes 4/5 = loop
+/// pointer, bytes 2/3 = stream start). `To(0)` loops to the start, `To(n)` loops
+/// `n` bytes in (past an intro), `None` doesn't loop. Same song order/indices as
+/// [`song_channels`].
+pub fn song_loops(prg: &[u8]) -> Vec<(usize, [Loop; 4])> {
+    let mut out = Vec::new();
+    for (pi, &(table, base_lo, base_hi)) in PAIRS.iter().enumerate() {
+        for song in 0..table_song_count(prg, table) {
+            let hdr_addr = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
+            let Some(hdr) = addr_to_off(hdr_addr, base_lo, base_hi) else { continue };
+            if hdr + 32 > prg.len() {
+                continue;
+            }
+            let mut loops = [Loop::To(0); 4];
+            for (ch, l) in loops.iter_mut().enumerate() {
+                let sp = prg[hdr + ch * 8 + 2] as usize | (prg[hdr + ch * 8 + 3] as usize) << 8;
+                let lp = prg[hdr + ch * 8 + 4] as usize | (prg[hdr + ch * 8 + 5] as usize) << 8;
+                // loop-pointer high byte 0 = no loop; else loop to (lp - stream start).
+                *l = if prg[hdr + ch * 8 + 5] == 0 {
+                    Loop::None
+                } else if lp >= sp {
+                    Loop::To(lp - sp)
+                } else {
+                    Loop::To(0)
+                };
+            }
+            out.push((pi * SONGS_PER_TABLE + song, loops));
+        }
+    }
+    out
+}
+
+/// Byte size of a token in the assembled stream (loop markers are zero).
+fn tok_bytes(t: &Tok) -> usize {
+    match t {
+        Tok::Note { .. } => 2,
+        Tok::Hit { .. } | Tok::Rest { .. } | Tok::End => 1,
+        Tok::Cmd { .. } => 3,
+        Tok::LoopStart | Tok::NoLoop => 0,
+    }
+}
+
+/// Record a channel's loop target by inserting a marker into its tokens: `NoLoop`
+/// before the terminator, or `LoopStart` at the byte the loop targets (skipped
+/// for the loop-to-start default). The target comes from the header so it lands
+/// on a token boundary; if it somehow doesn't, leave it (round-trips to start).
+fn apply_loop(toks: &mut Vec<Tok>, lp: Loop) {
+    match lp {
+        Loop::To(0) => {}
+        Loop::None => {
+            let pos = toks.iter().position(|t| matches!(t, Tok::End)).unwrap_or(toks.len());
+            toks.insert(pos, Tok::NoLoop);
+        }
+        Loop::To(target) => {
+            let mut off = 0usize;
+            for i in 0..toks.len() {
+                if off == target {
+                    toks.insert(i, Tok::LoopStart);
+                    return;
+                }
+                off += tok_bytes(&toks[i]);
+            }
+        }
+    }
 }
 
 /// Every reachable channel stream: `(song_index, channel 0..3, PRG offset)`.

@@ -47,6 +47,25 @@ fn songs_match_rom() {
 }
 
 #[test]
+fn loops_match_rom() {
+    let Ok(rom) = std::fs::read("rom/lotw.nes") else { return };
+    if lotw::music::get(0).is_none() {
+        return;
+    }
+    let prg_len = rom[4] as usize * 16_384;
+    let prg = &rom[16..16 + prg_len];
+    // The LoopStart/NoLoop markers in the DSL must re-derive each channel's exact
+    // loop target from the ROM header (bytes 4/5), per channel.
+    for (idx, loops) in audio::song_loops(prg) {
+        let song = lotw::music::get(idx).unwrap_or_else(|| panic!("music::get({idx}) missing"));
+        for (ci, want) in loops.iter().enumerate() {
+            let got = lotw_music::loop_of(&song.channels[ci].1);
+            assert_eq!(got, *want, "song{idx} {} loop", audio::CHANNEL_NAMES[ci]);
+        }
+    }
+}
+
+#[test]
 fn sfx_match_rom() {
     let Ok(rom) = std::fs::read("rom/lotw.nes") else { return };
     if lotw::music::sfx(0).is_none() {
