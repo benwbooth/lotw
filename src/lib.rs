@@ -43,6 +43,7 @@ pub mod apu;
 pub mod audio;
 pub mod bits;
 pub mod engine;
+pub mod env;
 pub mod frame;
 pub mod game;
 /// The music DSL (`note` symbols + `song`/`section` builders) and the game's
