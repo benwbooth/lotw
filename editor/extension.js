@@ -30,8 +30,10 @@ const QUERY = `
 let ts = null; // Promise<{ parser, query }>
 let server = null; // { proc }
 let out = null; // shared output channel
-let playing = null; // { doc, name, index, section, sectionRanges, channelElements }
+let playing = null; // { doc, name, index, section, channelElements, paused }
+let looping = true; // loop toggle (🔁), mirrored to the server
 let debounce = null;
+let previewDebounce = null;
 let lensChanged = new vscode.EventEmitter();
 const cache = new Map(); // doc uri -> { version, fns }
 
@@ -246,6 +248,26 @@ function applyHighlight(tokens) {
 
 // --- transport ---
 
+function isCurrent(doc, name, section) {
+  return (
+    playing &&
+    playing.name === name &&
+    playing.doc.uri.toString() === doc.uri.toString() &&
+    (section == null ? playing.section == null : playing.section === section)
+  );
+}
+
+// The Play/§N button: a play/pause toggle for the song/section it's on.
+async function playToggle(doc, name, section) {
+  if (isCurrent(doc, name, section)) {
+    playing.paused = !playing.paused;
+    send(playing.paused ? "stop" : "play");
+    lensChanged.fire();
+  } else {
+    await play(doc, name, section);
+  }
+}
+
 async function play(doc, name, section) {
   ensureServer(doc);
   const idx = await songIndex(doc, name);
@@ -253,8 +275,10 @@ async function play(doc, name, section) {
   posLogged = false;
   hlLog = [-1, -1, -1, -1];
   out.appendLine(`▶ ${name} (song ${idx})${section != null ? ` §${section + 1}` : ""}: elements/channel = [${els.map((c) => c.length).join(", ")}]`);
-  playing = { doc, name, index: idx, section, channelElements: els };
+  playing = { doc, name, index: idx, section, channelElements: els, paused: false };
+  send(`loop ${looping ? "on" : "off"}`);
   writeAndSend();
+  lensChanged.fire();
 }
 
 function writeAndSend() {
@@ -285,16 +309,20 @@ class Lenses {
     const fns = await structure(doc);
     const lenses = [];
     const at = (off) => { const p = doc.positionAt(off); return new vscode.Range(p, p); };
+    const playIcon = (cur) => (cur && !playing.paused ? "⏸ Pause" : "▶ Play");
+    const loopTitle = (short) => (short ? (looping ? "🔁" : "🔁̶") : `🔁 Loop ${looping ? "on" : "off"}`);
     for (const fn of fns) {
       const r = at(fn.nameAt);
-      lenses.push(new vscode.CodeLens(r, { title: "▶ Play", command: "lotwMusic.play", arguments: [doc, fn.name] }));
+      const cur = isCurrent(doc, fn.name, null);
+      lenses.push(new vscode.CodeLens(r, { title: playIcon(cur), command: "lotwMusic.play", arguments: [doc, fn.name] }));
       lenses.push(new vscode.CodeLens(r, { title: "⏹ Stop", command: "lotwMusic.stop" }));
-      lenses.push(new vscode.CodeLens(r, { title: "🔁 Loop", command: "lotwMusic.toggleLoop" }));
+      lenses.push(new vscode.CodeLens(r, { title: loopTitle(false), command: "lotwMusic.toggleLoop" }));
       fn.sections.forEach((off, k) => {
         const sr = at(off);
-        lenses.push(new vscode.CodeLens(sr, { title: `▶ §${k + 1}`, command: "lotwMusic.playSection", arguments: [doc, fn.name, k] }));
+        const scur = isCurrent(doc, fn.name, k);
+        lenses.push(new vscode.CodeLens(sr, { title: scur && !playing.paused ? `⏸ §${k + 1}` : `▶ §${k + 1}`, command: "lotwMusic.playSection", arguments: [doc, fn.name, k] }));
         lenses.push(new vscode.CodeLens(sr, { title: "⏹", command: "lotwMusic.stop" }));
-        lenses.push(new vscode.CodeLens(sr, { title: "🔁", command: "lotwMusic.toggleLoop" }));
+        lenses.push(new vscode.CodeLens(sr, { title: loopTitle(true), command: "lotwMusic.toggleLoop" }));
       });
     }
     return lenses;
@@ -317,16 +345,21 @@ function activate(ctx) {
         doc = ed.document;
         name = fn.name;
       }
-      play(doc, name);
+      playToggle(doc, name);
     }),
-    vscode.commands.registerCommand("lotwMusic.playSection", (doc, name, section) => play(doc, name, section)),
+    vscode.commands.registerCommand("lotwMusic.playSection", (doc, name, section) => playToggle(doc, name, section)),
     vscode.commands.registerCommand("lotwMusic.stop", () => {
-      send("stop");
-      playing = null;
-      const ed = vscode.window.activeTextEditor;
+      send("reset"); // stop + return to the start of the song/section
+      const ed = playing ? editorFor(playing.doc) : vscode.window.activeTextEditor;
       if (ed) ed.setDecorations(highlight, []);
+      playing = null;
+      lensChanged.fire();
     }),
-    vscode.commands.registerCommand("lotwMusic.toggleLoop", () => send("loop on"))
+    vscode.commands.registerCommand("lotwMusic.toggleLoop", () => {
+      looping = !looping;
+      send(`loop ${looping ? "on" : "off"}`);
+      lensChanged.fire();
+    })
   );
 
   ctx.subscriptions.push(

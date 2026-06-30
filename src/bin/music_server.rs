@@ -205,21 +205,28 @@ impl Player {
         let tmp = "/tmp/ben/scratch/music_server.nes";
         std::fs::write(tmp, &self.rom).map_err(|e| e.to_string())?;
         self.engine = common::load_rom(tmp, false).map_err(|e| e.to_string())?;
-        self.r = RoutineContext::default();
-        game::ram_state_init(&mut self.engine, &mut self.r);
-        game::farcall_bank_0C0D_seed(&mut self.engine, &mut self.r);
-        self.engine.state.song = idx as u8;
-        self.engine.state.sound_paused = 0;
-        game::song_init(&mut self.engine, &mut self.r);
-        self.engine.device_write(lotw::engine::reg::APU_STATUS, 0x0F);
         self.idx = idx;
-        self.last_pos = [-1; 4];
+        self.restart();
         // Fast-forward (silently re-tick) to preserve position across an edit.
         for _ in 0..to_tick {
             game::sound_tick(&mut self.engine, &mut self.r);
         }
         self.tick = to_tick;
         Ok(())
+    }
+
+    /// Re-init the current song to its start (channel pointers back to the stream
+    /// heads), tick 0. The ROM stays patched, so this works for an edited song.
+    fn restart(&mut self) {
+        self.r = RoutineContext::default();
+        game::ram_state_init(&mut self.engine, &mut self.r);
+        game::farcall_bank_0C0D_seed(&mut self.engine, &mut self.r);
+        self.engine.state.song = self.idx as u8;
+        self.engine.state.sound_paused = 0;
+        game::song_init(&mut self.engine, &mut self.r);
+        self.engine.device_write(lotw::engine::reg::APU_STATUS, 0x0F);
+        self.tick = 0;
+        self.last_pos = [-1; 4];
     }
 
     fn live_cpu(&self, c: usize) -> usize {
@@ -308,8 +315,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         while let Ok(line) = rx.try_recv() {
             let mut it = line.split_whitespace();
             match it.next() {
-                Some("play") => player.playing = true,
-                Some("stop") => player.playing = false,
+                Some("play") => player.playing = true,  // resume
+                Some("stop") => player.playing = false, // pause (keep position)
+                Some("reset") => {
+                    // Stop and return to the start of the current song/section.
+                    player.restart();
+                    player.playing = false;
+                    say(&format!("pos {} -1 -1 -1 -1", player.tick));
+                }
                 Some("rewind") => {
                     let (i, d) = (player.idx, SongData::from_dsl(player.idx));
                     if let Some(d) = d {
