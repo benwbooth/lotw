@@ -37,11 +37,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let chans = audio::song_channels(&rom[prg.clone()]).into_iter().find(|(i, _)| *i == song).map(|(_, c)| c).ok_or("song not found")?;
     let dsl = music::get(song).ok_or("music::get returned None (regenerate songs.rs)")?;
 
+    // Debug: `SOLO_CH=2` plays only that channel (others filled with rest bytes
+    // so they stay silent regardless of their header loop pointer).
+    let solo: Option<usize> = std::env::var("SOLO_CH").ok().and_then(|s| s.parse().ok());
+
     // Per channel: a token byte-offset table (for mapping live pointer -> token).
     let mut tok_at = [(); 4].map(|_| Vec::<(usize, usize)>::new()); // (prg_offset, token_index)
     for (ci, off) in chans.iter().enumerate() {
         let Some(off) = off else { continue };
         let bytes = audio::assemble(&dsl.channels[ci].1);
+        if solo.is_some_and(|s| s != ci) {
+            rom[prg.start + off..prg.start + off + bytes.len()].fill(0xFE); // rest 126, no End
+            continue;
+        }
         rom[prg.start + off..prg.start + off + bytes.len()].copy_from_slice(&bytes);
         // Walk the tokens to record where each starts.
         let mut o = *off;
@@ -92,6 +100,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 })
                 .collect();
             println!("  t={:4.1}s  {}", fr as f32 / common::FPS as f32, toks.join(" "));
+            // DEBUG_CH=c dumps that channel's 8 shadow bytes (0:dur 1:enable 2/3:ptr
+            // 4/5:loop 6:duty 7:linear/sweep/period) so we can see why it's silent.
+            if let Ok(c) = std::env::var("DEBUG_CH").map(|s| s.parse::<usize>().unwrap_or(0)) {
+                let b: Vec<i32> = (0..16).map(|n| engine.state.sound_channel_byte(n, (c * 16) as i32)).collect();
+                println!("    ch{c} shadow: en={:#04x} ptr={:#06x} loop={:#06x} duty={:#04x} lin/sw={:#04x} vol13={:#04x} env={:#04x} all={:02x?}",
+                    b[1], (b[2] | b[3] << 8), (b[4] | b[5] << 8), b[6], b[7], b[13], b[12], b);
+            }
         }
     }
 

@@ -714,39 +714,6 @@ pub fn song_15() -> Song {
     ])
 }
 
-pub fn song_16() -> Song {
-    song(24, &[
-        section(
-            &[c10i3, rw + redd, red, rw + redd, red, rest(58)],
-            &[duty(32), volume(0), as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5e, a5i, g5i, a5e, g5i, fs5i, a5ed, d5ed, c6e, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hdd, re, duty(32), d4i, d4i, d4i, d4i, re, d4ed, f4ed, fs4e, duty(42), d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, as5q3, c6q3, duty(40), d6h + d6e, as5e, d6e, c6h + c6e, a5q, c6q, d6h + d6e, as5e, d6e, c6h + c6e, a5q3, as5q3, c6q3, as5i, a5i, g5hdd, re, duty(41), volume(253), d4e, g4e, a4e, as4e, c5e, d5e, f5e, g5qd, g4h + g4e, volume(0), duty(32), g5q, fs5q, e5q, fs5q, g5h, as4e, ds5e, f5e, g5e, a5h, f5q3, g5q3, a5q3, b5w, d3e, ri, e3e, ri, f3i, ri, g3e, ri, a3e, ri, c4i, ri],
-            &[pitch(5), duty(32), volume(252), re, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, as5e, a5i, g5i, a5e, g5i, fs5i, a5ed, d5ed, c6e, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, c6i, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, as5i, g5i, ri, g5i, a5i, as5i, as5e, a5i, g5i, c6e, as5i, a5i, d6ed, f6ed, fs6e, duty(41), re, g6h, g5e, a5e, b5e, c6e, b5e, g5e, d5e, d6e, b5e, g5e, f6e, d6e, ds6qd, c6qd, g5h, g6q, f6q, ds6q, d6hdd, a5i, as5i, c6h, as5q, a5q, as5i, a5i, g5hd + g5i, duty(32), a3i, a3i, a3i, a3i, re, a3ed, d4ed, d4e, duty(42), volume(253), re, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, g5q3, f5q3, d6h, g5e, a5e, as5e, c6e, d6hdd, c6i, as5i, c6h, g5e, a5e, as5e, c6e, as5qd, c6i, as5i, a5q3, as5q3, c6q3, volume(0), pitch(0), duty(40), re, g5qd, g5e, g5e, a5h + a5e, f5q, a5q, rq, g5qd, g5e, g5e, a5h + a5e, f5q3, g5q3, a5q3, pitch(5), g5h, volume(252), as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, as5i, a5i, g5i, d5i, pitch(0), volume(0), d5q, d5q, d5q, d5q, ds5h, pitch(5), g4e, as4e, as4e, as4e, c5h, c5q3, c5q3, c5q3, d5w, g3e, ri, a3e, ri, as3i, ri, c4e, ri, d4e, ri, f4i, ri],
-            &[hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hit(19), ri, hite, hit(19), ri, hited, hit(19), ri, hiti, hitq + hitt, ri, hiti, hith3 + hitt, ri, hiti, hitq + hitt, ri, hite, hited, ri, hite, hited, ri, hited, hited, ri, hiti, hitq + hitt3, ri, hiti, hith3 + hitt3, ri, hiti, hitq + hitt3, ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hit(19), ri, hite, hit(19), ri, hited, hit(19), ri, hiti, hitq + hitt, ri, hiti, hith3 + hitt, ri, hiti, hitq + hitt, ri, hite, hited, ri, hite, hited, ri, hited, hited, ri, hiti, hitq + hitt3, ri, hiti, hith3 + hitt3, ri, hiti, hitq + hitt3, ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hitq + hiti3, ri, hiti, hitqd + hiti3, ri, hiti, hitq + hiti3, ri, hite, hith3, ri, hite, hith3, ri, hited, hith3, ri, hiti, hitqd + hiti3, ri, hiti, hith, ri, hiti, hitqd + hiti3, ri, hite, hith3, ri, hite, hith3, ri, hited, hith3, ri, hiti, hitqd + hiti3, ri, hiti, hith, ri, hiti, hitqd + hiti3, ri, hite, hith3 + hitt3, ri, hite, hith3 + hitt3, ri, hited, hith3 + hitt3, ri, hiti, hitqdd, ri, hiti, hith + hitt3, ri, hiti, hitqdd, ri, hite, hith3 + hitt3, ri, hite, hith3 + hitt3, ri, hited, hith3 + hitt3, ri, hiti, hitqdd, ri, hiti, hith + hitt3, ri, hiti, hitqdd, ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hited, ri, hiti, hit(22), ri, hiti, hitedd + hitt3, ri, hite, hitq, hitt, hith3 + hitt3, rt, hitt, hith3 + hitt3, rt, hitt, hith3 + hitt3, rt, hitt, hith3 + hitt3, rt, re, hite, hith3 + hitt3, ri, hite, hitqd + hitt3, ri, hite, hitqd + hitt, volume(0), hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hited + hitt3, ri, hite, hited + hitt3, ri, hited, hited + hitt3, ri, hiti, hith3, ri, hiti, hitqd, ri, hiti, hith3, ri, hite, hit(19), ri, hite, hith3 + hitt, ri, hiti, hit(19), ri, hite, hit(22), ri, hite, hitqd + hitt3, ri, hiti, hit(22), ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hited + hitt3, ri, hite, hited + hitt3, ri, hited, hited + hitt3, ri, hiti, hith3, ri, hiti, hitqd, ri, hiti, hith3, ri, hite, hit(19), ri, hite, hith3 + hitt, ri, hiti, hit(19), ri, hite, hit(22), ri, hite, hitqd + hitt3, ri, hiti, hit(22), ri, hite, hit(19), ri, hite, hit(19), ri, hited, hit(19), ri, hiti, hitq + hitt, ri, hiti, hith3 + hitt, ri, hiti, hitq + hitt, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hit(19), ri, hite, hit(19), ri, hited, hit(19), ri, hiti, hitq + hitt, ri, hiti, hith3 + hitt, ri, hiti, hitq + hitt, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hitq, re, hite, hitq, re, hite, hitq, re, hite, hitq, re, hite, hit(22), re, hite, hit(22), re, hite, hit(22), re, hite, hit(22), re, hite, hit(19), re, hite, hit(19), re, hite, hit(19), re, hite, hit(19), re, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hiti, hited, ri, hite, hit(19), ri, hite, hit(19), ri, hited, hit(19), ri, hiti, hitq + hitt, ri, hiti, hith3 + hitt, ri, hiti, hitq + hitt, ri, hite, hit(22), ri, hite, hit(22), ri, hited, hit(22), ri, hiti, hith3, ri, hiti, hitqd + hitt3, ri, hiti, hith3, ri, hite, hitq, ri, hite, hitq, ri, hited, hitq, ri, hiti, hith3 + hitt3, ri, hiti, hitqd + hiti3, ri, hiti, hith3 + hitt3, ri, hite, hitq, ri, hite, hitq + hitt3, ri, hiti, hitq + hitt, ri, hite, hith3, ri, hite, hith3 + hitt3, ri, hiti, hitqd + hitt3, ri],
-        ),
-    ])
-}
-
-pub fn song_17() -> Song {
-    song(1, &[
-        section(
-            &[],
-            &[],
-            &[],
-            &[],
-        ),
-    ])
-}
-
-pub fn song_18() -> Song {
-    song(1, &[
-        section(
-            &[],
-            &[],
-            &[],
-            &[],
-        ),
-    ])
-}
-
 /// All songs by ROM index.
 pub fn get(i: usize) -> Option<Song> {
     Some(match i {
@@ -766,9 +733,6 @@ pub fn get(i: usize) -> Option<Song> {
         13 => song_13(),
         14 => door_unlock_jingle(),
         15 => song_15(),
-        16 => song_16(),
-        17 => song_17(),
-        18 => song_18(),
         _ => return None,
     })
 }

@@ -523,6 +523,26 @@ const SONGS_PER_TABLE: usize = 10;
 /// (song-pointer table PRG offset, $8000 bank base, $A000 bank base).
 const PAIRS: &[(usize, usize, usize)] = &[(0x14000, 0x14000, 0x16000), (0x18000, 0x18000, 0x1A000)];
 
+/// Real songs in a pointer table. The headers are consecutive 32-byte records
+/// laid out right after the table, and entry 0 points to the first (lowest) one.
+/// A real entry therefore points at or above entry 0 on a 32-byte grid; once an
+/// entry leaves that grid it's reading header/stream bytes — a phantom song. So
+/// table 2 holds 6 real songs (10..=15), not the table's fixed 10 slots: entry 6
+/// points back into song 10's header, which is why "song 16" played a broken,
+/// channel-shifted ending_theme.
+fn table_song_count(prg: &[u8], table: usize) -> usize {
+    if table + SONGS_PER_TABLE * 2 > prg.len() {
+        return 0;
+    }
+    let base = prg[table] as usize | (prg[table + 1] as usize) << 8;
+    (0..SONGS_PER_TABLE)
+        .take_while(|&song| {
+            let a = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
+            a >= base && (a - base) % 32 == 0
+        })
+        .count()
+}
+
 fn addr_to_off(addr: usize, base_lo: usize, base_hi: usize) -> Option<usize> {
     match addr {
         0x8000..0xA000 => Some(base_lo + addr - 0x8000),
@@ -595,7 +615,7 @@ pub fn sfx_name(i: usize) -> String {
 pub fn song_channels(prg: &[u8]) -> Vec<(usize, [Option<usize>; 4])> {
     let mut out = Vec::new();
     for (pi, &(table, base_lo, base_hi)) in PAIRS.iter().enumerate() {
-        for song in 0..SONGS_PER_TABLE {
+        for song in 0..table_song_count(prg, table) {
             let hdr_addr = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
             let Some(hdr) = addr_to_off(hdr_addr, base_lo, base_hi) else { continue };
             if hdr + 32 > prg.len() {
@@ -673,7 +693,7 @@ pub fn song_streams(prg: &[u8]) -> Vec<(usize, usize, usize)> {
     let mut out = Vec::new();
     let mut seen = std::collections::BTreeSet::new();
     for (pi, &(table, base_lo, base_hi)) in PAIRS.iter().enumerate() {
-        for song in 0..SONGS_PER_TABLE {
+        for song in 0..table_song_count(prg, table) {
             let hdr_addr = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
             let Some(hdr) = addr_to_off(hdr_addr, base_lo, base_hi) else { continue };
             if hdr + 32 > prg.len() {
