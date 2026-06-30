@@ -157,10 +157,15 @@ async function channelAt(doc, offset) {
   const tree = parser.parse(doc.getText());
   for (const call of tree.rootNode.descendantsOfType("call_expression")) {
     const fn = call.childForFieldName("function");
-    if (!fn || fn.text !== "section") continue;
-    const refs = call.childForFieldName("arguments").namedChildren;
-    for (let c = 0; c < Math.min(4, refs.length); c++) {
-      if (offset >= refs[c].startIndex && offset <= refs[c].endIndex) return c;
+    if (fn && fn.text === "section") {
+      const refs = call.childForFieldName("arguments").namedChildren;
+      for (let c = 0; c < Math.min(4, refs.length); c++) {
+        if (offset >= refs[c].startIndex && offset <= refs[c].endIndex) return c;
+      }
+    } else if (fn && fn.text === "line") {
+      // SFX: the line(tempo, &[…]) array plays on pulse2 (channel 1).
+      const arr = call.childForFieldName("arguments").namedChildren[1];
+      if (arr && offset >= arr.startIndex && offset <= arr.endIndex) return 1;
     }
   }
   return null;
@@ -266,7 +271,11 @@ function handleEvent(line) {
     return;
   }
   out.appendLine(line);
-  if (line.startsWith("err ")) vscode.window.showWarningMessage("LotW Music: " + line.slice(4));
+  if (line.startsWith("err ")) {
+    // Non-intrusive: a live reload often compiles a half-typed note; show the
+    // error briefly in the status bar (full text is in the output channel).
+    vscode.window.setStatusBarMessage("$(warning) LotW Music: " + line.slice(4), 5000);
+  }
 }
 
 // The visible editor showing a document (not necessarily the active one).
@@ -355,8 +364,10 @@ function writeAndSend() {
 }
 
 async function reloadIfPlaying() {
-  if (!playing) return;
-  playing.channelElements = playing.sfx ? await sfxElements(playing.doc, playing.name) : await channelElements(playing.doc, playing.name);
+  // SFX are one-shots — don't re-trigger the whole effect on every edit; the
+  // note you typed is previewed by type-to-play, and ▶ Play SFX replays it.
+  if (!playing || playing.sfx) return;
+  playing.channelElements = await channelElements(playing.doc, playing.name);
   writeAndSend();
 }
 

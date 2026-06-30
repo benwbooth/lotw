@@ -270,7 +270,17 @@ fn jit_blob(path: &str, symbol: &[u8], idx: usize) -> Result<Vec<u8>, String> {
         .output()
         .map_err(|e| e.to_string())?;
     if !out.status.success() {
-        return Err(format!("compile failed: {}", String::from_utf8_lossy(&out.stderr).lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
+        // Surface the real rustc error line (e.g. "cannot find value `c4`"), not
+        // just the "could not compile" summary.
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let msg: Vec<&str> = stderr
+            .lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("error[") || (l.starts_with("error:") && !l.contains("could not compile")))
+            .take(2)
+            .collect();
+        let msg = if msg.is_empty() { stderr.lines().rev().take(2).collect::<Vec<_>>().join(" | ") } else { msg.join(" | ") };
+        return Err(format!("compile failed: {msg}"));
     }
     // Load a fresh copy of the .so so recompiles never fight a mapped file.
     let so = format!("/tmp/ben/scratch/jit_{}.so", std::process::id());
