@@ -144,6 +144,7 @@ struct Player {
     last_pos: [i64; 4],
     peak: [i64; 4],      // highest token index reached this pass (loop-off end detection)
     wrapped: [bool; 4],  // whether each channel has looped back this pass
+    parked: u32,         // consecutive frames all active channels sat at End (-1): a non-looping song
     tmp: &'static str,   // temp .nes path this player rebuilds from (distinct per voice)
 }
 
@@ -166,6 +167,7 @@ impl Player {
             last_pos: [-1; 4],
             peak: [-1; 4],
             wrapped: [false; 4],
+            parked: 0,
             tmp,
         })
     }
@@ -235,6 +237,7 @@ impl Player {
         self.last_pos = [-1; 4];
         self.peak = [-1; 4];
         self.wrapped = [false; 4];
+        self.parked = 0;
     }
 
     fn live_cpu(&self, c: usize) -> usize {
@@ -501,7 +504,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // longest channel has completed, not just the shortest).
             let active = (0..4).any(|c| player.peak[c] >= 1);
             let all_wrapped = active && (0..4).all(|c| player.peak[c] < 1 || player.wrapped[c]);
-            if !player.looping && all_wrapped {
+            // A non-looping song/jingle parks every channel on its End marker (-1)
+            // instead of looping back; count consecutive such frames so the brief
+            // -1 a looping song shows at its loop point doesn't count as the end.
+            let at_end = active && (0..4).all(|c| player.peak[c] < 1 || toks[c] < 0);
+            player.parked = if at_end { player.parked + 1 } else { 0 };
+            if (!player.looping && all_wrapped) || player.parked >= 3 {
                 player.restart(); // rewind to the start; the next play replays from the beginning
                 player.playing = false;
                 say("ended");
