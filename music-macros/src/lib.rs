@@ -1,4 +1,8 @@
-//! The `env!` parameter-envelope macro for the LotW music DSL.
+//! Proc macros for the LotW music DSL: `note_consts!` generates the documented
+//! pitch×value note grid (rests, hits), and `env!`/`duty!`/… build parameter
+//! envelopes.
+//!
+//! The `env!` parameter-envelope macro:
 //!
 //! `env!(param, <value> <note>…, <value> <note>…, …)` — each segment sets a
 //! channel parameter, then plays one or more carrier notes, expanding to a
@@ -149,4 +153,86 @@ fn split_commas(toks: &[TokenTree]) -> Vec<Vec<TokenTree>> {
     }
     out.push(cur);
     out
+}
+
+// ---- note grid -------------------------------------------------------------
+
+// idx 0..=12 = C..B (idx 5 is the unused gap). The lower-case names build the
+// const identifiers; the pretty names go in the generated docs.
+const NOTE_NAMES: [&str; 13] = ["c", "cs", "d", "ds", "e", "", "f", "fs", "g", "gs", "a", "as", "b"];
+const NOTE_PRETTY: [&str; 13] = ["C", "C♯", "D", "D♯", "E", "", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+// (suffix, num, den, human description): a value is num/den of a quarter note.
+// The `N3` names are triplets (e3 = an eighth-note triplet = 1/3 of a quarter).
+const VALS: &[(&str, u16, u16, &str)] = &[
+    ("w", 4, 1, "whole note"),
+    ("hdd", 7, 2, "half note, double-dotted"),
+    ("hd", 3, 1, "half note, dotted"),
+    ("h", 2, 1, "half note"),
+    ("qdd", 7, 4, "quarter note, double-dotted"),
+    ("qd", 3, 2, "quarter note, dotted"),
+    ("q", 1, 1, "quarter note"),
+    ("edd", 7, 8, "eighth note, double-dotted"),
+    ("ed", 3, 4, "eighth note, dotted"),
+    ("e", 1, 2, "eighth note"),
+    ("id", 3, 8, "sixteenth note, dotted"),
+    ("i", 1, 4, "sixteenth note"),
+    ("td", 3, 16, "thirty-second note, dotted"),
+    ("t", 1, 8, "thirty-second note"),
+    ("x", 1, 16, "sixty-fourth note"),
+    ("h3", 4, 3, "half-note triplet"),
+    ("q3", 2, 3, "quarter-note triplet"),
+    ("e3", 1, 3, "eighth-note triplet"),
+    ("i3", 1, 6, "sixteenth-note triplet"),
+    ("t3", 1, 12, "thirty-second-note triplet"),
+];
+const BASE_OCTAVE: u8 = 2;
+
+/// Generate the documented note grid: every `<pitch><octave><value>` const
+/// (`c3hd`, `as5e3`), every `r<value>` rest, and every `hit<value>` noise hit,
+/// each carrying a one-line doc like `C octave 3 half note, dotted`. Pure note
+/// math (no ROM data); invoked once in `lotw_music::note`.
+#[proc_macro]
+pub fn note_consts(_input: TokenStream) -> TokenStream {
+    let mut out = TS::new();
+    let lit = |n: u16| Literal::u16_unsuffixed(n);
+
+    for nib in 0u8..=9u8 {
+        let oct = nib + BASE_OCTAVE; // 2..=11 (u8: format_ident needs an unsigned type)
+        for (idx, nm) in NOTE_NAMES.iter().enumerate() {
+            if nm.is_empty() {
+                continue;
+            }
+            let pitch = Literal::u8_unsuffixed((nib << 4) | idx as u8);
+            let pretty = NOTE_PRETTY[idx];
+            for (vn, num, den, desc) in VALS {
+                let name = format_ident!("{}{}{}", nm, oct, vn);
+                let doc = format!("{pretty} octave {oct} {desc}");
+                let (num, den) = (lit(*num), lit(*den));
+                out.extend(quote! {
+                    #[doc = #doc]
+                    pub const #name: crate::Note = crate::Note::Pitched { pitch: #pitch, val: crate::Val { num: #num, den: #den } };
+                });
+            }
+        }
+    }
+    for (vn, num, den, desc) in VALS {
+        let name = format_ident!("r{}", vn);
+        let doc = format!("Rest — {desc}");
+        let (num, den) = (lit(*num), lit(*den));
+        out.extend(quote! {
+            #[doc = #doc]
+            pub const #name: crate::Note = crate::Note::Rest { val: crate::Val { num: #num, den: #den } };
+        });
+    }
+    // Noise drum hits (no pitch; the drum sound is set by a command).
+    for (vn, num, den, desc) in VALS {
+        let name = format_ident!("hit{}", vn);
+        let doc = format!("Noise drum hit — {desc}");
+        let (num, den) = (lit(*num), lit(*den));
+        out.extend(quote! {
+            #[doc = #doc]
+            pub const #name: crate::Note = crate::Note::Hit { val: crate::Val { num: #num, den: #den } };
+        });
+    }
+    out.into()
 }
