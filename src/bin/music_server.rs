@@ -38,14 +38,24 @@ struct SongData {
     channels: [Vec<u8>; 4],
     section_starts: [Vec<usize>; 4],
     prefix_toks: [usize; 4],
+    // Per channel: Some(byte offset to loop back to), or None for "don't loop".
+    // Written into the song header's loop pointer (bytes 4/5) by `load`.
+    loops: [Option<usize>; 4],
 }
+
+/// Default loop: every channel loops to its own start.
+const LOOP_START: [Option<usize>; 4] = [Some(0); 4];
 
 impl SongData {
     /// A song from the compiled-in DSL (ROM song).
     fn from_dsl(idx: usize) -> Option<SongData> {
         let s = music::get(idx)?;
         let channels = std::array::from_fn(|c| audio::assemble(&s.channels[c].1));
-        Some(SongData { channels, section_starts: s.section_starts.clone(), prefix_toks: [0; 4] })
+        let loops = std::array::from_fn(|c| match audio::loop_of(&s.channels[c].1) {
+            audio::Loop::To(n) => Some(n),
+            audio::Loop::None => None,
+        });
+        Some(SongData { channels, section_starts: s.section_starts.clone(), prefix_toks: [0; 4], loops })
     }
 
     /// Extract a single section as a playable (looping) mini-song: each channel
@@ -98,7 +108,7 @@ impl SongData {
             prefix.push(0x00); // terminate / loop point
             channels[c] = prefix;
         }
-        SongData { channels, section_starts: Default::default(), prefix_toks }
+        SongData { channels, section_starts: Default::default(), prefix_toks, loops: LOOP_START }
     }
 
     /// Parse a `song_blob` from the JIT cdylib (see music-jit/src/lib.rs).
@@ -114,6 +124,7 @@ impl SongData {
         }
         let mut channels: [Vec<u8>; 4] = Default::default();
         let mut starts: [Vec<usize>; 4] = Default::default();
+        let mut loops: [Option<usize>; 4] = [Some(0); 4];
         for c in 0..4 {
             let len = rd(b, &mut p)?;
             channels[c] = b.get(p..p + len)?.to_vec();
@@ -122,8 +133,10 @@ impl SongData {
             for _ in 0..n {
                 starts[c].push(rd(b, &mut p)?);
             }
+            let code = rd(b, &mut p)?;
+            loops[c] = if code == u32::MAX as usize { None } else { Some(code) };
         }
-        Some(SongData { channels, section_starts: starts, prefix_toks: [0; 4] })
+        Some(SongData { channels, section_starts: starts, prefix_toks: [0; 4], loops })
     }
 }
 
@@ -208,6 +221,28 @@ impl Player {
         }
         self.section_starts = data.section_starts.clone();
         self.prefix_toks = data.prefix_toks;
+
+        // Rewrite each channel's header loop pointer (bytes 4/5) from the DSL's
+        // loop markers: target = stream-start CPU address + the marker's byte
+        // offset, or a zero high byte for "no loop" (the engine disables it).
+        let prg_len = self.rom[4] as usize * 16_384;
+        if let Some(hdr) = audio::song_header_offset(&self.rom[self.prg0..self.prg0 + prg_len], idx) {
+            for ci in 0..4 {
+                let h = self.prg0 + hdr + ci * 8;
+                let loop_cpu = match data.loops[ci] {
+                    None => 0u16,
+                    Some(off) => {
+                        let start = self.rom[h + 2] as u16 | (self.rom[h + 3] as u16) << 8;
+                        start.wrapping_add(off as u16)
+                    }
+                };
+                self.rom[h + 4] = (loop_cpu & 0xFF) as u8;
+                self.rom[h + 5] = (loop_cpu >> 8) as u8;
+                if std::env::var("DEBUG_LOOP").is_ok() {
+                    eprintln!("loop idx={idx} ch{ci}: {:?} -> ptr={loop_cpu:#06x}", data.loops[ci]);
+                }
+            }
+        }
 
         // Rebuild the engine from the patched ROM.
         let tmp = self.tmp;
@@ -340,7 +375,7 @@ fn preview_song(chan: usize, tempo: u32, token: &str) -> Option<(SongData, u8)> 
     s.push(0xF8); // a long rest so a short note doesn't re-trigger within the preview window
     s.push(0x00);
     channels[chan] = s;
-    Some((SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4] }, dur))
+    Some((SongData { channels, section_starts: Default::default(), prefix_toks: [0; 4], loops: LOOP_START }, dur))
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -440,7 +475,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         channels[1] = bytes; // pulse2
                         let mut section_starts: [Vec<usize>; 4] = Default::default();
                         section_starts[1] = vec![0];
-                        let data = SongData { channels, section_starts, prefix_toks: [0; 4] };
+                        let data = SongData { channels, section_starts, prefix_toks: [0; 4], loops: LOOP_START };
                         player.load(0, &data, 0)
                     });
                     match res {

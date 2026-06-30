@@ -33,7 +33,7 @@ const DURS: &[(&str, u8)] = &[
 // The `Tok`/`Song` stream model + `assemble` + the music DSL live in the small
 // `lotw_music` crate (so it compiles fast on its own for live-edit playback);
 // re-export them so `lotw::audio::Tok` etc. keep working.
-pub use lotw_music::{CHANNEL_NAMES, Loop, Song, Tok, assemble};
+pub use lotw_music::{CHANNEL_NAMES, Loop, Song, Tok, assemble, loop_of};
 
 /// Disassemble one channel stream starting at PRG offset `off`, up to and
 /// including the terminating `end`. Returns None on a truncated/runaway stream.
@@ -729,6 +729,20 @@ pub fn song_loops(prg: &[u8]) -> Vec<(usize, [Loop; 4])> {
         }
     }
     out
+}
+
+/// PRG offset of a song's 32-byte channel header (where the per-channel loop
+/// pointers at bytes 4/5 live). `None` if `idx` isn't a real song.
+pub fn song_header_offset(prg: &[u8], idx: usize) -> Option<usize> {
+    for (pi, &(table, base_lo, base_hi)) in PAIRS.iter().enumerate() {
+        let count = table_song_count(prg, table);
+        if idx >= pi * SONGS_PER_TABLE && idx < pi * SONGS_PER_TABLE + count {
+            let song = idx - pi * SONGS_PER_TABLE;
+            let hdr_addr = prg[table + song * 2] as usize | (prg[table + song * 2 + 1] as usize) << 8;
+            return addr_to_off(hdr_addr, base_lo, base_hi);
+        }
+    }
+    None
 }
 
 /// Byte size of a token in the assembled stream (loop markers are zero).
