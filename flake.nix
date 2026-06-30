@@ -53,7 +53,12 @@
             clippy
             rustc
             rustfmt
-            python3
+            # Python + numpy for the agent RL env (PyO3/maturin wrapper over
+            # lotw::env::Env returns numpy frames). maturin builds the bindings;
+            # use a venv for `maturin develop` (see below). Torch (ROCm) is
+            # separate — run it from the rocm/pytorch container, not nix.
+            (python3.withPackages (ps: with ps; [ numpy ]))
+            maturin
             # Fast linker for the live-edit music JIT rebuild (see music-jit/bench.sh)
             mold
             # Utilities
