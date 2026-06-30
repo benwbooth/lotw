@@ -355,7 +355,15 @@ function isCurrent(doc, name, section) {
 // The Play/§N button: a play/pause toggle for the song/section/SFX it's on.
 // `sfxIndex` non-null means this is a sound effect (played on the pulse2 channel).
 async function playToggle(doc, name, section, sfxIndex) {
+  const sfx = sfxIndex != null;
   if (isCurrent(doc, name, section)) {
+    // A one-shot SFX isn't live-reloaded while playing, so resuming would replay
+    // the stale compile; recompile the current source instead (picks up edits
+    // like a tempo change). Songs (and the pause direction) just toggle.
+    if (sfx && playing.paused) {
+      await play(doc, name, section, sfxIndex);
+      return;
+    }
     playing.paused = !playing.paused;
     send(playing.paused ? "stop" : "play");
     lensChanged.fire();
@@ -387,10 +395,12 @@ function writeAndSend() {
 }
 
 async function reloadIfPlaying() {
-  // SFX are one-shots — don't re-trigger the whole effect on every edit; the
-  // note you typed is previewed by type-to-play, and ▶ Play SFX replays it.
-  if (!playing || playing.sfx) return;
-  playing.channelElements = await channelElements(playing.doc, playing.name);
+  if (!playing) return;
+  // A one-shot SFX (loop off) shouldn't re-trigger the whole effect on every
+  // edit — type-to-play previews the note, and ▶ Play SFX replays it with the
+  // edit. A looping SFX (or any song) reloads in place so edits are heard live.
+  if (playing.sfx && !loopOf(playing.doc, playing.name, true)) return;
+  playing.channelElements = playing.sfx ? await sfxElements(playing.doc, playing.name) : await channelElements(playing.doc, playing.name);
   writeAndSend();
 }
 

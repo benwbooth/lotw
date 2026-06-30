@@ -812,7 +812,7 @@ pub fn sfx_08() -> Vec<Tok> {
 }
 
 pub fn sfx_09() -> Vec<Tok> {
-    line(1, &[duty(36), volume(0), c5q, ds5q, fs5q, a5q, c6q, ds6q])
+    line(1, &[duty(36), volume(0), c5q, ds5q, fs5q, a5q, c6q, ds6q, ds6q])
 }
 
 pub fn sfx_damage_bounce() -> Vec<Tok> {
