@@ -8,7 +8,7 @@
 //! channel parameter, then plays one or more carrier notes, expanding to a
 //! `Note::Seq` of `param(v), note…` pairs:
 //!
-//! ```ignore
+//! ```text
 //! env!(volume, 0 g4x, 252 fs4x, 250 f4x)        // per-note volume decay
 //! env!(volume, 0 b5x as5x b5x a5x, 255 as5x …)  // value held across notes
 //! env!(pitch,  8 e3x, +8 e3x, +8 e3x, 0 f3x)    // relative / absolute bend
@@ -22,7 +22,11 @@ use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenStream as TS, TokenTree};
 use quote::{format_ident, quote};
 
-// `env!(param, <seg>, …)` — the parameter is the first argument.
+/// Parameter-envelope: `env!(param, <value> <note>…, <value> <note>…, …)`.
+/// Each segment sets channel `param` (`volume`/`duty`/`pitch`/…) then plays its
+/// carrier notes, so the value changes per segment. Values are absolute (`252`),
+/// relative (`+8`/`-2`), or a bare `+`/`-` step. Expands to a `const Note::Seq`.
+/// The per-parameter shorthands (`volume!`, `duty!`, …) drop the first arg.
 #[proc_macro]
 pub fn env(input: TokenStream) -> TokenStream {
     emit(build(input.into(), None))
@@ -32,18 +36,22 @@ pub fn env(input: TokenStream) -> TokenStream {
 // don't clash with the `duty(arg)`/`volume(arg)` note functions (macro vs value
 // namespace).
 macro_rules! param_macro {
-    ($name:ident) => {
+    ($name:ident, $doc:expr) => {
+        #[doc = $doc]
+        ///
+        /// Shorthand for `env!` with this parameter fixed:
+        /// `volume!(0 g4x, 252 fs4x)` ≡ `env!(volume, 0 g4x, 252 fs4x)`.
         #[proc_macro]
         pub fn $name(input: TokenStream) -> TokenStream {
             emit(build(input.into(), Some(stringify!($name))))
         }
     };
 }
-param_macro!(duty);
-param_macro!(volume);
-param_macro!(flags);
-param_macro!(pitch);
-param_macro!(sweep);
+param_macro!(duty, "Duty/instrument envelope: step the pulse duty cycle and envelope instrument across a run of notes (the envelope form of the `duty` command).");
+param_macro!(volume, "Volume envelope: step the channel volume across notes — for fades and accents (the envelope form of the `volume` command).");
+param_macro!(flags, "Channel-flags envelope: step the raw duty/volume-flag byte across notes (the envelope form of the `flags` command).");
+param_macro!(pitch, "Pitch-bend envelope: step the pitch offset across notes; supports relative `+`/`-` steps (the envelope form of the `pitch` command).");
+param_macro!(sweep, "Sweep / drum-period envelope: step the sweep (pulse) or drum period (noise) across notes (the envelope form of the `sweep` command).");
 
 fn emit(r: Result<TS, String>) -> TokenStream {
     match r {
