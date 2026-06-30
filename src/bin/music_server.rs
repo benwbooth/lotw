@@ -369,6 +369,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
+                Some("sfx") => {
+                    // sfx <idx> — play sound effect `idx` alone on the preview voice.
+                    let idx = it.next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
+                    let dur = music::sfx(idx).map(|s| audio::channel_ticks(&s)).unwrap_or(60);
+                    // Load any song to map the SFX bank, then mute the music bed and
+                    // request the sfx via the engine's overlay (prompt_state).
+                    if let Some(d) = SongData::from_dsl(0) {
+                        if preview.load(0, &d, 0).is_ok() {
+                            preview.engine.state.sound_paused = 1;
+                            preview.engine.state.prompt_state = idx as u8;
+                            preview.engine.state.prompt_argument = 0xFF; // max priority
+                            preview.playing = true;
+                            preview_frames = (dur as usize).max(20) + 8;
+                            say(&format!("loaded sfx {idx}"));
+                        }
+                    }
+                }
                 Some("rom") => match it.next().and_then(|s| s.parse().ok()).and_then(|i: usize| SongData::from_dsl(i).map(|d| (i, d))) {
                     Some((i, d)) => match player.load(i, &d, 0) {
                         Ok(()) => {
