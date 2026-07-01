@@ -1,0 +1,78 @@
+# P0 in progress: Pochi past the entry pocket of world (0,0), heading down
+# toward the Gloves/Crystal area. Composed by agent/composer.py (macro legs
+# + sample() search for the pocket escape).
+frame 300
+frame 12 start
+frame 108
+frame 16 up
+frame 52 right
+frame 3 A
+frame 240
+frame 17 down
+frame 90
+frame 543 left
+frame 33 down
+frame 60
+frame 140 down
+frame 80 right
+frame 20
+frame 4 right
+frame 4 down
+frame 4 B right
+frame 4 left
+frame 4 A left
+frame 4 B
+frame 4 right
+frame 4 B
+frame 4 left
+frame 4 A
+frame 4 B right
+frame 4 A left
+frame 4 left
+frame 4 A right
+frame 4
+frame 4 down
+frame 4 B
+frame 4 A
+frame 4
+frame 4 A right
+frame 4 B
+frame 4
+frame 4 left
+frame 4 B right
+frame 4 A right
+frame 4 down
+frame 4 A
+frame 8 right
+frame 4 left
+frame 4 B right
+frame 4
+frame 4 B right
+frame 4 A right
+frame 4
+frame 4 up
+frame 4 A right
+frame 4 left
+frame 4 B
+frame 8 left
+frame 4 A left
+frame 4
+frame 4 right
+frame 4 A left
+frame 4 B right
+frame 4 A right
+frame 4 down
+frame 4 A right
+frame 4 right
+frame 4 B right
+frame 4
+frame 8 down
+frame 4 left
+frame 4 A right
+frame 4
+frame 4 up
+frame 4 right
+frame 4 left
+frame 4 up
+frame 4 B right
+frame 80
