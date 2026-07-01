@@ -109,8 +109,16 @@ class LotwEnv(gym.Env):
         reward = self.reward_fn(state, self._prev, self._env.ram())
         self._prev = state
         self._steps += 1
+        # character_index 0..4 = a playable family member; anything else means the
+        # character died / returned to the title-select screen. Treat that as
+        # terminal — correct RL semantics, and it keeps the agent out of the
+        # character-select screen, where holding A on a non-selectable tile spins
+        # the game loop with no frame yield (a faithful reproduction of an original
+        # freeze that can't be interrupted once entered).
+        left_gameplay = state["character_index"] > 4
+        terminated = bool(done) or left_gameplay
         truncated = self._steps >= self.max_steps
-        return self._obs(), reward, bool(done), truncated, {"state": state}
+        return self._obs(), reward, terminated, truncated, {"state": state}
 
     def render(self):
         if self.render_mode == "rgb_array":

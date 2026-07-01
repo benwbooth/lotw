@@ -104,6 +104,13 @@ pub struct FrameRunner {
     /// Heap-pinned per-routine register/context block, boxed and `UnsafeCell`-d
     /// for the same reasons as `engine`.
     regs: Box<UnsafeCell<RoutineContext>>,
+    /// This runner's own coroutine yielder, recorded by the coroutine body on its
+    /// first resume. [`step`](Self::step) republishes it into the thread-local
+    /// [`YIELDER`] around every resume so that, when several runners are resumed
+    /// interleaved on one thread (e.g. a vectorized RL env), each `frame_wait`
+    /// finds the yielder of the coroutine that is *actually* running rather than
+    /// whichever runner published last. Boxed for a stable address across moves.
+    yielder: Box<Cell<*const Yielder<(), ()>>>,
     /// Set once the coroutine body returns (the game finished); subsequent
     /// resume requests become no-ops.
     done: bool,
@@ -133,35 +140,46 @@ impl FrameRunner {
         // the coroutine closure with their provenance intact, and the manual
         // `unsafe impl Send` is what lets the (Send-requiring) closure capture
         // them. Do not replace this with a `usize` round-trip — see above.
-        struct Ptrs(*mut Engine, *mut RoutineContext);
+        // The coroutine records its yielder here on first entry; `step` reads it
+        // to republish the thread-local around every resume (see the field docs).
+        let yielder: Box<Cell<*const Yielder<(), ()>>> = Box::new(Cell::new(std::ptr::null()));
+        struct Ptrs(
+            *mut Engine,
+            *mut RoutineContext,
+            *const Cell<*const Yielder<(), ()>>,
+        );
         unsafe impl Send for Ptrs {}
-        let ptrs = Ptrs(engine.get(), regs.get());
+        let ptrs = Ptrs(engine.get(), regs.get(), &*yielder as *const _);
         // Construct the coroutine. Its body is the game's `entry` routine; the
         // closure receives the yielder, publishes it, runs the game, and tidies
         // up. The closure is not run until the coroutine is first resumed.
         let coro = Coroutine::new(move |yielder: &Yielder<(), ()>, _input: ()| {
             // Recover the engine/regs raw pointers captured (with provenance)
             // via the Send wrapper.
-            let Ptrs(engine_ptr, regs_ptr) = ptrs;
-            // Publish this coroutine's yielder so `frame_wait`, however deep in
-            // the call stack, can find it; remember any previous value to
-            // restore on exit (supports nesting / re-entrancy).
-            let previous = YIELDER.with(|y| y.replace(yielder as *const _));
+            let Ptrs(engine_ptr, regs_ptr, yielder_slot) = ptrs;
+            // Record this coroutine's yielder into the runner-owned slot so
+            // `step` can republish it on every future resume, and publish it in
+            // the thread-local for this first run so `frame_wait` (however deep in
+            // the call stack) can find it before `step` takes over. `step` saves
+            // and restores the thread-local around each resume, so no restore is
+            // needed here.
+            unsafe {
+                (*yielder_slot).set(yielder as *const _);
+            }
+            YIELDER.with(|y| y.set(yielder as *const _));
             // Run the game body. Safety: engine/regs outlive the coroutine (it
             // drops first), and the game body holds the only active borrow while
             // running.
             unsafe {
                 entry(&mut *engine_ptr, &mut *regs_ptr);
             }
-            // Game finished: restore the previously-published yielder so the
-            // thread-local is left as we found it.
-            YIELDER.with(|y| y.set(previous));
         });
         // Assemble the runner. Field order matters for drop order (see `coro`).
         Self {
             coro,
             engine,
             regs,
+            yielder,
             done: false,
         }
     }
@@ -186,9 +204,24 @@ impl FrameRunner {
     /// Resume the coroutine once: run the game until it suspends or returns.
     /// Returns `true` if it parked at a frame wait, `false` if it finished.
     fn step(&mut self) -> bool {
+        // Republish THIS runner's yielder into the thread-local for the duration
+        // of the resume, saving whatever was there to restore afterwards. Without
+        // this, interleaving several runners on one thread corrupts control flow:
+        // the thread-local would still hold the yielder of whichever runner ran
+        // last, so this coroutine's next `frame_wait` would suspend through the
+        // wrong yielder (UB). On the very first resume the slot is still null and
+        // the coroutine body publishes its own yielder; every resume after that
+        // is covered here.
+        let previous = YIELDER.with(|y| y.get());
+        let mine = self.yielder.get();
+        if !mine.is_null() {
+            YIELDER.with(|y| y.set(mine));
+        }
         // Hand control to the game coroutine; it runs on its own stack until it
         // either suspends (yield) or returns.
         let result = self.coro.resume(());
+        // Restore the thread-local to whatever it was before this resume.
+        YIELDER.with(|y| y.set(previous));
         // The coroutine ran the game on its own stack and mutated the engine via
         // raw pointers; make those pointers escape through an opaque barrier so
         // the optimizer cannot assume the heap engine/regs are unchanged and
