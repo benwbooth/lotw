@@ -774,6 +774,11 @@ pub fn ram_state_init(engine: &mut Engine, r: &mut RoutineContext) {
 /// together so either controller can drive the game. When a replay/demo input
 /// source is active it overrides the live port read.
 pub fn read_controllers(engine: &mut Engine, r: &mut RoutineContext) {
+    // Safety valve: a game loop that polls input without ever advancing a frame
+    // (e.g. character-select "walk until A" on a non-selectable tile with A held)
+    // would spin the coroutine forever with no vblank. This forces a frame yield
+    // if input is polled far more than any real frame would; inert otherwise.
+    frame::input_poll_watchdog(engine, r);
     // Replay/demo override: feed scripted buttons into the port read.
     if let Some(replay_buttons) = engine.next_input() {
         engine.ppu.buttons = (replay_buttons as u8);

@@ -36,6 +36,38 @@ thread_local! {
     /// suspend. Null when no coroutine is active (e.g. routines called directly
     /// from tests), in which case [`frame_wait`] is a no-op.
     static YIELDER: Cell<*const Yielder<(), ()>> = const { Cell::new(std::ptr::null()) };
+
+    /// Controller reads since the last frame yield. Some game loops wait for input
+    /// by polling the pad WITHOUT advancing a frame — e.g. "walk the character-
+    /// select room until A is pressed" re-checks a held A on a non-selectable tile
+    /// and never reaches a `frame_wait`. The coroutine then spins forever with no
+    /// vblank: it never yields, so `step_frame` never returns and cannot be
+    /// interrupted from outside (no preemption). [`input_poll_watchdog`] uses this
+    /// counter to force a yield once input has been polled far more times than any
+    /// real frame would, turning an un-interruptible hang into a slow-but-advancing
+    /// frame the harness can detect and truncate. Inert in normal play and in the
+    /// byte-exact diff tests (a frame polls the pad only a handful of times).
+    static READS_SINCE_YIELD: Cell<u32> = const { Cell::new(0) };
+}
+
+/// Safety valve against input-polling spin loops (see [`READS_SINCE_YIELD`]).
+/// Called once per controller read from [`crate::game::read_controllers`]: it
+/// counts reads and, once they cross a threshold far above any legitimate
+/// per-frame input use, forces a [`frame_wait`] so a runaway loop yields a frame
+/// instead of hanging. A no-op outside an active coroutine.
+pub fn input_poll_watchdog(engine: &mut Engine, r: &mut RoutineContext) {
+    // A real frame reads the pad a few times; 4096 without a single frame yield
+    // means a spin loop that will never advance on its own.
+    const MAX_READS_PER_FRAME: u32 = 4096;
+    let n = READS_SINCE_YIELD.with(|c| {
+        let n = c.get().wrapping_add(1);
+        c.set(n);
+        n
+    });
+    if n >= MAX_READS_PER_FRAME {
+        // frame_wait resets the counter; it no-ops if no coroutine is active.
+        frame_wait(engine, r);
+    }
 }
 
 /// Whether the frame runner has been asked to stop.
@@ -56,6 +88,9 @@ pub fn frame_runner_stop_requested() -> bool {
 /// single long-lived `&mut Engine` the game body threads through every call;
 /// `r` is the per-routine register/context block.
 pub fn frame_wait(engine: &mut Engine, r: &mut RoutineContext) {
+    // A frame boundary is reached: clear the input-poll watchdog counter so the
+    // per-frame budget starts fresh (see `input_poll_watchdog`).
+    READS_SINCE_YIELD.with(|c| c.set(0));
     // Look up the currently-published yielder for this thread. If there is no
     // active coroutine (e.g. a routine called directly from a test), suspension
     // is impossible, so behave as a no-op and return.

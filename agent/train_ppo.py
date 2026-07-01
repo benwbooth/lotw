@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import threading
 import time
 
 import gymnasium as gym
@@ -95,6 +96,8 @@ def main():
                    help="async = one env per subprocess (REQUIRED for >1 env; see below)")
     p.add_argument("--save-path", default="agent/runs/ppo.pt")
     p.add_argument("--save-every", type=int, default=10, help="save every N updates")
+    p.add_argument("--stall-timeout", type=int, default=180,
+                   help="exit if no update completes in this many seconds (env-hang guard)")
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -143,6 +146,23 @@ def main():
     rewards = torch.zeros((args.num_steps, args.num_envs), device=device)
     dones = torch.zeros((args.num_steps, args.num_envs), device=device)
     values = torch.zeros((args.num_steps, args.num_envs), device=device)
+
+    # Stall detector: if no update completes for a while, an env has hung (a game
+    # loop spinning with no frame yield blocks that subprocess, and AsyncVectorEnv
+    # waits on it forever). The engine's input-poll watchdog should prevent the
+    # known class, but if a new one appears, fail LOUD instead of silently
+    # freezing for hours — periodic checkpoints (--save-every) are the recovery.
+    heartbeat = [time.time()]
+
+    def _stall_watch():
+        while True:
+            time.sleep(15)
+            if time.time() - heartbeat[0] > args.stall_timeout:
+                print(f"\n!!! STALL: no update in {args.stall_timeout}s — an env "
+                      f"likely hung. Exiting; resume from {args.save_path}.", flush=True)
+                os._exit(3)
+
+    threading.Thread(target=_stall_watch, daemon=True).start()
 
     global_step = 0
     start = time.time()
@@ -205,6 +225,7 @@ def main():
                 nn.utils.clip_grad_norm_(agent.parameters(), 0.5)
                 opt.step()
 
+        heartbeat[0] = time.time()  # an update completed; reset the stall guard
         sps = int(global_step / (time.time() - start))
         recent = returns_hist[-20:]
         mean_ret = np.mean(recent) if recent else float("nan")
