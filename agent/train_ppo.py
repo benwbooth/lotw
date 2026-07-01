@@ -99,6 +99,8 @@ def main():
     p.add_argument("--save-every", type=int, default=10, help="save every N updates")
     p.add_argument("--stall-timeout", type=int, default=180,
                    help="exit if no update completes in this many seconds (env-hang guard)")
+    p.add_argument("--init-from", default=None,
+                   help="warm-start: load model weights from a prior checkpoint .pt")
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -135,6 +137,10 @@ def main():
     n_actions = int(envs.single_action_space.n)
 
     agent = Agent(n_actions).to(device)
+    if args.init_from:
+        ck = torch.load(args.init_from, map_location=device, weights_only=False)
+        agent.load_state_dict(ck["model"])
+        print(f"warm-started from {args.init_from} (step {ck.get('global_step','?')})")
     opt = torch.optim.Adam(agent.parameters(), lr=args.lr, eps=1e-5)
 
     batch = args.num_envs * args.num_steps

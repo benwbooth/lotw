@@ -22,6 +22,7 @@ MAX_STEPS="${MAX_STEPS:-1024}"
 CHECKPOINT="${CHECKPOINT:-fixtures/reference/outside_walk.replay}"
 SAVE_PATH="${SAVE_PATH:-agent/runs/ppo_gpu.pt}"
 REWARD_MODE="${REWARD_MODE:-explore}"
+INIT_FROM="${INIT_FROM:-}"
 
 # Use an interactive TTY only when we actually have one (so the script works both
 # from a terminal and when launched/monitored non-interactively).
@@ -34,7 +35,7 @@ exec docker run --rm $TTY \
   -v "$PWD":/lotw -w /lotw \
   -e TIMESTEPS="$TIMESTEPS" -e NUM_ENVS="$NUM_ENVS" -e NUM_STEPS="$NUM_STEPS" \
   -e MAX_STEPS="$MAX_STEPS" -e CHECKPOINT="$CHECKPOINT" -e SAVE_PATH="$SAVE_PATH" \
-  -e REWARD_MODE="$REWARD_MODE" \
+  -e REWARD_MODE="$REWARD_MODE" -e INIT_FROM="$INIT_FROM" \
   "$IMAGE" bash -lc '
     set -euo pipefail
     # Rust toolchain (only to build the lotw_env PyO3 extension; pure-rust, no SDL).
@@ -56,5 +57,6 @@ exec docker run --rm $TTY \
     exec python -u agent/train_ppo.py \
       --reward-mode "$REWARD_MODE" --vec async \
       --total-timesteps "$TIMESTEPS" --num-envs "$NUM_ENVS" --num-steps "$NUM_STEPS" \
-      --max-steps "$MAX_STEPS" --checkpoint "$CHECKPOINT" --save-path "$SAVE_PATH"
+      --max-steps "$MAX_STEPS" --checkpoint "$CHECKPOINT" --save-path "$SAVE_PATH" \
+      ${INIT_FROM:+--init-from "$INIT_FROM"}
   '
