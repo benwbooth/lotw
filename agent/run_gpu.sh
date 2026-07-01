@@ -22,12 +22,17 @@ MAX_STEPS="${MAX_STEPS:-1024}"
 CHECKPOINT="${CHECKPOINT:-fixtures/reference/outside_walk.replay}"
 SAVE_PATH="${SAVE_PATH:-agent/runs/ppo_gpu.pt}"
 
-exec docker run --rm -it \
+# Use an interactive TTY only when we actually have one (so the script works both
+# from a terminal and when launched/monitored non-interactively).
+TTY=; [ -t 1 ] && TTY=-it
+
+exec docker run --rm $TTY \
   --device=/dev/kfd --device=/dev/dri --group-add video \
   --security-opt seccomp=unconfined \
   --shm-size 8G \
   -v "$PWD":/lotw -w /lotw \
-  -e TIMESTEPS -e NUM_ENVS -e NUM_STEPS -e MAX_STEPS -e CHECKPOINT -e SAVE_PATH \
+  -e TIMESTEPS="$TIMESTEPS" -e NUM_ENVS="$NUM_ENVS" -e NUM_STEPS="$NUM_STEPS" \
+  -e MAX_STEPS="$MAX_STEPS" -e CHECKPOINT="$CHECKPOINT" -e SAVE_PATH="$SAVE_PATH" \
   "$IMAGE" bash -lc '
     set -euo pipefail
     # Rust toolchain (only to build the lotw_env PyO3 extension; pure-rust, no SDL).
@@ -37,7 +42,13 @@ exec docker run --rm -it \
     fi
     pip install -q --no-input maturin gymnasium numpy opencv-python-headless
     echo "=== building lotw_env (release) ==="
-    maturin develop --release --manifest-path lotw-env/Cargo.toml
+    # Build a wheel against the CONTAINER python and pip-install it. (Do NOT use
+    # `maturin develop`: it would grab the mounted host .venv, whose interpreter
+    # is the nix python that does not exist in the container.) Isolate the cargo
+    # target dir so the container build never clobbers the host nix target/.
+    export CARGO_TARGET_DIR=/tmp/lotw-target
+    maturin build --release --interpreter python3 -m lotw-env/Cargo.toml
+    pip install -q --force-reinstall --no-deps "$CARGO_TARGET_DIR"/wheels/lotw_env-*.whl
     python -c "import torch; print(\"torch\", torch.__version__, \"cuda(=ROCm):\", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"\")"
     echo "=== training ==="
     exec python -u agent/train_ppo.py \
