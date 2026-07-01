@@ -1,0 +1,19 @@
+# Pochi in the labyrinth: boot -> select Pochi (char 4, select room up16+R52)
+# -> loadout exit -> walk left to the tile-26 ladder -> descend -> world (0,0),
+# off the exit ladder. Start of the P0 item run (Gloves + Crystal).
+# Minted by agent/composer.py.
+frame 300
+frame 12 start
+frame 108
+frame 16 up
+frame 52 right
+frame 3 A
+frame 240
+frame 17 down
+frame 90
+frame 543 left
+frame 33 down
+frame 60
+frame 140 down
+frame 80 right
+frame 20
