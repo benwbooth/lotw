@@ -1,0 +1,17 @@
+# Labyrinth entry: boot -> Start -> select Lyll (walk up-left onto her + A)
+# -> loadout screen (exit via down) -> house exterior -> walk left to the
+# ladder at tile 26 -> hold DOWN to descend -> world room (0,0), char 3.
+# Minted by the zero-shot closed-loop session (2026-07-01); used as the
+# RL training checkpoint for in-labyrinth exploration.
+frame 300
+frame 12 start
+frame 108
+frame 16 up
+frame 12 left
+frame 3 A
+frame 220
+frame 37 down
+frame 90
+frame 543 left
+frame 33 down
+frame 60
