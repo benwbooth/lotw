@@ -110,20 +110,27 @@ class Composer:
 
     def sample(self, goal, actions: list[int], rng_seed: int = 0,
                tries: int = 200, horizon: int = 800, frame_skip: int = 4,
-               guard=None) -> bool:
+               guard=None, proposer=None) -> bool:
         """Stochastic search: rollouts of random actions (from `actions`) until
         `goal(self)`; keeps the SHORTEST winning suffix. `guard(self)` aborts a
-        rollout early (e.g. death). Rewinds between tries; stitches the win."""
+        rollout early (e.g. death). Rewinds between tries; stitches the win.
+        `proposer(self) -> button` (e.g. a trained policy) replaces uniform
+        sampling when given — coherent navigation makes goal hits far denser."""
         start = self.mark()
         best: bytearray | None = None
         rng = np.random.default_rng(rng_seed)
         for _ in range(tries):
             self.rewind(start)
+            if proposer is not None and hasattr(proposer, "reset"):
+                proposer.reset()
             suffix = bytearray()
             hor = horizon if best is None else min(horizon, len(best) // frame_skip)
             ok = False
             for _ in range(hor):
-                b = actions[int(rng.integers(0, len(actions)))]
+                if proposer is not None:
+                    b = proposer(self)
+                else:
+                    b = actions[int(rng.integers(0, len(actions)))]
                 for _ in range(frame_skip):
                     self.env.advance(b)
                     suffix.append(b)
@@ -141,6 +148,73 @@ class Composer:
             self.env.advance(b)
             self.log.append(b)
         return True
+
+
+    def goto(self, x_px: int, y_px: int, tol: int = 12, rounds: int = 8,
+             tries: int = 60, horizon: int = 120, rng_seed: int = 0,
+             actions: list[int] | None = None, guard=None) -> bool:
+        """Navigate to world position (x_px, y_px) — the "go here" command.
+
+        Distance-guided beam search: each round runs `tries` random rollouts and
+        STITCHES the one whose best-along-path position gets closest to the
+        target (trimmed at its closest point). Repeats until within `tol` px or
+        a round stops improving. Uses spatial knowledge (the object table gives
+        targets) that plain predicate search lacks."""
+        acts = actions or [RIGHT, LEFT, UP, DOWN, A, A | RIGHT, A | LEFT,
+                           DOWN | RIGHT, DOWN | LEFT, NOP]
+        rng = np.random.default_rng(rng_seed)
+
+        def dist(c):
+            s = c.state()
+            return abs(c.px() - x_px) + abs(s["player_y"] - y_px)
+
+        for _ in range(rounds):
+            base = self.mark()
+            d0 = dist(self)
+            if d0 <= tol:
+                return True
+            best_suffix, best_d = None, d0
+            for _ in range(tries):
+                self.rewind(base)
+                suffix = bytearray()
+                trim_len, trim_d = 0, dist(self)
+                for _ in range(horizon):
+                    b = acts[int(rng.integers(0, len(acts)))]
+                    for _ in range(4):
+                        self.env.advance(b)
+                        suffix.append(b)
+                    if guard is not None and guard(self):
+                        break
+                    d = dist(self)
+                    if d < trim_d:
+                        trim_d, trim_len = d, len(suffix)
+                if trim_d < best_d:
+                    best_d, best_suffix = trim_d, suffix[:trim_len]
+            self.rewind(base)
+            if best_suffix is None:
+                return dist(self) <= tol  # no progress possible this round
+            for b in best_suffix:
+                self.env.advance(b)
+                self.log.append(b)
+        return dist(self) <= tol
+
+
+OBJECTS = 0x0400          # 12 records x 16 bytes: +0 tile +1 state +2 attr
+                          # +5 health +6 timer +0xC x_sub +0xD x_tile +0xE y_px
+
+
+def objects(c) -> list[dict]:
+    """Decode the live object table (the TASer's omniscient room view)."""
+    r = c.ram()
+    out = []
+    for slot in range(12):
+        o = OBJECTS + slot * 16
+        if r[o + 1] == 0:
+            continue  # inactive
+        out.append({"slot": slot, "tile": r[o], "state": r[o + 1],
+                    "attr": r[o + 2], "hp": r[o + 5],
+                    "x_tile": r[o + 0xD], "y_px": r[o + 0xE]})
+    return out
 
 
 # ---- common predicates ----
