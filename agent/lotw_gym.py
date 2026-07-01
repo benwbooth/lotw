@@ -61,6 +61,24 @@ def motion_reward(state: dict, prev: dict, ram: bytes) -> float:
     )
 
 
+def screen_of(state: dict) -> tuple:
+    """The labyrinth screen (room) the player is on."""
+    return (state["map_screen_x"], state["map_screen_y"])
+
+
+def cell_of(state: dict) -> tuple:
+    """A position cell: screen + quantized within-screen (2-tile column, 16px row).
+    New cells = genuinely new ground, so it can't be farmed by jittering, but the
+    grid is fine enough (~8 cols × ~16 rows per screen) to give a dense, climbable
+    "cover the room / find the exit" signal."""
+    return (
+        state["map_screen_x"],
+        state["map_screen_y"],
+        state["player_x_tile"] >> 1,
+        state["player_y"] >> 4,
+    )
+
+
 class LotwEnv(gym.Env):
     metadata = {"render_modes": ["rgb_array"], "render_fps": 60}
 
@@ -69,6 +87,7 @@ class LotwEnv(gym.Env):
         rom: str = "rom/lotw.nes",
         checkpoint: bytes = b"",
         reward_fn=motion_reward,
+        reward_mode: str = "motion",
         frame_skip: int = 4,
         max_steps: int = 1000,
         render_mode: str | None = "rgb_array",
@@ -77,6 +96,13 @@ class LotwEnv(gym.Env):
         self._env = lotw_env.Lotw(rom)
         self.checkpoint = checkpoint
         self.reward_fn = reward_fn
+        # "motion": stateless reward_fn (a movement smoke signal).
+        # "explore": directed-exploration — reward reaching new ground (new
+        #   labyrinth screens, and new coarse position cells within a screen). This
+        #   is the first real objective: it maps directly onto route progress
+        #   (P0 = "traverse right/down through the labyrinth") and can't be farmed
+        #   by standing still or jittering the way total-motion can.
+        self.reward_mode = reward_mode
         self.frame_skip = frame_skip
         self.max_steps = max_steps
         self.render_mode = render_mode
@@ -84,6 +110,8 @@ class LotwEnv(gym.Env):
         self.observation_space = spaces.Box(0, 255, (lotw_env.FRAME_H, lotw_env.FRAME_W, 3), np.uint8)
         self._steps = 0
         self._prev: dict = {}
+        self._seen_screens: set = set()
+        self._seen_cells: set = set()
 
     def _obs(self) -> np.ndarray:
         return np.frombuffer(self._env.render(), np.uint8).reshape(
@@ -96,6 +124,9 @@ class LotwEnv(gym.Env):
         self._env.reset_replay(cp)
         self._steps = 0
         self._prev = self._env.state()
+        # Seed coverage with the start location so it earns no reward.
+        self._seen_screens = {screen_of(self._prev)}
+        self._seen_cells = {cell_of(self._prev)}
         return self._obs(), {"state": self._prev}
 
     def step(self, action):
@@ -106,8 +137,6 @@ class LotwEnv(gym.Env):
             if done:
                 break
         state = self._env.state()
-        reward = self.reward_fn(state, self._prev, self._env.ram())
-        self._prev = state
         self._steps += 1
         # character_index 0..4 = a playable family member; anything else means the
         # character died / returned to the title-select screen. Treat that as
@@ -116,9 +145,27 @@ class LotwEnv(gym.Env):
         # the game loop with no frame yield (a faithful reproduction of an original
         # freeze that can't be interrupted once entered).
         left_gameplay = state["character_index"] > 4
+
+        if self.reward_mode == "explore":
+            screen, cell = screen_of(state), cell_of(state)
+            if screen not in self._seen_screens:
+                reward = 5.0            # a whole new room reached (the real goal)
+                self._seen_screens.add(screen)
+            elif cell not in self._seen_cells:
+                reward = 0.2            # new ground within a known room
+            else:
+                reward = -0.005         # mild efficiency pressure; easily overcome
+            self._seen_cells.add(cell)  #   by exploring, so noop < move < explore
+            if left_gameplay:
+                reward = -1.0           # dying is a setback, not progress
+        else:
+            reward = self.reward_fn(state, self._prev, self._env.ram())
+
+        self._prev = state
         terminated = bool(done) or left_gameplay
         truncated = self._steps >= self.max_steps
-        return self._obs(), reward, terminated, truncated, {"state": state}
+        info = {"state": state, "screens": len(self._seen_screens), "cells": len(self._seen_cells)}
+        return self._obs(), reward, terminated, truncated, info
 
     def render(self):
         if self.render_mode == "rgb_array":

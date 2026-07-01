@@ -47,3 +47,4 @@ assets/chr/
 
 # Python venv for the agent env (maturin develop)
 /.venv/
+/agent/runs/

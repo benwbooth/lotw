@@ -29,9 +29,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lotw_gym import LotwEnv, load_replay  # noqa: E402
 
 
-def make_env(checkpoint, max_steps):
+def make_env(checkpoint, max_steps, reward_mode):
     def thunk():
-        env = LotwEnv(checkpoint=checkpoint, frame_skip=4, max_steps=max_steps)
+        env = LotwEnv(checkpoint=checkpoint, frame_skip=4, max_steps=max_steps,
+                      reward_mode=reward_mode)
         env = gym.wrappers.GrayscaleObservation(env, keep_dim=False)
         env = gym.wrappers.ResizeObservation(env, (84, 84))
         env = gym.wrappers.FrameStackObservation(env, 4)
@@ -89,6 +90,11 @@ def main():
     p.add_argument("--ent-coef", type=float, default=0.01)
     p.add_argument("--vf-coef", type=float, default=0.5)
     p.add_argument("--checkpoint", default="fixtures/reference/outside_walk.replay")
+    p.add_argument("--reward-mode", default="explore", choices=["explore", "motion"])
+    p.add_argument("--vec", default="async", choices=["async", "sync"],
+                   help="async = one env per subprocess (REQUIRED for >1 env; see below)")
+    p.add_argument("--save-path", default="agent/runs/ppo.pt")
+    p.add_argument("--save-every", type=int, default=10, help="save every N updates")
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -106,7 +112,21 @@ def main():
     print(f"device={device}  torch={torch.__version__}  threads={torch.get_num_threads()}")
 
     cp = load_replay(args.checkpoint)
-    envs = gym.vector.SyncVectorEnv([make_env(cp, args.max_steps) for _ in range(args.num_envs)])
+    # AsyncVectorEnv (subprocess per env) is REQUIRED for >1 env: the game runs as
+    # a stackful coroutine, and running several coroutines in ONE process
+    # miscompiles under the release optimizer when a coroutine is dropped on reset
+    # while a sibling is live (the single-`&mut Engine`-across-suspends aliasing
+    # hazard documented in src/frame.rs). One coroutine per process is the
+    # proven-good path AND gives true parallelism (no GIL). SyncVectorEnv is kept
+    # only for single-env debugging.
+    if args.vec == "sync":
+        envs = gym.vector.SyncVectorEnv(
+            [make_env(cp, args.max_steps, args.reward_mode) for _ in range(args.num_envs)]
+        )
+    else:
+        envs = gym.vector.AsyncVectorEnv(
+            [make_env(cp, args.max_steps, args.reward_mode) for _ in range(args.num_envs)]
+        )
     envs = gym.wrappers.vector.RecordEpisodeStatistics(envs)
     n_actions = int(envs.single_action_space.n)
 
@@ -188,8 +208,15 @@ def main():
         sps = int(global_step / (time.time() - start))
         recent = returns_hist[-20:]
         mean_ret = np.mean(recent) if recent else float("nan")
+        # With reward_mode=explore, episodic return ≈ 5·(new rooms)+0.3·(new cells),
+        # so a rising mean_return IS rising coverage — the learning signal to watch.
         print(f"update {update}/{num_updates}  step {global_step}  SPS {sps}  "
               f"mean_return({len(recent)}ep) {mean_ret:.1f}  v_loss {v_loss.item():.2f}")
+
+        if update % args.save_every == 0 or update == num_updates:
+            os.makedirs(os.path.dirname(args.save_path) or ".", exist_ok=True)
+            torch.save({"model": agent.state_dict(), "args": vars(args),
+                        "global_step": global_step}, args.save_path)
 
     envs.close()
     if len(returns_hist) >= 10:
