@@ -11,6 +11,10 @@ dependencies = [
 
 [dependency-groups]
 dev = ["maturin>=1.0"]
+# `uv sync --group train` for the PPO trainer. Torch is the CPU build here (runs
+# headlessly / verifies the loop); on the AMD GPU run the trainer from the
+# rocm/pytorch container instead — the code is device-agnostic (cuda if available).
+train = ["torch", "opencv-python-headless"]
 
 [tool.uv]
 # This root is an application, not a distributable package — don't build it.
@@ -18,3 +22,9 @@ package = false
 
 [tool.uv.sources]
 lotw-env = { path = "lotw-env", editable = true }
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

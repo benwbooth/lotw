@@ -113,9 +113,11 @@
               pkgs.stdenv.cc.cc.lib
               pkgs.zlib
             ]}:''${LD_LIBRARY_PATH:-}"
-            # uv: use the nix python, never download a standalone interpreter.
+            # uv: never download a standalone interpreter — use the nix python3
+            # from PATH when creating the venv, and the active venv otherwise.
+            # (Do NOT set UV_PYTHON: it would override the active venv and push
+            # uv/maturin onto the externally-managed nix python.)
             export UV_PYTHON_DOWNLOADS=never
-            export UV_PYTHON="${pkgs.python3}/bin/python3"
             export RUST_SRC_PATH="${pkgs.rustPlatform.rustLibSrc}/lib/rustlib/src/rust/library"
             export QMAKE="${qmakeWrapperFor pkgs}/bin/qmake"
             export QT_QPA_PLATFORM=wayland
