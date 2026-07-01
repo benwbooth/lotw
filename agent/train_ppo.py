@@ -91,7 +91,8 @@ def main():
     p.add_argument("--ent-coef", type=float, default=0.01)
     p.add_argument("--vf-coef", type=float, default=0.5)
     p.add_argument("--checkpoint", default="fixtures/reference/outside_walk.replay")
-    p.add_argument("--reward-mode", default="explore", choices=["explore", "motion"])
+    p.add_argument("--reward-mode", default="explore",
+                   choices=["explore", "explore_lab", "motion"])
     p.add_argument("--vec", default="async", choices=["async", "sync"],
                    help="async = one env per subprocess (REQUIRED for >1 env; see below)")
     p.add_argument("--save-path", default="agent/runs/ppo.pt")

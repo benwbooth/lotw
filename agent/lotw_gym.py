@@ -146,6 +146,10 @@ class LotwEnv(gym.Env):
         # freeze that can't be interrupted once entered).
         left_gameplay = state["character_index"] > 4
 
+        # Surfacing check (labyrinth modes): map_screen_y == 16 is the hub row
+        # (overworld strip / menus), i.e. the agent LEFT the labyrinth.
+        surfaced = state["map_screen_y"] == 16
+
         if self.reward_mode == "explore":
             screen, cell = screen_of(state), cell_of(state)
             if screen not in self._seen_screens:
@@ -158,6 +162,28 @@ class LotwEnv(gym.Env):
             self._seen_cells.add(cell)  #   by exploring, so noop < move < explore
             if left_gameplay:
                 reward = -1.0           # dying is a setback, not progress
+        elif self.reward_mode == "explore_lab":
+            # Labyrinth-only exploration. The plain "explore" policy discovered a
+            # loophole: climb back UP the entry ladder and farm the big, safe
+            # overworld strip for cell bonuses. Here only underground rooms
+            # (map_screen_y != 16) earn anything, and surfacing ends the episode —
+            # the objective is "explore the DUNGEON", so leaving it is done, not
+            # a farm.
+            screen, cell = screen_of(state), cell_of(state)
+            if surfaced:
+                reward = -1.0
+            elif screen not in self._seen_screens:
+                reward = 5.0
+                self._seen_screens.add(screen)
+            elif cell not in self._seen_cells:
+                reward = 0.2
+                self._seen_cells.add(cell)
+            else:
+                reward = -0.005
+            self._seen_cells.add(cell)
+            if left_gameplay:
+                reward = -1.0
+            left_gameplay = left_gameplay or surfaced
         else:
             reward = self.reward_fn(state, self._prev, self._env.ram())
 

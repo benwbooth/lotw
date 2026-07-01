@@ -21,6 +21,7 @@ NUM_STEPS="${NUM_STEPS:-128}"
 MAX_STEPS="${MAX_STEPS:-1024}"
 CHECKPOINT="${CHECKPOINT:-fixtures/reference/outside_walk.replay}"
 SAVE_PATH="${SAVE_PATH:-agent/runs/ppo_gpu.pt}"
+REWARD_MODE="${REWARD_MODE:-explore}"
 
 # Use an interactive TTY only when we actually have one (so the script works both
 # from a terminal and when launched/monitored non-interactively).
@@ -33,6 +34,7 @@ exec docker run --rm $TTY \
   -v "$PWD":/lotw -w /lotw \
   -e TIMESTEPS="$TIMESTEPS" -e NUM_ENVS="$NUM_ENVS" -e NUM_STEPS="$NUM_STEPS" \
   -e MAX_STEPS="$MAX_STEPS" -e CHECKPOINT="$CHECKPOINT" -e SAVE_PATH="$SAVE_PATH" \
+  -e REWARD_MODE="$REWARD_MODE" \
   "$IMAGE" bash -lc '
     set -euo pipefail
     # Rust toolchain (only to build the lotw_env PyO3 extension; pure-rust, no SDL).
@@ -52,7 +54,7 @@ exec docker run --rm $TTY \
     python -c "import torch; print(\"torch\", torch.__version__, \"cuda(=ROCm):\", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"\")"
     echo "=== training ==="
     exec python -u agent/train_ppo.py \
-      --reward-mode explore --vec async \
+      --reward-mode "$REWARD_MODE" --vec async \
       --total-timesteps "$TIMESTEPS" --num-envs "$NUM_ENVS" --num-steps "$NUM_STEPS" \
       --max-steps "$MAX_STEPS" --checkpoint "$CHECKPOINT" --save-path "$SAVE_PATH"
   '

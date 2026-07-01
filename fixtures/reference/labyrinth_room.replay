@@ -1,0 +1,19 @@
+# Labyrinth room spawn: labyrinth_entry.replay + climb down off the entry
+# ladder and step right, so the agent starts INSIDE world room (0,0) rather
+# than atop the exit ladder (from which random play immediately surfaces).
+# Training checkpoint for reward_mode=explore_lab.
+frame 300
+frame 12 start
+frame 108
+frame 16 up
+frame 12 left
+frame 3 A
+frame 220
+frame 37 down
+frame 90
+frame 543 left
+frame 33 down
+frame 60
+frame 140 down
+frame 80 right
+frame 20
