@@ -30,6 +30,32 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lotw_gym import LotwEnv, load_replay  # noqa: E402
 
 
+class GoalPlanes(gym.Wrapper):
+    """Append 2 constant planes encoding the goal direction (dx, dy in [-1,1],
+    scaled to 0..255) to the (4,84,84) framestack -> (6,84,84). This is how the
+    goal-conditioned policy SEES its instruction."""
+
+    def __init__(self, env):
+        super().__init__(env)
+        import numpy as _np
+        self.observation_space = gym.spaces.Box(0, 255, (6, 84, 84), _np.uint8)
+
+    def _aug(self, obs, info):
+        dx, dy = info["goal_delta"]
+        p = np.empty((2, 84, 84), np.uint8)
+        p[0] = int((dx + 1) / 2 * 255)
+        p[1] = int((dy + 1) / 2 * 255)
+        return np.concatenate([np.asarray(obs), p], axis=0)
+
+    def reset(self, **kw):
+        obs, info = self.env.reset(**kw)
+        return self._aug(obs, info), info
+
+    def step(self, a):
+        obs, r, term, trunc, info = self.env.step(a)
+        return self._aug(obs, info), r, term, trunc, info
+
+
 def make_env(checkpoint, max_steps, reward_mode):
     def thunk():
         env = LotwEnv(checkpoint=checkpoint, frame_skip=4, max_steps=max_steps,
@@ -37,6 +63,8 @@ def make_env(checkpoint, max_steps, reward_mode):
         env = gym.wrappers.GrayscaleObservation(env, keep_dim=False)
         env = gym.wrappers.ResizeObservation(env, (84, 84))
         env = gym.wrappers.FrameStackObservation(env, 4)
+        if reward_mode == "goto":
+            env = GoalPlanes(env)
         return env
 
     return thunk
@@ -49,10 +77,10 @@ def layer_init(layer, std=np.sqrt(2), bias=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, n_actions):
+    def __init__(self, n_actions, in_ch=4):
         super().__init__()
         self.net = nn.Sequential(
-            layer_init(nn.Conv2d(4, 32, 8, stride=4)), nn.ReLU(),
+            layer_init(nn.Conv2d(in_ch, 32, 8, stride=4)), nn.ReLU(),
             layer_init(nn.Conv2d(32, 64, 4, stride=2)), nn.ReLU(),
             layer_init(nn.Conv2d(64, 64, 3, stride=1)), nn.ReLU(),
             nn.Flatten(),
@@ -92,7 +120,7 @@ def main():
     p.add_argument("--vf-coef", type=float, default=0.5)
     p.add_argument("--checkpoint", default="fixtures/reference/outside_walk.replay")
     p.add_argument("--reward-mode", default="explore",
-                   choices=["explore", "explore_lab", "motion"])
+                   choices=["explore", "explore_lab", "goto", "motion"])
     p.add_argument("--vec", default="async", choices=["async", "sync"],
                    help="async = one env per subprocess (REQUIRED for >1 env; see below)")
     p.add_argument("--save-path", default="agent/runs/ppo.pt")
@@ -136,7 +164,7 @@ def main():
     envs = gym.wrappers.vector.RecordEpisodeStatistics(envs)
     n_actions = int(envs.single_action_space.n)
 
-    agent = Agent(n_actions).to(device)
+    agent = Agent(n_actions, in_ch=envs.single_observation_space.shape[0]).to(device)
     if args.init_from:
         ck = torch.load(args.init_from, map_location=device, weights_only=False)
         agent.load_state_dict(ck["model"])
