@@ -153,3 +153,123 @@ composer speeds up as it works. No hand-labeled data anywhere.
   assist); mounted-on-ladder ignores LEFT/RIGHT (looks frozen — press
   UP/DOWN); walking is ~1.1 px/frame, so "walls" may just be short walks;
   chests are locked-door objects (open on touch, consume a key).
+
+## Tooling & setup
+
+### The environment stack (game → Python)
+
+| layer | what | where |
+|---|---|---|
+| Rust port | the faithful game engine; deterministic, headless, ~3000 fps | `src/` (`lotw::env::Env` in `src/env.rs` is the RL gate) |
+| PyO3 bridge | `import lotw_env`: `Lotw(rom)`, `reset_replay(bytes)`, `advance/step`, `render()` (256×240×3), `ram()` (2 KiB), `state()` | `lotw-env/` |
+| Gym env | `LotwEnv`: Discrete(10) button combos, pixel obs, reward modes `explore` / `explore_lab` / `goto` / `motion`, checkpoint = input prefix | `agent/lotw_gym.py` |
+| Trainer | CleanRL-style PPO, NatureCNN (channel-count adapts to goal planes), GAE | `agent/train_ppo.py` |
+| Composer | segment solver + stitcher (see architecture) | `agent/composer.py` |
+
+The game body runs in a `corosensei` stackful coroutine (`src/frame.rs`) that
+cannot be snapshotted — hence replay-based savestates. Two hard rules that
+came from painful debugging:
+
+- **One env per process.** Multiple game coroutines in one process miscompile
+  in release when one is dropped mid-life (`&mut Engine`-across-suspends
+  aliasing hazard; see `frame.rs` docs). `train_ppo.py --vec async`
+  (AsyncVectorEnv, subprocess per env) is the default and required for >1 env.
+- **The input-poll safety valve** (`game::read_controllers` →
+  `frame::input_poll_watchdog`) converts input-wait spin loops (a faithful
+  original freeze) into yieldable frames. Engine changes must keep
+  `cargo run --release --bin env_smoke` reporting `deterministic: true`.
+
+### Python: uv + nix
+
+The flake (`flake.nix`) provides interpreters and native deps only
+(`python3`, `uv`, `maturin`, plus `stdenv.cc.cc.lib`/`zlib` on
+`LD_LIBRARY_PATH` so manylinux wheels load on NixOS). uv owns the Python
+dependencies via the root `pyproject.toml`; `.envrc` runs `uv sync` and
+activates `.venv`.
+
+```bash
+nix develop                       # toolchain shell (direnv does this + uv sync)
+uv sync --group train             # torch (CPU wheel via pytorch-cpu index) + opencv
+maturin develop --release --manifest-path lotw-env/Cargo.toml   # (re)build the extension
+```
+
+Gotchas: `uv sync` **without** `--group train` silently drops torch; do not
+set `UV_PYTHON` in the flake (it would push maturin onto the read-only nix
+python — only `UV_PYTHON_DOWNLOADS=never` is set); after editing lotw-env
+Rust, re-run `maturin develop` (or `uv sync --reinstall-package lotw-env`).
+
+### GPU training: rocm/pytorch container
+
+Hardware: AMD RX 7900 XTX (gfx1100 — officially ROCm-supported, no
+`HSA_OVERRIDE`). Torch-on-ROCm comes from the `rocm/pytorch` docker image,
+never from nix. One command:
+
+```bash
+bash agent/run_gpu.sh                          # defaults: 2M steps, 16 envs, explore
+REWARD_MODE=goto CHECKPOINT=fixtures/reference/labyrinth_room.replay \
+  SAVE_PATH=agent/runs/ppo_goto.pt TIMESTEPS=3000000 MAX_STEPS=256 \
+  bash agent/run_gpu.sh                        # env-var overridable
+INIT_FROM=agent/runs/prev.pt bash agent/run_gpu.sh   # warm-start / resume
+```
+
+The script mounts the repo, installs a minimal rust toolchain in-container,
+builds the wheel with `maturin build --interpreter python3` (NOT `develop`,
+which would grab the mounted host venv), isolates `CARGO_TARGET_DIR=/tmp`,
+and trains with a stall detector (`--stall-timeout`, exits loud instead of
+hanging silently). Checkpoints land in `agent/runs/` (gitignored, root-owned
+because docker). Monitor with `docker logs <cid>` / the redirected log file.
+
+Throughput reference: ~1550 SPS on 16 async envs (env-bound — the CNN barely
+taxes the GPU). CPU quirk: `torch.set_num_threads(8)` (`TORCH_THREADS` env) —
+the default one-thread-per-core is ~14× slower on small batches.
+
+### Evaluation
+
+```bash
+python agent/eval.py --checkpoint-model agent/runs/ppo_lab3.pt \
+  --replay fixtures/reference/labyrinth_room.replay --episodes 15 [--greedy|--random]
+```
+
+Reports behavior: distinct rooms reached, cells covered, death rate. For the
+goto model: success-rate on held-out scouted goals (see scratch eval).
+
+### ROM asset tools (the knowledge layer)
+
+```bash
+# lossless extraction (already committed under assets/):
+cargo run --release --features assets --bin assettool -- extract rom/lotw.nes assets
+# render every room + the full 4×16 world map as PNGs:
+cargo run --release --features assets --bin assettool -- render rom/lotw.nes assets OUT_DIR
+```
+
+`assets/rooms/room-YY-X.csv` are 64×12 metatile grids (learned ids: 64=ladder,
+192=vertical shaft, 182=floor-ish, 111=air); `manifest.json` carries mapx/mapy,
+headers (CHR banks at bytes +5/+6), actor spawns, palettes. Read the rendered
+rooms (downscale via ffmpeg first — they're 1024×192 each).
+
+### Video → routing tools
+
+```bash
+# subtitles (auto-subs) once:
+nix run nixpkgs#yt-dlp -- --skip-download --write-auto-subs --sub-lang en \
+  --convert-subs srt -o subs "https://www.youtube.com/watch?v=V9R8SGS5-LM"
+# clip a chapter:
+nix run nixpkgs#yt-dlp -- --download-sections "*11:50-16:30" -f "b[height<=480]" \
+  -o clip.mp4 "https://www.youtube.com/watch?v=V9R8SGS5-LM"
+# pair frames with spoken captions -> contact sheets (the routing document):
+python agent/video_align.py clip.mp4 subs.en.srt outdir 710 275   # base_s, clip_len_s
+```
+
+Plain uncaptioned sheets when needed:
+`ffmpeg -i clip.mp4 -vf "fps=1/5,scale=320:-1,tile=3x3" sheet%02d.png`.
+
+### Checkpoints / fixtures (`.replay` format)
+
+Text run-length format, one line per held input: `frame <count> [buttons…]`
+(`A B select start up down left right`); `lotw_gym.load_replay()` expands it
+to one byte/frame (hardware bit order: A=1 B=2 sel=4 start=8 U=16 D=32 L=64
+R=128). Milestones committed under `fixtures/reference/`:
+`labyrinth_entry` (Lyll at world (0,0)), `labyrinth_room` (training spawn),
+`pochi_lab` (Pochi at (0,0)), `pochi_p0` (Pochi at (0,2) — master-log head).
+`Composer.save()` writes this format; every stitched milestone should become
+a fixture + commit (stage files explicitly — never `git add -A`).
