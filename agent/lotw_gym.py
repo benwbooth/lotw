@@ -118,6 +118,10 @@ class LotwEnv(gym.Env):
             lotw_env.FRAME_H, lotw_env.FRAME_W, 3
         ).copy()
 
+    def _pos(self, st) -> tuple:
+        """World position in pixels (room-relative x, y)."""
+        return (st["player_x_tile"] * 16 + st["player_x_fine"], st["player_y"])
+
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         cp = (options or {}).get("checkpoint", self.checkpoint)
@@ -127,7 +131,41 @@ class LotwEnv(gym.Env):
         # Seed coverage with the start location so it earns no reward.
         self._seen_screens = {screen_of(self._prev)}
         self._seen_cells = {cell_of(self._prev)}
+        if self.reward_mode == "goto":
+            # Scout a goal that is reachable BY CONSTRUCTION: run a random
+            # rollout (movement-biased, actions held in bursts so it actually
+            # travels), record where it ends, deterministically reset back.
+            # Resample until the goal is a real journey (>= 48 px away).
+            for _attempt in range(6):
+                n = int(self.np_random.integers(40, 200))
+                a = 0
+                for i in range(n):
+                    if i % 6 == 0:  # hold each choice ~6 steps: coherent travel
+                        a = ACTIONS[int(self.np_random.integers(1, len(ACTIONS)))]
+                    for _ in range(self.frame_skip):
+                        self._env.advance(a)
+                    st = self._env.state()
+                    if st["character_index"] > 4 or st["map_screen_y"] == 16:
+                        break
+                gs = self._env.state()
+                ok = gs["character_index"] <= 4 and gs["map_screen_y"] != 16
+                self.goal = (self._pos(gs), (gs["map_screen_x"], gs["map_screen_y"]))
+                self._env.reset_replay(cp)
+                self._prev = self._env.state()
+                self._gdist = self._goal_dist(self._prev)
+                if ok and self._gdist >= 48:
+                    break
+            return self._obs(), {"state": self._prev,
+                                 "goal_delta": self.goal_delta(self._prev)}
         return self._obs(), {"state": self._prev}
+
+    def _goal_dist(self, st) -> float:
+        (gx, gy), (grx, gry) = self.goal
+        px, py = self._pos(st)
+        # rooms are 1024x192 px; add room offsets for a global distance
+        dx = (st["map_screen_x"] - grx) * 1024 + (px - gx)
+        dy = (st["map_screen_y"] - gry) * 192 + (py - gy)
+        return abs(dx) + abs(dy)
 
     def step(self, action):
         a = ACTIONS[int(action)]
@@ -162,6 +200,19 @@ class LotwEnv(gym.Env):
             self._seen_cells.add(cell)  #   by exploring, so noop < move < explore
             if left_gameplay:
                 reward = -1.0           # dying is a setback, not progress
+        elif self.reward_mode == "goto":
+            # Goal-conditioned navigation: dense progress toward the scouted
+            # goal, big bonus on arrival. This trains the "go to (x,y)" skill
+            # the composer needs as its executor.
+            d = self._goal_dist(state)
+            reward = (self._gdist - d) / 16.0       # progress, in tiles
+            self._gdist = d
+            if d < 16:
+                reward = 10.0
+                done = True                          # goal reached: episode ends
+            if left_gameplay or surfaced:
+                reward = -2.0
+            left_gameplay = left_gameplay or surfaced
         elif self.reward_mode == "explore_lab":
             # Labyrinth-only exploration. The plain "explore" policy discovered a
             # loophole: climb back UP the entry ladder and farm the big, safe
@@ -191,7 +242,17 @@ class LotwEnv(gym.Env):
         terminated = bool(done) or left_gameplay
         truncated = self._steps >= self.max_steps
         info = {"state": state, "screens": len(self._seen_screens), "cells": len(self._seen_cells)}
+        if self.reward_mode == "goto":
+            info["goal_delta"] = self.goal_delta(state)
         return self._obs(), reward, terminated, truncated, info
+
+    def goal_delta(self, st) -> tuple:
+        """Goal direction as (dx, dy) normalized to [-1, 1] (clipped)."""
+        (gx, gy), (grx, gry) = self.goal
+        px, py = self._pos(st)
+        dx = (grx - st["map_screen_x"]) * 1024 + (gx - px)
+        dy = (gry - st["map_screen_y"]) * 192 + (gy - py)
+        return (max(-1.0, min(1.0, dx / 512)), max(-1.0, min(1.0, dy / 192)))
 
     def render(self):
         if self.render_mode == "rgb_array":
